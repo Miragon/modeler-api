@@ -113,6 +113,8 @@ export interface Relationship {
   /** Roles on the downstream end (asymmetric patterns only). */
   downstreamRoles?: DownstreamRole[];
   label?: string;
+  /** Free-text explanation of the integration, shown on hover in the editor. */
+  description?: string;
   /** Free-text integration technology, e.g. "RESTful HTTP" (CML-compatible). */
   implementationTechnology?: string;
 }

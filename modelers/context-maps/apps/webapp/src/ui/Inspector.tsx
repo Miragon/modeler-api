@@ -140,8 +140,7 @@ function RoleToggle<T extends string>({
             <button
               key={role}
               type="button"
-              disabled={!!reason}
-              title={reason ?? undefined}
+              aria-disabled={!!reason}
               className={
                 "tt-switch__opt" +
                 (selected.includes(role) ? " is-active" : "") +
@@ -151,6 +150,7 @@ function RoleToggle<T extends string>({
               onClick={() => !reason && toggle(role)}
             >
               {role}
+              {reason && <span className="tt-tip">{reason}</span>}
             </button>
           );
         })}
@@ -185,8 +185,7 @@ function RoleSwitch<T extends string>({
             <button
               key={opt ?? "none"}
               type="button"
-              disabled={!!reason}
-              title={reason ?? undefined}
+              aria-disabled={!!reason}
               className={
                 "tt-switch__opt" +
                 (value === opt ? " is-active" : "") +
@@ -196,6 +195,7 @@ function RoleSwitch<T extends string>({
               onClick={() => !reason && onChange(opt)}
             >
               {opt ?? "None"}
+              {reason && <span className="tt-tip">{reason}</span>}
             </button>
           );
         })}
@@ -308,6 +308,19 @@ function RelationshipInspector({ relationship }: { relationship: CmRelationship 
           placeholder="e.g. what is exchanged"
           ariaLabel="Relationship label"
           onCommit={(label) => cmModeling.updateLabel(relationship, label.trim())}
+        />
+      </label>
+
+      <label className="tt-field">
+        <span className="tt-field__label">Description</span>
+        <CommitInput
+          value={relationship.description ?? ""}
+          multiline
+          placeholder="What flows here, contracts, notes…"
+          ariaLabel="Relationship description"
+          onCommit={(description) =>
+            cmModeling.setDescription(relationship, description || undefined)
+          }
         />
       </label>
 

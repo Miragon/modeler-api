@@ -27,7 +27,7 @@ npm install @miragon/context-maps-schema-model
 - **The document model** — a small, stable shape (`CmDocument`) with `version`, `title`, `contexts`
   and `relationships`.
 - **Runtime validation** — Zod schemas + `parseDocument()` for structural checks, plus
-  `validateDocument()` for the ten strategic-DDD semantic rules, for everything that comes from a
+  `validateDocument()` for the thirteen strategic-DDD semantic rules, for everything that comes from a
   file, a URL or `localStorage`.
 - **Forward migrations** — `parseDocument()` migrates older documents up to the current version
   before validating, keyed by the document `version`.
@@ -67,12 +67,12 @@ A diagram is a single JSON object: a set of **bounded contexts** (boxes) and the
 }
 ```
 
-| Field           | Type               | Notes                                                                                                              |
-| --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `version`       | `1`                | `DOCUMENT_VERSION`; older versions are migrated up on parse.                                                       |
-| `title`         | `string`           | Diagram name.                                                                                                      |
-| `contexts`      | `BoundedContext[]` | A box: `label`, `position`, `size`, optional `subdomainType`, `team`, `description`, `fill`, `stroke`.             |
-| `relationships` | `Relationship[]`   | An edge `from` → `to`: `pattern`, optional `upstreamRoles`/`downstreamRoles`, `label`, `implementationTechnology`. |
+| Field           | Type               | Notes                                                                                                                             |
+| --------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `version`       | `1`                | `DOCUMENT_VERSION`; older versions are migrated up on parse.                                                                      |
+| `title`         | `string`           | Diagram name.                                                                                                                     |
+| `contexts`      | `BoundedContext[]` | A box: `label`, `position`, `size`, optional `subdomainType`, `team`, `description`, `fill`, `stroke`.                            |
+| `relationships` | `Relationship[]`   | An edge `from` → `to`: `pattern`, optional `upstreamRoles`/`downstreamRoles`, `label`, `description`, `implementationTechnology`. |
 
 ## Notation
 
@@ -153,7 +153,7 @@ console.log(SAMPLE_DOCUMENT.title);
 | `SubdomainType`, `RelationshipPattern`, `UpstreamRole`, `DownstreamRole`, + their value lists | The notation's discriminator unions + their value lists.             |
 | `SUBDOMAIN_TYPE_SPECS`, `RELATIONSHIP_PATTERN_SPECS`, `MARK_COLORS`, `dashArray()`            | The visual notation spec (colours, strokes, markers) as data.        |
 | `documentSchema`, `boundedContextSchema`, `relationshipSchema`                                | Zod schemas for each shape.                                          |
-| `parseDocument()`, `ParseResult`, `validateDocument()`, `ValidationReport`                    | Structural parse + the ten strategic-DDD semantic rules.             |
+| `parseDocument()`, `ParseResult`, `validateDocument()`, `ValidationReport`                    | Structural parse + the thirteen strategic-DDD semantic rules.        |
 | `serializeDocument()`, `canonicalize()`                                                       | Deterministic JSON serialization (sorted, rounded, fixed key order). |
 | `emptyDocument()`, `createBoundedContext()`, `createRelationship()`, `newId()`                | Factories with notation defaults + id generation.                    |
 | `SAMPLE_DOCUMENT`                                                                             | A complete example context map.                                      |

@@ -11,13 +11,11 @@
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
-import { isCmContext, isCmElement, isCmRelationship, type CmElement } from "../model/di-types.js";
+import { isCmElement, isCmRelationship, type CmElement } from "../model/di-types.js";
 
 /** Lower = further back. */
 function tier(el: CmElement): number {
-  if (isCmRelationship(el)) return 0;
-  if (isCmContext(el)) return 1;
-  return 1;
+  return isCmRelationship(el) ? 0 : 1;
 }
 
 export default class CmZOrder {

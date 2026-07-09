@@ -751,10 +751,36 @@ kbd {
   color: #333;
 }
 .cm-legend-item {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+  cursor: help;
+}
+
+/* Instant notation explanation above the legend item (no native title delay). */
+.cm-legend-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: rgba(28, 32, 40, 0.96);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 60;
+}
+.cm-legend-item:hover .cm-legend-tip {
+  display: block;
 }
 
 /* Fast custom hover tooltip */
@@ -779,6 +805,34 @@ kbd {
 }
 .cm-tooltip span {
   opacity: 0.85;
+}
+
+/* Instant "why is this disabled" tooltip on the role switches — anchored to the
+   full field width (the inspector scrolls, a button-centred tip would clip). */
+.tt-field {
+  position: relative;
+}
+.tt-tip {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  padding: 8px 10px;
+  background: rgba(28, 32, 40, 0.96);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 60;
+}
+.tt-switch__opt:hover .tt-tip {
+  display: block;
 }
 
 /* Segmented switch (roles). Single-select for ACL/CF, multi-toggle for OHS/PL. */
@@ -852,12 +906,13 @@ kbd {
 }
 
 /* Disabled segment (rule-forbidden role): greyed out, not clickable */
+/* No `opacity` here: the instant .tt-tip tooltip lives INSIDE the button, and
+   opacity would make it translucent and cap its z-index (stacking context). */
 .tt-switch__opt.is-disabled,
 .tt-switch__opt:disabled {
-  opacity: 0.4;
   cursor: not-allowed;
   background: var(--surface-2);
-  color: var(--ink-faint);
+  color: #c3c9d6;
 }
 .tt-switch__opt.is-disabled:hover {
   background: var(--surface-2);

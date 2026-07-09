@@ -38,6 +38,14 @@ test("an interactively-created connection is a relationship and is exported", ()
     expect(exported.relationships[0].pattern).toBe("upstream-downstream");
     expect(exported.relationships[0].from).toBe("a");
     expect(exported.relationships[0].to).toBe("b");
+
+    // only ONE relationship per pair: a second line is refused, both directions
+    expect(rules.allowed("connection.create", { source: a, target: b })).toBe(false);
+    expect(rules.allowed("connection.create", { source: b, target: a })).toBe(false);
+    // reconnecting the existing line between the same pair stays allowed
+    expect(rules.allowed("connection.reconnect", { source: a, target: b, connection: conn })).toBe(
+      true,
+    );
   } finally {
     modeler.destroy();
     container.remove();

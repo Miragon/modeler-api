@@ -28,6 +28,7 @@ import {
 } from "@miragon/context-maps-schema-model";
 import type { SubdomainType } from "@miragon/context-maps-schema-model";
 import { FONT, INK, INK_SOFT, PAPER, TT_RENDER_PRIORITY } from "./styles.js";
+import { endRoleChipLayout } from "./endRoleChips.js";
 import {
   isCmContext,
   isCmElement,
@@ -217,7 +218,6 @@ export default class ContextMapsRenderer extends BaseRenderer {
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx / len;
     const uy = dy / len;
-    const charW = FONT.small * 0.64;
 
     // Direction letter: plain bold letter at the domain, white halo for legibility.
     const letterDist = 11;
@@ -238,26 +238,18 @@ export default class ContextMapsRenderer extends BaseRenderer {
     letter.textContent = direction;
     svgAppend(visuals, letter);
 
-    if (roles.length === 0) return;
-
-    // Integration roles: horizontal chips inside one axis-aligned parent box.
-    const chipH = FONT.small + 6;
-    const gap = 3;
-    const pad = 4;
-    const widths = roles.map((r) => r.length * charW + 12);
-    const innerW = widths.reduce((a, b) => a + b, 0) + gap * (roles.length - 1);
-    const boxW = innerW + pad * 2;
-    const boxH = chipH + pad * 2;
-
-    const dist = letterDist + (direction.length * charW) / 2 + 8 + boxW / 2;
-    const cx = endpoint.x + ux * dist;
-    const cy = endpoint.y + uy * dist;
+    // Integration roles: horizontal chips inside one axis-aligned parent box
+    // (geometry shared with the validation markers via endRoleChipLayout).
+    const layout = endRoleChipLayout(endpoint, toward, direction, roles);
+    if (!layout) return;
+    const { box, center, chipWidths: widths, chipHeight: chipH, innerWidth: innerW, gap } = layout;
+    const cy = center.y;
 
     const parent = svgAttr(svgCreate("rect"), {
-      x: cx - boxW / 2,
-      y: cy - boxH / 2,
-      width: boxW,
-      height: boxH,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
       rx: 6,
       ry: 6,
       fill: PAPER,
@@ -267,7 +259,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     });
     svgAppend(visuals, parent);
 
-    let x = cx - innerW / 2;
+    let x = center.x - innerW / 2;
     roles.forEach((role, i) => {
       const w = widths[i];
       const fill = MARK_COLORS[role] ?? NEUTRAL_STROKE;

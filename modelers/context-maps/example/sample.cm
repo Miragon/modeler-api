@@ -28,7 +28,7 @@
         "width": 200,
         "height": 110
       },
-      "subdomainType": "core",
+      "subdomainType": "supporting",
       "team": "Program Team",
       "description": "Runs the call for papers and exposes the public submission API."
     },
@@ -60,7 +60,7 @@
       },
       "subdomainType": "generic",
       "team": "Platform Team",
-      "description": "Sends emails to speakers and attendees via a published language."
+      "description": "Sends emails to speakers and attendees, conforming to the schedule events."
     },
     {
       "id": "ctx_schedule",
@@ -88,7 +88,7 @@
         "width": 200,
         "height": 110
       },
-      "subdomainType": "core",
+      "subdomainType": "supporting",
       "team": "Program Team",
       "description": "Owns proposals once submitted; the hub other contexts integrate with."
     }
@@ -111,27 +111,23 @@
       "id": "rel_cfp_submission",
       "from": "ctx_cfp",
       "to": "ctx_submission",
-      "pattern": "upstream-downstream",
-      "upstreamRoles": [
-        "OHS"
-      ],
-      "downstreamRoles": [
-        "ACL"
-      ],
-      "label": "CfP API",
-      "implementationTechnology": "RESTful HTTP"
+      "pattern": "shared-kernel",
+      "label": "proposal model"
     },
     {
       "id": "rel_evaluation_schedule",
       "from": "ctx_evaluation",
       "to": "ctx_schedule",
-      "pattern": "shared-kernel",
-      "label": "session model"
+      "pattern": "customer-supplier",
+      "upstreamRoles": [
+        "PL"
+      ],
+      "label": "accepted sessions"
     },
     {
-      "id": "rel_notification_schedule",
-      "from": "ctx_notification",
-      "to": "ctx_schedule",
+      "id": "rel_schedule_notification",
+      "from": "ctx_schedule",
+      "to": "ctx_notification",
       "pattern": "upstream-downstream",
       "upstreamRoles": [
         "OHS",
@@ -140,7 +136,7 @@
       "downstreamRoles": [
         "CF"
       ],
-      "label": "notifications"
+      "label": "schedule events"
     },
     {
       "id": "rel_submission_evaluation",
@@ -152,7 +148,9 @@
       ],
       "downstreamRoles": [
         "ACL"
-      ]
+      ],
+      "label": "submissions API",
+      "implementationTechnology": "RESTful HTTP"
     },
     {
       "id": "rel_submission_schedule",

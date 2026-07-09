@@ -48,6 +48,7 @@ function normRelationship(r: Relationship): Relationship {
   if (r.upstreamRoles?.length) out.upstreamRoles = [...r.upstreamRoles].sort();
   if (r.downstreamRoles?.length) out.downstreamRoles = [...r.downstreamRoles].sort();
   if (r.label) out.label = r.label;
+  if (r.description) out.description = r.description;
   if (r.implementationTechnology) out.implementationTechnology = r.implementationTechnology;
   return out;
 }

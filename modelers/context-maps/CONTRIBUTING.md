@@ -79,7 +79,7 @@ docs: add contributing guide
 | `@miragon/context-maps-schema-model` | Types, notation spec, Zod validation, serialization   | DOM-free |
 | `@miragon/context-maps-renderer`     | diagram-js bootstrap, renderer, viewer, import/export | DOM      |
 | `apps/webapp`                        | Vite + React demo editor                              | DOM      |
-| `apps/vscode`                        | VS Code custom editor for `.tt`/`.ttm.json`           | DOM      |
+| `apps/vscode`                        | VS Code custom editor for `.cm`/`.cm.json`            | DOM      |
 
 **P1 — the DOM boundary:** the DOM-free package (`schema-model`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This is

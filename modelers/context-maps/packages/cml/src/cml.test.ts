@@ -68,6 +68,81 @@ describe("parseCml", () => {
     expect(document.relationships[0].pattern).toBe("customer-supplier");
   });
 
+  it("orients `A Customer-Supplier B` (A is the customer/downstream)", () => {
+    const { document } = parseCml(`
+      ContextMap M {
+        contains Orders, Billing
+        Orders Customer-Supplier Billing
+      }
+    `);
+    const rel = document.relationships[0];
+    expect(rel.pattern).toBe("customer-supplier");
+    expect(rel.from).toBe("Billing");
+    expect(rel.to).toBe("Orders");
+  });
+
+  it("orients `A Supplier-Customer B` (A is the supplier/upstream)", () => {
+    const { document } = parseCml(`
+      ContextMap M {
+        contains Orders, Billing
+        Billing Supplier-Customer Orders
+      }
+    `);
+    const rel = document.relationships[0];
+    expect(rel.pattern).toBe("customer-supplier");
+    expect(rel.from).toBe("Billing");
+    expect(rel.to).toBe("Orders");
+  });
+
+  it("orients the Upstream-Downstream and Downstream-Upstream keyword forms", () => {
+    const { document } = parseCml(`
+      ContextMap M {
+        contains A, B, C
+        A Upstream-Downstream B
+        C Downstream-Upstream A
+      }
+    `);
+    expect(document.relationships[0]).toMatchObject({
+      from: "A",
+      to: "B",
+      pattern: "upstream-downstream",
+    });
+    expect(document.relationships[1]).toMatchObject({
+      from: "A",
+      to: "C",
+      pattern: "upstream-downstream",
+    });
+  });
+
+  it("recovers Separate Ways from serializer comments", () => {
+    const { document } = parseCml(`
+      ContextMap M {
+        contains A, B
+        // Separate Ways: A and B
+      }
+    `);
+    expect(document.relationships).toHaveLength(1);
+    expect(document.relationships[0]).toMatchObject({
+      from: "A",
+      to: "B",
+      pattern: "separate-ways",
+    });
+  });
+
+  it("warns about unknown bracket roles instead of dropping them silently", () => {
+    const { document, diagnostics } = parseCml(`
+      ContextMap M {
+        contains A, B
+        A [U,BAD]->[D,ACL] B
+      }
+    `);
+    expect(document.relationships[0].upstreamRoles).toBeUndefined();
+    expect(document.relationships[0].downstreamRoles).toEqual(["ACL"]);
+    expect(diagnostics).toEqual([
+      expect.objectContaining({ severity: "warning", message: expect.stringContaining("BAD") }),
+    ]);
+  });
+
   it("produces a structurally valid, semantically clean document", () => {
     const { document } = parseCml(CM_EXAMPLE);
     expect(parseDocument(document).ok).toBe(true);
@@ -96,5 +171,20 @@ describe("serializeCml + round-trip", () => {
 
     const report = validateDocument(document);
     expect(report.errors).toEqual([]);
+  });
+
+  it("round-trips separate-ways via the comment marker", () => {
+    const doc = structuredClone(SAMPLE_DOCUMENT);
+    doc.relationships.push({
+      id: "rel_sw",
+      from: "ctx_auth",
+      to: "ctx_notification",
+      pattern: "separate-ways",
+    });
+    const { document } = parseCml(serializeCml(doc));
+    const sw = document.relationships.filter((r) => r.pattern === "separate-ways");
+    expect(sw).toHaveLength(1);
+    expect(sw[0].from).toBe("CtxAuth");
+    expect(sw[0].to).toBe("CtxNotification");
   });
 });

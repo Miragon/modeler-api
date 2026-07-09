@@ -73,8 +73,8 @@ export default class CmModeling {
     this.updateProperties(context, { team: team || undefined });
   }
 
-  setDescription(context: CmContext, description: string | undefined): void {
-    this.updateProperties(context, { description: description || undefined });
+  setDescription(element: CmElement, description: string | undefined): void {
+    this.updateProperties(element, { description: description || undefined });
   }
 
   /** Set or clear per-element colour overrides (`undefined` reverts to default). */

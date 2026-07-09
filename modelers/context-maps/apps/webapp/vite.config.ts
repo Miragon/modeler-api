@@ -5,6 +5,22 @@ import { fileURLToPath, URL } from "node:url";
 const fromHere = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 const portlessUrl = process.env.PORTLESS_URL || undefined;
 
+/**
+ * The Modeler instance lives in a React ref and survives Fast Refresh, so an
+ * HMR patch of the renderer/schema-model source would leave the RUNNING
+ * modeler on stale code (fixes appear "not working" until a manual reload).
+ * Force a full page reload whenever workspace-package source changes.
+ */
+const fullReloadOnPackageChange = (): Plugin => ({
+  name: "full-reload-on-package-change",
+  handleHotUpdate({ file, server }) {
+    if (/\/packages\/(renderer|schema-model|cml)\/src\//.test(file)) {
+      server.ws.send({ type: "full-reload" });
+      return [];
+    }
+  },
+});
+
 const portlessBanner = (url: string): Plugin => ({
   name: "portless-url-banner",
   configureServer(server) {
@@ -19,7 +35,11 @@ const portlessBanner = (url: string): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [react(), ...(portlessUrl ? [portlessBanner(portlessUrl)] : [])],
+  plugins: [
+    react(),
+    fullReloadOnPackageChange(),
+    ...(portlessUrl ? [portlessBanner(portlessUrl)] : []),
+  ],
   base: "./",
   resolve: {
     dedupe: ["react", "react-dom"],

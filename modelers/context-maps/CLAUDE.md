@@ -9,16 +9,16 @@ Shared core for two targets: a web app and a VS Code extension.
 
 Workspaces are declared in the root `package.json` (`workspaces` array, listed in topological build
 order). **All** versions are pinned to exact values inline in each package's `package.json` (`.npmrc`
-sets `save-exact=true`) — including internal `@miragon/context-maps-*` deps, which use the exact local version
-`0.1.0` (npm still links them to the local workspace). Exact pinning is enforced in CI by the
-`pin-check` job.
+sets `save-exact=true`) — including internal `@miragon/context-maps-*` deps, which use the exact local
+workspace version (currently `0.4.0`; npm still links them to the local workspace). Exact pinning is
+enforced in CI by the `pin-check` job.
 
 | Package                              | Purpose                                                                  | DOM |
 | ------------------------------------ | ------------------------------------------------------------------------ | --- |
 | `@miragon/context-maps-schema-model` | Types, the notation spec, Zod validation, migrations, JSON serialization | no  |
 | `@miragon/context-maps-renderer`     | diagram-js bootstrap, renderer, viewer/modeler, import/export, CSS       | yes |
 | `apps/webapp`                        | Vite + React demo editor                                                 | yes |
-| `apps/vscode`                        | VS Code extension: custom editor for `.tt`/`.ttm.json`                   | yes |
+| `apps/vscode`                        | VS Code extension: custom editor for `.cm`/`.cm.json`                    | yes |
 
 **P1 — DOM boundary:** the DOM-free package (`schema-model`) must **never** import `diagram-js`/DOM
 libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced twice — ESLint
@@ -54,7 +54,7 @@ Everything is managed via **Conventional Commits** — primarily `feat`, `fix`, 
 - JSON serialization must stay deterministic (sorted, rounded, version-stamped) so diffs and share
   URLs stay stable.
 - Pin **all** dependencies to exact versions — no version ranges (`^`/`~`/`>=`/`*`), internal
-  workspace deps included (use `0.1.0`). See
+  workspace deps included (use the current local workspace version). See
   [`.claude/rules/package-json-fixed-versions.md`](.claude/rules/package-json-fixed-versions.md).
 - Contributor onboarding in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

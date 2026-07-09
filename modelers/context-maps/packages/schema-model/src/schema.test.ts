@@ -69,7 +69,7 @@ function mapWith(rel: Partial<Relationship>): CmDocument {
   return doc;
 }
 
-describe("validateDocument — the 10 semantic rules", () => {
+describe("validateDocument — the 13 semantic rules", () => {
   it("reports no findings for the (valid) sample map", () => {
     const report = validateDocument(SAMPLE_DOCUMENT);
     expect(report.errors).toEqual([]);
@@ -128,5 +128,60 @@ describe("validateDocument — the 10 semantic rules", () => {
     doc.relationships[0].id = "a"; // collides with context "a"
     const report = validateDocument(doc);
     expect(report.errors.some((e) => e.rule === "unique-ids")).toBe(true);
+  });
+
+  it("rule 11: a core domain conforming (CF) to another context is warned", () => {
+    const doc = mapWith({ downstreamRoles: ["CF"] });
+    doc.contexts[1].subdomainType = "core";
+    const report = validateDocument(doc);
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.some((w) => w.rule === "protect-the-core")).toBe(true);
+  });
+
+  it("rule 11: CF on a non-core downstream context stays clean", () => {
+    const doc = mapWith({ downstreamRoles: ["CF"] });
+    doc.contexts[1].subdomainType = "generic";
+    const report = validateDocument(doc);
+    expect(report.warnings).toEqual([]);
+  });
+
+  it("rule 12: a shared kernel across two teams is warned", () => {
+    const doc = mapWith({ pattern: "shared-kernel" });
+    doc.contexts[0].team = "Team Red";
+    doc.contexts[1].team = "Team Blue";
+    const report = validateDocument(doc);
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.some((w) => w.rule === "shared-kernel-team-coupling")).toBe(true);
+  });
+
+  it("rule 12: a shared kernel within one team (or without teams) stays clean", () => {
+    const sameTeam = mapWith({ pattern: "shared-kernel" });
+    sameTeam.contexts[0].team = "Team Red";
+    sameTeam.contexts[1].team = "Team Red";
+    expect(validateDocument(sameTeam).warnings).toEqual([]);
+
+    const noTeams = mapWith({ pattern: "shared-kernel" });
+    expect(validateDocument(noTeams).warnings).toEqual([]);
+  });
+
+  it("rule 13: two relationships between the same pair are an error (either direction)", () => {
+    const doc = mapWith({});
+    doc.relationships.push({ id: "r2", from: "b", to: "a", pattern: "partnership" });
+    const report = validateDocument(doc);
+    const finding = report.errors.find((e) => e.rule === "one-relationship-per-pair");
+    expect(finding).toBeDefined();
+    expect(finding?.relationshipId).toBe("r2");
+  });
+
+  it("rule 13: distinct pairs stay clean", () => {
+    const doc = mapWith({});
+    doc.contexts.push({
+      id: "c",
+      label: "C",
+      position: { x: 100, y: 0 },
+      size: { width: 10, height: 10 },
+    });
+    doc.relationships.push({ id: "r2", from: "b", to: "c", pattern: "upstream-downstream" });
+    expect(validateDocument(doc).errors).toEqual([]);
   });
 });

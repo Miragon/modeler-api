@@ -1,9 +1,10 @@
 /**
  * A small but complete example context map, modelled on the conference event
  * planner from Kaiser's "Architecture for Flow" (Fig. 3.22). It exercises all
- * three subdomain types and several relationship patterns (upstream-downstream
- * with OHS/PL/ACL/CF roles, and a symmetric shared kernel). Ids are fixed so the
- * fixture serialises stably, and the map is valid under all semantic rules.
+ * three subdomain types and four relationship patterns (upstream-downstream
+ * with OHS/PL/ACL/CF roles, customer-supplier, and a symmetric shared kernel).
+ * Ids are fixed so the fixture serialises stably, and the map is free of
+ * errors and warnings under all semantic rules.
  */
 
 import { DOCUMENT_VERSION } from "./types";
@@ -28,20 +29,20 @@ export const SAMPLE_DOCUMENT: CmDocument = {
     {
       id: "ctx_cfp",
       label: "CfP Management",
-      subdomainType: "core",
+      subdomainType: "supporting",
       team: "Program Team",
       description: "Runs the call for papers and exposes the public submission API.",
       position: { x: 340, y: 120 },
-      size: size("core"),
+      size: size("supporting"),
     },
     {
       id: "ctx_submission",
       label: "Submission Handling",
-      subdomainType: "core",
+      subdomainType: "supporting",
       team: "Program Team",
       description: "Owns proposals once submitted; the hub other contexts integrate with.",
       position: { x: 640, y: 300 },
-      size: size("core"),
+      size: size("supporting"),
     },
     {
       id: "ctx_evaluation",
@@ -66,7 +67,7 @@ export const SAMPLE_DOCUMENT: CmDocument = {
       label: "Notification Handling",
       subdomainType: "generic",
       team: "Platform Team",
-      description: "Sends emails to speakers and attendees via a published language.",
+      description: "Sends emails to speakers and attendees, conforming to the schedule events.",
       position: { x: 1280, y: 580 },
       size: size("generic"),
     },
@@ -85,11 +86,8 @@ export const SAMPLE_DOCUMENT: CmDocument = {
       id: "rel_cfp_submission",
       from: "ctx_cfp",
       to: "ctx_submission",
-      pattern: "upstream-downstream",
-      upstreamRoles: ["OHS"],
-      downstreamRoles: ["ACL"],
-      label: "CfP API",
-      implementationTechnology: "RESTful HTTP",
+      pattern: "shared-kernel",
+      label: "proposal model",
     },
     {
       id: "rel_submission_evaluation",
@@ -98,6 +96,8 @@ export const SAMPLE_DOCUMENT: CmDocument = {
       pattern: "upstream-downstream",
       upstreamRoles: ["OHS"],
       downstreamRoles: ["ACL"],
+      label: "submissions API",
+      implementationTechnology: "RESTful HTTP",
     },
     {
       id: "rel_submission_schedule",
@@ -108,20 +108,21 @@ export const SAMPLE_DOCUMENT: CmDocument = {
       downstreamRoles: ["ACL"],
     },
     {
-      id: "rel_notification_schedule",
-      from: "ctx_notification",
-      to: "ctx_schedule",
-      pattern: "upstream-downstream",
-      upstreamRoles: ["OHS", "PL"],
-      downstreamRoles: ["CF"],
-      label: "notifications",
-    },
-    {
       id: "rel_evaluation_schedule",
       from: "ctx_evaluation",
       to: "ctx_schedule",
-      pattern: "shared-kernel",
-      label: "session model",
+      pattern: "customer-supplier",
+      upstreamRoles: ["PL"],
+      label: "accepted sessions",
+    },
+    {
+      id: "rel_schedule_notification",
+      from: "ctx_schedule",
+      to: "ctx_notification",
+      pattern: "upstream-downstream",
+      upstreamRoles: ["OHS", "PL"],
+      downstreamRoles: ["CF"],
+      label: "schedule events",
     },
   ],
 };

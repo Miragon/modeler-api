@@ -62,6 +62,7 @@ export default class CmExporter {
           ...(el.upstreamRoles?.length ? { upstreamRoles: [...el.upstreamRoles] } : {}),
           ...(el.downstreamRoles?.length ? { downstreamRoles: [...el.downstreamRoles] } : {}),
           ...(el.cmLabel ? { label: el.cmLabel } : {}),
+          ...(el.description ? { description: el.description } : {}),
           ...(el.implementationTechnology
             ? { implementationTechnology: el.implementationTechnology }
             : {}),

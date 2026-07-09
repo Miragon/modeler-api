@@ -40,9 +40,22 @@ test("moving a context drags its connection along", () => {
 
     expect(after).toBeGreaterThan(before + 100); // model: source end followed the box down
 
+    // Regression: diagram-js passes `connectionEnd: false` for the end that did
+    // not move — the line must keep BOTH ends, not collapse to a single point.
+    expect(conn.waypoints.length).toBeGreaterThanOrEqual(2);
+
+    // Regression: the source end must sit ON the moved box border (a is now at
+    // 100/400, 200x110) — stale move anchors once detached the line from the box.
+    const dock = conn.waypoints[0];
+    expect(dock.x).toBeGreaterThanOrEqual(100);
+    expect(dock.x).toBeLessThanOrEqual(300);
+    expect(dock.y).toBeGreaterThanOrEqual(400);
+    expect(dock.y).toBeLessThanOrEqual(510);
+
     // render: the drawn polyline must also reflect the new geometry
     const polyAfter = canvas.getGraphics(conn).querySelector("polyline")?.getAttribute("points");
     expect(polyAfter).not.toBe(polyBefore);
+    expect(polyAfter?.split(" ").length).toBeGreaterThanOrEqual(2);
 
     // and the connection's gfx must hold exactly ONE polyline (no stale duplicate).
     expect(canvas.getGraphics(conn).querySelectorAll("polyline").length).toBe(1);

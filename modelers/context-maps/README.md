@@ -45,9 +45,11 @@ single source of truth for the colours and strokes below is
 
 Asymmetric relationships carry **integration roles** at their ends: upstream can be an
 **Open Host Service (OHS)** and/or a **Published Language (PL)**; downstream can apply an
-**Anticorruption Layer (ACL)** or be a **Conformist (CF)** (the two are mutually exclusive). Ten
-semantic rules adopted from Context Mapper (OHS/PL only upstream, ACL/CF only downstream, symmetric
-patterns carry no roles, etc.) are checked by `validateDocument()`.
+**Anticorruption Layer (ACL)** or be a **Conformist (CF)** (the two are mutually exclusive). Thirteen
+semantic rules — ten adopted from Context Mapper (OHS/PL only upstream, ACL/CF only downstream,
+symmetric patterns carry no roles, etc.), two advisory warnings from Kaiser's _Architecture for
+Flow_ (a core domain should not conform, a shared kernel should not span two teams), and at most
+one relationship per pair of contexts — are checked by `validateDocument()`.
 
 ## Targets
 

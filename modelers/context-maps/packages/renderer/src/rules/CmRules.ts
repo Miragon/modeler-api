@@ -2,7 +2,9 @@
  * Allowed editing operations.
  *
  *  - Contexts are free, placed, resizable shapes that overlap but never nest.
- *  - Relationships are connections between two distinct contexts (no self-loops).
+ *  - Relationships are connections between two distinct contexts (no
+ *    self-loops), at most ONE per pair of contexts — a second, overlapping
+ *    line between the same two contexts is impossible to tell apart visually.
  */
 
 import RuleProvider from "diagram-js/lib/features/rules/RuleProvider";
@@ -21,6 +23,7 @@ interface ConnectContext {
 interface ReconnectContext {
   source?: unknown;
   target?: unknown;
+  connection?: unknown;
 }
 
 export default class CmRules extends RuleProvider {
@@ -46,18 +49,36 @@ export default class CmRules extends RuleProvider {
       canConnect(context.source, context.target),
     );
     this.addRule("connection.reconnect", (context: ReconnectContext) =>
-      canConnect(context.source, context.target) ? true : false,
+      canConnect(context.source, context.target, context.connection) ? true : false,
     );
     this.addRule("connection.updateWaypoints", () => true);
   }
+}
+
+interface ConnectedElement {
+  incoming?: Array<{ source?: unknown; target?: unknown }>;
+  outgoing?: Array<{ source?: unknown; target?: unknown }>;
+}
+
+/** True if any relationship (other than `ignore`) already links the two contexts, either way. */
+function alreadyConnected(source: unknown, target: unknown, ignore?: unknown): boolean {
+  const { incoming = [], outgoing = [] } = source as ConnectedElement;
+  return [...incoming, ...outgoing].some(
+    (connection) =>
+      connection !== ignore &&
+      ((connection.source === source && connection.target === target) ||
+        (connection.source === target && connection.target === source)),
+  );
 }
 
 /** Returns default relationship attributes if the connection is allowed, else false. */
 function canConnect(
   source: unknown,
   target: unknown,
+  ignore?: unknown,
 ): false | { cmKind: "relationship"; pattern: "upstream-downstream" } {
   if (!isCmContext(source) || !isCmContext(target)) return false;
   if (source === target) return false;
+  if (alreadyConnected(source, target, ignore)) return false;
   return { cmKind: "relationship", pattern: "upstream-downstream" };
 }

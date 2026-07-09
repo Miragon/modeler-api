@@ -22,7 +22,12 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Safari engine: canvas interactions (drag-connect etc.) behave differently
+    // enough across engines that both are worth covering.
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
   webServer: {
     command: `npm run dev:app -w apps/webapp -- --port ${PORT} --strictPort`,
     cwd: "..",

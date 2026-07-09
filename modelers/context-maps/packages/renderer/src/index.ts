@@ -23,7 +23,7 @@ export { cmModelingModule, CmModeling } from "./modeling/index.js";
 export { cmRulesModule, CmRules } from "./rules/index.js";
 export { cmBehaviorsModule, CmFlatModelBehavior } from "./behaviors/index.js";
 export { cmPaletteModule, CmPaletteProvider } from "./palette/index.js";
-export { cmContextPadModule, CmContextPadProvider } from "./context-pad/index.js";
+export { cmConnectHandlesModule, CmConnectHandles } from "./connect-handles/index.js";
 export { cmLabelEditingModule, CmLabelEditing } from "./label-editing/index.js";
 export { cmKeyboardModule, CmKeyboard } from "./keyboard/index.js";
 export { cmZOrderModule, CmZOrder } from "./zorder/index.js";

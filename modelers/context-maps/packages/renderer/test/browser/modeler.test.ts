@@ -59,21 +59,30 @@ test("a relationship may connect two distinct contexts but not a self-loop", () 
   try {
     modeler.importDocument(SAMPLE_DOCUMENT);
 
-    const registry = modeler.get<{ getAll(): CmElement[] }>("elementRegistry");
+    const registry = modeler.get<{ getAll(): CmElement[]; get(id: string): CmElement }>(
+      "elementRegistry",
+    );
     const rules = modeler.get<{ allowed(action: string, context: unknown): unknown }>("rules");
-    const contexts = registry.getAll().filter(isCmContext) as CmContext[];
+    // two contexts of the sample map WITHOUT an existing relationship between them
+    const auth = registry.get("ctx_auth") as CmContext;
+    const notification = registry.get("ctx_notification") as CmContext;
 
     const ok = rules.allowed("connection.create", {
-      source: contexts[0],
-      target: contexts[1],
+      source: auth,
+      target: notification,
     });
     expect(ok).toBeTruthy();
 
     const self = rules.allowed("connection.create", {
-      source: contexts[0],
-      target: contexts[0],
+      source: auth,
+      target: auth,
     });
     expect(self).toBe(false);
+
+    // already-connected pair (ctx_auth → ctx_cfp exists): refused either way
+    const cfp = registry.get("ctx_cfp") as CmContext;
+    expect(rules.allowed("connection.create", { source: auth, target: cfp })).toBe(false);
+    expect(rules.allowed("connection.create", { source: cfp, target: auth })).toBe(false);
   } finally {
     modeler.destroy();
     container.remove();

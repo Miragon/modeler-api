@@ -58,3 +58,47 @@ test("swapEnds reverses a relationship's source/target and re-renders one line",
     container.remove();
   }
 });
+
+test("swapEnds keeps integration roles bound to their side, not to a context", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const modeler = new Modeler({ container });
+  try {
+    const doc = emptyDocument("m");
+    doc.contexts = [
+      { id: "a", label: "A", position: { x: 100, y: 200 }, size: { width: 200, height: 110 } },
+      { id: "b", label: "B", position: { x: 600, y: 200 }, size: { width: 200, height: 110 } },
+    ];
+    doc.relationships = [
+      {
+        id: "r",
+        from: "a",
+        to: "b",
+        pattern: "upstream-downstream",
+        upstreamRoles: ["OHS"],
+        downstreamRoles: ["ACL"],
+      },
+    ];
+    modeler.importDocument(doc);
+
+    const registry = modeler.get<{ get(id: string): unknown }>("elementRegistry");
+    const cmModeling = modeler.get<CmModeling>("cmModeling");
+    const conn = registry.get("r") as CmRelationship;
+
+    cmModeling.swapEnds(conn);
+
+    // "b" is now upstream and carries the OHS side; "a" is downstream with ACL.
+    const exported = modeler.exportDocument();
+    expect(exported.relationships[0]).toMatchObject({
+      from: "b",
+      to: "a",
+      upstreamRoles: ["OHS"],
+      downstreamRoles: ["ACL"],
+    });
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});

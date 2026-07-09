@@ -5,7 +5,7 @@ import { useUiStore } from "./uiStore";
 
 const SHORTCUTS: Array<[string, string]> = [
   ["Double-click element", "Rename"],
-  ["Connect tool, drag context→context", "Create a relationship"],
+  ["Arrow on a selected context, click target", "Create a relationship"],
   ["⌘/Ctrl + Z", "Undo"],
   ["⇧⌘/Ctrl + Z, ⌘/Ctrl + Y", "Redo"],
   ["Delete / Backspace", "Remove selection"],

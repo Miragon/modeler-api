@@ -37,6 +37,7 @@ export interface CmRelationship extends Connection {
   upstreamRoles?: UpstreamRole[];
   downstreamRoles?: DownstreamRole[];
   cmLabel?: string;
+  description?: string;
   implementationTechnology?: string;
 }
 

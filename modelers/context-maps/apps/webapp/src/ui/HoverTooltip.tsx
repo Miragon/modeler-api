@@ -1,20 +1,14 @@
 /**
  * A fast custom hover tooltip (native SVG <title> has a ~1.5s browser delay).
- * Subscribes to diagram-js hover events and shows the spelled-out meaning of the
- * hovered element immediately: the subdomain description for a context, or the
- * pattern + roles for a relationship.
+ * Subscribes to diagram-js hover events and immediately shows the hovered
+ * element's OWN data — its description (plus team / technology). What the
+ * notation itself means lives exclusively in the legend at the bottom.
  */
 
 import { useEffect, useState } from "react";
 import { isCmContext, isCmRelationship } from "@miragon/context-maps-renderer";
 import type { CmContext, CmRelationship } from "@miragon/context-maps-renderer";
-import {
-  DOWNSTREAM_ROLE_SPECS,
-  RELATIONSHIP_PATTERN_SPECS,
-  SUBDOMAIN_TYPE_SPECS,
-  UPSTREAM_ROLE_SPECS,
-  isSymmetricPattern,
-} from "@miragon/context-maps-schema-model";
+import { RELATIONSHIP_PATTERN_SPECS } from "@miragon/context-maps-schema-model";
 import { useModeler } from "@/state/modelerContext";
 
 interface Tip {
@@ -26,26 +20,20 @@ function tipFor(element: unknown): Tip | null {
   if (isCmContext(element)) {
     const c = element as CmContext;
     const parts: string[] = [];
-    if (c.subdomainType) parts.push(SUBDOMAIN_TYPE_SPECS[c.subdomainType].description);
     if (c.description) parts.push(c.description);
     if (c.team) parts.push(`Team: ${c.team}`);
     if (parts.length === 0) return null;
-    const title = c.subdomainType
-      ? `${SUBDOMAIN_TYPE_SPECS[c.subdomainType].label}${c.cmLabel ? ` · ${c.cmLabel}` : ""}`
-      : (c.cmLabel ?? "Bounded Context");
-    return { title, body: parts.join(" · ") };
+    return { title: c.cmLabel ?? "Bounded Context", body: parts.join(" · ") };
   }
   if (isCmRelationship(element)) {
     const r = element as CmRelationship;
-    const s = RELATIONSHIP_PATTERN_SPECS[r.pattern];
-    if (isSymmetricPattern(r.pattern)) return { title: s.label, body: s.description };
-    const up = (r.upstreamRoles ?? []).map((x) => UPSTREAM_ROLE_SPECS[x].label);
-    const down = (r.downstreamRoles ?? []).map((x) => DOWNSTREAM_ROLE_SPECS[x].label);
-    const body =
-      s.description +
-      (up.length ? ` · Upstream provides ${up.join(", ")}` : "") +
-      (down.length ? ` · Downstream consumes ${down.join(", ")}` : "");
-    return { title: s.label, body };
+    const spec = RELATIONSHIP_PATTERN_SPECS[r.pattern];
+    const parts: string[] = [];
+    if (r.description) parts.push(r.description);
+    if (r.implementationTechnology) parts.push(r.implementationTechnology);
+    // Always identify the line (pattern + label); the description when present.
+    const title = r.cmLabel ? `${spec.label} · ${r.cmLabel}` : spec.label;
+    return { title, body: parts.join(" · ") };
   }
   return null;
 }
@@ -87,7 +75,7 @@ export function HoverTooltip() {
   return (
     <div className="cm-tooltip" style={{ left, top: state.y + 18 }}>
       <strong>{state.tip.title}</strong>
-      <span>{state.tip.body}</span>
+      {state.tip.body && <span>{state.tip.body}</span>}
     </div>
   );
 }

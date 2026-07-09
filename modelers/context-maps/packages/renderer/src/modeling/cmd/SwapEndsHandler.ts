@@ -1,7 +1,11 @@
 /**
  * Swaps a relationship's two ends: source ⇄ target (and reverses the waypoints).
  * This flips the direction — what was upstream/supplier becomes downstream/
- * customer and vice versa. Undoable (revert simply swaps back).
+ * customer and vice versa. The integration roles stay bound to their SIDE, not
+ * to a context: upstreamRoles (OHS/PL) always describe whichever context is
+ * upstream after the swap, downstreamRoles (ACL/CF) the downstream one — the
+ * role types are side-specific, so they cannot travel with a context.
+ * Undoable (revert simply swaps back).
  */
 
 import type CommandHandler from "diagram-js/lib/command/CommandHandler";

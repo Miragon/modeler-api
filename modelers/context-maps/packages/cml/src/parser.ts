@@ -63,13 +63,21 @@ function parseBracket(bracket: string | undefined): string[] {
     .filter(Boolean);
 }
 
-const KEYWORD_PATTERN: Record<string, RelationshipPattern> = {
-  PARTNERSHIP: "partnership",
-  "SHARED-KERNEL": "shared-kernel",
-  SHAREDKERNEL: "shared-kernel",
-  "CUSTOMER-SUPPLIER": "customer-supplier",
-  "UPSTREAM-DOWNSTREAM": "upstream-downstream",
-  "SEPARATE-WAYS": "separate-ways",
+/**
+ * Keyword relationship forms. `reversed` marks keywords where the LEFT operand
+ * is the downstream side: in CML `A Customer-Supplier B`, A is the customer
+ * (downstream) and B the supplier (upstream) — the arrow-free keyword encodes
+ * the direction, not the operand order.
+ */
+const KEYWORD_PATTERN: Record<string, { pattern: RelationshipPattern; reversed?: boolean }> = {
+  PARTNERSHIP: { pattern: "partnership" },
+  "SHARED-KERNEL": { pattern: "shared-kernel" },
+  SHAREDKERNEL: { pattern: "shared-kernel" },
+  "CUSTOMER-SUPPLIER": { pattern: "customer-supplier", reversed: true },
+  "SUPPLIER-CUSTOMER": { pattern: "customer-supplier" },
+  "UPSTREAM-DOWNSTREAM": { pattern: "upstream-downstream" },
+  "DOWNSTREAM-UPSTREAM": { pattern: "upstream-downstream", reversed: true },
+  "SEPARATE-WAYS": { pattern: "separate-ways" },
 };
 
 function toUpstreamRoles(tokens: string[]): UpstreamRole[] {
@@ -101,8 +109,25 @@ interface RawRelationship {
   implementationTechnology?: string;
 }
 
+const KNOWN_BRACKET_TOKENS = new Set([
+  "U",
+  "D",
+  "S",
+  "C",
+  "P",
+  "SK",
+  "OHS",
+  "PL",
+  "ACL",
+  "CF",
+  "CONFORMIST",
+]);
+
 /** Parses a single relationship statement (bracket-arrow or keyword form). */
-function parseRelationshipStatement(stmt: string): RawRelationship | null {
+function parseRelationshipStatement(
+  stmt: string,
+  diagnostics: CmlDiagnostic[],
+): RawRelationship | null {
   const body = extractBraceBody(stmt, 0);
   const head = body ? stmt.slice(0, stmt.indexOf("{")) : stmt;
   let implementationTechnology: string | undefined;
@@ -117,6 +142,14 @@ function parseRelationshipStatement(stmt: string): RawRelationship | null {
     const [, leftName, leftBracket, dir, rightBracket, rightName] = arrow;
     const leftTokens = parseBracket(leftBracket);
     const rightTokens = parseBracket(rightBracket);
+    for (const token of [...leftTokens, ...rightTokens]) {
+      if (!KNOWN_BRACKET_TOKENS.has(token)) {
+        diagnostics.push({
+          severity: "warning",
+          message: `Unknown role "${token}" in "${leftName} … ${rightName}"; ignored.`,
+        });
+      }
+    }
 
     if (dir === "<->") {
       const all = [...leftTokens, ...rightTokens];
@@ -149,8 +182,11 @@ function parseRelationshipStatement(stmt: string): RawRelationship | null {
   // Keyword form: A <Keyword> B
   const keyword = head.match(/(\w+)\s+([A-Za-z-]+)\s+(\w+)/);
   if (keyword) {
-    const pattern = KEYWORD_PATTERN[keyword[2].toUpperCase()];
-    if (pattern) return { from: keyword[1], to: keyword[3], pattern };
+    const entry = KEYWORD_PATTERN[keyword[2].toUpperCase()];
+    if (entry) {
+      const [from, to] = entry.reversed ? [keyword[3], keyword[1]] : [keyword[1], keyword[3]];
+      return { from, to, pattern: entry.pattern };
+    }
   }
   return null;
 }
@@ -166,6 +202,15 @@ function layout(index: number): { x: number; y: number } {
 export function parseCml(text: string): CmlParseResult {
   relCounter = 0;
   const diagnostics: CmlDiagnostic[] = [];
+
+  // Separate Ways has no CML relationship keyword; the serializer preserves it
+  // as a `// Separate Ways: A and B` comment. Recover those markers before the
+  // comments are stripped so the pattern survives a CML round-trip.
+  const separateWays: Array<{ from: string; to: string }> = [];
+  for (const m of text.matchAll(/\/\/\s*Separate Ways:\s*(\w+)\s+and\s+(\w+)/gi)) {
+    separateWays.push({ from: m[1], to: m[2] });
+  }
+
   const clean = stripComments(text);
 
   const mapStart = clean.match(/ContextMap\s+(\w+)?/);
@@ -210,12 +255,26 @@ export function parseCml(text: string): CmlParseResult {
     /(\w+\s*(?:\[[^\]]*\])?\s*(?:<->|->|<-)\s*(?:\[[^\]]*\])?\s*\w+|\w+\s+[A-Za-z-]+\s+\w+)(\s*\{[^}]*\})?/g;
   for (const m of withoutMeta.matchAll(stmtRe)) {
     const stmt = m[1] + (m[2] ?? "");
-    const rel = parseRelationshipStatement(stmt);
+    const rel = parseRelationshipStatement(stmt, diagnostics);
     if (rel) {
       rawRels.push(rel);
       names.add(rel.from);
       names.add(rel.to);
+    } else if (/<->|->|<-/.test(m[1])) {
+      // An arrow makes the intent unambiguous — surface the drop instead of
+      // silently losing a relationship. Keyword-form misses stay silent (any
+      // three words match that shape, so warning would be too noisy).
+      diagnostics.push({
+        severity: "warning",
+        message: `Could not parse relationship statement "${m[1].trim()}"; skipped.`,
+      });
     }
+  }
+  for (const sw of separateWays) {
+    if (sw.from === sw.to) continue;
+    rawRels.push({ from: sw.from, to: sw.to, pattern: "separate-ways" });
+    names.add(sw.from);
+    names.add(sw.to);
   }
 
   const orderedNames = [...names];

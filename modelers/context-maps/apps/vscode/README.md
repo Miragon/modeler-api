@@ -7,7 +7,7 @@
 bounded contexts, coloured by subdomain type (core / supporting / generic), connected by
 context-mapping relationship patterns (partnership, shared kernel, customer-supplier,
 upstream-downstream, separate ways). This extension lets you create and edit those diagrams directly
-inside VS Code: it opens `.tt` / `.ttm.json` files (a Context Maps diagram stored as plain,
+inside VS Code: it opens `.cm` / `.cm.json` files (a Context Maps diagram stored as plain,
 deterministic JSON) in a graphical editor, while the text file stays the source of truth, so save,
 Git, and diff keep working.
 
@@ -20,7 +20,7 @@ Install **Context Maps Modeler** (publisher `miragon-gmbh`) from the VS Code Mar
 start from a filled-in example context map or a blank diagram. The built-in **Get Started with Context
 Maps Modeler** walkthrough is the recommended first stop — open it from the Command Palette with
 **Welcome: Open Walkthrough…**, then click its **Create diagram from example** button and you have a
-ready-made diagram to explore. From there you can open any `.tt` or `.ttm.json` file.
+ready-made diagram to explore. From there you can open any `.cm` or `.cm.json` file.
 
 Prefer commands? Run these from the Command Palette (`Cmd/Ctrl+Shift+P`, type _"Context Maps"_):
 
@@ -45,16 +45,16 @@ A diagram shows bounded contexts and the relationships between them.
 
 ## Editing a diagram
 
-- **Custom editor for `.tt` / `.ttm.json`.** Open a diagram file and you get the full graphical
+- **Custom editor for `.cm` / `.cm.json`.** Open a diagram file and you get the full graphical
   editor, backed by the plain-text JSON file. Editing the text in a split view re-renders the canvas
   live (two-way sync), and VS Code tracks dirty state as you go. To reopen a diagram as raw text, use
   **View: Reopen Editor With…**, then pick **Text Editor**.
-- **Full modeler:** the tool palette places the three subdomain types of bounded context and
-  connects them with the context-mapping relationship patterns; the context pad on a selected
-  element renames, connects or deletes it. Move, resize, and inline label editing all work, with
+- **Full modeler:** the tool palette places the three subdomain types of bounded context; a
+  selected context shows four connect arrows (top/right/bottom/left) that draw a relationship to
+  another context with a live preview line. Move, resize, and inline label editing all work, with
   undo/redo via `Ctrl/Cmd+Z` and `Ctrl/Cmd+Shift+Z`.
 - **Collapsed menu** (top-right, Excalidraw-style): fit-to-view · export SVG/PNG.
-- **Editable embedded-PNG diagrams (`*.tt.png` / `*.ttm.png`).** Exported PNGs store the diagram
+- **Editable embedded-PNG diagrams (`*.cm.png`).** Exported PNGs store the diagram
   inside a `tEXt` chunk, so the file stays a normal image you can drop into a wiki, README, or chat —
   and can be reopened and edited graphically. To start one, run **Context Maps: New Empty Diagram
   (embedded PNG)** (also under **File > New File…**), pick a location, and press `Ctrl/Cmd+S` once to

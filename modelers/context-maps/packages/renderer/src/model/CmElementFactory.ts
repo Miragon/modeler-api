@@ -54,6 +54,7 @@ export default class CmElementFactory {
       ...(rel.upstreamRoles?.length ? { upstreamRoles: [...rel.upstreamRoles] } : {}),
       ...(rel.downstreamRoles?.length ? { downstreamRoles: [...rel.downstreamRoles] } : {}),
       ...(rel.label ? { cmLabel: rel.label } : {}),
+      ...(rel.description ? { description: rel.description } : {}),
       ...(rel.implementationTechnology
         ? { implementationTechnology: rel.implementationTechnology }
         : {}),

@@ -132,26 +132,23 @@
   box-shadow: inset 0 0 0 1.5px #4f46e5;
 }
 
-/* --- Context pad ---------------------------------------------------------- */
-.cm-djs-container .cm-cp-entry {
+/* --- Connect handles (four arrows around a selected context) -------------- */
+.cm-connect-handle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-width: 22px;
-  min-height: 22px;
-  color: #1f2430;
-}
-.cm-djs-container .djs-context-pad .entry {
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(20, 24, 40, 0.12);
   background: #ffffff;
+  color: #1f2430;
+  cursor: pointer;
   transition:
     background 120ms ease,
     color 120ms ease;
 }
-.cm-djs-container .djs-context-pad .entry:hover {
+.cm-connect-handle:hover {
   background: var(--cm-accent-soft);
   color: var(--cm-accent);
 }
@@ -170,4 +167,70 @@
   outline: none;
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
   z-index: 100;
+}
+
+/* --- Validation markers (semantic-rule findings on the canvas) ------------ */
+.cm-validation-marker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  cursor: help;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+
+/* Instant hover tooltip — a native `title` only shows after the OS delay. */
+.cm-validation-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #d9d5cc;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  font-family:
+    "Inter",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #1f2430;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.cm-validation-marker:hover .cm-validation-tooltip {
+  display: block;
+}
+
+.cm-validation-tooltip__message + .cm-validation-tooltip__message {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #eceae4;
+}
+
+/* --- Drag state ------------------------------------------------------------ */
+/* While any drag is in flight, HTML overlays (handles, markers, tooltips) must
+   not swallow the pointer — releasing a connect drag on top of one has to
+   reach the element underneath. */
+.cm-dragging .djs-overlay-container,
+.cm-dragging .djs-overlay-container * {
+  pointer-events: none !important;
+}
+
+/* Connect feedback: signal on the cursor whether dropping here connects. */
+.cm-djs-container .djs-element.connect-ok,
+.cm-djs-container svg.connect-ok {
+  cursor: crosshair;
+}
+.cm-djs-container .djs-element.connect-not-ok,
+.cm-djs-container svg.connect-not-ok {
+  cursor: not-allowed;
 }
