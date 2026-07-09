@@ -1,0 +1,156 @@
+{
+  "name": "context-maps-modeler",
+  "private": true,
+  "version": "0.4.0",
+  "displayName": "Context Maps Modeler",
+  "description": "View and edit Context Maps diagrams directly in VS Code, including .cm and .cm.json files.",
+  "publisher": "miragon-gmbh",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
+    "directory": "apps/vscode"
+  },
+  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
+  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/apps/vscode#readme",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "context maps",
+    "domain-driven design",
+    "ddd",
+    "diagram",
+    "architecture"
+  ],
+  "main": "./dist/extension.cjs",
+  "type": "module",
+  "activationEvents": [
+    "onCustomEditor:contextMaps.editor",
+    "onCustomEditor:contextMaps.pngEditor"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "context-maps",
+        "aliases": [
+          "Context Maps",
+          "context-maps"
+        ],
+        "extensions": [
+          ".cm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "contextMaps.editor",
+        "displayName": "Context Maps Diagram",
+        "selector": [
+          {
+            "filenamePattern": "*.cm"
+          },
+          {
+            "filenamePattern": "*.cm.json"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "contextMaps.pngEditor",
+        "displayName": "Context Maps Diagram (PNG)",
+        "selector": [
+          {
+            "filenamePattern": "*.cm.png"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "contextMaps.newDiagram",
+        "title": "New Empty Diagram",
+        "category": "Context Maps",
+        "shortTitle": "Context Maps"
+      },
+      {
+        "command": "contextMaps.newFromExample",
+        "title": "New Diagram from Example",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.newPngDiagram",
+        "title": "New Empty Diagram (embedded PNG)",
+        "category": "Context Maps"
+      }
+    ],
+    "menus": {
+      "file/newFile": [
+        {
+          "command": "contextMaps.newDiagram",
+          "group": "contextMaps"
+        },
+        {
+          "command": "contextMaps.newPngDiagram",
+          "group": "contextMaps"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "getStarted",
+        "title": "Get Started with Context Maps Modeler",
+        "description": "Create and edit Context Maps diagrams — bounded contexts by subdomain type, connected by context-mapping relationship patterns — directly in VS Code.",
+        "steps": [
+          {
+            "id": "create",
+            "title": "Create your first diagram",
+            "description": "Start from the bundled example or a blank canvas — it opens right in the visual editor.\n[Create diagram from example](command:contextMaps.newFromExample)",
+            "media": {
+              "markdown": "media/walkthrough/create.md"
+            },
+            "completionEvents": [
+              "onCommand:contextMaps.newFromExample"
+            ]
+          },
+          {
+            "id": "learn",
+            "title": "Learn the basics",
+            "description": "Get to know the three subdomain types, the five context-mapping relationship patterns, and how to draw contexts and relationships on the canvas.",
+            "media": {
+              "markdown": "media/walkthrough/learn.md"
+            },
+            "completionEvents": [
+              "onStepSelected"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "vscode:prepublish": "node esbuild.config.mjs --production",
+    "package": "vsce package --no-dependencies -o context-maps-modeler.vsix"
+  },
+  "dependencies": {
+    "@miragon/context-maps-renderer": "0.4.0",
+    "@miragon/context-maps-schema-model": "0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.0.1",
+    "@types/vscode": "1.96.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.1",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate packaging/publish without releasing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release_please.outputs.releases_created }}
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+      - id: release_please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-npm:
+    name: Publish to npm
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Node 24 ships npm >= 11, which supports OIDC trusted publishing (tokenless).
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # The npm bundled with Node 24 (11.3.x) errors with "Failed to generate Web
+      # Auth URLs / token is invalid" *after* a successful OIDC trusted-publish,
+      # aborting the run even though the package was uploaded. Fixed in npm >= 11.5.1.
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - name: Publish to npm (idempotent, dependency order)
+        run: |
+          set -uo pipefail
+          for dir in packages/schema-model packages/renderer; do
+            name="$(node -p "require('./$dir/package.json').name")"
+            version="$(node -p "require('./$dir/package.json').version")"
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "skip $name@$version (already on registry)"
+              continue
+            fi
+            echo "publish $name@$version"
+            # Don't trust the exit code: the npm OIDC client can fail a post-publish
+            # request after the tarball is already accepted. Verify against the
+            # registry so a spurious error on one package can't block the next.
+            npm publish -w "$dir" --provenance --access public || true
+            published=""
+            for attempt in 1 2 3 4 5 6; do
+              if npm view "$name@$version" version > /dev/null 2>&1; then
+                published=1
+                break
+              fi
+              echo "waiting for $name@$version to appear on the registry (attempt $attempt)"
+              sleep 5
+            done
+            if [ -z "$published" ]; then
+              echo "::error::$name@$version did not land on the registry"
+              exit 1
+            fi
+            echo "confirmed $name@$version on registry"
+          done
+
+  publish-vscode:
+    name: Publish to VS Code Marketplace
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run build:vscode
+      - name: Package extension
+        working-directory: apps/vscode
+        run: npx vsce package --no-dependencies -o context-maps-modeler.vsix
+      - name: Publish to VS Code Marketplace
+        working-directory: apps/vscode
+        run: npx vsce publish --packagePath context-maps-modeler.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PUBLISH }}
+
+  publish-ovsx:
+    name: Publish to Open VSX Marketplace
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run build:vscode
+      - name: Package extension
+        working-directory: apps/vscode
+        run: npx vsce package --no-dependencies -o context-maps-modeler.vsix
+      - name: Publish to Open VSX Marketplace
+        working-directory: apps/vscode
+        run: npx ovsx --pat "$OVSX_PAT" publish --packagePath context-maps-modeler.vsix
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PUBLISH }}
+
+  dry-run:
+    if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish -w packages/schema-model -w packages/renderer --access public --dry-run
+      - run: npm run build:vscode
+      - name: Package extension
+        working-directory: apps/vscode
+        run: npx vsce package --no-dependencies -o context-maps-modeler.vsix

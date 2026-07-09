@@ -1,0 +1,44 @@
+{
+  "name": "@miragon/context-maps-cml",
+  "version": "0.4.0",
+  "description": "Convert between the Context Mapper CML text format and the Context Maps model (import/export of the strategic-DDD context-mapping subset).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
+    "directory": "packages/cml"
+  },
+  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/packages/cml#readme",
+  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm --prefix ../.. run test"
+  },
+  "dependencies": {
+    "@miragon/context-maps-schema-model": "0.4.0"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}

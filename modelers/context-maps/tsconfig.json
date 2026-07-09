@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": "Authoritative whole-repo typecheck for the packages + webapp (source paths, no build needed). apps/vscode and e2e are typechecked separately via their own tsconfigs (see the root `typecheck` script).",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@miragon/context-maps-schema-model": ["packages/schema-model/src/index.ts"],
+      "@miragon/context-maps-cml": ["packages/cml/src/index.ts"],
+      "@miragon/context-maps-renderer": ["packages/renderer/src/index.ts"],
+      "@/*": ["apps/webapp/src/*"]
+    }
+  },
+  "include": ["packages/*/src", "packages/renderer/test", "apps/webapp/src"],
+  "exclude": ["**/dist/**", "**/node_modules/**", "apps/vscode/**", "e2e/**"]
+}

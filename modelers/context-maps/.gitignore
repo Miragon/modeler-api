@@ -1,0 +1,28 @@
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vite/
+coverage/
+*.log
+*.local
+.DS_Store
+.idea/
+test-results/
+playwright-report/
+/e2e/.cache/
+.playwright-mcp/
+# Vitest Browser Mode failure artifacts (transient; not visual-regression baselines)
+.vitest-attachments/
+__screenshots__/
+
+# Conductor workspace scratch (collaboration files, gitignored by design)
+.context/
+
+# Ignore only local Claude settings; project settings.json + rules/ stay tracked
+.claude/settings.local.json
+.claude/logs/
+.claude/skills/
+
+# VS Code extension package artifact
+*.vsix

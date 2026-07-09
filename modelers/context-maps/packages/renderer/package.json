@@ -1,0 +1,51 @@
+{
+  "name": "@miragon/context-maps-renderer",
+  "version": "0.4.0",
+  "description": "Render and edit Context Maps diagrams in the browser, with a framework-agnostic viewer and modeler built on diagram-js.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
+    "directory": "packages/renderer"
+  },
+  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/packages/renderer#readme",
+  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assets/context-maps.css": "./dist/context-maps.css",
+    "./package.json": "./package.json"
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm --prefix ../.. run test",
+    "test:browser": "npm --prefix ../.. run test:browser"
+  },
+  "dependencies": {
+    "@miragon/context-maps-schema-model": "0.4.0",
+    "diagram-js": "15.18.0",
+    "didi": "11.0.0",
+    "tiny-svg": "4.1.4"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.1.0",
+    "vite-plugin-dts": "5.0.3",
+    "vitest": "4.1.9"
+  }
+}

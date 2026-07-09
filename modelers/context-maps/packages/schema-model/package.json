@@ -1,0 +1,45 @@
+{
+  "name": "@miragon/context-maps-schema-model",
+  "version": "0.4.0",
+  "description": "The Context Maps data model with types, the notation specification, runtime validation, migrations and deterministic JSON serialization.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
+    "directory": "packages/schema-model"
+  },
+  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/packages/schema-model#readme",
+  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm --prefix ../.. run test"
+  },
+  "dependencies": {
+    "nanoid": "5.1.16",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}
