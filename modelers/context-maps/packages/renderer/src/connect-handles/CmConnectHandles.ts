@@ -12,7 +12,9 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type Overlays from "diagram-js/lib/features/overlays/Overlays";
 import type Selection from "diagram-js/lib/features/selection/Selection";
 import type Connect from "diagram-js/lib/features/connect/Connect";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
 import type { Element } from "diagram-js/lib/model/Types";
+import { getMid } from "diagram-js/lib/layout/LayoutUtil";
 import { isCmContext } from "../model/di-types.js";
 import { ICON_ARROW_FORWARD, iconMarkup } from "../draw/icons.js";
 
@@ -50,14 +52,19 @@ function handlePosition(
 }
 
 export default class CmConnectHandles {
-  static $inject = ["eventBus", "selection", "overlays", "connect"];
+  static $inject = ["eventBus", "selection", "overlays", "connect", "dragging"];
 
   constructor(
     private readonly eventBus: EventBus,
     private readonly selection: Selection,
     private readonly overlays: Overlays,
-    private readonly connect: Connect,
+    connect: Connect,
+    private readonly dragging: Dragging,
   ) {
+    // Not used to start the drag, but injecting Connect instantiates it so its
+    // connect.* event handlers (hover/end → modeling.connect) are registered —
+    // the connect module does not eagerly initialize it.
+    void connect;
     const refresh = (): void => this.refresh();
     eventBus.on("selection.changed", refresh);
     // Re-anchor after resize/undo/redo (handle offsets depend on width/height).
@@ -83,7 +90,19 @@ export default class CmConnectHandles {
         if (event.button !== 0) return;
         event.preventDefault();
         event.stopPropagation();
-        this.connect.start(event, element);
+        // Same payload as Connect#start, but with trapClick OFF: the ghost-
+        // click trap Dragging arms after a drag is only consumed by a click
+        // that reaches the canvas — a drag started on this HTML handle never
+        // produces one, so the trap would instead swallow the user's NEXT
+        // click on a context (no selection, seemingly broken editor).
+        this.dragging.init(event, "connect", {
+          autoActivate: false,
+          trapClick: false,
+          data: {
+            shape: element,
+            context: { start: element, connectionStart: getMid(element) },
+          },
+        });
         // Keep the source context marked after the drag: the drag lifecycle
         // clears the selection, but the user is still "at" this context. Low
         // priority so this runs after the stock cleanup listeners.
