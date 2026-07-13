@@ -24,9 +24,11 @@ test("a selected context shows four connect handles that draw a relationship", (
     );
     const canvas = modeler.get<{ getGraphics(el: unknown): SVGElement }>("canvas");
     const eventBus = modeler.get<{ createEvent(data: unknown): Event }>("eventBus");
-    const dragging = modeler.get<{ hover(event: Event): void; move(event: Event): void; end(): void }>(
-      "dragging",
-    );
+    const dragging = modeler.get<{
+      hover(event: Event): void;
+      move(event: Event): void;
+      end(): void;
+    }>("dragging");
     const [a, b] = registry.getAll().filter(isCmContext);
 
     // no selection → no handles
@@ -56,6 +58,9 @@ test("a selected context shows four connect handles that draw a relationship", (
     const exported = modeler.exportDocument();
     expect(exported.relationships).toHaveLength(1);
     expect(exported.relationships[0]).toMatchObject({ from: "a", to: "b" });
+    // model-style random id, NOT diagram-js' session counter (`connection_N`) —
+    // the counter restarts on reload and collides with re-imported ids
+    expect(exported.relationships[0].id).toMatch(/^rel_/);
 
     // deselect → handles disappear
     selection.select(null as unknown as object);

@@ -724,6 +724,12 @@ kbd {
 }
 
 /* Three separate legend boxes next to the map (subdomains / direction / roles) */
+/* While a drag is in flight (`cm-dragging` on the canvas container), the
+   legends float above the map but must not swallow the pointer — releasing a
+   connect drag on a context behind them has to reach that context. */
+.tt-app:has(.cm-dragging) .cm-legends {
+  pointer-events: none;
+}
 .cm-legends {
   position: absolute;
   left: 50%;

@@ -21,7 +21,9 @@ async function setup(page: import("@playwright/test").Page) {
   await page.waitForFunction(() => "__cmModeler" in window);
   await page.evaluate(
     (doc) =>
-      (window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }).__cmModeler.importDocument(doc),
+      (
+        window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }
+      ).__cmModeler.importDocument(doc),
     DOC,
   );
 }
@@ -29,10 +31,14 @@ async function setup(page: import("@playwright/test").Page) {
 const rels = (page: import("@playwright/test").Page) =>
   page.evaluate(
     () =>
-      (window as unknown as { __cmModeler: { exportDocument(): { relationships: unknown[] } } }).__cmModeler.exportDocument().relationships,
+      (
+        window as unknown as { __cmModeler: { exportDocument(): { relationships: unknown[] } } }
+      ).__cmModeler.exportDocument().relationships,
   );
 
-test("full user gesture: click-select, press handle, release over free component", async ({ page }) => {
+test("full user gesture: click-select, press handle, release over free component", async ({
+  page,
+}) => {
   await setup(page);
   // real click on A to select it
   const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
@@ -63,7 +69,7 @@ test("full user gesture: click-select, press handle, release over free component
     return (m.get("selection") as { get(): Array<{ id: string }> }).get().map((s) => s.id);
   });
   expect(selected).toHaveLength(1);
-  expect(String(selected[0])).toContain("connection");
+  expect(String(selected[0])).toMatch(/^rel_/);
   await expect(page.locator(".tt-inspector")).toBeVisible();
 });
 

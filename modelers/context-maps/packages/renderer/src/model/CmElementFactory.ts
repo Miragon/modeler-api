@@ -6,7 +6,7 @@
 
 import type ElementFactory from "diagram-js/lib/core/ElementFactory";
 import type { Point } from "diagram-js/lib/util/Types";
-import { SUBDOMAIN_TYPE_SPECS, newId } from "@miragon/context-maps-schema-model";
+import { SUBDOMAIN_TYPE_SPECS } from "@miragon/context-maps-schema-model";
 import type {
   BoundedContext,
   Relationship,
@@ -63,15 +63,12 @@ export default class CmElementFactory {
 
   // --- fresh, not-yet-placed elements (palette / context-pad create) -----
   //
-  // These set an explicit model-style id (`ctx_…`/`rel_…`, matching the model
-  // package's factory) instead of diagram-js' auto-id, whose counter is not
-  // advanced past ids that arrive via import — so a re-imported element would
-  // otherwise collide with the next palette create after a reload.
+  // No explicit id: the element factory (CmDiagramElementFactory) assigns a
+  // collision-free model-style id (`ctx_…`).
 
   createNewContext(subdomainType: SubdomainType, label?: string): CmContext {
     const spec = SUBDOMAIN_TYPE_SPECS[subdomainType];
     return this.elementFactory.createShape({
-      id: newId("ctx"),
       width: spec.defaultSize.width,
       height: spec.defaultSize.height,
       cmKind: "context",
