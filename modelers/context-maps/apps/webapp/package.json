@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Context Maps Modeler web application (Vite demo editor).",
   "scripts": {
-    "dev": "PORTLESS_HTTPS=0 PORTLESS_PORT=8080 portless context-maps-modeler vite",
+    "dev": "PORTLESS_HTTPS=0 PORTLESS_PORT=8080 portless",
     "dev:app": "vite --host 127.0.0.1 --port ${PORT:-5181}",
     "build": "vite build",
     "preview": "vite preview",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.0.3",
-    "portless": "0.15.0",
+    "portless": "0.15.3",
     "vite": "8.1.0"
   }
 }

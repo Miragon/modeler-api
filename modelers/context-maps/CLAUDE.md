@@ -30,10 +30,12 @@ fails `npm run lint` and `npm run depcruise`.
 - `npm run build` — packages (schema-model, then renderer) · `npm run build:webapp` ·
   `npm run build:vscode`
 - `npm run dev:webapp` (alias: `npm run dev`) serves the webapp via [Portless](https://portless.sh)
-  at a stable per-worktree `https://<worktree>.context-maps-modeler.localhost` URL (Portless-derived
-  from the git worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json); needs
-  Node ≥ 24 + a one-time `npx portless service install` — see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
-  `npm run dev:webapp:plain` for plain Vite on `:5181`. · `npm run dev:vscode`
+  at a stable per-worktree `http://<worktree>.context-maps-modeler.localhost:8080` URL (Portless-derived
+  from the git worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json)). The `dev`
+  script sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless runs plain HTTP on the non-privileged
+  port 8080 and auto-starts — no `sudo`/`service install` (needs Node ≥ 24; see
+  [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run dev:webapp:plain` for plain Vite on `:5181`. ·
+  `npm run dev:vscode`
 - `npm test` — Vitest (unit) · `npm run test:browser` — renderer in Chromium · `npm run test:e2e`
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)
 - `npm run format` — Prettier · `npm run depcruise` — check the module graph

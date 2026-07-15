@@ -74,7 +74,7 @@ Requires Node ≥ 22.13 and npm. From the repo root:
 
 ```bash
 npm install
-npm run dev:webapp   # start the webapp dev server (http://localhost:5181)
+npm run dev:webapp   # start the webapp dev server (prints a stable .localhost URL; Portless)
 npm run dev:vscode   # watch-build the VS Code extension (then F5 in VS Code)
 npm test             # unit tests (Vitest)
 npm run lint         # eslint + type-check

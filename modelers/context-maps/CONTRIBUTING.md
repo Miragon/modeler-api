@@ -21,26 +21,23 @@ Useful extras: `npm run dev:webapp`, `npm run dev:vscode`, `npm run depcruise` (
 [Portless](https://portless.sh) at a stable, named `.localhost` URL instead of a Vite port
 (needs **Node ≥ 24**). Portless is a pinned **devDependency**, so `npm install` is all you need — no
 global install. Config lives in [`apps/webapp/portless.json`](apps/webapp/portless.json)
-(`{ "name": "context-maps-modeler", "script": "dev:app" }`): `npm run dev:webapp` runs bare
-`portless`, which starts the real Vite server (the `dev:app` script) behind the proxy. `dev:app` binds
-`--host 127.0.0.1` (Portless can't proxy the IPv6 `::1` that `localhost` resolves to on macOS) and
-`--port ${PORT}` (the ephemeral port Portless injects), and `vite.config.ts` sets
-`allowedHosts: ['.localhost']` so Vite accepts the proxied Host header.
+(`{ "name": "context-maps-modeler", "script": "dev:app" }`): `npm run dev:webapp` runs
+`portless`, which reads that config and starts the real Vite server (the `dev:app` script) behind the
+proxy. `dev:app` binds `--host 127.0.0.1` (Portless can't proxy the IPv6 `::1` that `localhost`
+resolves to on macOS) and `--port ${PORT}` (the ephemeral port Portless injects), and
+`vite.config.ts` sets `allowedHosts: ['.localhost']` so Vite accepts the proxied Host header.
 
 The URL is **per worktree** and Portless-derived — never hand-built: in a linked git worktree it
-prepends the branch as a subdomain, so you get `https://<worktree>.context-maps-modeler.localhost`
-in a Conductor workspace and `https://context-maps-modeler.localhost` in the main checkout. Each
+prepends the branch as a subdomain, so you get `http://<worktree>.context-maps-modeler.localhost:8080`
+in a Conductor workspace and `http://context-maps-modeler.localhost:8080` in the main checkout. Each
 worktree gets its own URL, so parallel apps never collide. On start Portless **opens your browser**
 there and prints it as a `➜ Portless:` line under Vite's output.
 
-Portless needs an HTTPS proxy daemon on port 443, installed once per machine (it binds 443 and trusts
-a local CA, so it needs **sudo** — which is also why Conductor's non-TTY Run button can't do it for
-you):
-
-```bash
-npx portless trust            # add the local CA to your system trust store
-npx portless service install  # run the HTTPS proxy as a background service (survives reboots)
-```
+No setup beyond `npm install` is needed: `dev:webapp` sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so
+Portless serves plain **HTTP on the non-privileged port 8080** and auto-starts its proxy on first run
+— **no `sudo`, no CA trust, no `portless service install`**. That is what lets Conductor's non-TTY
+Run button start the webapp unattended. (Portless's _default_ is an HTTPS daemon on privileged port
+443, which would need `sudo`; this repo deliberately avoids that.)
 
 Prefer a plain Vite server with no proxy? `npm run dev:webapp:plain` (or
 `npm run dev:app -w apps/webapp`) runs Vite directly on `:5181` and needs none of the above.
