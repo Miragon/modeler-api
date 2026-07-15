@@ -39,7 +39,9 @@ test("draw, delete via inspector, immediately draw again", async ({ page }) => {
   await page.waitForFunction(() => "__cmModeler" in window);
   await page.evaluate(
     (doc) =>
-      (window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }).__cmModeler.importDocument(doc),
+      (
+        window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }
+      ).__cmModeler.importDocument(doc),
     DOC,
   );
 

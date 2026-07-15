@@ -83,8 +83,18 @@ function anchorPoint(relationship: CmRelationship, waypoints: Point[], side: Mar
   const customerSupplier = relationship.pattern === "customer-supplier";
   const layout =
     side === "upstream"
-      ? endRoleChipLayout(start, end, customerSupplier ? "S" : "U", relationship.upstreamRoles ?? [])
-      : endRoleChipLayout(end, start, customerSupplier ? "C" : "D", relationship.downstreamRoles ?? []);
+      ? endRoleChipLayout(
+          start,
+          end,
+          customerSupplier ? "S" : "U",
+          relationship.upstreamRoles ?? [],
+        )
+      : endRoleChipLayout(
+          end,
+          start,
+          customerSupplier ? "C" : "D",
+          relationship.downstreamRoles ?? [],
+        );
   if (layout) {
     // Centred (almost) on the chip box corner: the triangle's visible body is
     // bottom-heavy, so half the marker overlapping the corner reads as sitting

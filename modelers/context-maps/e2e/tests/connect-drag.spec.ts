@@ -17,10 +17,14 @@ test("mouse drag from a connect handle onto another context draws the line", asy
   await page.goto("/");
   await page.waitForFunction(() => "__cmModeler" in window);
   await page.evaluate((doc) => {
-    const m = (window as unknown as { __cmModeler: {
-      importDocument(d: unknown): unknown;
-      get(n: string): unknown;
-    } }).__cmModeler;
+    const m = (
+      window as unknown as {
+        __cmModeler: {
+          importDocument(d: unknown): unknown;
+          get(n: string): unknown;
+        };
+      }
+    ).__cmModeler;
     m.importDocument(doc);
     const registry = m.get("elementRegistry") as { get(id: string): unknown };
     (m.get("selection") as { select(el: unknown): void }).select(registry.get("a"));

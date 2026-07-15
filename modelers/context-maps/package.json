@@ -1,6 +1,6 @@
 {
   "name": "context-maps-modeler",
-  "version": "0.4.0",
+  "version": "0.0.1",
   "private": true,
   "description": "A web-based modeler and VS Code extension for DDD Context Maps (bounded contexts & context-mapping relationship patterns), interoperable with Context Mapper CML.",
   "license": "MIT",

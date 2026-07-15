@@ -60,8 +60,7 @@ test("connect tool shows a preview line and a click on a target fixes it", () =>
     dragging.move(canvasEvent(420, 350));
     const rubberBand = container.querySelector(".djs-dragger path, .djs-dragger polyline");
     expect(rubberBand).toBeTruthy();
-    const geometry =
-      rubberBand?.getAttribute("d") ?? rubberBand?.getAttribute("points") ?? "";
+    const geometry = rubberBand?.getAttribute("d") ?? rubberBand?.getAttribute("points") ?? "";
     expect(geometry).toContain("420,350");
 
     // hovering the target context: the styled relationship preview is shown
