@@ -12,7 +12,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { Inspector } from "@/ui/Inspector";
 import { Menu } from "@/ui/Menu";
 import { ShareButton } from "@/ui/ShareButton";
-import { DirectionLegend } from "@/ui/DirectionLegend";
+import { Legend } from "@/ui/Legend";
 import { LegalNotice } from "@/ui/LegalNotice";
 import { HelpDialog } from "@/ui/HelpDialog";
 import { HoverTooltip } from "@/ui/HoverTooltip";
@@ -31,7 +31,7 @@ export default function App() {
           <ShareButton />
         </div>
         <Inspector />
-        <DirectionLegend />
+        <Legend />
         <LegalNotice />
         <HelpDialog />
         <HoverTooltip />

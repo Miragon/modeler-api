@@ -1,15 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-// The legend boxes float above the bottom of the map. Releasing a connect drag
-// on a context that sits BEHIND them must still draw the relationship
-// (regression: the legend swallowed the hover, `connect.out` reset the drop
-// target, and the line silently vanished on release).
+// The legend box floats over the bottom-left corner of the map. Releasing a
+// connect drag on a context that sits BEHIND it must still draw the
+// relationship (regression: the legend swallowed the hover, `connect.out`
+// reset the drop target, and the line silently vanished on release).
 const DOC = {
   version: 1,
   title: "t",
   contexts: [
-    { id: "a", label: "A", position: { x: 100, y: 80 }, size: { width: 240, height: 140 } },
-    { id: "b", label: "B", position: { x: 480, y: 520 }, size: { width: 240, height: 130 } },
+    { id: "a", label: "A", position: { x: 400, y: 80 }, size: { width: 240, height: 140 } },
+    { id: "b", label: "B", position: { x: 40, y: 430 }, size: { width: 240, height: 130 } },
   ],
   relationships: [],
 };
@@ -24,14 +24,26 @@ test("connect drag released on a context behind the legend draws the line", asyn
       ).__cmModeler.importDocument(doc),
     DOC,
   );
+  // Import auto-fits (centres) the content; pin the viewbox 1:1 so canvas
+  // coordinates equal screen coordinates and B provably sits behind the
+  // bottom-left legend.
+  await page.evaluate(() => {
+    interface Canvas {
+      viewbox(box: { x: number; y: number; width: number; height: number }): unknown;
+    }
+    const m = (window as unknown as { __cmModeler: { get(n: string): Canvas } }).__cmModeler;
+    m.get("canvas").viewbox({ x: 0, y: 0, width: 1280, height: 720 });
+  });
 
   // the drop point (centre of B) must actually be covered by the legend,
   // otherwise this test does not exercise the regression
   const b = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
   const tx = b.x + b.width / 2;
   const ty = b.y + b.height / 2;
-  const legend = (await page.locator(".cm-legends").boundingBox())!;
+  const legend = (await page.locator(".tt-legend").boundingBox())!;
   expect(ty).toBeGreaterThan(legend.y);
+  expect(tx).toBeGreaterThan(legend.x);
+  expect(tx).toBeLessThan(legend.x + legend.width);
 
   const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
@@ -58,7 +70,7 @@ test("connect drag released on a context behind the legend draws the line", asyn
 
   // outside a drag the legend is interactive again (hover tooltips)
   const pointerEvents = await page.evaluate(
-    () => getComputedStyle(document.querySelector(".cm-legends")!).pointerEvents,
+    () => getComputedStyle(document.querySelector(".tt-legend")!).pointerEvents,
   );
   expect(pointerEvents).not.toBe("none");
 });
