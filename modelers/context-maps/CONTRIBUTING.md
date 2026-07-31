@@ -1,7 +1,7 @@
 # Contributing
 
 Thanks for helping improve the Context Maps Modeler. This is an npm-workspaces monorepo
-(Node ≥ 22.13, npm, TypeScript ESM). Agent-oriented notes live in [`CLAUDE.md`](CLAUDE.md).
+(Node ≥ 24, npm, TypeScript ESM). Agent-oriented notes live in [`CLAUDE.md`](CLAUDE.md).
 
 ## Setup & inner loop
 

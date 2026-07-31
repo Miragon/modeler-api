@@ -33,21 +33,21 @@ jobs:
   test-browser:
     runs-on: ubuntu-latest
     needs: [lint, build]
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.0-noble
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/setup
+      # Browsers come from the lockfile-pinned Playwright, so they can never drift
+      # from the npm package the way a hardcoded container image tag does.
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
 
   e2e:
     runs-on: ubuntu-latest
     needs: [lint, build]
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.0-noble
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/setup
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

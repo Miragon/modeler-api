@@ -9,8 +9,13 @@ Never use version ranges (`^`, `~`, `>=`, `*`) in `package.json`.
 Always pin to an exact version (e.g. `"eslint": "9.17.0"`).
 
 This applies to `dependencies`, `devDependencies`, and `peerDependencies` — including internal
-`@miragon/context-maps-*` workspace deps, which use the exact local version `0.1.0` (not `*`; npm still links
-them to the local workspace). Exact pinning is enforced in CI by the `pin-check` job.
+`@miragon/context-maps-*` workspace deps, which use the exact local version as found in the
+workspace's `package.json` (not `*`; npm still links them to the local workspace). Exact pinning is
+enforced in CI by the `pin-check` job.
+
+Shared toolchain deps (`typescript`, `vitest`, `tsup`, `vite`, `playwright`) live **only** in the
+root `package.json` — never re-add them to workspace manifests. Keep the root `overrides` entry for
+`vite` identical to the root devDependency.
 
 When adding a new dependency: install it first with `npm install <pkg>` (the root `.npmrc` sets
 `save-exact=true`, so npm pins the exact version), then verify the installed version with

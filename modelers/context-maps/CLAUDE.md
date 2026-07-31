@@ -10,8 +10,14 @@ Shared core for two targets: a web app and a VS Code extension.
 Workspaces are declared in the root `package.json` (`workspaces` array, listed in topological build
 order). **All** versions are pinned to exact values inline in each package's `package.json` (`.npmrc`
 sets `save-exact=true`) — including internal `@miragon/context-maps-*` deps, which use the exact local
-workspace version (currently `0.4.0`; npm still links them to the local workspace). Exact pinning is
-enforced in CI by the `pin-check` job.
+workspace version as found in the workspace's `package.json` (npm still links them to the local
+workspace). Exact pinning is enforced in CI by the `pin-check` job.
+
+Shared toolchain deps (`typescript`, `vitest`, `tsup`, `vite`, `playwright`) are pinned **once** in
+the root `package.json` and hoisted to the workspaces — don't re-add them to workspace manifests.
+`vite` is additionally listed in the root `overrides` so transitive copies (vitest, plugins) resolve
+to the same version; keep the two entries identical. The vscode app pins its own `esbuild` (its
+bundler), separate from tsup's `esbuild` pinned via `overrides` — intentional, don't unify.
 
 | Package                              | Purpose                                                                  | DOM |
 | ------------------------------------ | ------------------------------------------------------------------------ | --- |
@@ -40,7 +46,7 @@ fails `npm run lint` and `npm run depcruise`.
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)
 - `npm run format` — Prettier · `npm run depcruise` — check the module graph
 
-Requirements: Node ≥ 22.13, npm. The packages are consumed from **source** (Vite/esbuild/tsconfig
+Requirements: Node ≥ 24, npm. The packages are consumed from **source** (Vite/esbuild/tsconfig
 aliases), so neither the apps nor the tests need a prior package build; `npm run build` is for
 publishing the libraries. The Husky pre-commit hook runs **only** lint-staged + `npm run lint`
 (ESLint + type-check) — **not** tests/build/depcruise; run `npm test` yourself before pushing.
