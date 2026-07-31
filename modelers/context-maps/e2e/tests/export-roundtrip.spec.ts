@@ -28,6 +28,10 @@ test.describe("webapp export round-trip", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await waitForModeler(page);
+    // The app boots onto an empty canvas fronted by the EmptyState card; load
+    // the bundled example via its "Show example" button so the round-trip
+    // tests operate on real content.
+    await page.locator(".tt-empty__example").click();
   });
 
   test("loads the example context map and exports stable JSON + SVG", async ({ page }) => {

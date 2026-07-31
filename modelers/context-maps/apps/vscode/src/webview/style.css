@@ -113,3 +113,92 @@ body {
   margin: 5px 4px;
   background: var(--vscode-widget-border, rgba(29, 29, 29, 0.12));
 }
+
+/* --- Empty-state welcome card (fresh .cm file, no elements yet) ----------- */
+
+.welcome {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  /* Clicks pass through to the canvas; only the card reacts. */
+  pointer-events: none;
+}
+
+.welcome[hidden] {
+  display: none;
+}
+
+.welcome-card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 380px;
+  padding: 36px 40px;
+  color: var(--vscode-foreground, #1d1d1d);
+  background: var(--vscode-editorWidget-background, rgba(255, 255, 255, 0.92));
+  border: 1px solid var(--vscode-widget-border, rgba(29, 29, 29, 0.15));
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(29, 29, 29, 0.16);
+}
+
+.welcome-mark svg {
+  display: block;
+  border-radius: 15px;
+  box-shadow: 0 8px 22px rgba(51, 93, 229, 0.3);
+}
+
+.welcome-title {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.welcome-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.welcome-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--vscode-foreground, #1d1d1d);
+  background: var(--vscode-button-secondaryBackground, rgba(29, 29, 29, 0.06));
+  border: 1px solid var(--vscode-widget-border, rgba(29, 29, 29, 0.15));
+}
+
+.welcome-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(29, 29, 29, 0.1));
+}
+
+.welcome-btn--primary {
+  color: var(--vscode-button-foreground, #ffffff);
+  background: var(--vscode-button-background, #335de5);
+  border-color: transparent;
+}
+
+.welcome-btn--primary:hover {
+  background: var(--vscode-button-hoverBackground, #2b50d4);
+}
+
+.welcome-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #2b50d4);
+  outline-offset: 1px;
+}

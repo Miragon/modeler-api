@@ -1,6 +1,10 @@
 // Pulls the renderer CSS (incl. diagram-js.css) into the bundle via the renderer's index.
 import { Modeler } from "@miragon/context-maps-renderer";
-import { parseDocument, serializeDocument } from "@miragon/context-maps-schema-model";
+import {
+  SAMPLE_DOCUMENT,
+  parseDocument,
+  serializeDocument,
+} from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
 import "./style.css";
 import { embedSvg, svgToEmbeddedPng, blobToBase64 } from "./io.js";
@@ -93,6 +97,7 @@ async function importText(text: string, fit: boolean): Promise<void> {
     importing = false;
     initialized = true;
   }
+  syncWelcome();
 }
 
 /** Graphical change -> serialize JSON and (only on a real difference) report it to the host. */
@@ -104,7 +109,10 @@ function pushEdit(): void {
   vscode.postMessage({ type: "edit", text });
 }
 
-modeler.on("commandStack.changed", pushEdit);
+modeler.on("commandStack.changed", () => {
+  pushEdit();
+  syncWelcome();
+});
 
 window.addEventListener("message", (event: MessageEvent<HostToWebview>) => {
   const msg = event.data;
@@ -257,6 +265,79 @@ async function exportPng(): Promise<void> {
   } catch (err) {
     vscode.postMessage({ type: "error", message: `PNG export failed: ${(err as Error).message}` });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Empty-state welcome card. Shown while the opened file describes an empty
+// diagram (fresh .cm file); mirrors the webapp's EmptyState. "New diagram"
+// dismisses the card (the blank canvas IS the new diagram — the file already
+// exists); "Show example" imports the bundled context map as a regular,
+// undoable edit of the file.
+// ---------------------------------------------------------------------------
+
+/** The Miragon app mark (favicon.svg), inlined — the webview bundles no image assets. */
+const WELCOME_MARK_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-hidden="true" width="60" height="60">' +
+  '<rect width="512" height="512" rx="112" fill="#335DE5" />' +
+  '<path fill="#00E676" transform="translate(63 196) scale(1.34)" d="M0,89.63l220.2-14.78c11.65-.78,23.38-2.66,33.31-5.14s22.92-8.94,29.16-19.41c3.65-6.12,5.09-13.73,5.38-18.91,.27-4.94-.99-10.2-2.54-13.33-2.76-5.55-6.11-8.42-8.55-10.26-2.45-1.84-7.55-5.77-18.08-7.35-10.53-1.58-29.62,1.2-44.31,5.84C199.87,10.92,0,89.63,0,89.63Z" />' +
+  "</svg>";
+
+let welcomeDismissed = false;
+
+function welcomeButton(label: string, primary: boolean, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = primary ? "welcome-btn welcome-btn--primary" : "welcome-btn";
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+const welcome = document.createElement("div");
+welcome.className = "welcome";
+welcome.hidden = true;
+
+const welcomeCard = document.createElement("div");
+welcomeCard.className = "welcome-card";
+welcomeCard.setAttribute("role", "region");
+welcomeCard.setAttribute("aria-label", "Empty canvas");
+
+const welcomeMark = document.createElement("div");
+welcomeMark.className = "welcome-mark";
+welcomeMark.innerHTML = WELCOME_MARK_SVG;
+
+const welcomeTitle = document.createElement("h2");
+welcomeTitle.className = "welcome-title";
+welcomeTitle.textContent = "Context Maps";
+
+const welcomeText = document.createElement("p");
+welcomeText.className = "welcome-text";
+welcomeText.textContent = "Start a new diagram, or open the example.";
+
+const welcomeActions = document.createElement("div");
+welcomeActions.className = "welcome-actions";
+welcomeActions.append(
+  welcomeButton("New diagram", true, () => {
+    welcomeDismissed = true;
+    syncWelcome();
+  }),
+  welcomeButton("Show example", false, () => {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    fitView();
+    // importDocument bypasses the command stack — report the edit explicitly.
+    pushEdit();
+    syncWelcome();
+  }),
+);
+
+welcomeCard.append(welcomeMark, welcomeTitle, welcomeText, welcomeActions);
+welcome.append(welcomeCard);
+document.getElementById("app")?.append(welcome);
+
+function syncWelcome(): void {
+  const doc = modeler.exportDocument();
+  const empty = doc.contexts.length === 0 && doc.relationships.length === 0;
+  welcome.hidden = !empty || welcomeDismissed || importFailed;
 }
 
 // ---------------------------------------------------------------------------

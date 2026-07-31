@@ -17,6 +17,8 @@ export interface ModelerContextValue {
   title: string;
   /** Bumped on every model change so consumers re-read live element props. */
   revision: number;
+  /** True while the document has no contexts and no relationships (drives the welcome card). */
+  isEmpty: boolean;
   setTitle: (title: string) => void;
 }
 

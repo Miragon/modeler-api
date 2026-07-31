@@ -568,6 +568,92 @@ body {
   opacity: 1;
 }
 
+/* ---- Empty-state welcome card (fresh start, canvas has no elements) ------ */
+
+.tt-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  /* Clicks pass through to the canvas; only the card reacts. */
+  pointer-events: none;
+}
+
+.tt-empty__card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 380px;
+  padding: 36px 40px;
+  /* Frosted panel: translucent surface token (not a hardcoded white) so the
+     canvas shows through the blur, matching the sibling Miragon modelers. */
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--cd-radius-lg, 16px);
+  box-shadow: var(--shadow-pop);
+  backdrop-filter: blur(8px);
+  animation: tt-empty-in 0.2s ease;
+}
+
+.tt-empty__mark {
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  /* Accent-tinted glow lifts the mark off the frosted card (accent == --cd-blau). */
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.tt-empty__title {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.tt-empty__text {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tt-empty__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tt-empty__actions .tt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+}
+
+.tt-empty__actions .tt-btn--primary {
+  box-shadow: var(--shadow-sm);
+}
+
+.tt-empty__actions .tt-btn--primary:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+@keyframes tt-empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 /* ---- Modal -------------------------------------------------------------- */
 
 .tt-modal {

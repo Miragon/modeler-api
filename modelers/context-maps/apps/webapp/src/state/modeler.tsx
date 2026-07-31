@@ -27,6 +27,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
   const [canRedo, setCanRedo] = useState(false);
   const [title, setTitleState] = useState("Untitled context map");
   const [revision, setRevision] = useState(0);
+  const [isEmpty, setIsEmpty] = useState(false);
 
   // Debounced autosave of the current document: to localStorage (so a refresh
   // never loses work) and into the address-bar hash (so the URL is always a
@@ -50,6 +51,10 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
     };
     const bump = () => setRevision((r) => r + 1);
     const syncTitle = () => setTitleState(modeler.getMeta()?.title ?? "Untitled context map");
+    const syncEmpty = () => {
+      const doc = modeler.exportDocument();
+      setIsEmpty(doc.contexts.length === 0 && doc.relationships.length === 0);
+    };
 
     const onSelection = (e: unknown) => {
       const sel = (e as { newSelection?: unknown[] }).newSelection?.[0];
@@ -58,6 +63,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
     const onCommandStack = () => {
       syncHistory();
       bump();
+      syncEmpty();
       persist();
     };
     const onElements = () => bump();
@@ -65,6 +71,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
       syncHistory();
       syncTitle();
       bump();
+      syncEmpty();
       // New / Example / Import-file / shared-link all re-import: keep the
       // autosave + address-bar hash in step with the freshly loaded document.
       persist();
@@ -81,6 +88,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
       importing = false;
     };
     const onStructural = () => {
+      syncEmpty();
       if (!importing) saveNow();
     };
     const structuralEvents = [
@@ -110,6 +118,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
     // Initial sync (the first import.done may fire before we subscribed).
     syncHistory();
     syncTitle();
+    syncEmpty();
 
     return () => {
       modeler.off("selection.changed", onSelection);
@@ -133,9 +142,9 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<ModelerContextValue>(
-    () => ({ modeler, selected, canUndo, canRedo, title, revision, setTitle }),
+    () => ({ modeler, selected, canUndo, canRedo, title, revision, isEmpty, setTitle }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [modeler, selected, canUndo, canRedo, title, revision],
+    [modeler, selected, canUndo, canRedo, title, revision, isEmpty],
   );
 
   return <ModelerContext.Provider value={value}>{children}</ModelerContext.Provider>;
