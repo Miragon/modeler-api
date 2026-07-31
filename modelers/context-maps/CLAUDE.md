@@ -5,6 +5,25 @@ notation (bounded contexts by subdomain type, connected by context-mapping relat
 OHS/PL/ACL/CF integration roles), built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT).
 Shared core for two targets: a web app and a VS Code extension.
 
+## Design system (mandatory)
+
+All UI/visual work MUST follow the Miragon corporate identity — this is not optional. Source of
+truth: the **`miragon-brand:corporate-design`** Claude skill (plugin `miragon-brand` from
+[`Miragon/corporate-identity`](https://github.com/Miragon/corporate-identity)); install with
+`/plugin marketplace add Miragon/corporate-identity` + `/plugin install miragon-brand@miragon`.
+
+The brand tokens are **vendored** from that repo as
+[`packages/renderer/src/theme/cd-tokens.generated.css`](packages/renderer/src/theme/cd-tokens.generated.css)
+— do **not** fork the hex values; re-copy the file to update. The pure-TS mirror in
+[`packages/renderer/src/theme/palette.ts`](packages/renderer/src/theme/palette.ts) is the single
+source for canvas colours; a drift test
+([`packages/renderer/src/theme/theme.sync.test.ts`](packages/renderer/src/theme/theme.sync.test.ts))
+fails if the two diverge. The subdomain-type fills, relationship-pattern strokes and integration-role
+marker colours in
+[`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the **official
+Context Maps notation** and are serialized into documents — they stay as-is; the CI applies to
+everything else (chrome, typography, accent/selection, neutrals, the app icon).
+
 ## Monorepo (npm workspaces)
 
 Workspaces are declared in the root `package.json` (`workspaces` array, listed in topological build

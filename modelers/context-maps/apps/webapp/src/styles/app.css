@@ -7,27 +7,34 @@
    No header bar.
    ========================================================================== */
 
+/* Semantic aliases over the Miragon `--cd-*` brand tokens (vendored in the renderer package,
+   loaded via its context-maps.css import). Blue leads, green accents; warm neutrals derived
+   from the brand grau/schwarz. */
 :root {
   --font-sans:
-    "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
-    sans-serif;
+    "Geist Variable", "Geist", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --ink: #1f2430;
-  --ink-soft: #525a6b;
-  --ink-faint: #8a92a3;
-  --line: #e3e6ee;
-  --line-strong: #d2d7e3;
-  --bg: #f4f6fb;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --accent: #4f46e5;
-  --accent-soft: #eef2ff;
-  --danger: #d8456b;
-  --shadow-sm: 0 1px 2px rgba(20, 24, 40, 0.06), 0 1px 3px rgba(20, 24, 40, 0.08);
-  --shadow-md: 0 6px 24px rgba(20, 24, 40, 0.12);
-  --shadow-pop: 0 14px 40px rgba(20, 24, 40, 0.16);
-  --radius: 10px;
-  --radius-sm: 7px;
+  --ink: var(--cd-schwarz, #1d1d1d);
+  --ink-soft: #5b5b5b;
+  --ink-faint: #8a8a8a;
+  --line: #e6e2e2;
+  --line-strong: #d8d3d3;
+  --bg: var(--cd-grau, #f9f7f7);
+  --surface: var(--cd-weiss, #ffffff);
+  --surface-2: #f3f1f1;
+  --accent: var(--cd-blau, #335de5);
+  --accent-strong: var(--cd-blau-link, #2b50d4);
+  --accent-soft: rgba(51, 93, 229, 0.1);
+  --danger: var(--cd-danger, #c92a2a);
+  --danger-soft: var(--cd-danger-soft, rgba(201, 42, 42, 0.12));
+  --shadow-sm: var(--cd-shadow-1);
+  --shadow-md: var(--cd-shadow-2);
+  --shadow-pop: var(--cd-shadow-3);
+  --radius: var(--cd-radius-md, 12px);
+  --radius-sm: var(--cd-radius-sm, 6px);
 }
 
 * {
@@ -130,12 +137,12 @@ body {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.22);
+  box-shadow: 0 2px 10px rgba(51, 93, 229, 0.22);
 }
 
 .tt-iconbtn--primary:hover {
-  border-color: #4338ca;
-  background: #4338ca;
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
   color: #fff;
 }
 
@@ -224,7 +231,7 @@ body {
 
 .tt-menu__kbd {
   margin-left: auto;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-faint);
 }
@@ -305,20 +312,20 @@ body {
 }
 
 .tt-btn--primary:hover {
-  background: #4338ca;
-  border-color: #4338ca;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 .tt-btn--danger {
-  background: #fff;
-  border-color: #f0c2cf;
+  background: var(--surface);
+  border-color: rgba(201, 42, 42, 0.35);
   color: var(--danger);
   width: 100%;
   margin-top: 6px;
 }
 
 .tt-btn--danger:hover {
-  background: #fdeef2;
+  background: var(--danger-soft);
   border-color: var(--danger);
 }
 
@@ -541,8 +548,24 @@ body {
 }
 
 .tt-legal a:hover {
-  color: var(--accent);
+  color: var(--accent-strong);
   text-decoration: underline;
+}
+
+/* Miragon wordmark in the footer — CI minimum web width (96px), no underline on hover. */
+.tt-legal__brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tt-legal__brand img {
+  display: block;
+  opacity: 0.9;
+  transition: opacity 0.12s;
+}
+
+.tt-legal__brand:hover img {
+  opacity: 1;
 }
 
 /* ---- Modal -------------------------------------------------------------- */
@@ -559,7 +582,7 @@ body {
 .tt-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(20, 24, 40, 0.42);
+  background: rgba(29, 29, 29, 0.42);
 }
 
 .tt-modal__panel {
@@ -568,8 +591,8 @@ body {
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   background: var(--surface);
-  border-radius: 14px;
-  box-shadow: var(--shadow-md);
+  border-radius: var(--cd-radius-lg, 16px);
+  box-shadow: var(--shadow-pop);
   padding: 4px 24px 24px;
 }
 
@@ -586,6 +609,7 @@ body {
 
 .tt-modal__header h2 {
   font-size: 18px;
+  font-weight: 700;
   margin: 0;
 }
 
@@ -624,7 +648,7 @@ body {
 }
 
 kbd {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 11.5px;
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
@@ -663,7 +687,7 @@ kbd {
 }
 
 .tt-toast--success {
-  background: #1f9d6b;
+  background: var(--cd-success, #0b7a55);
 }
 .tt-toast--error {
   background: var(--danger);
@@ -698,7 +722,7 @@ kbd {
   cursor: pointer;
 }
 .tt-check input {
-  accent-color: var(--cm-accent, #4f46e5);
+  accent-color: var(--accent);
 }
 .tt-findings {
   list-style: none;
@@ -715,12 +739,12 @@ kbd {
   border-radius: 6px;
 }
 .tt-finding--error {
-  background: #fdecea;
-  color: #8f2318;
+  background: var(--cd-danger-soft, rgba(201, 42, 42, 0.12));
+  color: var(--cd-danger, #c92a2a);
 }
 .tt-finding--warning {
-  background: #fdf6e3;
-  color: #8a6100;
+  background: var(--cd-warning-soft, rgba(146, 97, 10, 0.12));
+  color: var(--cd-warning, #92610a);
 }
 
 /* Three separate legend boxes next to the map (subdomains / direction / roles) */
@@ -750,11 +774,11 @@ kbd {
   gap: 6px 14px;
   padding: 8px 14px;
   background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(29, 29, 29, 0.08);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(29, 29, 29, 0.08);
   font-size: 12.5px;
-  color: #333;
+  color: var(--ink);
 }
 .cm-legend-item {
   position: relative;
@@ -775,7 +799,7 @@ kbd {
   width: max-content;
   max-width: 280px;
   padding: 8px 10px;
-  background: rgba(28, 32, 40, 0.96);
+  background: rgba(29, 29, 29, 0.96);
   color: #fff;
   border-radius: 8px;
   font-size: 12px;
@@ -794,7 +818,7 @@ kbd {
   position: fixed;
   max-width: 280px;
   padding: 8px 10px;
-  background: rgba(28, 32, 40, 0.96);
+  background: rgba(29, 29, 29, 0.96);
   color: #fff;
   border-radius: 8px;
   font-size: 12px;
@@ -825,7 +849,7 @@ kbd {
   right: 0;
   top: calc(100% + 4px);
   padding: 8px 10px;
-  background: rgba(28, 32, 40, 0.96);
+  background: rgba(29, 29, 29, 0.96);
   color: #fff;
   border-radius: 8px;
   font-size: 12px;
@@ -918,7 +942,7 @@ kbd {
 .tt-switch__opt:disabled {
   cursor: not-allowed;
   background: var(--surface-2);
-  color: #c3c9d6;
+  color: #c9c4c4;
 }
 .tt-switch__opt.is-disabled:hover {
   background: var(--surface-2);

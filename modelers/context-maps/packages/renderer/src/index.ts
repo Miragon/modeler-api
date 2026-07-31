@@ -35,3 +35,6 @@ export type { ImportWarning, RootBusinessObject } from "./io/index.js";
 
 // Palette glyphs — reusable for host chrome (e.g. the legend).
 export { contextIconSvg, relationshipIconSvg } from "./draw/palette-icons.js";
+
+// Miragon brand palette — single source for every non-notation colour (see theme/palette.ts).
+export { MIRAGON, CD_TOKENS } from "./theme/index.js";
