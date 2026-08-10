@@ -34,9 +34,32 @@ export interface CmlParseResult {
   diagnostics: CmlDiagnostic[];
 }
 
-/** Strips `//` line comments and `/* *\/` block comments. */
+/**
+ * Strips `//` line comments and `/* *\/` block comments in a single linear pass.
+ * A hand-written scanner (rather than a regex) keeps this O(n): the equivalent
+ * `/\/\*[\s\S]*?\*\//` regex is polynomial (ReDoS) on unterminated block comments,
+ * and CML is parsed from untrusted files/URLs.
+ */
 function stripComments(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  let out = "";
+  let cursor = 0;
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "/" && text[i + 1] === "*") {
+      out += text.slice(cursor, i) + " ";
+      const end = text.indexOf("*/", i + 2);
+      if (end === -1) return out; // unterminated — the rest is comment
+      i = cursor = end + 2;
+    } else if (text[i] === "/" && text[i + 1] === "/") {
+      out += text.slice(cursor, i) + " ";
+      const newline = text.indexOf("\n", i + 2);
+      if (newline === -1) return out;
+      i = cursor = newline; // keep the newline in the output
+    } else {
+      i++;
+    }
+  }
+  return out + text.slice(cursor);
 }
 
 /** Extracts the balanced `{ ... }` body starting at the first brace after `from`. */
