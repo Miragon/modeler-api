@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Miragon/context-maps-modeler/compare/cml-v0.1.0...cml-v0.1.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* dependabot findings ([#33](https://github.com/Miragon/context-maps-modeler/issues/33)) ([dd90470](https://github.com/Miragon/context-maps-modeler/commit/dd9047082c303fabab03ee09bfaecc54f6320be4))
+
 ## [0.1.0](https://github.com/Miragon/context-maps-modeler/compare/cml-v0.0.1...cml-v0.1.0) (2026-08-10)
 
 

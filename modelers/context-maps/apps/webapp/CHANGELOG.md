@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.1.0...webapp-v0.1.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* add missing css ([#30](https://github.com/Miragon/context-maps-modeler/issues/30)) ([69d069e](https://github.com/Miragon/context-maps-modeler/commit/69d069e3e99e0b31f99a79aab4618b1d55d1fd6f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-cml bumped from 0.1.0 to 0.1.1
+
 ## [0.1.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.0.1...webapp-v0.1.0) (2026-08-10)
 
 
