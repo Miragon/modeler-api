@@ -11,9 +11,6 @@ inside VS Code: it opens `.cm` / `.cm.json` files (a Context Maps diagram stored
 deterministic JSON) in a graphical editor, while the text file stays the source of truth, so save,
 Git, and diff keep working.
 
-New to the method? Read up on strategic DDD context maps in Kaiser's _Architecture for Flow_ and
-Vernon's _DDD Distilled_.
-
 ## Getting started
 
 Install **Context Maps Modeler** (publisher `miragon-gmbh`) from the VS Code Marketplace, then

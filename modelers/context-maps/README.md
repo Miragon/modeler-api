@@ -3,17 +3,16 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](LICENSE)
 [![CI](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
-[![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
+[![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.context-maps-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
 
 A fast, offline-friendly modeler for **Context Maps** diagrams — the strategic Domain-Driven Design
-context maps from Kaiser's _Architecture for Flow_ and Vernon's _DDD Distilled_: bounded contexts
-coloured by subdomain type, connected by context-mapping relationship patterns. Ships as a **web app**
+context maps: bounded contexts coloured by subdomain type, connected by context-mapping relationship
+patterns. Ships as a **web app**
 and a **VS Code extension** sharing one diagram-js core.
 
-It mirrors the structure of [Miragon's Wardley Maps Modeler](https://github.com/Miragon/wardley-maps-modeler):
-the same npm-workspaces monorepo, CI/CD, release automation and "full-bleed canvas + floating chrome"
-editing feel, with a clean DOM-free domain model and lossless, version-controllable files — but built
-around the Context Maps notation.
+Built as an npm-workspaces monorepo with CI/CD and release automation, a "full-bleed canvas +
+floating chrome" editing feel, a clean DOM-free domain model, and lossless, version-controllable
+files — all around the Context Maps notation.
 
 ![The Context Maps editor](docs/screenshots/editor.png)
 
@@ -47,9 +46,9 @@ Asymmetric relationships carry **integration roles** at their ends: upstream can
 **Open Host Service (OHS)** and/or a **Published Language (PL)**; downstream can apply an
 **Anticorruption Layer (ACL)** or be a **Conformist (CF)** (the two are mutually exclusive). Thirteen
 semantic rules — ten adopted from Context Mapper (OHS/PL only upstream, ACL/CF only downstream,
-symmetric patterns carry no roles, etc.), two advisory warnings from Kaiser's _Architecture for
-Flow_ (a core domain should not conform, a shared kernel should not span two teams), and at most
-one relationship per pair of contexts — are checked by `validateDocument()`.
+symmetric patterns carry no roles, etc.), two advisory warnings (a core domain should not conform, a
+shared kernel should not span two teams), and at most one relationship per pair of contexts — are
+checked by `validateDocument()`.
 
 ## Targets
 

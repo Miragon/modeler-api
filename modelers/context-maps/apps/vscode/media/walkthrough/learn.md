@@ -25,6 +25,3 @@ Conformist (CF).
 - Select an element to get its context pad, which renames, connects or deletes it.
 
 Your changes are saved straight back into the `.tt` file, so diagrams version nicely in Git.
-
-New to the method? Read up on strategic DDD context maps in Kaiser's _Architecture for Flow_ and
-Vernon's _DDD Distilled_.
