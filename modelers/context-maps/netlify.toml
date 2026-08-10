@@ -12,7 +12,7 @@
   publish = "apps/webapp/dist"
 
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "24"
 
 # Single-page app: the diagram lives in the URL hash (#d=...), routing is hash-based.
 # The catch-all serves index.html for any path (robust against deep links).
