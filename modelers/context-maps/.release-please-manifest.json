@@ -1,3 +1,7 @@
 {
-  ".": "0.0.1"
+  "packages/schema-model": "0.0.1",
+  "packages/cml": "0.0.1",
+  "packages/renderer": "0.0.1",
+  "apps/vscode": "0.0.1",
+  "apps/webapp": "0.0.1"
 }
