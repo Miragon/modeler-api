@@ -1,7 +1,7 @@
 {
   "name": "context-maps-modeler",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Context Maps Modeler",
   "description": "View and edit Context Maps diagrams directly in VS Code, including .cm and .cm.json files.",
   "publisher": "miragon-gmbh",

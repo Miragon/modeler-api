@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.1.0...vscode-v0.2.0) (2026-08-12)
+
+
+### Features
+
+* add vs-code plugin panel and legend ([#34](https://github.com/Miragon/context-maps-modeler/issues/34)) ([acadb76](https://github.com/Miragon/context-maps-modeler/commit/acadb7678a5ba9d2c50ecee5fd4b6899e93ceb24))
+
 ## [0.1.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.0.1...vscode-v0.1.0) (2026-08-10)
 
 
