@@ -2,7 +2,8 @@ import * as vscode from "vscode";
 import { serializeDocument, DOCUMENT_VERSION } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { getWebviewHtml } from "./webviewHtml.js";
-import { exportImageToFile } from "./exportImage.js";
+import { exportToFile } from "./exportImage.js";
+import { pickImportFile } from "./importFile.js";
 import { EMBED_KEYWORD, decodeDoc, pngExtractText } from "./png.js";
 import type { HostToWebview, WebviewToHost } from "./protocol.js";
 
@@ -157,8 +158,13 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
           this.onWebviewEdit(document, msg.text);
           break;
         case "export":
-          await exportImageToFile(document.uri, msg.format, msg.data);
+          await exportToFile(document.uri, msg.format, msg.data);
           break;
+        case "importRequest": {
+          const file = await pickImportFile();
+          if (file) await post({ type: "importFile", name: file.name, text: file.text });
+          break;
+        }
         case "pngResponse":
           this.resolvePng(binding, msg);
           break;

@@ -20,6 +20,7 @@ const r = (p) => resolve(root, p);
 const alias = {
   "@miragon/context-maps-renderer": r("packages/renderer/src/index.ts"),
   "@miragon/context-maps-schema-model": r("packages/schema-model/src/index.ts"),
+  "@miragon/context-maps-cml": r("packages/cml/src/index.ts"),
 };
 
 /** @type {import('esbuild').BuildOptions} */

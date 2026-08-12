@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getWebviewHtml } from "./webviewHtml.js";
-import { exportImageToFile } from "./exportImage.js";
+import { exportToFile } from "./exportImage.js";
+import { pickImportFile } from "./importFile.js";
 import type { HostToWebview, WebviewToHost } from "./protocol.js";
 
 /**
@@ -64,8 +65,13 @@ export class CmEditorProvider implements vscode.CustomTextEditorProvider {
           await this.replaceWholeDocument(document, msg.text, suppressEcho);
           break;
         case "export":
-          await exportImageToFile(document.uri, msg.format, msg.data);
+          await exportToFile(document.uri, msg.format, msg.data);
           break;
+        case "importRequest": {
+          const file = await pickImportFile();
+          if (file) await post({ type: "importFile", name: file.name, text: file.text });
+          break;
+        }
         case "info":
           void vscode.window.showInformationMessage(msg.message);
           break;

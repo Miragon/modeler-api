@@ -1,6 +1,6 @@
 # Context Maps for VS Code
 
-[![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.context-maps-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
+[![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
 [![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
 
 [Context Maps](https://contextmapper.org/) are the strategic Domain-Driven Design view of a system:

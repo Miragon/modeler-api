@@ -6,8 +6,13 @@ import {
   serializeDocument,
 } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
+import { parseCml, serializeCml } from "@miragon/context-maps-cml";
 import "./style.css";
 import { embedSvg, svgToEmbeddedPng, blobToBase64 } from "./io.js";
+import { mountLegend } from "./legend.js";
+import { mountInspector } from "./inspector.js";
+import { mountHoverTooltip } from "./hoverTooltip.js";
+import { createHelpDialog } from "./helpDialog.js";
 import type { HostToWebview, WebviewToHost } from "../protocol.js";
 
 interface VsCodeApi {
@@ -25,6 +30,17 @@ if (!container || !toolbar) throw new Error("Webview layout incomplete (#canvas/
 const modeler = new Modeler({ container });
 // Debug handle (like the webapp). Harmless in the sandboxed webview, helpful for diagnostics/tests.
 (globalThis as Record<string, unknown>).__cmModeler = modeler;
+
+// Chrome mirroring the webapp: notation legend (bottom-left), the fast hover tooltip, the
+// selection-driven inspector (top-right) for editing contexts/relationships, and the help modal.
+// All attach to #app.
+const app = document.getElementById("app");
+const help = app ? createHelpDialog(app) : null;
+if (app) {
+  mountLegend(app);
+  mountInspector(modeler, app);
+  mountHoverTooltip(modeler, app);
+}
 
 // ---------------------------------------------------------------------------
 // Two-way sync with the document (native JSON is the source of truth)
@@ -118,6 +134,7 @@ window.addEventListener("message", (event: MessageEvent<HostToWebview>) => {
   const msg = event.data;
   if (msg.type === "init") void enqueueImport(msg.text, true);
   else if (msg.type === "update") void enqueueImport(msg.text, false);
+  else if (msg.type === "importFile") importFileIntoDiagram(msg.name, msg.text);
   else if (msg.type === "requestPng") void respondPng(msg.id);
 });
 
@@ -225,8 +242,15 @@ dropdown.hidden = true;
 dropdown.append(
   menuItem("Fit to view", fitView),
   menuSep(),
+  menuItem("Show example", showExample),
+  menuItem("Import…", requestImport),
+  menuSep(),
+  menuItem("Export · JSON", exportJson),
+  menuItem("Export · CML", exportCml),
   menuItem("Export · SVG", exportSvg),
   menuItem("Export · PNG", exportPng),
+  menuSep(),
+  menuItem("Help & shortcuts", () => help?.open()),
 );
 
 toolbar.append(menuBtn, dropdown);
@@ -264,6 +288,74 @@ async function exportPng(): Promise<void> {
     vscode.postMessage({ type: "export", format: "png", data: await blobToBase64(blob) });
   } catch (err) {
     vscode.postMessage({ type: "error", message: `PNG export failed: ${(err as Error).message}` });
+  }
+}
+
+/** The native JSON document (the file's own format) — offered as an explicit "save a copy". */
+function exportJson(): void {
+  vscode.postMessage({ type: "export", format: "json", data: currentText() });
+}
+
+/** Context Mapper CML for strategic-DDD interop. Serialization can throw on unsupported constructs. */
+function exportCml(): void {
+  try {
+    const cml = serializeCml(modeler.exportDocument());
+    vscode.postMessage({ type: "export", format: "cml", data: cml });
+  } catch (err) {
+    vscode.postMessage({ type: "error", message: `CML export failed: ${(err as Error).message}` });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Import (host picks the file; the webview parses and imports it as an edit)
+// ---------------------------------------------------------------------------
+
+function requestImport(): void {
+  vscode.postMessage({ type: "importRequest" });
+}
+
+/** Load the example map into the current file as a regular, undoable edit. */
+function showExample(): void {
+  modeler.importDocument(SAMPLE_DOCUMENT);
+  fitView();
+  // importDocument bypasses the command stack — report the edit explicitly.
+  pushEdit();
+  syncWelcome();
+  vscode.postMessage({ type: "info", message: "Loaded example diagram" });
+}
+
+/**
+ * Parse a user-picked file (native JSON `.cm`/`.cm.json`, or Context Mapper `.cml`) and import it
+ * into the current diagram. Like `showExample`, it bypasses the command stack, so the edit is
+ * reported explicitly and lands in the file (undoable via VS Code).
+ */
+function importFileIntoDiagram(name: string, text: string): void {
+  try {
+    let doc: CmDocument;
+    let skipped = 0;
+    if (name.toLowerCase().endsWith(".cml")) {
+      const { document, diagnostics } = parseCml(text);
+      const parsed = parseDocument(document);
+      if (!parsed.ok) throw new Error(parsed.error);
+      doc = parsed.document;
+      skipped = diagnostics.length;
+    } else {
+      const parsed = parseDocument(JSON.parse(text));
+      if (!parsed.ok) throw new Error(parsed.error);
+      doc = parsed.document;
+    }
+    modeler.importDocument(doc);
+    fitView();
+    pushEdit();
+    syncWelcome();
+    vscode.postMessage({
+      type: "info",
+      message: skipped
+        ? `Diagram imported (${skipped} unsupported construct(s) skipped)`
+        : "Diagram imported",
+    });
+  } catch (err) {
+    vscode.postMessage({ type: "error", message: `Import failed: ${(err as Error).message}` });
   }
 }
 

@@ -143,6 +143,7 @@
     "package": "vsce package --no-dependencies -o context-maps-modeler.vsix"
   },
   "dependencies": {
+    "@miragon/context-maps-cml": "0.1.1",
     "@miragon/context-maps-renderer": "0.1.0",
     "@miragon/context-maps-schema-model": "0.1.0"
   },

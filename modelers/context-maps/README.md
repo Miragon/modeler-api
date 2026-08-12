@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](LICENSE)
 [![CI](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
-[![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.context-maps-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
+[![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
 
 A fast, offline-friendly modeler for **Context Maps** diagrams — the strategic Domain-Driven Design
 context maps: bounded contexts coloured by subdomain type, connected by context-mapping relationship
