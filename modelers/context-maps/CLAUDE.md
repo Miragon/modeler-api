@@ -58,14 +58,14 @@ fails `npm run lint` and `npm run depcruise`.
   at a stable per-worktree `http://<worktree>.context-maps-modeler.localhost:8080` URL (Portless-derived
   from the git worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json)). The `dev`
   script sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless runs plain HTTP on the non-privileged
-  port 8080 and auto-starts — no `sudo`/`service install` (needs Node ≥ 24; see
+  port 8080 and auto-starts — no `sudo`/`service install` (needs Node ≥ 24.15; see
   [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run dev:webapp:plain` for plain Vite on `:5181`. ·
   `npm run dev:vscode`
 - `npm test` — Vitest (unit) · `npm run test:browser` — renderer in Chromium · `npm run test:e2e`
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)
 - `npm run format` — Prettier · `npm run depcruise` — check the module graph
 
-Requirements: Node ≥ 24, npm. The packages are consumed from **source** (Vite/esbuild/tsconfig
+Requirements: Node ≥ 24.15, npm. The packages are consumed from **source** (Vite/esbuild/tsconfig
 aliases), so neither the apps nor the tests need a prior package build; `npm run build` is for
 publishing the libraries. The Husky pre-commit hook runs **only** lint-staged + `npm run lint`
 (ESLint + type-check) — **not** tests/build/depcruise; run `npm test` yourself before pushing.

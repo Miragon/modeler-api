@@ -1,7 +1,7 @@
 # Contributing
 
 Thanks for helping improve the Context Maps Modeler. This is an npm-workspaces monorepo
-(Node ≥ 24, npm, TypeScript ESM). Agent-oriented notes live in [`CLAUDE.md`](CLAUDE.md).
+(Node ≥ 24.15, npm, TypeScript ESM). Agent-oriented notes live in [`CLAUDE.md`](CLAUDE.md).
 
 ## Setup & inner loop
 
@@ -19,7 +19,7 @@ Useful extras: `npm run dev:webapp`, `npm run dev:vscode`, `npm run depcruise` (
 
 `npm run dev:webapp` (and the top-level `npm run dev`) serves the webapp through
 [Portless](https://portless.sh) at a stable, named `.localhost` URL instead of a Vite port
-(needs **Node ≥ 24**). Portless is a pinned **devDependency**, so `npm install` is all you need — no
+(needs **Node ≥ 24.15**). Portless is a pinned **devDependency**, so `npm install` is all you need — no
 global install. Config lives in [`apps/webapp/portless.json`](apps/webapp/portless.json)
 (`{ "name": "context-maps-modeler", "script": "dev:app" }`): `npm run dev:webapp` runs
 `portless`, which reads that config and starts the real Vite server (the `dev:app` script) behind the
