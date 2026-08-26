@@ -23,7 +23,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "6.0.5",
+    "@vitejs/plugin-react": "6.1.0",
     "portless": "0.15.5"
   }
 }
