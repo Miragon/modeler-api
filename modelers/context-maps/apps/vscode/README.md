@@ -46,10 +46,11 @@ A diagram shows bounded contexts and the relationships between them.
   editor, backed by the plain-text JSON file. Editing the text in a split view re-renders the canvas
   live (two-way sync), and VS Code tracks dirty state as you go. To reopen a diagram as raw text, use
   **View: Reopen Editor With…**, then pick **Text Editor**.
-- **Full modeler:** the tool palette places the three subdomain types of bounded context; a
-  selected context shows four connect arrows (top/right/bottom/left) that draw a relationship to
-  another context with a live preview line. Move, resize, and inline label editing all work, with
-  undo/redo via `Ctrl/Cmd+Z` and `Ctrl/Cmd+Shift+Z`.
+- **Full modeler:** the floating tool palette (top-centre) places the three subdomain types of
+  bounded context; selecting an element opens its **context pad** — append a connected context (⊞),
+  arm the connect tool (→) and click the target (live preview line), change subdomain type /
+  relationship pattern / integration roles via popup menus, swap ends, rename, delete. Move and
+  inline label editing work, with undo/redo via `Ctrl/Cmd+Z` and `Ctrl/Cmd+Shift+Z`.
 - **Collapsed menu** (top-right, Excalidraw-style): fit-to-view · export SVG/PNG.
 - **Editable embedded-PNG diagrams (`*.cm.png`).** Exported PNGs store the diagram
   inside a `tEXt` chunk, so the file stays a normal image you can drop into a wiki, README, or chat —

@@ -235,194 +235,6 @@ body {
   --shadow-pop: 0 12px 32px rgba(29, 29, 29, 0.16);
 }
 
-/* ---- Inspector: floating panel, top-right (shown on selection) ---------- */
-
-.tt-inspector {
-  position: absolute;
-  top: 60px;
-  right: 12px;
-  z-index: 8;
-  width: 288px;
-  max-height: calc(100% - 88px);
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow-pop);
-  padding: 16px;
-  color: var(--ink);
-}
-
-.tt-inspector[hidden] {
-  display: none;
-}
-
-.tt-inspector__content {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.tt-inspector__header {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 15px;
-  font-weight: 680;
-}
-
-.tt-inspector__icon {
-  display: inline-flex;
-  flex: none;
-}
-
-.tt-inspector__meta {
-  font-size: 12px;
-  color: var(--ink-faint);
-  line-height: 1.45;
-  margin: 0;
-}
-
-/* ---- Form fields -------------------------------------------------------- */
-
-.tt-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.tt-field__label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.01em;
-}
-
-.tt-field__control {
-  font: inherit;
-  font-size: 13.5px;
-  color: var(--ink);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  background: var(--surface);
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-}
-
-.tt-field__control:focus {
-  outline: 2px solid var(--accent-soft);
-  border-color: var(--accent);
-}
-
-.tt-pattern-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tt-pattern-row > select {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* ---- Segmented role switches -------------------------------------------- */
-
-.tt-switch {
-  display: flex;
-  width: 100%;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.tt-switch__opt {
-  position: relative;
-  flex: 1 1 0;
-  text-align: center;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 0;
-  border-left: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    color 0.12s;
-}
-
-.tt-switch__opt:first-child {
-  border-left: 0;
-}
-
-.tt-switch__opt.is-active {
-  background: var(--accent);
-  color: #fff;
-}
-
-.tt-switch__opt:hover:not(.is-active):not(.is-disabled) {
-  background: var(--surface-2);
-}
-
-.tt-switch__opt.is-disabled {
-  cursor: not-allowed;
-  background: var(--surface-2);
-  color: #c9c4c4;
-}
-
-.tt-swapbtn {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    color 0.12s,
-    border-color 0.12s;
-}
-
-.tt-swapbtn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-/* Instant "why is this disabled" tooltip on the role switches. */
-.tt-tip {
-  display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 4px);
-  padding: 8px 10px;
-  background: rgba(29, 29, 29, 0.96);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  text-align: left;
-  white-space: normal;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  z-index: 60;
-}
-
-.tt-switch__opt:hover .tt-tip {
-  display: block;
-}
-
 /* ---- Danger button + findings ------------------------------------------- */
 
 .tt-btn {
@@ -442,207 +254,9 @@ body {
     border-color 0.12s;
 }
 
-.tt-btn--danger {
-  background: var(--surface);
-  border-color: rgba(201, 42, 42, 0.35);
-  color: var(--danger);
-  width: 100%;
-  margin-top: 6px;
-}
-
-.tt-btn--danger:hover {
-  background: var(--danger-soft);
-  border-color: var(--danger);
-}
-
 .tt-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.tt-findings {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tt-finding {
-  font-size: 12.5px;
-  line-height: 1.35;
-  padding: 6px 8px;
-  border-radius: 6px;
-}
-
-.tt-finding--error {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
-.tt-finding--warning {
-  background: var(--warning-soft);
-  color: var(--warning);
-}
-
-/* ---- Legend (bottom-left, collapsible) ---------------------------------- */
-
-.tt-legend {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  padding: 12px 14px;
-  z-index: 4;
-  backdrop-filter: blur(4px);
-  min-width: 172px;
-  color: var(--ink);
-}
-
-.tt-legend__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
-
-.tt-legend__close {
-  border: none;
-  background: none;
-  font-size: 17px;
-  line-height: 1;
-  color: var(--ink-faint);
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.tt-legend__close:hover {
-  color: var(--ink);
-}
-
-.tt-legend__group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tt-legend__row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 12.5px;
-  color: var(--ink);
-}
-
-.tt-legend__icon {
-  display: inline-flex;
-  flex: none;
-}
-
-.tt-legend__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-}
-
-.tt-legend__divider {
-  height: 1px;
-  background: var(--line);
-  margin: 10px 0;
-}
-
-.cm-legend-item {
-  position: relative;
-  cursor: help;
-}
-
-/* Instant notation explanation beside the legend row (no native title delay). */
-.cm-legend-tip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
-  width: max-content;
-  max-width: 280px;
-  padding: 8px 10px;
-  background: rgba(29, 29, 29, 0.96);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  white-space: normal;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  z-index: 60;
-}
-
-.cm-legend-tip::before {
-  content: "";
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 6px solid transparent;
-  border-right-color: rgba(29, 29, 29, 0.96);
-}
-
-.cm-legend-item:hover .cm-legend-tip {
-  display: block;
-}
-
-/* Collapsed-legend toggle button (bottom-left). */
-.tt-iconbtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  padding: 7px 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
-}
-
-.tt-iconbtn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.tt-iconbtn__glyph {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.tt-legend-toggle {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  z-index: 4;
 }
 
 /* ---- Fast custom hover tooltip ------------------------------------------ */
@@ -728,6 +342,26 @@ body {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
+}
+
+.tt-modal__close {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.tt-modal__close:hover {
+  color: var(--ink);
+}
+
+.tt-modal__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .tt-modal__body {

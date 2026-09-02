@@ -11,5 +11,5 @@
       "@miragon/context-maps-cml": ["../../packages/cml/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../../packages/renderer/src/diagram-js-direct-editing.d.ts"]
 }

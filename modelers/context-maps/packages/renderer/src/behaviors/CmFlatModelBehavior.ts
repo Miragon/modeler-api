@@ -36,6 +36,28 @@ export default class CmFlatModelBehavior extends CommandInterceptor {
       true,
     );
 
+    // During a multi-element move, diagram-js' MoveHelper translates every
+    // fully-enclosed connection (both ends moved) by the drag delta AFTER the
+    // per-shape child commands ran. Re-cropping those connections here as well
+    // would apply the delta twice — and a straight line whose two ends move by
+    // the same delta is already correct after the plain translation. Track the
+    // moved set so relayout only touches half-attached connections.
+    let multiMove: Set<string> | null = null;
+    this.preExecute(
+      "elements.move",
+      (context: MovedContext) => {
+        multiMove = new Set((context.shapes ?? []).map((shape) => shape.id));
+      },
+      true,
+    );
+    this.postExecuted(
+      "elements.move",
+      () => {
+        multiMove = null;
+      },
+      true,
+    );
+
     const relayout = (context: MovedContext): void => {
       const shapes = context.shapes ?? (context.shape ? [context.shape] : []);
       const seen = new Set<string>();
@@ -47,11 +69,16 @@ export default class CmFlatModelBehavior extends CommandInterceptor {
         for (const connection of attached) {
           if (seen.has(connection.id)) continue;
           seen.add(connection.id);
+          const sourceId = connection.source?.id;
+          const targetId = connection.target?.id;
+          if (sourceId && targetId && multiMove?.has(sourceId) && multiMove.has(targetId)) {
+            continue;
+          }
           modeling.layoutConnection(connection);
         }
       }
     };
 
-    this.postExecute(["shape.move", "elements.move", "shape.resize"], relayout, true);
+    this.postExecute(["shape.move", "shape.resize"], relayout, true);
   }
 }

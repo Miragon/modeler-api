@@ -28,5 +28,19 @@ export const FONT = {
   small: 11,
 } as const;
 
+/**
+ * Fixed top offset (px at zoom 1) of a context's name inside its box: the
+ * first line starts here, right below the subdomain-type header, so the gap
+ * between header and name never varies with box size or line count.
+ */
+export const CONTEXT_NAME_TOP = 36;
+
+/** Height (px at zoom 1) reserved at the box bottom for the team caption. */
+export const CONTEXT_TEAM_RESERVE = 18;
+
 /** Paper colour used for the label halo so text stays legible over lines. */
 export const PAPER = MIRAGON.weiss;
+
+/** Box colours for contexts without a subdomain classification (canvas + icons). */
+export const NEUTRAL_FILL = "#F1F1EE";
+export const NEUTRAL_STROKE = "#8A8577";

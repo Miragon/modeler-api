@@ -65,12 +65,14 @@
   fill: none;
 }
 
-/* --- Palette: horizontal floating pill, top-centre (Excalidraw style) ----- */
+/* --- Palette: horizontal floating pill, top-centre ------------------------ */
 /* Styled on .djs-palette itself so it travels if the host re-parents it. */
 .djs-palette {
   left: 50%;
   top: 12px;
   transform: translateX(-50%);
+  /* Above the legend card (4), below pad (100)/popup (200). */
+  z-index: 5;
   width: auto;
   display: flex;
   align-items: center;
@@ -105,7 +107,7 @@
   color: var(--cd-blau);
 }
 
-/* Vertical divider between the team group and the interaction-mode group. */
+/* Vertical divider between the tools group and the create entries. */
 .djs-palette .group + .group {
   position: relative;
   margin-left: 9px;
@@ -135,9 +137,12 @@
   display: block;
   pointer-events: none;
 }
-.cm-mode-entry.is-active {
-  background: var(--cm-accent-soft);
-  box-shadow: inset 0 0 0 1.5px var(--cm-accent);
+/* The armed tool carries diagram-js' `highlighted-entry`; the !important
+   matches diagram-js' own highlighted-entry colour rule. */
+.djs-palette .entry.highlighted-entry {
+  background: var(--cm-accent-soft, rgba(51, 93, 229, 0.12));
+  color: var(--cm-accent, #335de5) !important;
+  box-shadow: inset 0 0 0 1.5px var(--cm-accent, #335de5);
 }
 
 /* --- Connect handles (four arrows around a selected context) -------------- */
@@ -161,20 +166,354 @@
   color: var(--cm-accent);
 }
 
-/* --- Inline label editor -------------------------------------------------- */
-.cm-djs-container .cm-label-input {
-  font-family: inherit;
-  font-size: 13.5px;
+/* --- Context pad (per-element quick actions) ------------------------------ */
+/* A vertical stack where every action is its own small card. The container
+   stays chromeless AND click-through (stock pointer-events: none; only the
+   cards opt back in) — the gaps between cards must not swallow canvas
+   clicks. */
+.djs-context-pad.open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+/* diagram-js anchors a connection's pad at the LAST waypoint — on the target
+   context's edge. When the closing segment points into that box (rightward /
+   downward), flip the stack to the free side so it never covers the target. */
+.djs-context-pad.cm-pad-flip-x {
+  transform: translate(calc(-100% - 16px), 14px);
+}
+.djs-context-pad.cm-pad-flip-y {
+  transform: translateY(calc(-100% - 16px));
+}
+.djs-context-pad .group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.djs-context-pad .entry.cm-pad-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 30px;
+  margin: 0;
+  background: var(--cd-weiss, #fff);
+  border: 1px solid var(--cm-line, #e6e2e2);
+  border-radius: var(--cd-radius-md, 12px);
+  box-shadow: var(--cd-shadow-1, 0 1px 3px rgba(29, 29, 29, 0.1));
+  color: var(--cd-schwarz, #1d1d1d);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.djs-context-pad .entry.cm-pad-entry:hover {
+  background: var(--cm-accent-soft, rgba(51, 93, 229, 0.12));
+  border-color: var(--cm-accent, #335de5);
+  color: var(--cm-accent, #335de5);
+}
+.djs-context-pad .entry.cm-pad-entry--danger:hover {
+  background: var(--cd-danger-soft, rgba(201, 42, 42, 0.12));
+  border-color: var(--cd-danger, #c92a2a);
+  color: var(--cd-danger, #c92a2a);
+}
+.djs-context-pad .cm-palette-svg {
+  pointer-events: none;
+}
+/* While a drag is in flight the pad must not swallow the pointer either
+   (releasing a connect drag on top of it has to reach the element beneath). */
+.cm-dragging .djs-context-pad,
+.cm-dragging .djs-context-pad * {
+  pointer-events: none !important;
+}
+
+/* --- Popup menus (subdomain type / pattern / integration roles) ----------- */
+/* `.djs-popup` can be attached outside .cm-djs-container — use the global
+   --cd-* tokens (with literal fallbacks), not the container-scoped aliases. */
+.djs-popup {
+  --popup-font-family:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --popup-background-color: var(--cd-weiss, #fff);
+  --popup-border-color: #e6e2e2;
+  --popup-entry-hover-color: rgba(51, 93, 229, 0.12);
+  --popup-header-entry-selected-color: var(--cd-blau, #335de5);
+  --popup-search-focus-border-color: var(--cd-blau, #335de5);
+  --popup-search-focus-background-color: rgba(51, 93, 229, 0.06);
+  --popup-tab-active-border-color: var(--cd-blau, #335de5);
+  --popup-tab-focus-border-color: var(--cd-blau, #335de5);
+  border-radius: var(--cd-radius-md, 12px);
+  box-shadow: var(--cd-shadow-3, 0 12px 32px rgba(29, 29, 29, 0.16));
+  animation: cm-popup-in var(--cd-motion-fast, 150ms) var(--cd-ease-out, cubic-bezier(0, 0, 0.2, 1));
+}
+.djs-popup .djs-popup-results {
+  padding: 4px 6px 6px;
+}
+/* diagram-js sizes the icon box 1em at font-size 1.4em (≈19.6px) — our
+   previews are drawn for 24px; without this the 26er viewBox (and the role
+   chips' text) shrinks below legibility. */
+.djs-popup .djs-popup-entry-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 1em;
+}
+.djs-popup .djs-popup-entry-icon .cm-palette-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Rule-blocked entries (OHS/CF under customer-supplier) must read inert:
+   diagram-js marks hovered entries `.selected` even when disabled, so the
+   accent hover has to be taken back. The description (the reason) stays
+   fully legible. */
+.djs-popup .entry.disabled,
+.djs-popup .entry.disabled.selected {
+  background-color: transparent;
+}
+.djs-popup .entry.disabled .djs-popup-entry-name {
+  opacity: 0.5;
+}
+/* The entry matching the element's current state: accent + trailing check. */
+.djs-popup .djs-popup-entry-name.cm-popup-active {
+  color: var(--cd-blau, #335de5);
   font-weight: 600;
-  text-align: center;
-  padding: 3px 6px;
-  border: 1.5px solid var(--cm-accent);
-  border-radius: var(--cd-radius-sm);
-  background: var(--cd-weiss);
-  color: var(--cm-ink);
+}
+.djs-popup .djs-popup-entry-name.cm-popup-active .djs-popup-label::after {
+  content: " ✓";
+}
+@keyframes cm-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .djs-popup {
+    animation: none;
+  }
+}
+
+/* --- Notation legend (collapsible card, bottom-left) ---------------------- */
+.cm-legend {
+  position: absolute;
+  /* Bottom-left corner; the bottom-right stays free for host chrome (footer). */
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  /* Never taller than the canvas box — the head (collapse button) must stay
+     reachable; the body scrolls instead. No backdrop-filter: it would become
+     the containing block of the fixed-positioned row tips and re-clip them. */
+  max-height: calc(100% - 32px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--cm-line, #e6e2e2);
+  border-radius: var(--cd-radius-md, 12px);
+  box-shadow: var(--cd-shadow-2, 0 4px 12px rgba(29, 29, 29, 0.1));
+  padding: 12px 14px;
+  z-index: 4;
+  min-width: 172px;
+}
+/* Raise the card while a row is explained: the fixed tip cannot leave the
+   card's stacking context, so the card itself climbs over the context pad
+   (100) but stays under popup menus (200). */
+.cm-legend:has(.cm-legend-item:hover) {
+  z-index: 120;
+}
+.cm-legend__body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.cm-legend__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #5b5b5b;
+  margin-bottom: 8px;
+}
+.cm-legend__close {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  color: #8a8577;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.cm-legend__close:hover {
+  color: var(--cm-ink, #1d1d1d);
+}
+.cm-legend__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cm-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--cm-ink, #1d1d1d);
+}
+.cm-legend__divider {
+  height: 1px;
+  background: var(--cm-line, #e6e2e2);
+  margin: 10px 0;
+}
+.cm-legend__icon {
+  display: inline-flex;
+}
+.cm-legend__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+/* Collapsed: a button in the same corner that expands the legend again. */
+.cm-legend-toggle {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--cd-weiss, #fff);
+  border: 1px solid var(--cm-line, #e6e2e2);
+  border-radius: var(--cd-radius-md, 12px);
+  box-shadow: var(--cd-shadow-1, 0 1px 3px rgba(29, 29, 29, 0.1));
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--cm-ink, #1d1d1d);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.cm-legend-toggle:hover {
+  background: var(--cm-accent-soft, rgba(51, 93, 229, 0.12));
+  border-color: var(--cm-accent, #335de5);
+  color: var(--cm-accent, #335de5);
+}
+.cm-legend-item {
+  position: relative;
+  white-space: nowrap;
+  cursor: help;
+}
+/* Instant notation explanation beside the legend row (no native title delay).
+   Anchored to the row's right edge — the legend sits in the bottom-left
+   corner, so the canvas side is the only direction with guaranteed room. */
+.cm-legend-tip {
+  display: none;
+  position: fixed;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: rgba(29, 29, 29, 0.96);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+/* Arrow on the tooltip's left edge, pointing back at the hovered row. */
+.cm-legend-tip::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: rgba(29, 29, 29, 0.96);
+}
+.cm-legend-item:hover .cm-legend-tip {
+  display: block;
+}
+/* Visible keyboard focus (WCAG 2.4.7). */
+.cm-legend__close:focus-visible,
+.cm-legend-toggle:focus-visible {
+  outline: 2px solid var(--cm-accent, #335de5);
+  outline-offset: 2px;
+}
+/* While a drag is in flight the legend floats above the map but must not
+   swallow the pointer — releasing a connect drag on a context behind it has
+   to reach that context. */
+.cm-dragging .cm-legend,
+.cm-dragging .cm-legend-toggle {
+  pointer-events: none;
+}
+
+/* --- In-place direct editing (name inside the element, bpmn.io style) ----- */
+/* While an element's name is edited, the rendered text is hidden so the
+   contenteditable box is the only visible copy. */
+.cm-direct-editing .djs-visual text.cm-name {
+  display: none;
+}
+.cm-direct-editing-team .djs-visual .cm-team {
+  display: none;
+}
+.cm-djs-container .djs-direct-editing-parent {
+  z-index: 150;
+  color: var(--cm-ink, #1d1d1d);
+}
+.cm-djs-container .djs-direct-editing-content {
+  caret-color: var(--cm-accent, #335de5);
+  /* Words longer than the line hard-break — exactly like the renderer wraps. */
+  overflow-wrap: break-word;
+}
+
+/* --- Anchored free-text prompt (owning team / description via the pad) ---- */
+.cm-pad-prompt {
+  position: fixed;
+  z-index: 210;
+  min-width: 240px;
+  padding: 8px;
+  background: var(--cd-weiss, #fff);
+  border: 1px solid var(--cm-line, #e6e2e2);
+  border-radius: var(--cd-radius-md, 12px);
+  box-shadow: var(--cd-shadow-3, 0 12px 32px rgba(29, 29, 29, 0.16));
+}
+.cm-pad-prompt__field {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--cm-ink, #1d1d1d);
+  padding: 6px 8px;
+  border: 1px solid var(--cm-line, #e6e2e2);
+  border-radius: var(--cd-radius-sm, 6px);
+  background: #f3f1f1;
   outline: none;
-  box-shadow: 0 4px 14px rgba(51, 93, 229, 0.2);
-  z-index: 100;
+  resize: vertical;
+}
+.cm-pad-prompt__field:focus {
+  border-color: var(--cm-accent, #335de5);
+  box-shadow: 0 0 0 2px rgba(51, 93, 229, 0.12);
+  background: var(--cd-weiss, #fff);
+}
+.cm-pad-prompt__hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #5b5b5b;
 }
 
 /* --- Validation markers (semantic-rule findings on the canvas) ------------ */

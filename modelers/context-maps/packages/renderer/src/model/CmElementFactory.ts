@@ -22,12 +22,17 @@ export default class CmElementFactory {
   // --- from canonical document elements (import) -------------------------
 
   createContext(ctx: BoundedContext): CmContext {
+    // Boxes are fixed-size on the canvas (no resize feature) — clamp legacy or
+    // hand-edited imports up to the notation minimum so the fixed name/team
+    // layout always fits inside the box.
+    const spec = ctx.subdomainType ? SUBDOMAIN_TYPE_SPECS[ctx.subdomainType] : undefined;
+    const minSize = spec?.minSize ?? { width: 120, height: 72 };
     return this.elementFactory.createShape({
       id: ctx.id,
       x: ctx.position.x,
       y: ctx.position.y,
-      width: ctx.size.width,
-      height: ctx.size.height,
+      width: Math.max(ctx.size.width, minSize.width),
+      height: Math.max(ctx.size.height, minSize.height),
       cmKind: "context",
       cmLabel: ctx.label,
       ...(ctx.subdomainType ? { subdomainType: ctx.subdomainType } : {}),
@@ -66,13 +71,17 @@ export default class CmElementFactory {
   // No explicit id: the element factory (CmDiagramElementFactory) assigns a
   // collision-free model-style id (`ctx_…`).
 
-  createNewContext(subdomainType: SubdomainType, label?: string): CmContext {
-    const spec = SUBDOMAIN_TYPE_SPECS[subdomainType];
+  /** No type → an unclassified context (the pad's append action starts blank). */
+  createNewContext(subdomainType?: SubdomainType, label?: string): CmContext {
+    // Every type shares one default size; generic serves as the neutral fallback.
+    const size =
+      (subdomainType ? SUBDOMAIN_TYPE_SPECS[subdomainType] : undefined)?.defaultSize ??
+      SUBDOMAIN_TYPE_SPECS.generic.defaultSize;
     return this.elementFactory.createShape({
-      width: spec.defaultSize.width,
-      height: spec.defaultSize.height,
+      width: size.width,
+      height: size.height,
       cmKind: "context",
-      subdomainType,
+      ...(subdomainType ? { subdomainType } : {}),
       cmLabel: label ?? "New Context",
     } as Partial<CmContext>) as unknown as CmContext;
   }

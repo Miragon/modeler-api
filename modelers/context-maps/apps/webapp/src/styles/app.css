@@ -1,10 +1,10 @@
 /* ============================================================================
    Context Maps Modeler — application styles
 
-   Layout = a full-bleed canvas (the "plain" renderer) with Excalidraw-style
-   floating chrome layered on top: menu (left), palette (centre), Share (right),
-   legend (bottom-left), legal notice (bottom-right), selection inspector (top-right).
-   No header bar.
+   Layout = a full-bleed canvas (the "plain" renderer, which brings its own
+   palette, context pad and bottom-left legend) with Excalidraw-style floating
+   chrome layered on top: menu (left), Share (right), legal notice
+   (bottom-right), selection inspector (top-right). No header bar.
    ========================================================================== */
 
 /* Semantic aliases over the Miragon `--cd-*` brand tokens (vendored in the renderer package,
@@ -264,7 +264,7 @@ body {
   background: var(--line);
 }
 
-/* ---- Buttons (inspector + dialogs) -------------------------------------- */
+/* ---- Buttons (dialogs + welcome card) ------------------------------------ */
 
 .tt-btn {
   appearance: none;
@@ -316,19 +316,6 @@ body {
   border-color: var(--accent-strong);
 }
 
-.tt-btn--danger {
-  background: var(--surface);
-  border-color: rgba(201, 42, 42, 0.35);
-  color: var(--danger);
-  width: 100%;
-  margin-top: 6px;
-}
-
-.tt-btn--danger:hover {
-  background: var(--danger-soft);
-  border-color: var(--danger);
-}
-
 .tt-btn--ghost {
   border-color: transparent;
   background: var(--surface-2);
@@ -343,96 +330,10 @@ body {
 .tt-btn:focus-visible,
 .tt-iconbtn:focus-visible,
 .tt-menu__item:focus-visible,
-.tt-legend__close:focus-visible,
-.tt-toast:focus-visible,
-.tt-field__color input:focus-visible {
+.tt-modal__close:focus-visible,
+.tt-toast:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* ---- Inspector: floating panel, top-right (shown on selection) ---------- */
-
-.tt-inspector {
-  position: absolute;
-  top: 60px;
-  right: 12px;
-  z-index: 8;
-  width: 288px;
-  max-height: calc(100% - 88px);
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow-pop);
-  padding: 16px;
-}
-
-.tt-inspector__content {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.tt-inspector__header {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 15px;
-  font-weight: 680;
-}
-
-.tt-inspector__meta {
-  font-size: 12px;
-  color: var(--ink-faint);
-  line-height: 1.45;
-  margin: 0;
-}
-
-.tt-inspector__direction {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tt-inspector__chip {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 550;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tt-inspector__arrow {
-  color: var(--ink-faint);
-  font-weight: 700;
-}
-
-/* ---- Form fields -------------------------------------------------------- */
-
-.tt-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.tt-field--row {
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.tt-field__label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.01em;
 }
 
 .tt-field__control {
@@ -450,82 +351,6 @@ body {
 .tt-field__control:focus {
   outline: 2px solid var(--accent-soft);
   border-color: var(--accent);
-}
-
-.tt-field__color {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.tt-field__color input[type="color"] {
-  width: 46px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  background: none;
-  cursor: pointer;
-}
-
-/* ---- Legend ------------------------------------------------------------- */
-
-.tt-legend {
-  position: absolute;
-  /* Bottom-left corner, leaving the bottom-right for the legal-notice footer. */
-  left: 16px;
-  bottom: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  padding: 12px 14px;
-  z-index: 4;
-  backdrop-filter: blur(4px);
-  min-width: 172px;
-}
-
-.tt-legend__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
-
-.tt-legend__close {
-  border: none;
-  background: none;
-  font-size: 17px;
-  line-height: 1;
-  color: var(--ink-faint);
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.tt-legend__close:hover {
-  color: var(--ink);
-}
-
-.tt-legend__group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tt-legend__row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 12.5px;
-  color: var(--ink);
-}
-
-.tt-legend__divider {
-  height: 1px;
-  background: var(--line);
-  margin: 10px 0;
 }
 
 /* ---- Legal notice (bottom-right corner, subtle) ---- */
@@ -699,6 +524,21 @@ body {
   margin: 0;
 }
 
+.tt-modal__close {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.tt-modal__close:hover {
+  color: var(--ink);
+}
+
 .tt-modal__body {
   font-size: 13.5px;
   color: var(--ink-soft);
@@ -790,112 +630,6 @@ kbd {
   }
 }
 
-/* Narrow screens: shrink the floating inspector so it never covers the canvas. */
-@media (max-width: 720px) {
-  .tt-inspector {
-    width: calc(100vw - 24px);
-    max-width: 320px;
-  }
-}
-
-/* Relationship role checkboxes + semantic-rule findings (inspector) */
-.tt-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  margin-right: 10px;
-  cursor: pointer;
-}
-.tt-check input {
-  accent-color: var(--accent);
-}
-.tt-findings {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.tt-finding {
-  font-size: 12.5px;
-  line-height: 1.35;
-  padding: 6px 8px;
-  border-radius: 6px;
-}
-.tt-finding--error {
-  background: var(--cd-danger-soft, rgba(201, 42, 42, 0.12));
-  color: var(--cd-danger, #c92a2a);
-}
-.tt-finding--warning {
-  background: var(--cd-warning-soft, rgba(146, 97, 10, 0.12));
-  color: var(--cd-warning, #92610a);
-}
-
-/* While a drag is in flight (`cm-dragging` on the canvas container), the
-   legend floats above the map but must not swallow the pointer — releasing a
-   connect drag on a context behind it has to reach that context. */
-.tt-app:has(.cm-dragging) .tt-legend,
-.tt-app:has(.cm-dragging) .tt-legend-toggle {
-  pointer-events: none;
-}
-
-/* Collapsed legend: a button in the same bottom-left corner that expands it. */
-.tt-legend-toggle {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  z-index: 4;
-}
-
-.cm-legend-item {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  cursor: help;
-}
-
-/* Instant notation explanation beside the legend row (no native title delay).
-   Anchored to the row's right edge — the legend sits in the bottom-left
-   corner, so the canvas side is the only direction with guaranteed room. */
-.cm-legend-tip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
-  width: max-content;
-  max-width: 280px;
-  padding: 8px 10px;
-  background: rgba(29, 29, 29, 0.96);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  white-space: normal;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  z-index: 60;
-}
-/* Arrow on the tooltip's left edge, pointing back at the hovered row. */
-.cm-legend-tip::before {
-  content: "";
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 6px solid transparent;
-  border-right-color: rgba(29, 29, 29, 0.96);
-}
-
-.cm-legend-item:hover .cm-legend-tip {
-  display: block;
-}
-
 /* Fast custom hover tooltip */
 .cm-tooltip {
   position: fixed;
@@ -918,115 +652,4 @@ kbd {
 }
 .cm-tooltip span {
   opacity: 0.85;
-}
-
-/* Instant "why is this disabled" tooltip on the role switches — anchored to the
-   full field width (the inspector scrolls, a button-centred tip would clip). */
-.tt-field {
-  position: relative;
-}
-.tt-tip {
-  display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 4px);
-  padding: 8px 10px;
-  background: rgba(29, 29, 29, 0.96);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.4;
-  text-align: left;
-  white-space: normal;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  z-index: 60;
-}
-.tt-switch__opt:hover .tt-tip {
-  display: block;
-}
-
-/* Segmented switch (roles). Single-select for ACL/CF, multi-toggle for OHS/PL. */
-.tt-switch {
-  display: flex;
-  width: 100%;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.tt-switch__opt {
-  flex: 1 1 0;
-  text-align: center;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 0;
-  border-left: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    color 0.12s;
-}
-.tt-switch__opt:first-child {
-  border-left: 0;
-}
-.tt-switch__opt.is-active {
-  background: var(--accent);
-  color: #fff;
-}
-.tt-switch__opt:hover:not(.is-active) {
-  background: var(--surface-2);
-}
-
-/* Swap-ends icon button (next to the Pattern dropdown) */
-.tt-swapbtn {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition:
-    background 0.12s,
-    color 0.12s,
-    border-color 0.12s;
-}
-.tt-swapbtn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-/* Pattern row: dropdown fills the width, swap button sits right beside it */
-.tt-pattern-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.tt-pattern-row > select {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Disabled segment (rule-forbidden role): greyed out, not clickable */
-/* No `opacity` here: the instant .tt-tip tooltip lives INSIDE the button, and
-   opacity would make it translucent and cap its z-index (stacking context). */
-.tt-switch__opt.is-disabled,
-.tt-switch__opt:disabled {
-  cursor: not-allowed;
-  background: var(--surface-2);
-  color: #c9c4c4;
-}
-.tt-switch__opt.is-disabled:hover {
-  background: var(--surface-2);
 }

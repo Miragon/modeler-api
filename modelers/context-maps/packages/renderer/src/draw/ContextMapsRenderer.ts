@@ -1,8 +1,8 @@
 /**
  * SVG rendering of the Context Maps notation (BaseRenderer subclass).
  *
- *  - bounded contexts: solid resizable boxes, coloured by subdomain type, with a
- *    wrapped name and an optional owning-team caption;
+ *  - bounded contexts: solid fixed-size boxes, coloured by subdomain type, with
+ *    a wrapped name and an optional owning-team caption;
  *  - relationships: lines between contexts carrying the pattern abbreviation
  *    (e.g. "SK", "C/S"), U/D end markers for asymmetric patterns, and the
  *    integration roles (OHS/PL upstream, ACL/CF downstream).
@@ -27,7 +27,17 @@ import {
   SUBDOMAIN_TYPE_SPECS,
 } from "@miragon/context-maps-schema-model";
 import type { SubdomainType } from "@miragon/context-maps-schema-model";
-import { FONT, INK, INK_SOFT, PAPER, TT_RENDER_PRIORITY } from "./styles.js";
+import {
+  CONTEXT_NAME_TOP,
+  CONTEXT_TEAM_RESERVE,
+  FONT,
+  INK,
+  INK_SOFT,
+  NEUTRAL_FILL,
+  NEUTRAL_STROKE,
+  PAPER,
+  TT_RENDER_PRIORITY,
+} from "./styles.js";
 import { endRoleChipLayout } from "./endRoleChips.js";
 import {
   isCmContext,
@@ -38,9 +48,6 @@ import {
 } from "../model/di-types.js";
 
 type Attrs = Record<string, string | number>;
-
-const NEUTRAL_FILL = "#F1F1EE";
-const NEUTRAL_STROKE = "#8A8577";
 
 export default class ContextMapsRenderer extends BaseRenderer {
   static $inject = ["eventBus"];
@@ -112,8 +119,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     });
     svgAppend(visuals, box);
 
-    const hasTeam = Boolean(ctx.team);
-    this.appendLabel(visuals, ctx.cmLabel ?? "", w, hasTeam ? h - 18 : h, {
+    this.appendLabel(visuals, ctx.cmLabel ?? "", w, h, Boolean(ctx.team), {
       "font-weight": "650",
     });
     if (ctx.subdomainType && spec) {
@@ -143,9 +149,12 @@ export default class ContextMapsRenderer extends BaseRenderer {
       const startX = w / 2 - totalWidth / 2;
       const cy = h - 12;
 
-      svgAppend(visuals, peopleIcon(startX + iconSize / 2, cy, iconSize, INK_SOFT));
+      const icon = peopleIcon(startX + iconSize / 2, cy, iconSize, INK_SOFT);
+      svgAttr(icon, { class: "cm-team" });
+      svgAppend(visuals, icon);
 
       const team = svgAttr(svgCreate("text"), {
+        class: "cm-team",
         x: startX + iconSize + gap,
         y: cy,
         "font-family": FONT.family,
@@ -346,16 +355,37 @@ export default class ContextMapsRenderer extends BaseRenderer {
     svgAppend(visuals, t);
   }
 
-  // --- shared label rendering (wrapped, centred) ---------------------------
+  // --- shared label rendering (wrapped, top-anchored) ----------------------
 
-  private appendLabel(visuals: SVGElement, text: string, w: number, h: number, attrs: Attrs): void {
+  /** The name starts at the FIXED offset below the type header — the gap
+   *  between header and name never varies with box size or line count. Lines
+   *  that would run past the (fixed-size) box are dropped, the last kept line
+   *  gets an ellipsis. */
+  private appendLabel(
+    visuals: SVGElement,
+    text: string,
+    w: number,
+    h: number,
+    hasTeam: boolean,
+    attrs: Attrs,
+  ): void {
     const fontSize =
       typeof attrs["font-size"] === "number" ? (attrs["font-size"] as number) : FONT.label;
-    const lines = wrapLabel(text, w - 20, fontSize);
+    const fontWeight = String(attrs["font-weight"] ?? "400");
+    const maxWidth = w - 20;
+    let lines = wrapLabel(text, maxWidth, fontSize, fontWeight);
     const lineHeight = fontSize * 1.2;
-    const startY = h / 2 - ((lines.length - 1) * lineHeight) / 2;
+    const available = h - CONTEXT_NAME_TOP - (hasTeam ? CONTEXT_TEAM_RESERVE : 8);
+    const maxLines = Math.max(1, Math.floor(available / lineHeight));
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      lines[maxLines - 1] = ellipsize(lines[maxLines - 1], maxWidth, fontSize, fontWeight);
+    }
+    const startY = CONTEXT_NAME_TOP + lineHeight / 2;
     lines.forEach((ln, idx) => {
       const t = svgAttr(svgCreate("text"), {
+        // `cm-name` lets the direct-editing marker hide the rendered name.
+        class: "cm-name",
         x: w / 2,
         y: startY + idx * lineHeight,
         "font-family": FONT.family,
@@ -445,22 +475,78 @@ function peopleIcon(cx: number, cy: number, size: number, color: string): SVGEle
   return g;
 }
 
-/** Greedy word-wrap into lines that roughly fit `maxWidth` at the font size. */
-function wrapLabel(text: string, maxWidth: number, fontSize: number): string[] {
-  const maxChars = Math.max(4, Math.floor(maxWidth / (fontSize * 0.58)));
+/**
+ * Real text measurement so the rendered wrap matches the browser's own wrap
+ * in the direct-editing box (same font, same width): a shared 2D context
+ * measures actual glyph widths; the character-count heuristic remains only
+ * as a fallback for environments without canvas support.
+ */
+let measureContext: CanvasRenderingContext2D | null | undefined;
+
+function textWidth(text: string, fontSize: number, fontWeight: string): number {
+  if (measureContext === undefined) {
+    measureContext =
+      typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+  }
+  if (!measureContext) return text.length * fontSize * 0.58;
+  measureContext.font = `${fontWeight} ${fontSize}px ${FONT.family}`;
+  return measureContext.measureText(text).width;
+}
+
+function ellipsize(line: string, maxWidth: number, fontSize: number, fontWeight: string): string {
+  let kept = line;
+  while (kept && textWidth(`${kept}…`, fontSize, fontWeight) > maxWidth) {
+    kept = kept.slice(0, -1).trimEnd();
+  }
+  return `${kept}…`;
+}
+
+/** Greedy word-wrap into lines that fit `maxWidth` at the font size. */
+/** Explicit line breaks are the author's — wrap only within each of them. */
+function wrapLabel(text: string, maxWidth: number, fontSize: number, fontWeight: string): string[] {
+  const paragraphs = text.split("\n");
+  if (paragraphs.every((paragraph) => paragraph.trim() === "")) return [];
+  return paragraphs.flatMap((paragraph) => {
+    const lines = wrapParagraph(paragraph, maxWidth, fontSize, fontWeight);
+    // An intentionally blank line keeps its vertical space.
+    return lines.length ? lines : [""];
+  });
+}
+
+function wrapParagraph(
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+  fontWeight: string,
+): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
+  const fits = (candidate: string) => textWidth(candidate, fontSize, fontWeight) <= maxWidth;
   const lines: string[] = [];
-  let cur = "";
+  let current = "";
   for (const word of words) {
-    const candidate = cur ? `${cur} ${word}` : word;
-    if (candidate.length > maxChars && cur) {
-      lines.push(cur);
-      cur = word;
-    } else {
-      cur = candidate;
+    const candidate = current ? `${current} ${word}` : word;
+    if (fits(candidate)) {
+      current = candidate;
+      continue;
     }
+    if (current) lines.push(current);
+    // A word longer than the line hard-breaks mid-word (the editor's
+    // break-word behaviour), so nothing ever overflows the box.
+    let rest = word;
+    while (rest && !fits(rest)) {
+      let low = 1;
+      let high = rest.length - 1;
+      while (low < high) {
+        const mid = Math.ceil((low + high) / 2);
+        if (fits(rest.slice(0, mid))) low = mid;
+        else high = mid - 1;
+      }
+      lines.push(rest.slice(0, low));
+      rest = rest.slice(low);
+    }
+    current = rest;
   }
-  if (cur) lines.push(cur);
+  if (current) lines.push(current);
   return lines;
 }

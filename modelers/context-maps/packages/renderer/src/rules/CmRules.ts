@@ -1,7 +1,7 @@
 /**
  * Allowed editing operations.
  *
- *  - Contexts are free, placed, resizable shapes that overlap but never nest.
+ *  - Contexts are free, placed, fixed-size shapes that overlap but never nest.
  *  - Relationships are connections between two distinct contexts (no
  *    self-loops), at most ONE per pair of contexts — a second, overlapping
  *    line between the same two contexts is impossible to tell apart visually.
@@ -40,7 +40,8 @@ export default class CmRules extends RuleProvider {
       context.target && context.target.parent ? null : true,
     );
     this.addRule("shape.create", () => true);
-    this.addRule("shape.resize", () => true);
+    // Boxes have a fixed size — the uniform card look is part of the notation.
+    this.addRule("shape.resize", () => false);
 
     // A relationship connects two distinct contexts. Returning an attributes
     // object (not just `true`) makes diagram-js stamp the new connection as a

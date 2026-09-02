@@ -21,19 +21,18 @@ const rels = (page: import("@playwright/test").Page) =>
 async function drawLine(page: import("@playwright/test").Page) {
   const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
-  const hb = (await page.locator('.cm-connect-handle[data-side="right"]').boundingBox())!;
+  const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
+  await arm.waitFor();
+  await arm.click();
   const b = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
-  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-  await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
-  await page.mouse.up();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
 }
 
 // Regression: after drawing a line and deleting it, drawing again between the
-// same two contexts must work — and the VERY NEXT click after any of it must
-// select normally (Dragging's ghost-click trap used to swallow it, because a
-// drag started on the HTML connect handle never produces the ghost click that
-// would consume the trap).
+// same two contexts must work — the fresh relationship must be selected (the
+// pad's one-shot click blocker keeps the finishing click from re-selecting the
+// target) — and the VERY NEXT click after any of it must select normally.
 test("draw, delete via inspector, immediately draw again", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => "__cmModeler" in window);
@@ -48,14 +47,14 @@ test("draw, delete via inspector, immediately draw again", async ({ page }) => {
   await drawLine(page);
   expect(await rels(page)).toHaveLength(1);
 
-  // the fresh relationship is selected — delete it via the inspector
-  await page.getByRole("button", { name: "Delete relationship" }).click();
+  // the fresh relationship is selected — delete it via its context pad
+  await page.click('.djs-context-pad.open [data-action="delete"]');
   expect(await rels(page)).toHaveLength(0);
 
-  // no waiting: the immediate next click on A must select it (connect handles show)
+  // no waiting: the immediate next click on A must select it (context pad shows)
   const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
-  await expect(page.locator(".cm-connect-handle")).toHaveCount(4);
+  await expect(page.locator(".djs-context-pad.open")).toBeVisible();
 
   await drawLine(page);
   expect(await rels(page)).toHaveLength(1);

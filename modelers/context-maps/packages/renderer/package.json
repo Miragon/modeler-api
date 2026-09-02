@@ -39,6 +39,7 @@
   "dependencies": {
     "@miragon/context-maps-schema-model": "0.1.0",
     "diagram-js": "15.24.1",
+    "diagram-js-direct-editing": "3.5.1",
     "didi": "11.0.0",
     "tiny-svg": "4.1.4"
   },

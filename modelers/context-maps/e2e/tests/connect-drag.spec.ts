@@ -10,10 +10,10 @@ const DOC = {
   relationships: [],
 };
 
-// The full user gesture: select a context, press one of its connect handles,
-// drag with the REAL mouse, release over another context — the relationship
-// must be created (regression: hover used to be swallowed during the drag).
-test("mouse drag from a connect handle onto another context draws the line", async ({ page }) => {
+// The press-drag-release variant with the REAL mouse: press the context pad's
+// connect arrow, drag — the native dragstart hands over to diagram-js and the
+// live preview follows — and release over the target context.
+test("dragging from the pad's connect arrow draws the line", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => "__cmModeler" in window);
   await page.evaluate((doc) => {
@@ -30,19 +30,20 @@ test("mouse drag from a connect handle onto another context draws the line", asy
     (m.get("selection") as { select(el: unknown): void }).select(registry.get("a"));
   }, DOC);
 
-  const handle = page.locator('.cm-connect-handle[data-side="right"]');
-  await expect(handle).toBeVisible();
-  const hb = (await handle.boundingBox())!;
+  const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
+  await expect(arm).toBeVisible();
+  const ab = (await arm.boundingBox())!;
+
   const tb = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
   const tx = tb.x + tb.width / 2;
   const ty = tb.y + tb.height / 2;
 
-  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.move(ab.x + ab.width / 2, ab.y + ab.height / 2);
   await page.mouse.down();
-  await page.mouse.move((hb.x + tx) / 2, ty, { steps: 5 });
-  await page.mouse.move(tx, ty, { steps: 5 });
+  await page.mouse.move((ab.x + tx) / 2, ty, { steps: 5 });
   // live preview follows the drag
   await expect(page.locator(".djs-dragger")).toHaveCount(1);
+  await page.mouse.move(tx, ty, { steps: 5 });
   await page.mouse.up();
 
   const rels = await page.evaluate(

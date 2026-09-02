@@ -66,3 +66,48 @@ test("moving a context drags its connection along", () => {
     container.remove();
   }
 });
+
+// Regression: moving BOTH connected contexts together (lasso multi-select)
+// translated the relationship twice — once by the per-shape relayout, once by
+// diagram-js' enclosed-connection translation — so the line drifted away by a
+// full extra delta. It must stay docked edge-to-edge and undo cleanly.
+test("moving two connected contexts together keeps the line docked", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const modeler = new Modeler({ container });
+  try {
+    const doc = emptyDocument("m");
+    doc.contexts = [
+      { id: "a", label: "A", position: { x: 100, y: 200 }, size: { width: 200, height: 110 } },
+      { id: "b", label: "B", position: { x: 600, y: 200 }, size: { width: 200, height: 110 } },
+    ];
+    doc.relationships = [{ id: "r", from: "a", to: "b", pattern: "upstream-downstream" }];
+    modeler.importDocument(doc);
+
+    const registry = modeler.get<{ get(id: string): unknown }>("elementRegistry");
+    const modeling = modeler.get<{
+      moveElements(elements: unknown[], delta: { x: number; y: number }): void;
+    }>("modeling");
+    const a = registry.get("a") as { x: number; width: number };
+    const b = registry.get("b") as { x: number };
+    const r = registry.get("r") as { waypoints: Array<{ x: number; y: number }> };
+
+    modeling.moveElements([a, b, r], { x: 60, y: 40 });
+
+    // both boxes moved; the line spans right edge of A to left edge of B at mid height
+    expect(a.x).toBe(160);
+    expect(b.x).toBe(660);
+    expect(r.waypoints).toHaveLength(2);
+    expect(r.waypoints[0]).toMatchObject({ x: 360, y: 295 });
+    expect(r.waypoints[1]).toMatchObject({ x: 660, y: 295 });
+
+    modeler.undo();
+    expect(r.waypoints[0]).toMatchObject({ x: 300, y: 255 });
+    expect(r.waypoints[1]).toMatchObject({ x: 600, y: 255 });
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});

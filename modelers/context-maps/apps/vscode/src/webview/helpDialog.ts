@@ -6,11 +6,11 @@
 
 const SHORTCUTS: ReadonlyArray<[string, string]> = [
   ["Double-click element", "Rename"],
-  ["Arrow on a selected context, click target", "Create a relationship"],
+  ["→ in the context pad, then click a target", "Create a relationship"],
+  ["⊞ in the context pad", "Append a connected context"],
   ["⌘/Ctrl + Z", "Undo"],
   ["⇧⌘/Ctrl + Z, ⌘/Ctrl + Y", "Redo"],
   ["Delete / Backspace", "Remove selection"],
-  ["Drag corner of context", "Resize"],
 ];
 
 const FOCUSABLE =
@@ -36,7 +36,7 @@ export function createHelpDialog(root: HTMLElement): { open: () => void } {
   heading.textContent = "How to model with Context Maps";
   const close = document.createElement("button");
   close.type = "button";
-  close.className = "tt-legend__close";
+  close.className = "tt-modal__close";
   close.setAttribute("aria-label", "Close");
   close.textContent = "×";
   header.append(heading, close);
@@ -49,7 +49,7 @@ export function createHelpDialog(root: HTMLElement): { open: () => void } {
     "Model your system as <strong>bounded contexts</strong> (boxes, coloured by subdomain: core, " +
     "supporting, generic) connected by <strong>context-mapping relationships</strong> (Partnership, " +
     "Shared Kernel, Customer-Supplier, Upstream-Downstream, Separate Ways). Add integration roles — " +
-    "OHS/PL upstream, ACL/CF downstream — and the inspector flags any combinations the strategic-DDD " +
+    "OHS/PL upstream, ACL/CF downstream — and warning markers on the canvas flag any combinations the strategic-DDD " +
     "rules disallow.";
 
   const shortcutsHeading = document.createElement("h3");

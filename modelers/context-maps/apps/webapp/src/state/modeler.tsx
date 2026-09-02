@@ -1,16 +1,16 @@
 /**
  * React glue around the framework-agnostic diagram-js `Modeler`. Creates a
- * single modeler instance, mirrors its events (selection, history, changes)
- * into React state, drives autosave, and provides it via context so the chrome
- * (menu, inspector, share) can drive the canvas. The context + hook live in
+ * single modeler instance, mirrors its events (history, changes) into React
+ * state, drives autosave, and provides it via context so the chrome
+ * (menu, share) can drive the canvas. The context + hook live in
  * `modelerContext.ts` so this file exports only a component (Fast Refresh safe).
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Modeler, isCmElement } from "@miragon/context-maps-renderer";
+import { Modeler } from "@miragon/context-maps-renderer";
 import { saveToStorage } from "./persistence";
 import { writeDocumentToLocation } from "@/io/url";
-import { ModelerContext, type ModelerContextValue, type Selected } from "./modelerContext";
+import { ModelerContext, type ModelerContextValue } from "./modelerContext";
 
 export function ModelerProvider({ children }: { children: ReactNode }) {
   const modelerRef = useRef<Modeler>(undefined);
@@ -22,11 +22,9 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
   // Dev affordance: expose the modeler for debugging / automation.
   if (import.meta.env.DEV) (window as unknown as { __cmModeler?: Modeler }).__cmModeler = modeler;
 
-  const [selected, setSelected] = useState<Selected>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [title, setTitleState] = useState("Untitled context map");
-  const [revision, setRevision] = useState(0);
   const [isEmpty, setIsEmpty] = useState(false);
 
   // Debounced autosave of the current document: to localStorage (so a refresh
@@ -49,28 +47,20 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
       setCanUndo(modeler.canUndo());
       setCanRedo(modeler.canRedo());
     };
-    const bump = () => setRevision((r) => r + 1);
     const syncTitle = () => setTitleState(modeler.getMeta()?.title ?? "Untitled context map");
     const syncEmpty = () => {
       const doc = modeler.exportDocument();
       setIsEmpty(doc.contexts.length === 0 && doc.relationships.length === 0);
     };
 
-    const onSelection = (e: unknown) => {
-      const sel = (e as { newSelection?: unknown[] }).newSelection?.[0];
-      setSelected(isCmElement(sel) ? (sel as Selected) : null);
-    };
     const onCommandStack = () => {
       syncHistory();
-      bump();
       syncEmpty();
       persist();
     };
-    const onElements = () => bump();
     const onImport = () => {
       syncHistory();
       syncTitle();
-      bump();
       syncEmpty();
       // New / Example / Import-file / shared-link all re-import: keep the
       // autosave + address-bar hash in step with the freshly loaded document.
@@ -98,9 +88,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
       "shape.removed",
     ];
 
-    modeler.on("selection.changed", onSelection);
     modeler.on("commandStack.changed", onCommandStack);
-    modeler.on("elements.changed", onElements);
     modeler.on("import.done", onImport);
     modeler.on("import.render.start", onImportStart);
     modeler.on("import.render.done", onImportRenderDone);
@@ -121,9 +109,7 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
     syncEmpty();
 
     return () => {
-      modeler.off("selection.changed", onSelection);
       modeler.off("commandStack.changed", onCommandStack);
-      modeler.off("elements.changed", onElements);
       modeler.off("import.done", onImport);
       modeler.off("import.render.start", onImportStart);
       modeler.off("import.render.done", onImportRenderDone);
@@ -142,9 +128,9 @@ export function ModelerProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<ModelerContextValue>(
-    () => ({ modeler, selected, canUndo, canRedo, title, revision, isEmpty, setTitle }),
+    () => ({ modeler, canUndo, canRedo, title, isEmpty, setTitle }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [modeler, selected, canUndo, canRedo, title, revision, isEmpty],
+    [modeler, canUndo, canRedo, title, isEmpty],
   );
 
   return <ModelerContext.Provider value={value}>{children}</ModelerContext.Provider>;

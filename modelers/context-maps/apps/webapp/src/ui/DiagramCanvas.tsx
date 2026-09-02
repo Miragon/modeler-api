@@ -1,8 +1,8 @@
 /**
  * Hosts the diagram-js modeler: mounts its container into the DOM and resolves
  * the initial document (shared link → autosave → a blank canvas fronted by the
- * welcome card). All interaction (palette, connect, resize, label editing)
- * lives inside the modeler.
+ * welcome card). All interaction (palette, connect, label editing) lives
+ * inside the modeler.
  */
 
 import { useEffect, useRef } from "react";

@@ -7,6 +7,8 @@ import dts from "vite-plugin-dts";
 const EXTERNAL = [
   "diagram-js",
   /^diagram-js\//,
+  "diagram-js-direct-editing",
+  /^diagram-js-direct-editing\//,
   "tiny-svg",
   "min-dom",
   "min-dash",

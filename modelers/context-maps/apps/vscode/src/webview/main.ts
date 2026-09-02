@@ -9,8 +9,6 @@ import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { parseCml, serializeCml } from "@miragon/context-maps-cml";
 import "./style.css";
 import { embedSvg, svgToEmbeddedPng, blobToBase64 } from "./io.js";
-import { mountLegend } from "./legend.js";
-import { mountInspector } from "./inspector.js";
 import { mountHoverTooltip } from "./hoverTooltip.js";
 import { createHelpDialog } from "./helpDialog.js";
 import type { HostToWebview, WebviewToHost } from "../protocol.js";
@@ -31,14 +29,11 @@ const modeler = new Modeler({ container });
 // Debug handle (like the webapp). Harmless in the sandboxed webview, helpful for diagnostics/tests.
 (globalThis as Record<string, unknown>).__cmModeler = modeler;
 
-// Chrome mirroring the webapp: notation legend (bottom-left), the fast hover tooltip, the
-// selection-driven inspector (top-right) for editing contexts/relationships, and the help modal.
-// All attach to #app.
+// Chrome mirroring the webapp (legend, palette and context pad ship with the
+// renderer): the fast hover tooltip and the help modal. Both attach to #app.
 const app = document.getElementById("app");
 const help = app ? createHelpDialog(app) : null;
 if (app) {
-  mountLegend(app);
-  mountInspector(modeler, app);
   mountHoverTooltip(modeler, app);
 }
 

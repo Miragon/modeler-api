@@ -24,6 +24,8 @@ export { cmRulesModule, CmRules } from "./rules/index.js";
 export { cmBehaviorsModule, CmFlatModelBehavior } from "./behaviors/index.js";
 export { cmPaletteModule, CmPaletteProvider } from "./palette/index.js";
 export { cmConnectHandlesModule, CmConnectHandles } from "./connect-handles/index.js";
+export { cmContextPadModule, CmContextPadProvider } from "./context-pad/index.js";
+export { cmLegendModule, CmLegend } from "./legend/index.js";
 export { cmLabelEditingModule, CmLabelEditing } from "./label-editing/index.js";
 export { cmKeyboardModule, CmKeyboard } from "./keyboard/index.js";
 export { cmZOrderModule, CmZOrder } from "./zorder/index.js";
@@ -33,8 +35,13 @@ export { isCmElement, isCmContext, isCmRelationship } from "./model/di-types.js"
 export type { CmElement, CmContext, CmRelationship } from "./model/di-types.js";
 export type { ImportWarning, RootBusinessObject } from "./io/index.js";
 
-// Palette glyphs — reusable for host chrome (e.g. the legend).
-export { contextIconSvg, relationshipIconSvg } from "./draw/palette-icons.js";
+// Palette glyphs — reusable for host chrome (e.g. an inspector).
+export {
+  contextIconSvg,
+  relationshipIconSvg,
+  roleChipSvg,
+  subdomainIconSvg,
+} from "./draw/palette-icons.js";
 
 // Miragon brand palette — single source for every non-notation colour (see theme/palette.ts).
 export { MIRAGON, CD_TOKENS } from "./theme/index.js";

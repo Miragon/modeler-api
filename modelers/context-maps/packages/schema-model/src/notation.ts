@@ -34,7 +34,8 @@ export interface SubdomainTypeSpec {
   stroke: string;
   /** Default size when a context of this type is created. */
   defaultSize: Size;
-  /** Minimum size enforced by the resizer. */
+  /** Minimum size — smaller imported boxes are clamped up to it (boxes are
+   *  fixed-size on the canvas; there is no resize feature). */
   minSize: Size;
 }
 

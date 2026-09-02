@@ -5,11 +5,11 @@ import { useUiStore } from "./uiStore";
 
 const SHORTCUTS: Array<[string, string]> = [
   ["Double-click element", "Rename"],
-  ["Arrow on a selected context, click target", "Create a relationship"],
+  ["→ in the context pad, then click a target", "Create a relationship"],
+  ["⊞ in the context pad", "Append a connected context"],
   ["⌘/Ctrl + Z", "Undo"],
   ["⇧⌘/Ctrl + Z, ⌘/Ctrl + Y", "Redo"],
   ["Delete / Backspace", "Remove selection"],
-  ["Drag corner of context", "Resize"],
 ];
 
 const FOCUSABLE =
@@ -68,7 +68,7 @@ export function HelpDialog() {
           <h2>How to model with Context Maps</h2>
           <button
             type="button"
-            className="tt-legend__close"
+            className="tt-modal__close"
             onClick={() => setHelp(false)}
             aria-label="Close"
             ref={closeRef}
@@ -82,8 +82,8 @@ export function HelpDialog() {
             Model your system as <strong>bounded contexts</strong> (boxes, coloured by subdomain:
             core, supporting, generic) connected by <strong>context-mapping relationships</strong>{" "}
             (Partnership, Shared Kernel, Customer-Supplier, Upstream-Downstream, Separate Ways). Add
-            integration roles — OHS/PL upstream, ACL/CF downstream — and the inspector flags any
-            combinations the strategic-DDD rules disallow.
+            integration roles — OHS/PL upstream, ACL/CF downstream — and warning markers on the
+            canvas flag any combinations the strategic-DDD rules disallow.
           </p>
 
           <h3>Shortcuts</h3>

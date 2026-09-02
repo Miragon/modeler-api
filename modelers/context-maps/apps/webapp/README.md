@@ -12,14 +12,12 @@ diagram. **No backend** — everything is local, and a diagram is shared by enco
 
 ## Highlights
 
-- **Full-bleed canvas + floating chrome.** Palette top-centre (from the renderer), a **☰ Menu** top-left
-  and a **Share** button top-right; a property **Inspector** appears top-right on selection; a **Legend**
-  bottom-left.
-- **Edit by direct manipulation.** Drag from the palette to create, move, resize contexts, connect
+- **Full-bleed canvas + floating chrome.** A floating **Palette** with a lasso tool
+  top-centre, an element-bound **context pad** floating next to the selection and the notation
+  **Legend** bottom-left (all from the renderer), a **☰ Menu** top-left and a **Share** button
+  top-right.
+- **Edit by direct manipulation.** Drag from the palette to create and move contexts, connect
   them with relationships, inline-edit labels, undo/redo — all from the diagram-js core.
-- **Inspector.** For the selected element: change subdomain type / relationship pattern, toggle
-  integration roles (OHS/PL/ACL/CF), edit name and description, pick custom fill & outline colours
-  (with a reset), or delete.
 - **Share via URL, no server.** **Share** copies a self-contained link — the whole diagram is
   LZ-compressed into the URL hash (`#d=…`). Opening that link restores the diagram.
 - **Autosave.** Every edit is debounced to `localStorage` and mirrored into the address bar, so a
@@ -62,7 +60,7 @@ A thin React shell over the framework-agnostic modeler:
   [`@miragon/context-maps-renderer`](../../packages/renderer) into a `<div>` and loads the initial
   document.
 - **State** — a React context mirrors modeler events (selection, undo/redo availability, title,
-  revision) into React; small **Zustand** stores hold UI-only state (legend/help panels) and toasts.
+  revision) into React; a small **Zustand** store holds UI-only state (help dialog, welcome card) and toasts.
   The diagram itself stays owned by diagram-js, not by React.
 - **Sharing / persistence** — `serializeDocument()` →
   `LZString.compressToEncodedURIComponent` → `#d=…`. Autosave writes the same to `localStorage`

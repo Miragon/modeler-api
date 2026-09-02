@@ -107,7 +107,7 @@ Design choices:
   diff-friendly and gives stable share URLs.
 - **Runtime validation** (Zod) on everything imported from files / URLs / localStorage, with a
   forward-migration hook keyed by document `version`.
-- **diagram-js** (MIT) as the editor engine — palette, move, resize, context pad,
+- **diagram-js** (MIT) as the editor engine — palette, move, context pad,
   inline label editing and undo/redo for free.
 
 ## Document format

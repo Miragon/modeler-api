@@ -121,7 +121,7 @@ export abstract class CmBaseViewer {
   }
 
   /** Fit the content into the viewport, leaving room at the top for the palette. */
-  private _fit(topInset = 84, pad = 56): void {
+  private _fit(topInset = 84, pad = 56, leftInset = pad): void {
     const canvas = this.get<Canvas>("canvas");
     const registry = this.get<ElementRegistry>("elementRegistry");
     let minX = Infinity;
@@ -154,9 +154,11 @@ export abstract class CmBaseViewer {
       canvas.zoom("fit-viewport");
       return;
     }
-    const s = Math.min((W - 2 * pad) / cw, (H - topInset - pad) / ch, 1.25);
+    const s = Math.min((W - leftInset - pad) / cw, (H - topInset - pad) / ch, 1.25);
+    // Centre the content in the region right of the palette column.
+    const offsetX = leftInset + (W - leftInset - pad - s * cw) / 2;
     canvas.viewbox({
-      x: minX + cw / 2 - W / 2 / s,
+      x: minX - offsetX / s,
       y: minY - topInset / s,
       width: W / s,
       height: H / s,

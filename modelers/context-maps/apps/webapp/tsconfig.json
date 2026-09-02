@@ -12,5 +12,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/renderer/src/diagram-js-direct-editing.d.ts"]
 }

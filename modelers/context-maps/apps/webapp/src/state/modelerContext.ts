@@ -5,18 +5,13 @@
  */
 
 import { createContext, useContext } from "react";
-import type { Modeler, CmElement } from "@miragon/context-maps-renderer";
-
-export type Selected = CmElement | null;
+import type { Modeler } from "@miragon/context-maps-renderer";
 
 export interface ModelerContextValue {
   modeler: Modeler;
-  selected: Selected;
   canUndo: boolean;
   canRedo: boolean;
   title: string;
-  /** Bumped on every model change so consumers re-read live element props. */
-  revision: number;
   /** True while the document has no contexts and no relationships (drives the welcome card). */
   isEmpty: boolean;
   setTitle: (title: string) => void;

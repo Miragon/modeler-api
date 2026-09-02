@@ -8,9 +8,9 @@ and full editor for strategic Domain-Driven Design [Context Maps](https://contex
 diagrams, built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT).
 
 It renders the canonical document from
-[`@miragon/context-maps-schema-model`](../schema-model) and gives you palette, move, resize,
-connect-by-relationship, context pad, inline label editing and undo/redo — with no UI framework
-required. Mount it into any `<div>`; the web app (React) and the VS Code extension both wrap this
+[`@miragon/context-maps-schema-model`](../schema-model) and gives you palette, move,
+connect-by-relationship, context pad, a collapsible notation legend, inline label editing and
+undo/redo — with no UI framework required. Mount it into any `<div>`; the web app (React) and the VS Code extension both wrap this
 exact package.
 
 ## Install
@@ -21,11 +21,11 @@ npm install @miragon/context-maps-renderer @miragon/context-maps-schema-model
 
 ## Three entry points
 
-| Class             | Use it for                                                                     |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `Viewer`          | Read-only rendering, no interaction (thumbnails, static embeds).               |
-| `NavigatedViewer` | Read-only + zoom (scroll), pan (drag) and selection.                           |
-| `Modeler`         | The full editor: palette, move, resize, context pad, label editing, undo/redo. |
+| Class             | Use it for                                                             |
+| ----------------- | ---------------------------------------------------------------------- |
+| `Viewer`          | Read-only rendering, no interaction (thumbnails, static embeds).       |
+| `NavigatedViewer` | Read-only + zoom (scroll), pan (drag) and selection.                   |
+| `Modeler`         | The full editor: palette, move, context pad, label editing, undo/redo. |
 
 All three share a common base (`CmBaseViewer`) with the same import/export and lifecycle API.
 
@@ -100,19 +100,21 @@ The package is a set of [didi](https://github.com/nikku/didi) modules layered on
 exported (e.g. `cmDrawModule`, `cmPaletteModule`, `cmModelingModule`) so you can compose your own
 viewer via `additionalModules`:
 
-| Module                 | Responsibility                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `cmModelModule`        | Element factory with notation defaults (`CmElementFactory`).                        |
-| `cmDrawModule`         | Custom SVG rendering of contexts and relationships (`ContextMapsRenderer`).         |
-| `ioModule`             | Document ↔ canvas bridge (`CmImporter`, `CmExporter`, `saveSVG`).                   |
-| `cmModelingModule`     | High-level mutations — label, subdomain type, relationship pattern, roles, colours. |
-| `cmRulesModule`        | Editing rules (what can move / resize / be created / connected).                    |
-| `cmBehaviorsModule`    | Keeps the model **flat** — shapes never nest.                                       |
-| `cmPaletteModule`      | The drag-to-create tool palette.                                                    |
-| `cmContextPadModule`   | Per-element actions (rename, delete, connect).                                      |
-| `cmLabelEditingModule` | Double-click inline label editing.                                                  |
-| `cmKeyboardModule`     | Undo / redo / delete shortcuts.                                                     |
-| `cmZOrderModule`       | Fixed stacking order (relationships behind, contexts on top).                       |
+| Module                   | Responsibility                                                                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmModelModule`          | Element factory with notation defaults (`CmElementFactory`).                                                                                                                     |
+| `cmDrawModule`           | Custom SVG rendering of contexts and relationships (`ContextMapsRenderer`).                                                                                                      |
+| `ioModule`               | Document ↔ canvas bridge (`CmImporter`, `CmExporter`, `saveSVG`).                                                                                                                |
+| `cmModelingModule`       | High-level mutations — label, subdomain type, relationship pattern, roles, colours.                                                                                              |
+| `cmRulesModule`          | Editing rules (what can move / be created / connected; no resize).                                                                                                               |
+| `cmBehaviorsModule`      | Keeps the model **flat** — shapes never nest.                                                                                                                                    |
+| `cmPaletteModule`        | The floating tool palette (top-centre): lasso tool + drag-to-create contexts.                                                                                                    |
+| `cmConnectHandlesModule` | Opt-in (not in the default `Modeler`): four outward connect arrows around the selected context.                                                                                  |
+| `cmContextPadModule`     | Per-element quick actions: append a connected context, connect, subdomain-type / pattern / integration-role menus, owning team, description, in-place rename, swap ends, delete. |
+| `cmLegendModule`         | Collapsible notation legend (bottom-left): subdomain types, integration roles, patterns.                                                                                         |
+| `cmLabelEditingModule`   | In-place direct name editing (double-click / pad), bpmn.io style.                                                                                                                |
+| `cmKeyboardModule`       | Undo / redo / delete shortcuts.                                                                                                                                                  |
+| `cmZOrderModule`         | Fixed stacking order (relationships behind, contexts on top).                                                                                                                    |
 
 ### Rendering
 

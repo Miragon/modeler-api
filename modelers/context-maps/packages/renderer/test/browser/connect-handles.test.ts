@@ -1,15 +1,41 @@
 import { expect, test } from "vitest";
-import { Modeler, isCmContext } from "@miragon/context-maps-renderer";
+import { Modeler, cmConnectHandlesModule, isCmContext } from "@miragon/context-maps-renderer";
 import { emptyDocument } from "@miragon/context-maps-schema-model";
 
-// Selecting a context must show FOUR connect arrows (mid top/right/bottom/left),
-// and dragging from one to another context must create the relationship.
-test("a selected context shows four connect handles that draw a relationship", () => {
+// The default Modeler MUST stay handle-free — connecting runs through the pad.
+test("the default Modeler ships without connect handles (opt-in only)", () => {
   const container = document.createElement("div");
   container.style.width = "900px";
   container.style.height = "640px";
   document.body.appendChild(container);
   const modeler = new Modeler({ container });
+  try {
+    const doc = emptyDocument("m");
+    doc.contexts = [
+      { id: "a", label: "A", position: { x: 100, y: 200 }, size: { width: 200, height: 110 } },
+    ];
+    modeler.importDocument(doc);
+    const registry = modeler.get<{ getAll(): unknown[] }>("elementRegistry");
+    const selection = modeler.get<{ select(el: unknown): void }>("selection");
+    selection.select(registry.getAll().filter(isCmContext)[0]);
+    expect(container.querySelectorAll(".cm-connect-handle")).toHaveLength(0);
+    expect(container.querySelector(".djs-context-pad.open")).not.toBeNull();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// The handles are OPT-IN (not part of the default Modeler — connecting runs
+// through the context pad there): with the module added, selecting a context
+// must show FOUR connect arrows (mid top/right/bottom/left), and dragging from
+// one to another context must create the relationship.
+test("a selected context shows four connect handles that draw a relationship", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const modeler = new Modeler({ container, additionalModules: [cmConnectHandlesModule] });
   try {
     const doc = emptyDocument("m");
     doc.contexts = [

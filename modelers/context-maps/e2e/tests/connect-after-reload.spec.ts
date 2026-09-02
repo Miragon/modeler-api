@@ -38,18 +38,16 @@ test("drawing a connection in a reloaded document with counter-style ids", async
 
   const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
-  const handle = page.locator('.cm-connect-handle[data-side="bottom"]');
-  await expect(handle).toBeVisible();
-  const hb = (await handle.boundingBox())!;
+  const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
+  await expect(arm).toBeVisible();
+  await arm.click();
   const d = (await page.locator('.tt-canvas [data-element-id="d"]').boundingBox())!;
   const tx = d.x + d.width / 2;
   const ty = d.y + d.height / 2;
 
-  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-  await page.mouse.down();
-  await page.mouse.move((hb.x + tx) / 2, (hb.y + ty) / 2, { steps: 6 });
+  await page.mouse.move((a.x + tx) / 2, (a.y + ty) / 2, { steps: 6 });
   await page.mouse.move(tx, ty, { steps: 6 });
-  await page.mouse.up();
+  await page.mouse.click(tx, ty);
 
   const rels = await page.evaluate(
     () =>
