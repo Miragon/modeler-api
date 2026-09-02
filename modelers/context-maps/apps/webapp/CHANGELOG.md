@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.1.1...webapp-v0.2.0) (2026-09-02)
+
+
+### Features
+
+* **renderer:** ship context pad, notation legend and palette tools ([#41](https://github.com/Miragon/context-maps-modeler/issues/41)) ([cdcd1d6](https://github.com/Miragon/context-maps-modeler/commit/cdcd1d650df73db106fedb5e072d526ca511f17a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-cml bumped from 0.1.1 to 0.1.2
+    * @miragon/context-maps-renderer bumped from 0.1.0 to 0.2.0
+    * @miragon/context-maps-schema-model bumped from 0.1.0 to 0.2.0
+
 ## [0.1.1](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.1.0...webapp-v0.1.1) (2026-08-10)
 
 

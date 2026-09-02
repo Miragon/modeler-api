@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.2](https://github.com/Miragon/context-maps-modeler/compare/cml-v0.1.1...cml-v0.1.2) (2026-09-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-schema-model bumped from 0.1.0 to 0.2.0
+
 ## [0.1.1](https://github.com/Miragon/context-maps-modeler/compare/cml-v0.1.0...cml-v0.1.1) (2026-08-10)
 
 

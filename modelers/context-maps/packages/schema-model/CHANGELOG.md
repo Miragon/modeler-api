@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Miragon/context-maps-modeler/compare/schema-model-v0.1.0...schema-model-v0.2.0) (2026-09-02)
+
+
+### Features
+
+* **renderer:** ship context pad, notation legend and palette tools ([#41](https://github.com/Miragon/context-maps-modeler/issues/41)) ([cdcd1d6](https://github.com/Miragon/context-maps-modeler/commit/cdcd1d650df73db106fedb5e072d526ca511f17a))
+
 ## [0.1.0](https://github.com/Miragon/context-maps-modeler/compare/schema-model-v0.0.1...schema-model-v0.1.0) (2026-08-10)
 
 

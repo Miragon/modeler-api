@@ -1,7 +1,7 @@
 {
-  "packages/schema-model": "0.1.0",
-  "packages/cml": "0.1.1",
-  "packages/renderer": "0.1.0",
-  "apps/vscode": "0.2.0",
-  "apps/webapp": "0.1.1"
+  "packages/schema-model": "0.2.0",
+  "packages/cml": "0.1.2",
+  "packages/renderer": "0.2.0",
+  "apps/vscode": "0.3.0",
+  "apps/webapp": "0.2.0"
 }
