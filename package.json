@@ -1,7 +1,7 @@
 {
   "name": "@miragon/modeler-api",
   "version": "0.1.0",
-  "description": "ONE interface every Miragon modeler implements — the collaborative-modeler contract and its conformance test kit.",
+  "description": "ONE interface every Miragon modeler implements \u2014 the collaborative-modeler contract and its conformance test kit.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -47,6 +47,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "publint": "publint",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "format": "prettier --write .",
@@ -55,6 +56,7 @@
   },
   "devDependencies": {
     "prettier": "3.9.6",
+    "publint": "0.3.12",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
