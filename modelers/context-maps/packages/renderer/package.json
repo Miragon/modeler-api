@@ -44,6 +44,6 @@
     "tiny-svg": "4.1.4"
   },
   "devDependencies": {
-    "vite-plugin-dts": "5.0.3"
+    "vite-plugin-dts": "5.1.0"
   }
 }
