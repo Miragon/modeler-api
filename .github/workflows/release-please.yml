@@ -37,13 +37,14 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Node 24 ships npm >= 11.5.1 with OIDC trusted publishing (tokenless)
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      # the shared setup action, on Node 24: it ships npm >= 11.5.1 with OIDC
+      # trusted publishing (tokenless) — ONE setup-node pin for the whole repo
+      - uses: ./.github/actions/setup
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-      - run: npm ci
       - run: npm run build
+      - run: npm run publint
       - name: Publish @miragon/modeler-api
         run: |
           version="$(node -p "require('./package.json').version")"

@@ -19,7 +19,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # squash merges take the PR title as the ONE conventional commit on
+          # main — a single-commit PR must agree with it, or release-please
+          # reads the commit instead of the title
           validateSingleCommit: true
+          validateSingleCommitMatchesPrTitle: true
           types: |
             feat
             fix
