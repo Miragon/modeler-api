@@ -13,7 +13,8 @@
  */
 
 /** the semver of THIS contract — a modeler declares the version it implements
- *  in `meta.apiVersion`; hosts match on the major. The constant IS the
+ *  in `meta.apiVersion`; hosts check compatibility with `apiVersionsCompatible`
+ *  (same major; while 0.x, the same minor too). The constant IS the
  *  package version: release-please rewrites the literal below on every
  *  release (release-please-config.json `extra-files`), and the kit's own
  *  test pins it to package.json exactly. Modelers pin the npm package; the

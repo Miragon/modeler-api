@@ -1,7 +1,7 @@
 {
   "name": "@miragon/modeler-api",
   "version": "0.1.0",
-  "description": "ONE interface every Miragon modeler implements \u2014 the collaborative-modeler contract and its conformance test kit.",
+  "description": "ONE interface every Miragon modeler implements — the collaborative-modeler contract and its conformance test kit.",
   "license": "MIT",
   "repository": {
     "type": "git",

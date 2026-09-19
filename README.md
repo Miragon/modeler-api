@@ -25,7 +25,7 @@ This package turns those lessons into **laws** (see the JSDoc on
 an executable test the modeler repo runs in its own CI. Drift fails the
 modeler's build — not a downstream integration review.
 
-## The contract (v1)
+## The contract (0.x)
 
 ```ts
 import type { CollaborativeModeler } from "@miragon/modeler-api";
@@ -48,7 +48,9 @@ events and `exportText` is independent of it.
 `NavigatedViewer`/`Viewer` exposes it under the same contract with
 `editable: false` — it imports, exports, reveals and reports view state like
 the editor and never fires `onContentChanged`, so hosts mount it on read-only
-surfaces without per-package knowledge.
+surfaces without per-package knowledge. A viewer must import without a
+command stack of its own, or register one: the kit's viewer case fails a
+`NavigatedViewer` whose import clears a stack it never registered.
 
 Optional `elements` surface (stable ids, `reveal`, a synchronous `selection()`
 and selection events) powers host features like anchored todos, `?element=`

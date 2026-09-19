@@ -12,6 +12,8 @@ import type { CollaborativeModeler, ElementsSurface, ImportResult, ModelerMeta }
 import { MODELER_API_VERSION } from "../src/index.js";
 
 export interface Flaws {
+  /** meta.apiVersion of a foreign major */
+  incompatibleApiVersion?: boolean;
   /** fire onContentChanged from importText (the wardley importDSL echo) */
   echoImport?: boolean;
   /** fire the import echo ONLY when undo history exists (an engine that emits from clear() when there is something to clear) */
@@ -20,14 +22,21 @@ export interface Flaws {
   echoOnForeignOnly?: boolean;
   /** export stamps extra content — NOT a fixpoint of its own parser */
   nonCanonicalExport?: boolean;
-  /** keep the undo stack across imports (the tt stale-undo) */
+  /** keep the undo stack across imports; undo RESTORES a snapshot (the tt stale-undo, snapshot form) */
   staleUndo?: boolean;
+  /** keep the undo stack across imports; undo REMOVES the created line by value — a diagram-js style
+   *  delta revert that is a silent no-op unless the re-imported document contains the id */
+  staleUndoDelta?: boolean;
+  /** undo on an EMPTY stack still emits onContentChanged */
+  undoOnEmptyEmits?: boolean;
   /** ignore unsubscribes */
   leakyUnsubscribe?: boolean;
   /** drop every line the parser does not understand (a stripping schema) */
   dropForeign?: boolean;
   /** a rejected import blanks the canvas and wedges the parser for good */
   wedgeAfterReject?: boolean;
+  /** a rejected import erases the undo history before rejecting */
+  rejectClearsUndo?: boolean;
   /** undo restores the document but never emits */
   silentUndo?: boolean;
   /** redo restores the document but never emits */
@@ -38,6 +47,10 @@ export interface Flaws {
   noFitOnImport?: boolean;
   /** NOT a flaw: getViewState returns the state enriched with derived keys (scale, inner, outer — the diagram-js viewbox shape) */
   enrichedViewStateReadback?: boolean;
+  /** the enriched readback is NOT accepted by setViewState (only the literal shape is) */
+  readbackNotSettable?: boolean;
+  /** getViewState throws before the first import */
+  viewStateThrowsBeforeImport?: boolean;
   /** reveal/commands never deliver a selection */
   deadSelection?: boolean;
   /** onSelection unsubscribes are ignored */
@@ -60,12 +73,20 @@ export interface Flaws {
   exportThrowsAfterMutate?: boolean;
   /** element ids are positional (renumbered from the end on every change) */
   positionalIds?: boolean;
+  /** a second destroy() throws */
+  destroyThrowsTwice?: boolean;
   /** the viewer emits change events on import */
   viewerEmits?: boolean;
   /** the viewer's importText throws (no command stack registered) */
   viewerImportThrows?: boolean;
   /** the viewer registers no selection service: reveal returns false for every id */
   viewerCannotReveal?: boolean;
+  /** the viewer's import keeps the previous viewport */
+  viewerKeepsView?: boolean;
+  /** the viewer drops foreign content */
+  viewerDropsForeign?: boolean;
+  /** the viewer selects but never delivers onSelection */
+  viewerDeadSelectionEvents?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -95,6 +116,8 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   const selectionListeners = new Set<(ids: string[]) => void>();
   let wedged = false;
   let mutated = false;
+  let destroyed = false;
+  const keepsHistory = Boolean(flaws.staleUndo || flaws.staleUndoDelta);
 
   const emit = (): void => {
     for (const cb of listeners) cb();
@@ -102,7 +125,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   const select = (ids: string[]): void => {
     if (JSON.stringify(ids) === JSON.stringify(selection)) return; // engines deduplicate
     selection = ids;
-    if (flaws.deadSelection) return;
+    if (flaws.deadSelection || (!editable && flaws.viewerDeadSelectionEvents)) return;
     for (const cb of selectionListeners) cb(selection);
   };
   const canonical = (): string => {
@@ -111,8 +134,19 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     return out.length === 0 ? "" : `${out.join("\n")}\n`;
   };
   const ids = (): string[] => (flaws.positionalIds ? lines.map((_l, i) => `l${lines.length - i}`) : lines);
+  const enriched = (v: View): Record<string, unknown> => ({
+    ...v,
+    zoom: Math.round(v.zoom * 1000) / 1000,
+    scale: v.zoom,
+    inner: { width: 100 },
+    outer: { width: 800 },
+  });
 
-  const meta: ModelerMeta = { notation: "lines", apiVersion: MODELER_API_VERSION, editable };
+  const meta: ModelerMeta = {
+    notation: "lines",
+    apiVersion: flaws.incompatibleApiVersion ? "9.9.9" : MODELER_API_VERSION,
+    editable,
+  };
 
   const elements: ElementsSurface = {
     list: () => ids().map((id, i) => ({ id, name: lines[i] })),
@@ -156,6 +190,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       if (raw.some((line) => line.startsWith("!"))) {
         if (flaws.rejectResolves) return { warnings: ["ignored invalid input"] };
         if (flaws.rejectMutatesDoc) lines = [];
+        if (flaws.rejectClearsUndo) undoStack = [];
         if (flaws.wedgeAfterReject) {
           wedged = true;
           lines = [];
@@ -167,13 +202,15 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       const body = raw.filter((line) => !line.startsWith("title: "));
       // foreign content ('%' lines) is preserved as plain lines — unless the
       // stripping flaw drops what it does not understand
-      lines = flaws.dropForeign ? body.filter((line) => !line.startsWith("%")) : body;
-      if (!flaws.staleUndo) {
+      const drops = flaws.dropForeign || (!editable && flaws.viewerDropsForeign);
+      lines = drops ? body.filter((line) => !line.startsWith("%")) : body;
+      if (!keepsHistory) {
         undoStack = [];
         redoStack = [];
       }
-      // an import fits the view to the content (L5) — unless the flaw keeps it
-      if (!flaws.noFitOnImport || view === undefined) view = { ...fittedView };
+      // an import fits the view to the content (L5) — unless a flaw keeps it
+      const keeps = flaws.noFitOnImport || (!editable && flaws.viewerKeepsView);
+      if (!keeps || view === undefined) view = { ...fittedView };
       return { warnings: [] };
     },
     exportText(): string {
@@ -189,28 +226,27 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       };
     },
     getViewState: () => {
-      if (view === undefined) return undefined;
+      if (view === undefined) {
+        if (flaws.viewStateThrowsBeforeImport) throw new Error("no viewbox yet");
+        return undefined;
+      }
       // the diagram-js viewbox shape: the requested box plus derived keys,
       // rounded — a legitimate readback the kit must accept
-      return flaws.enrichedViewStateReadback
-        ? {
-            ...view,
-            zoom: Math.round(view.zoom * 1000) / 1000,
-            scale: view.zoom,
-            inner: { width: 100 },
-            outer: { width: 800 },
-          }
-        : { ...view };
+      return flaws.enrichedViewStateReadback || flaws.readbackNotSettable ? enriched(view) : { ...view };
     },
     setViewState(state) {
       if (flaws.viewStateEmits) emit();
       if (flaws.noopViewState) return;
       if (state !== null && typeof state === "object") {
+        // the flawed setter only takes the literal shape, never its own readback
+        if (flaws.readbackNotSettable && "scale" in state) return;
         const { zoom, scrollX } = state as Partial<View>;
         view = { zoom: zoom ?? 1, scrollX: scrollX ?? 0 };
       }
     },
     destroy() {
+      if (destroyed && flaws.destroyThrowsTwice) throw new Error("already destroyed");
+      destroyed = true;
       listeners.clear();
       selectionListeners.clear();
     },
@@ -220,20 +256,33 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       if (wedged) throw new Error("lines notation: parser wedged");
       // snapshot-based undo, like real command stacks: undoing RESTORES the
       // pre-command document — kept across imports (staleUndo) that means
-      // resurrecting the pre-import document, the exact tt drift
+      // resurrecting the pre-import document, the exact tt drift. The delta
+      // variant removes the created line by VALUE instead — a no-op on any
+      // document that lacks it, a deletion on one that carries it
       const before = [...lines];
       if (flaws.emitBeforeApply) emit();
       lines.push(text);
       const after = [...lines];
       mutated = true;
-      undoStack.push({
-        undo: () => {
-          lines = before;
-        },
-        redo: () => {
-          lines = after;
-        },
-      });
+      undoStack.push(
+        flaws.staleUndoDelta
+          ? {
+              undo: () => {
+                lines = lines.filter((line) => line !== text);
+              },
+              redo: () => {
+                lines.push(text);
+              },
+            }
+          : {
+              undo: () => {
+                lines = before;
+              },
+              redo: () => {
+                lines = after;
+              },
+            },
+      );
       redoStack = [];
       select([ids()[lines.length - 1] ?? text]);
       if (!flaws.emitBeforeApply && !flaws.silentMutation) emit();
@@ -244,7 +293,10 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     },
     undoCommand(): void {
       const step = undoStack.pop();
-      if (!step) return;
+      if (!step) {
+        if (flaws.undoOnEmptyEmits) emit();
+        return;
+      }
       step.undo();
       redoStack.push(step);
       if (!flaws.silentUndo) emit();

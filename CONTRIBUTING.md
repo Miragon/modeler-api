@@ -10,6 +10,10 @@
 - A change to the contract's laws or the kit's harness shape is a `feat` (pre-1.0:
   breaking changes bump the minor, `bump-minor-pre-major`); wording-only
   changes are `docs`.
+- The PR body becomes the commit body verbatim. Git footers (`Release-As:`,
+  `BREAKING CHANGE:`) must therefore be the LAST paragraph of the PR body — a
+  paragraph after them (a signature, a generated-with line) turns them into
+  body text that release-please ignores.
 
 ## Releases
 

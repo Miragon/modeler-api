@@ -56,7 +56,8 @@ const CASE = {
   l6Foreign: "L6: foreign content survives an import → export round-trip",
   l7NoTrace: "L7: a rejected import leaves no trace",
   l7Usable: "L7: the modeler stays usable after a rejected import",
-  viewer: "viewer (when shipped): read-only, silent, canonical, reveals, and unshaken by a rejected import",
+  viewer:
+    "viewer (when shipped): read-only, silent, canonical, fits, reveals, keeps foreign content, unshaken by a rejected import",
   destroy: "destroy is safe to call twice",
 };
 
@@ -72,6 +73,15 @@ async function failingCases(h: ConformanceHarness): Promise<string[]> {
     })),
   );
   return results.filter((r) => r.failed).map((r) => r.name);
+}
+
+/** register against a fake runner that runs every case now; the skipped names */
+async function skippedCases(h: ConformanceHarness): Promise<{ ran: number; skipped: string[] }> {
+  const skipped: string[] = [];
+  const pending: Promise<void>[] = [];
+  registerConformance(h, (_name, fn) => pending.push(fn()), { onSkip: (name) => skipped.push(name) });
+  await Promise.all(pending);
+  return { ran: pending.length, skipped: skipped.sort() };
 }
 
 describe("the conforming reference modeler", () => {
@@ -96,33 +106,23 @@ describe("the conforming reference modeler", () => {
   });
 
   test("optional harness fields left undefined are reported as SKIPPED, never a silent green", async () => {
-    const skipped: string[] = [];
-    const ran: string[] = [];
-    const sparse = harness(
-      {},
-      {
-        createReadonly: undefined,
-        looseTexts: undefined,
-        invalidTexts: undefined,
-        foreignTexts: undefined,
-        viewState: undefined,
-        configMutations: undefined,
-        undo: undefined,
-        redo: undefined,
-      },
+    const sparse = await skippedCases(
+      harness(
+        {},
+        {
+          createReadonly: undefined,
+          looseTexts: undefined,
+          invalidTexts: undefined,
+          foreignTexts: undefined,
+          viewState: undefined,
+          configMutations: undefined,
+          undo: undefined,
+          redo: undefined,
+        },
+      ),
     );
-    const pending: unknown[] = [];
-    registerConformance(
-      sparse,
-      (name, fn) => {
-        ran.push(name);
-        pending.push(fn());
-      },
-      { onSkip: (name) => skipped.push(name) },
-    );
-    await Promise.all(pending);
-    expect(ran.length).toBe(conformanceCases().length);
-    expect(skipped.sort()).toEqual(
+    expect(sparse.ran).toBe(conformanceCases().length);
+    expect(sparse.skipped).toEqual(
       [
         CASE.l2Idempotent,
         CASE.l3Config,
@@ -135,15 +135,13 @@ describe("the conforming reference modeler", () => {
         CASE.viewer,
       ].sort(),
     );
+    // undo without redo: the undo half is verified, the redo half reports a skip
+    expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
     // an EXPLICIT empty array is a statement, not an omission — no skip
-    const explicit = harness({}, { looseTexts: [], invalidTexts: [], foreignTexts: [], configMutations: [] });
-    const skippedExplicit: string[] = [];
-    const pendingExplicit: unknown[] = [];
-    registerConformance(explicit, (_n, fn) => pendingExplicit.push(fn()), {
-      onSkip: (name) => skippedExplicit.push(name),
-    });
-    await Promise.all(pendingExplicit);
-    expect(skippedExplicit).toEqual([]);
+    const explicit = await skippedCases(
+      harness({}, { looseTexts: [], invalidTexts: [], foreignTexts: [], configMutations: [] }),
+    );
+    expect(explicit.skipped).toEqual([]);
   });
 });
 
@@ -157,10 +155,10 @@ describe("broken variants fail exactly their law's case set", () => {
   // ── the historical drifts ──────────────────────────────────────────────────
   test("import echo (the wardley importDSL drift) → L1 twice, the echo inside L7's rejected import, the viewer", () =>
     expectFailures({ echoImport: true }, [CASE.l1Fresh, CASE.l1History, CASE.l7NoTrace, CASE.viewer]));
-  test("import echo only over existing history → exactly the L1 history case", () =>
-    expectFailures({ echoOnHistoryOnly: true }, [CASE.l1History]));
-  test("import echo only on foreign content → exactly the L1 fresh case", () =>
-    expectFailures({ echoOnForeignOnly: true }, [CASE.l1Fresh]));
+  test("import echo only over existing history → the L1 history case and L7's rejected import over history", () =>
+    expectFailures({ echoOnHistoryOnly: true }, [CASE.l1History, CASE.l7NoTrace]));
+  test("import echo only on foreign content → the L1 fresh case and the viewer's foreign import", () =>
+    expectFailures({ echoOnForeignOnly: true }, [CASE.l1Fresh, CASE.viewer]));
   test("non-fixpoint serializer (grows the file per round-trip) → both L2 cases, L6 foreign, L7 usable, the viewer", () =>
     expectFailures({ nonCanonicalExport: true }, [
       CASE.l2Fixpoint,
@@ -169,26 +167,38 @@ describe("broken variants fail exactly their law's case set", () => {
       CASE.l7Usable,
       CASE.viewer,
     ]));
-  test("stale undo across imports (the tt drift) → exactly L4", () =>
+  test("stale snapshot undo across imports (the tt drift) → exactly L4", () =>
     expectFailures({ staleUndo: true }, [CASE.l4]));
+  test("stale DELTA undo across imports (the diagram-js form: revert removes by id) → exactly L4", () =>
+    expectFailures({ staleUndoDelta: true }, [CASE.l4]));
+  test("undo on an empty post-import stack that emits → exactly L4", () =>
+    expectFailures({ undoOnEmptyEmits: true }, [CASE.l4]));
   test("leaky unsubscribe → exactly the unsubscribe case", () =>
     expectFailures({ leakyUnsubscribe: true }, [CASE.l3Unsubscribe]));
 
   // ── one saboteur per kit case ──────────────────────────────────────────────
-  test("dropping foreign content (a stripping schema) → exactly L6 foreign", () =>
-    expectFailures({ dropForeign: true }, [CASE.l6Foreign]));
+  test("incompatible apiVersion → exactly the meta case", () =>
+    expectFailures({ incompatibleApiVersion: true }, [CASE.meta]));
+  test("dropping foreign content (a stripping schema) → L6 foreign and the viewer", () =>
+    expectFailures({ dropForeign: true }, [CASE.l6Foreign, CASE.viewer]));
   test("blank + wedged after a rejected import → both L7 cases and the viewer", () =>
     expectFailures({ wedgeAfterReject: true }, [CASE.l7NoTrace, CASE.l7Usable, CASE.viewer]));
+  test("a rejected import that erases the undo history → exactly L7 no-trace", () =>
+    expectFailures({ rejectClearsUndo: true }, [CASE.l7NoTrace]));
   test("silent undo → exactly the L3 undo/redo case", () =>
     expectFailures({ silentUndo: true }, [CASE.l3Undo]));
   test("silent redo → exactly the L3 undo/redo case", () =>
     expectFailures({ silentRedo: true }, [CASE.l3Undo]));
   test("no-op setViewState → L5 round-trip and the viewer", () =>
     expectFailures({ noopViewState: true }, [CASE.l5RoundTrip, CASE.viewer]));
-  test("an import that keeps the viewport instead of fitting → exactly L5 round-trip", () =>
-    expectFailures({ noFitOnImport: true }, [CASE.l5RoundTrip]));
-  test("dead selection surface → exactly the elements case", () =>
-    expectFailures({ deadSelection: true }, [CASE.elements]));
+  test("an import that keeps the viewport instead of fitting → L5 round-trip and the viewer", () =>
+    expectFailures({ noFitOnImport: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("a readback that setViewState does not accept → L5 round-trip and the viewer", () =>
+    expectFailures({ readbackNotSettable: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("getViewState that throws before the first import → the L5 fresh case and the viewer", () =>
+    expectFailures({ viewStateThrowsBeforeImport: true }, [CASE.l5Fresh, CASE.viewer]));
+  test("dead selection surface → the elements case and the viewer", () =>
+    expectFailures({ deadSelection: true }, [CASE.elements, CASE.viewer]));
   test("leaky selection unsubscribe → exactly the elements case", () =>
     expectFailures({ leakySelectionUnsubscribe: true }, [CASE.elements]));
   test("config edit outside the command stack that never emits → exactly the L3 config case", () =>
@@ -211,16 +221,25 @@ describe("broken variants fail exactly their law's case set", () => {
       CASE.l3Undo,
       CASE.l4,
       CASE.l6Total,
+      CASE.l7NoTrace,
       CASE.l7Usable,
     ]));
   test("positional element ids (renumbered on every edit) → exactly the elements case", () =>
     expectFailures({ positionalIds: true }, [CASE.elements]));
+  test("a second destroy() that throws → the destroy case and the viewer", () =>
+    expectFailures({ destroyThrowsTwice: true }, [CASE.destroy, CASE.viewer]));
   test("a viewer that emits on import → exactly the viewer case", () =>
     expectFailures({ viewerEmits: true }, [CASE.viewer]));
   test("a viewer whose importText throws (no command stack) → exactly the viewer case", () =>
     expectFailures({ viewerImportThrows: true }, [CASE.viewer]));
   test("a viewer that cannot reveal (no selection service) → exactly the viewer case", () =>
     expectFailures({ viewerCannotReveal: true }, [CASE.viewer]));
+  test("a viewer whose import keeps the viewport → exactly the viewer case", () =>
+    expectFailures({ viewerKeepsView: true }, [CASE.viewer]));
+  test("a viewer that drops foreign content → exactly the viewer case", () =>
+    expectFailures({ viewerDropsForeign: true }, [CASE.viewer]));
+  test("a viewer that selects without delivering onSelection → exactly the viewer case", () =>
+    expectFailures({ viewerDeadSelectionEvents: true }, [CASE.viewer]));
 
   test("the contract version constant IS the package version (one identity)", () => {
     expect(MODELER_API_VERSION).toBe(pkg.version);

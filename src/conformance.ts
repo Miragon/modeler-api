@@ -8,8 +8,8 @@
  *   registerConformance(harness, test);            // node:test, vitest, jest — any (name, fn) runner
  *
  * Cases throw plain Errors on violation, so the kit has no runner or
- * assertion-library dependency. A case that CANNOT run because the harness
- * left an optional field undefined resolves with `{ skipped }` and
+ * assertion-library dependency. A case that CANNOT (fully) run because the
+ * harness left an optional field undefined resolves with `{ skipped }` and
  * registerConformance reports it (console.warn by default) — a law the kit
  * did not verify is never a silent green.
  */
@@ -35,11 +35,12 @@ export interface ConformanceHarness {
    *  viewer and the viewer case is reported as skipped */
   createReadonly?(): Promise<CollaborativeModeler>;
   /**
-   * CANONICAL sample documents of the notation (>= 2, distinct, ideally
-   * several, covering config/axis content too) — exactly what exportText
-   * emits. Obtain them by exporting a hand-authored document and REVIEWING
-   * the bytes, not by pasting whatever the current build prints: L2 only
-   * proves the serializer is a fixpoint of the texts you vouch for
+   * CANONICAL sample documents of the notation (>= 2, distinct, at least one
+   * rendering an element, ideally several covering config/axis content too)
+   * — exactly what exportText emits. Obtain them by exporting a hand-authored
+   * document and REVIEWING the bytes, not by pasting whatever the current
+   * build prints: L2 only proves the serializer is a fixpoint of the texts
+   * you vouch for
    */
   canonicalTexts: string[];
   /** importable but non-canonical inputs (hand-authored variants); the kit
@@ -66,8 +67,8 @@ export interface ConformanceHarness {
    * (e.g. a viewbox) that differs from what an import leaves; L5 cannot tell
    * a restore from a no-op without one. The kit never compares a readback
    * with this literal: it sets it, reads the modeler's own (possibly
-   * normalised) state back, and requires THAT to survive a re-import.
-   * `undefined` = L5 is reported as skipped
+   * normalised) state back, and requires THAT to survive a re-import and to
+   * be settable itself. `undefined` = L5 is reported as skipped
    */
   viewState?: unknown;
   /** wait until deferred/debounced change events have been delivered —
@@ -92,13 +93,15 @@ export interface ConformanceHarness {
   /** trigger the modeler's undo; `undefined` = the notation has no undo
    *  (the undo cases are reported as skipped) */
   undo?(modeler: CollaborativeModeler): Promise<void> | void;
-  /** trigger the modeler's redo — verified with `undo` when given */
+  /** trigger the modeler's redo; `undefined` with `undo` defined = the redo
+   *  half of the undo/redo case is reported as skipped */
   redo?(modeler: CollaborativeModeler): Promise<void> | void;
 }
 
 export interface CaseOutcome {
-  /** the case could not verify its law — the harness left the field it
-   *  needs undefined; the reason names the field */
+  /** the case could not (fully) verify its law — the harness left the field
+   *  it needs undefined, or the modeler has no such optional surface; the
+   *  reason names which */
   skipped?: string;
 }
 
@@ -107,12 +110,19 @@ export interface ConformanceCase {
   run(harness: ConformanceHarness): Promise<CaseOutcome | void>;
 }
 
-/** a sized host element attached to the document — what `create()` should
- *  mount into (browser only) */
+/**
+ * a host element of the given size, attached to the document — what
+ * `create()` should mount into (browser only). The returned element sits
+ * INSIDE a sized wrapper: the Miragon renderers restyle the container they
+ * are given to 100% × 100%, which then resolves against the wrapper
+ */
 export function attachedHost(width = 800, height = 600): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = `width:${width}px;height:${height}px;position:absolute;left:0;top:0;overflow:hidden`;
   const host = document.createElement("div");
-  host.style.cssText = `width:${width}px;height:${height}px;position:absolute;left:0;top:0`;
-  document.body.append(host);
+  host.style.cssText = "width:100%;height:100%";
+  wrapper.append(host);
+  document.body.append(wrapper);
   return host;
 }
 
@@ -191,6 +201,19 @@ const mutationsOf = (h: ConformanceHarness): UserMutation[] => [
 
 const sortedIds = (m: CollaborativeModeler): string[] | undefined =>
   m.elements ? [...m.elements.list().map((e) => e.id)].sort() : undefined;
+
+/**
+ * import the first canonical text that renders at least one element (an
+ * empty document has no fitted view — renderers leave the viewport alone),
+ * and return it; without an elements surface the first text is used
+ */
+async function importContentText(h: ConformanceHarness, m: CollaborativeModeler): Promise<string> {
+  for (const text of h.canonicalTexts) {
+    await m.importText(text);
+    if (!m.elements || m.elements.list().length > 0) return text;
+  }
+  fail("L5 needs a canonical text that renders at least one element — an empty document has no fitted view");
+}
 
 export function conformanceCases(): ConformanceCase[] {
   return [
@@ -376,14 +399,16 @@ export function conformanceCases(): ConformanceCase[] {
             fail("undo of a single mutation did not restore the pre-mutation export");
           if (undone.exportAtEmit !== before)
             fail("exportText() inside the undo listener did not return the undone document");
-          if (h.redo) {
-            const redo = h.redo;
-            const redone = await changeEvents(h, m, () => redo(m));
-            if (redone.calls === 0) fail("redo fired no onContentChanged");
-            if (m.exportText() !== mutated) fail("redo did not restore the mutated export");
-            if (redone.exportAtEmit !== mutated)
-              fail("exportText() inside the redo listener did not return the redone document");
-          }
+          if (!h.redo)
+            return skip(
+              "redo is undefined — the redo half of this case was not verified (pass redo to verify it)",
+            );
+          const redo = h.redo;
+          const redone = await changeEvents(h, m, () => redo(m));
+          if (redone.calls === 0) fail("redo fired no onContentChanged");
+          if (m.exportText() !== mutated) fail("redo did not restore the mutated export");
+          if (redone.exportAtEmit !== mutated)
+            fail("exportText() inside the redo listener did not return the redone document");
         } finally {
           m.destroy();
         }
@@ -403,7 +428,28 @@ export function conformanceCases(): ConformanceCase[] {
           await m.importText(first);
           await h.mutate(m); // real history exists…
           await h.mutate(m); // …more than one entry deep…
-          await m.importText(second); // …then a remote state replaces the doc
+          // leg 1 — GUARANTEED id coincidence: re-import the mutated document
+          // itself. A stale diagram-js stack whose revert removes the created
+          // shape by id is a silent no-op on any other document and deletes a
+          // re-imported element on this one — the tt drift as it really bites
+          const mutated = m.exportText();
+          await m.importText(mutated);
+          const baselineSame = m.exportText();
+          const idsSame = sortedIds(m);
+          const { calls } = await changeEvents(h, m, () => h.undo!(m));
+          if (calls > 0)
+            fail(
+              "undo directly after importText fired onContentChanged — history housekeeping is not a change",
+            );
+          if (m.exportText() !== baselineSame || (idsSame && !same(idsSame, sortedIds(m)))) {
+            fail(
+              "undo after importText removed a re-imported element by id coincidence (stale history applied)",
+            );
+          }
+          // leg 2 — a DIFFERENT document replaces the doc; a snapshot-restoring
+          // stale stack would resurrect the previous one
+          await h.mutate(m);
+          await m.importText(second);
           // baseline via the modeler's OWN serializer: this case isolates the
           // undo law — a non-canonical serializer must fail L2, not here
           const baseline = m.exportText();
@@ -445,8 +491,7 @@ export function conformanceCases(): ConformanceCase[] {
         const alt = h.viewState;
         const m = await h.create();
         try {
-          const text = h.canonicalTexts[0] ?? "";
-          await m.importText(text);
+          const text = await importContentText(h, m);
           const doc = m.exportText();
           const fitted = m.getViewState();
           assertFinite(fitted, "after the first import");
@@ -465,11 +510,17 @@ export function conformanceCases(): ConformanceCase[] {
               "an import must leave the view FITTED to the content (the same state the first import produced)",
             );
           }
-          const { calls } = await changeEvents(h, m, () => m.setViewState(alt)); // the host restores
+          // the host restores with what IT read back before the re-import —
+          // the readback must be settable and yield itself again
+          const { calls } = await changeEvents(h, m, () => m.setViewState(applied));
           if (calls > 0) fail("setViewState fired onContentChanged — view state is not document content");
           if (m.exportText() !== doc)
             fail("setViewState changed the export — view state leaked into the document");
-          if (!same(m.getViewState(), applied)) fail("view state did not survive re-import + restore");
+          if (!same(m.getViewState(), applied)) {
+            fail(
+              "view state did not survive re-import + restore (setting the modeler's own readback must yield that readback)",
+            );
+          }
         } finally {
           m.destroy();
         }
@@ -484,7 +535,7 @@ export function conformanceCases(): ConformanceCase[] {
           await m.importText(text);
           const elements = m.elements;
           if (!elements)
-            return skip("the modeler exposes no elements surface — nothing to verify (optional)");
+            return skip("the modeler exposes no elements surface (optional) — nothing to verify");
           const ids = elements.list().map((e) => e.id);
           if (new Set(ids).size !== ids.length) fail("element ids are not unique");
           await m.importText(text);
@@ -501,8 +552,11 @@ export function conformanceCases(): ConformanceCase[] {
               if (elements.reveal(firstId) !== true) fail("reveal(known id) must return true");
             });
             if (calls > 0) fail("reveal fired onContentChanged — revealing is view behavior, not an edit");
-            if (!deliveries.some((d) => d.includes(firstId)))
-              fail("reveal(id) delivered no selection containing the id");
+            if (!deliveries.some((d) => d.includes(firstId))) {
+              fail(
+                `reveal('${firstId}') delivered no selection containing the id — is it a selectable element (not a root or a label)?`,
+              );
+            }
             for (const d of deliveries) {
               for (const id of d) {
                 if (!again.includes(id)) {
@@ -581,19 +635,7 @@ export function conformanceCases(): ConformanceCase[] {
         if (h.foreignTexts.length === 0) return;
         const m = await h.create();
         try {
-          for (const { text, mustSurvive } of h.foreignTexts) {
-            if (mustSurvive.length === 0)
-              fail("a foreignTexts entry must name at least one fragment in mustSurvive");
-            await m.importText(text); // warnings allowed — a throw is the violation
-            const first = exportOrFail(m, "after importing a document with foreign content");
-            for (const fragment of mustSurvive) {
-              if (!first.includes(fragment))
-                fail(`foreign content was dropped on import → export: '${fragment}' is missing`);
-            }
-            await m.importText(first);
-            const second = exportOrFail(m, "after re-importing its own export of foreign content");
-            if (second !== first) fail("foreign content did not survive a second import → export round-trip");
-          }
+          await foreignRoundTrips(h, m, "");
         } finally {
           m.destroy();
         }
@@ -610,6 +652,13 @@ export function conformanceCases(): ConformanceCase[] {
         try {
           const text = h.canonicalTexts[0] ?? "";
           await m.importText(text);
+          const beforeEdit = m.exportText();
+          // with undo history on the stack: a rejected import must leave it
+          // intact too (an engine that erases history BEFORE parsing does not)
+          if (h.undo) {
+            await h.mutate(m);
+            await (h.settle ?? defaultSettle)();
+          }
           const doc = m.exportText();
           const ids = sortedIds(m);
           for (const bad of h.invalidTexts) {
@@ -629,6 +678,14 @@ export function conformanceCases(): ConformanceCase[] {
             if (ids && !same(ids, sortedIds(m))) {
               fail(
                 "a rejected import changed the rendered elements — the canvas must keep the previous document",
+              );
+            }
+          }
+          if (h.undo) {
+            await h.undo(m);
+            if (m.exportText() !== beforeEdit) {
+              fail(
+                "a rejected import erased the undo history — the previous document's history must stay intact",
               );
             }
           }
@@ -674,13 +731,19 @@ export function conformanceCases(): ConformanceCase[] {
       },
     },
     {
-      name: "viewer (when shipped): read-only, silent, canonical, reveals, and unshaken by a rejected import",
+      name: "viewer (when shipped): read-only, silent, canonical, fits, reveals, keeps foreign content, unshaken by a rejected import",
       async run(h) {
         if (!h.createReadonly) return skip("createReadonly is undefined — the package ships no viewer mount");
         const v = await h.createReadonly();
         try {
           if (v.meta.editable !== false)
             fail("createReadonly() must return a viewer (meta.editable === false)");
+          try {
+            const fresh = v.getViewState();
+            if (fresh !== undefined) assertFinite(fresh, "on the viewer before the first import");
+          } catch (e) {
+            fail(`the viewer's getViewState threw before the first import: ${String(e)}`);
+          }
           let calls = 0;
           const off = v.onContentChanged(() => {
             calls += 1;
@@ -698,10 +761,16 @@ export function conformanceCases(): ConformanceCase[] {
             if (v.elements) {
               const firstId = v.elements.list()[0]?.id;
               if (firstId !== undefined) {
+                const deliveries: string[][] = [];
+                const offSel = v.elements.onSelection((s) => deliveries.push([...s]));
                 if (v.elements.reveal(firstId) !== true)
                   fail("the viewer's reveal(known id) must return true");
+                await (h.settle ?? defaultSettle)();
+                if (!deliveries.some((d) => d.includes(firstId)))
+                  fail("the viewer's reveal delivered no selection containing the id");
                 if (!v.elements.selection().includes(firstId))
                   fail("the viewer's selection() does not contain the revealed id");
+                offSel();
               }
               if (v.elements.reveal("__modeler_api_no_such_id__") !== false)
                 fail("the viewer's reveal(unknown id) must return false");
@@ -715,13 +784,20 @@ export function conformanceCases(): ConformanceCase[] {
               if (ids && !same(ids, sortedIds(v)))
                 fail("a rejected import changed the viewer's rendered elements");
             }
+            await foreignRoundTrips(h, v, "the viewer's ");
             if (h.viewState !== undefined) {
+              const text = await importContentText(h, v);
               const fitted = v.getViewState();
               assertFinite(fitted, "on the viewer after import");
               v.setViewState(h.viewState);
               const applied = v.getViewState();
               if (same(applied, fitted)) fail("the viewer's setViewState had no effect");
-              if (!same(v.getViewState(), applied)) fail("the viewer's view state readback is not stable");
+              await v.importText(text);
+              if (!same(v.getViewState(), fitted))
+                fail("the viewer's import must leave the view fitted (L5)");
+              v.setViewState(applied);
+              if (!same(v.getViewState(), applied))
+                fail("setting the viewer's own readback did not yield that readback");
             }
             await (h.settle ?? defaultSettle)();
             if (calls > 0)
@@ -731,6 +807,7 @@ export function conformanceCases(): ConformanceCase[] {
           }
         } finally {
           v.destroy();
+          v.destroy(); // must not throw — same as the editor
         }
       },
     },
@@ -745,9 +822,25 @@ export function conformanceCases(): ConformanceCase[] {
   ];
 }
 
+/** the L6 foreign-content round-trips, on an editor or a viewer */
+async function foreignRoundTrips(h: ConformanceHarness, m: CollaborativeModeler, who: string): Promise<void> {
+  for (const { text, mustSurvive } of h.foreignTexts ?? []) {
+    if (mustSurvive.length === 0) fail("a foreignTexts entry must name at least one fragment in mustSurvive");
+    await m.importText(text); // warnings allowed — a throw is the violation
+    const first = exportOrFail(m, `${who}after importing a document with foreign content`);
+    for (const fragment of mustSurvive) {
+      if (!first.includes(fragment))
+        fail(`${who}foreign content was dropped on import → export: '${fragment}' is missing`);
+    }
+    await m.importText(first);
+    const second = exportOrFail(m, `${who}after re-importing its own export of foreign content`);
+    if (second !== first) fail(`${who}foreign content did not survive a second import → export round-trip`);
+  }
+}
+
 export interface RegisterOptions {
-  /** how a SKIPPED case is reported — a law the kit could not verify because
-   *  the harness left its field undefined. Default: console.warn */
+  /** how a SKIPPED case is reported — a law the kit could not (fully) verify
+   *  because the harness left its field undefined. Default: console.warn */
   onSkip?: (caseName: string, reason: string) => void;
 }
 
