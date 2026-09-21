@@ -14,6 +14,8 @@ Built as an npm-workspaces monorepo with CI/CD and release automation, a "full-b
 floating chrome" editing feel, a clean DOM-free domain model, and lossless, version-controllable
 files — all around the Context Maps notation.
 
+**[Try the web app →](https://context-maps.modeler.miragon.io)**
+
 ![The Context Maps editor](docs/screenshots/editor.png)
 
 ## Notation

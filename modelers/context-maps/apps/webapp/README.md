@@ -8,6 +8,8 @@ diagrams — a Vite + React app built on the shared
 **Excalidraw-style full-bleed canvas** with floating chrome: no header bar, the tools sit over the
 diagram. **No backend** — everything is local, and a diagram is shared by encoding it into the URL.
 
+**[Live demo](https://context-maps.modeler.miragon.io)**
+
 ![The Context Maps editor](../../docs/screenshots/editor.png)
 
 ## Highlights
