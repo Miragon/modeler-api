@@ -1,6 +1,6 @@
 {
   "name": "@miragon/context-maps-renderer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Render and edit Context Maps diagrams in the browser, with a framework-agnostic viewer and modeler built on diagram-js.",
   "license": "MIT",
   "repository": {
@@ -37,7 +37,7 @@
     "test:browser": "npm --prefix ../.. run test:browser"
   },
   "dependencies": {
-    "@miragon/context-maps-schema-model": "0.2.0",
+    "@miragon/context-maps-schema-model": "0.2.1",
     "diagram-js-direct-editing": "3.5.1"
   },
   "peerDependencies": {

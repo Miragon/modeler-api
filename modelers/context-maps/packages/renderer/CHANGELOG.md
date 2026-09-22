@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.2.0...renderer-v0.2.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **deps:** align shared runtime deps with peerDependencies convention ([#49](https://github.com/Miragon/context-maps-modeler/issues/49)) ([b3aba28](https://github.com/Miragon/context-maps-modeler/commit/b3aba28a72d37992645cd85d5b7fd67f63f78a4f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-schema-model bumped from 0.2.0 to 0.2.1
+
 ## [0.2.0](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.1.0...renderer-v0.2.0) (2026-09-02)
 
 
