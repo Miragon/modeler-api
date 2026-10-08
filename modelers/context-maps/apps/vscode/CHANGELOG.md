@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.3.1...vscode-v0.4.0) (2026-10-08)
+
+
+### Features
+
+* use the Miragon modeler icon for app, favicon and file icons ([#55](https://github.com/Miragon/context-maps-modeler/issues/55)) ([3e4bb14](https://github.com/Miragon/context-maps-modeler/commit/3e4bb1443ce9ccfc12a139746ca8e80b368fefa5))
+
 ## [0.3.1](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.3.0...vscode-v0.3.1) (2026-09-22)
 
 
