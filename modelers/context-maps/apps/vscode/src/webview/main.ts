@@ -362,7 +362,7 @@ function importFileIntoDiagram(name: string, text: string): void {
 // undoable edit of the file.
 // ---------------------------------------------------------------------------
 
-/** The Miragon app mark (favicon.svg), inlined — the webview bundles no image assets. */
+/** The Miragon mark (webapp miragon-mark.svg), inlined — the webview bundles no image assets. */
 const WELCOME_MARK_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-hidden="true" width="60" height="60">' +
   '<rect width="512" height="512" rx="112" fill="#335DE5" />' +

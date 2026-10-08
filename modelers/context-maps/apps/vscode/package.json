@@ -45,7 +45,11 @@
         "extensions": [
           ".cm"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./media/icons/context-maps-light.svg",
+          "dark": "./media/icons/context-maps-dark.svg"
+        }
       }
     ],
     "customEditors": [
