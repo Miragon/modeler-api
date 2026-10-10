@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Context Maps (JSON)",
+  "scopeName": "source.context-maps-json",
+  "patterns": [{ "include": "source.json" }]
+}
