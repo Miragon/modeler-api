@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.4.0...vscode-v0.5.0) (2026-10-10)
+
+
+### Features
+
+* **vscode:** file icon for *.cm.json ([#57](https://github.com/Miragon/context-maps-modeler/issues/57)) ([e6c9f58](https://github.com/Miragon/context-maps-modeler/commit/e6c9f58bab9c6f53ac651ab0315a199c1ae9f83c))
+* **vscode:** one language with JSON highlighting for *.cm and *.cm.json ([#59](https://github.com/Miragon/context-maps-modeler/issues/59)) ([dd50bdc](https://github.com/Miragon/context-maps-modeler/commit/dd50bdc8e37f8be8c187868ac94c744a6f09ff3d))
+
 ## [0.4.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.3.1...vscode-v0.4.0) (2026-10-08)
 
 
