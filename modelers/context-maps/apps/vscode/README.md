@@ -46,9 +46,9 @@ A diagram shows bounded contexts and the relationships between them.
   editor, backed by the plain-text JSON file. Editing the text in a split view re-renders the canvas
   live (two-way sync), and VS Code tracks dirty state as you go. To reopen a diagram as raw text, use
   **View: Reopen Editor With…**, then pick **Text Editor**.
-- **File icon.** `*.cm` and `*.cm.json` files carry the Context Maps icon in the Explorer and on
-  editor tabs, in light and dark themes. In the text editor `*.cm.json` keeps JSON syntax
-  highlighting.
+- **File icon and JSON highlighting.** `*.cm` and `*.cm.json` files carry the Context Maps icon in
+  the Explorer and on editor tabs, in light and dark themes. In the text editor both get JSON syntax
+  highlighting, bracket matching and indentation.
 - **Full modeler:** the floating tool palette (top-centre) places the three subdomain types of
   bounded context; selecting an element opens its **context pad** — append a connected context (⊞),
   arm the connect tool (→) and click the target (live preview line), change subdomain type /

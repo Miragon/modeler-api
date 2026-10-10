@@ -43,24 +43,10 @@
           "context-maps"
         ],
         "extensions": [
-          ".cm"
-        ],
-        "configuration": "./language-configuration.json",
-        "icon": {
-          "light": "./media/icons/context-maps-light.svg",
-          "dark": "./media/icons/context-maps-dark.svg"
-        }
-      },
-      {
-        "id": "context-maps-json",
-        "aliases": [
-          "Context Maps (JSON)",
-          "context-maps-json"
-        ],
-        "extensions": [
+          ".cm",
           ".cm.json"
         ],
-        "configuration": "./language-configuration-json.json",
+        "configuration": "./language-configuration.json",
         "icon": {
           "light": "./media/icons/context-maps-light.svg",
           "dark": "./media/icons/context-maps-dark.svg"
@@ -69,9 +55,9 @@
     ],
     "grammars": [
       {
-        "language": "context-maps-json",
-        "scopeName": "source.context-maps-json",
-        "path": "./syntaxes/context-maps-json.tmLanguage.json"
+        "language": "context-maps",
+        "scopeName": "source.context-maps",
+        "path": "./syntaxes/context-maps.tmLanguage.json"
       }
     ],
     "customEditors": [
