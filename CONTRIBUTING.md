@@ -18,8 +18,12 @@
   longer a footer, and release-please ignores it. To set a version or to
   rewrite the changelog entries a PR contributes, put the conventional
   commit(s) between `BEGIN_COMMIT_OVERRIDE` and `END_COMMIT_OVERRIDE` in the
-  PR body instead. release-please reads the merged PR's body on every run, so
-  an override can still be added after the merge, until the next release.
+  PR body instead (a `Release-As:` footer inside the block is honoured).
+  Write the two markers nowhere else in the body: release-please takes the
+  text after the first `BEGIN_COMMIT_OVERRIDE`, so an earlier mention in prose
+  replaces the override with that prose and the PR releases nothing.
+  release-please reads the merged PR's body on every run, so an override can
+  still be added after the merge, until the next release.
 
 ## Layout
 
