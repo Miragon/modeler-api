@@ -15,25 +15,46 @@
   paragraph after them (a signature, a generated-with line) turns them into
   body text that release-please ignores.
 
+## Layout
+
+An npm workspace: the root `package.json` is private and holds the shared,
+exactly pinned dev tooling (TypeScript, tsup, Vitest, publint, Prettier) so
+every package builds with the same versions. Each package under `packages/`
+owns its `src/`, `test/`, `tsconfig.json`, `tsup.config.ts`, `README.md` and
+`LICENSE` (npm packs only the package directory, so the license is copied in).
+
+| Path           | Package                |
+| -------------- | ---------------------- |
+| `packages/api` | `@miragon/modeler-api` |
+
 ## Releases
 
 release-please opens the release PR on every push to `main`; merging it tags,
-publishes to npm (OIDC trusted publishing, `publish-npm` job) and rewrites
-`MODELER_API_VERSION` in `src/index.ts` (`extra-files`). Never edit the version
-by hand.
+publishes the released package to npm (OIDC trusted publishing, one
+`publish-npm-<package>` job per package, gated on that path's
+`<path>--release_created` output) and rewrites `MODELER_API_VERSION` in
+`packages/api/src/index.ts` (`extra-files`, relative to the package). Never
+edit a version by hand. release-please assigns a commit to a package only
+when it touches a file under that package's path; root-only changes (CI,
+tooling) release nothing. The `node-workspace` plugin keeps the root
+`package-lock.json` entry of a released package on the new version.
 
 ## Checks
 
+Run from the repository root; each script fans out to every workspace
+(`npm run <script> --workspaces`), `-w packages/api` targets one package.
+
 ```sh
 npm ci
-npm run lint      # tsc + prettier
+npm run lint      # tsc in every package + prettier over the repo
 npm test          # the kit's own conformance suite (reference modeler + saboteurs)
 npm run build     # tsup: dual ESM/CJS + d.ts
 npm run publint   # the published package shape (exports, types, files)
 ```
 
 Adding a case to the kit means adding a saboteur flaw to
-`test/reference-modeler.ts` and its exact failure set to
-`test/conformance.test.ts` — a case without a saboteur is a case the kit's CI
-cannot prove to bite. A legitimate implementation choice the kit must accept
-(the enriched view-state readback) gets a variant that must fail nothing.
+`packages/api/test/reference-modeler.ts` and its exact failure set to
+`packages/api/test/conformance.test.ts` — a case without a saboteur is a case
+the kit's CI cannot prove to bite. A legitimate implementation choice the kit
+must accept (the enriched view-state readback) gets a variant that must fail
+nothing.

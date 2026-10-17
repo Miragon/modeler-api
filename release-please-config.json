@@ -5,8 +5,10 @@
   "bootstrap-sha": "176ab0ffaaf21d0e5a10d0104366f83f24291be2",
   "include-component-in-tag": false,
   "bump-minor-pre-major": true,
+  "plugins": [{ "type": "node-workspace" }],
   "packages": {
-    ".": {
+    "packages/api": {
+      "component": "modeler-api",
       "extra-files": ["src/index.ts"]
     }
   }
