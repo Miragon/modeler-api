@@ -25,7 +25,7 @@ This package turns those lessons into **laws** (see the JSDoc on
 an executable test the modeler repo runs in its own CI. Drift fails the
 modeler's build — not a downstream integration review.
 
-## The contract (0.x)
+## The contract (1.x)
 
 ```ts
 import type { CollaborativeModeler } from "@miragon/modeler-api";
@@ -127,10 +127,15 @@ does).
 One identity: `MODELER_API_VERSION` IS the npm package version — release-please
 rewrites the constant on every release (`extra-files`) and a test pins it to
 `package.json` exactly. Modelers pin the package and put the constant into
-`meta.apiVersion`; hosts match on the major — and, while the contract is
-0.x, on the minor too (`apiVersionsCompatible`): pre-1.0 minors may break
-(`bump-minor-pre-major`). Additive surfaces (a structured snapshot lane
-alongside the text lane, richer element info) are minors.
+`meta.apiVersion`; hosts match on the major (`apiVersionsCompatible`).
+Releases are tagged `modeler-api-vX.Y.Z`.
+
+The contract is first published as 1.0.0, never 0.x: under 0.x,
+`apiVersionsCompatible` matches on the minor too, which would turn every
+additive surface into a lockstep release across all modelers and their
+hosts. A new optional surface (a structured snapshot lane alongside the text
+lane, richer element info) is a minor, and hosts feature-detect it. A new
+required member or a stricter law is a major.
 
 ## License
 

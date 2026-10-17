@@ -6,7 +6,8 @@ implements, and — next to it — the code every modeler would otherwise
 re-implement around its canvas.
 
 This repository is an npm workspace. Each package under `packages/` is
-versioned and published on its own.
+versioned, tagged (`<component>-vX.Y.Z`, e.g. `modeler-api-v1.0.0`) and
+published on its own.
 
 | Package                                | Path             | Status                                                                                       |
 | -------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
