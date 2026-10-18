@@ -58,10 +58,28 @@ export const SHELL: ShellSizes = {
   layerToast: 60,
 };
 
+// Shell sizes are pixels ("12px") or plain z-index numbers ("20"); any other unit would make
+// parseFloat silently return a number with the wrong meaning.
+const PIXEL_OR_PLAIN_NUMBER = /^\s*-?(?:\d+\.?\d*|\.\d+)(?:px)?\s*$/;
+
 /**
  * Reads the `shell` group of `cd-tokens.generated.json` (`{ "--cd-shell-rand": "12px", … }`) into
  * numbers. Throws when a size of `SHELL_TOKENS` is missing or not a number.
  */
 export function shellSizesFromTokens(shellGroup: Readonly<Record<string, string>>): ShellSizes {
-  throw new Error("@miragon/modeler-shell: shellSizesFromTokens is not implemented yet");
+  const sizes = {} as Record<ShellSizeName, number>;
+  for (const name of Object.keys(SHELL_TOKENS) as ShellSizeName[]) {
+    const token = SHELL_TOKENS[name];
+    const raw: unknown = Object.hasOwn(shellGroup, token) ? shellGroup[token] : undefined;
+    if (raw === undefined) {
+      throw new Error(`@miragon/modeler-shell: the shell token ${token} is missing`);
+    }
+    if (typeof raw !== "string" || !PIXEL_OR_PLAIN_NUMBER.test(raw)) {
+      throw new Error(
+        `@miragon/modeler-shell: the shell token ${token} is not a number: ${JSON.stringify(raw)}`,
+      );
+    }
+    sizes[name] = Number.parseFloat(raw);
+  }
+  return sizes;
 }

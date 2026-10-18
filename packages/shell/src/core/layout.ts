@@ -1,3 +1,4 @@
+import { SHELL } from "./sizes.js";
 import type { Bounds, PaletteRow, Point, Size } from "./types.js";
 
 /** Free space the top row needs between the palette and a neighbouring island (guide §5.15). */
@@ -24,12 +25,18 @@ export interface PaletteRowInput {
  * less than `PALETTE_CLEARANCE` to the menu trigger (or the primary action); `top` otherwise.
  */
 export function decidePaletteRow(input: PaletteRowInput): PaletteRow {
-  throw new Error("@miragon/modeler-shell: decidePaletteRow is not implemented yet");
+  const { containerWidth, paletteWidth, menuRight, primaryLeft } = input;
+  if (containerWidth <= SHELL.narrow) return "second-row";
+  const paletteLeft = (containerWidth - paletteWidth) / 2;
+  const paletteRight = (containerWidth + paletteWidth) / 2;
+  if (paletteLeft < menuRight + PALETTE_CLEARANCE) return "second-row";
+  if (primaryLeft !== undefined && paletteRight > primaryLeft - PALETTE_CLEARANCE) return "second-row";
+  return "top";
 }
 
 /** The legend starts open unless the container is at most `SHELL.low` high (guide §5.10). */
 export function legendStartsOpen(containerHeight: number): boolean {
-  throw new Error("@miragon/modeler-shell: legendStartsOpen is not implemented yet");
+  return containerHeight > SHELL.low;
 }
 
 export interface TooltipPlacementInput {
@@ -48,5 +55,12 @@ export interface TooltipPlacementInput {
  * keep `SHELL.edge` to the container's sides.
  */
 export function placeTooltip(input: TooltipPlacementInput): Point {
-  throw new Error("@miragon/modeler-shell: placeTooltip is not implemented yet");
+  const { anchor, island, tooltip, container } = input;
+  const inUpperHalf = island.y + island.height / 2 < container.height / 2;
+  const y = inUpperHalf ? island.y + island.height + SHELL.gap : island.y - SHELL.gap - tooltip.height;
+  const centred = anchor.x + anchor.width / 2 - tooltip.width / 2;
+  const rightmost = container.width - SHELL.edge - tooltip.width;
+  // In a container narrower than the tooltip plus both edges, the left edge wins.
+  const x = Math.max(SHELL.edge, Math.min(centred, rightmost));
+  return { x, y };
 }

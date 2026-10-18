@@ -15,7 +15,19 @@ export interface Appearance {
  * passes through. Throws when `themes` is empty.
  */
 export function resolveAppearance(requested: Appearance, themes: readonly Theme[]): Appearance {
-  throw new Error("@miragon/modeler-shell: resolveAppearance is not implemented yet");
+  const [fallback] = themes;
+  if (fallback === undefined) {
+    throw new Error(
+      "@miragon/modeler-shell: resolveAppearance needs at least one theme the modeler can show",
+    );
+  }
+  const theme = themes.includes(requested.theme) ? requested.theme : fallback;
+  return withKontrast(theme, requested.kontrast);
+}
+
+// Appearances arrive through postMessage and settings, so only the one known value passes.
+function withKontrast(theme: Theme, kontrast: unknown): Appearance {
+  return kontrast === "hoch" ? { theme, kontrast } : { theme };
 }
 
 /**
@@ -24,7 +36,16 @@ export function resolveAppearance(requested: Appearance, themes: readonly Theme[
  * any other value → light.
  */
 export function appearanceFromColorThemeKind(kind: number): Appearance {
-  throw new Error("@miragon/modeler-shell: appearanceFromColorThemeKind is not implemented yet");
+  switch (kind) {
+    case 2:
+      return { theme: "dark" };
+    case 3:
+      return { theme: "dark", kontrast: "hoch" };
+    case 4:
+      return { theme: "light", kontrast: "hoch" };
+    default:
+      return { theme: "light" };
+  }
 }
 
 /** The values of the setting `miragon.<modeler>.colorTheme` (it ships once a modeler can show dark). */
@@ -35,7 +56,9 @@ export type ColorThemeSetting = "automatic" | "light" | "dark";
  * missing), the contrast always from the color theme kind.
  */
 export function requestedAppearance(kind: number, setting?: ColorThemeSetting): Appearance {
-  throw new Error("@miragon/modeler-shell: requestedAppearance is not implemented yet");
+  const fromKind = appearanceFromColorThemeKind(kind);
+  const theme = setting === "light" || setting === "dark" ? setting : fromKind.theme;
+  return withKontrast(theme, fromKind.kontrast);
 }
 
 /**
@@ -44,7 +67,12 @@ export function requestedAppearance(kind: number, setting?: ColorThemeSetting): 
  * `vscode-dark`, `vscode-light`. `undefined` when none is set. Never use them for styling.
  */
 export function appearanceFromBodyClasses(classes: Iterable<string>): Appearance | undefined {
-  throw new Error("@miragon/modeler-shell: appearanceFromBodyClasses is not implemented yet");
+  const present = new Set(classes);
+  if (present.has("vscode-high-contrast-light")) return { theme: "light", kontrast: "hoch" };
+  if (present.has("vscode-high-contrast")) return { theme: "dark", kontrast: "hoch" };
+  if (present.has("vscode-dark")) return { theme: "dark" };
+  if (present.has("vscode-light")) return { theme: "light" };
+  return undefined;
 }
 
 export interface AppearanceAttributes {
@@ -54,5 +82,7 @@ export interface AppearanceAttributes {
 
 /** The attributes for `<html>` (own document) or the modeler container (foreign page). */
 export function appearanceAttributes(appearance: Appearance): AppearanceAttributes {
-  throw new Error("@miragon/modeler-shell: appearanceAttributes is not implemented yet");
+  return appearance.kontrast === "hoch"
+    ? { "data-cd-theme": appearance.theme, "data-cd-kontrast": "hoch" }
+    : { "data-cd-theme": appearance.theme };
 }

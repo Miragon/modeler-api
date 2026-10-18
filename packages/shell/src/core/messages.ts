@@ -65,5 +65,16 @@ export const defaultMessages: ShellMessages = {
 
 /** `defaultMessages` with `overrides` applied (`keyNames` merged key by key). */
 export function resolveMessages(overrides?: ShellMessageOverrides): ShellMessages {
-  throw new Error("@miragon/modeler-shell: resolveMessages is not implemented yet");
+  const { keyNames, ...texts } = overrides ?? {};
+  return {
+    ...defaultMessages,
+    ...definedEntries(texts),
+    keyNames: { ...defaultMessages.keyNames, ...definedEntries(keyNames ?? {}) },
+  };
+}
+
+// `{ menu: undefined }` (a spread of optional fields, a conditional override) keeps the default
+// instead of blanking the text.
+function definedEntries<T extends object>(partial: T): Partial<T> {
+  return Object.fromEntries(Object.entries(partial).filter(([, value]) => value !== undefined)) as Partial<T>;
 }
