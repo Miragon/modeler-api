@@ -59,6 +59,16 @@ needs its own `packages` entry in `release-please-config.json` (`component`,
 release-please treats any other manifest version as the last release and
 bumps from it instead of using `initial-version`.
 
+The first release of a new package also needs one manual step on npm: trusted publishing (OIDC)
+can only be bound to a package that already exists, so the release job's `npm publish` fails for a
+name npm has never seen. Before merging the package's first release PR, a maintainer with publish
+rights to the `@miragon` scope publishes a placeholder once with a token, from a clean checkout,
+with the version set to `0.0.0-stage` in the package's `package.json` only for that command:
+`npm publish -w packages/<name> --tag stage --access public` (as `@miragon/modeler-api@0.0.0-stage`
+was). Then, on npmjs.com, the package's settings get a trusted publisher: repository
+`Miragon/modeler-api`, workflow `release-please.yml`, environment `npm`. From then on the release job
+publishes without a token.
+
 ## Checks
 
 Run from the repository root; each script fans out to every workspace
