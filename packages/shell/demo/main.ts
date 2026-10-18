@@ -1,4 +1,6 @@
 import "../fixtures/tokens/cd-tokens.generated.css";
+import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist-mono/wght.css";
 import "diagram-js/assets/diagram-js.css";
 import "../src/shell.css";
 import "./demo.css";

@@ -1,4 +1,4 @@
-/* Demo page only: a foreign page around the embedded host, and previews for the demo shapes. */
+/* Demo page only: a foreign page around the embedded host, the demo shapes and their previews. */
 
 body:has(> .demo-foreign-page) {
   margin: 0;
@@ -35,4 +35,13 @@ body:has(> .demo-foreign-page) {
 .djs-palette .entry.demo-entry-wide-box::before {
   width: 24px;
   height: 10px;
+}
+
+/*
+ * diagram-js's default renderer draws fuchsia placeholders as inline styles; the demo shapes take
+ * role colours instead.
+ */
+.djs-container .djs-element .djs-visual > rect {
+  fill: var(--cd-ui-flaeche-hoch) !important;
+  stroke: var(--cd-ui-kontur) !important;
 }
