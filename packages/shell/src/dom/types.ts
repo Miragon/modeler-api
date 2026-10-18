@@ -158,8 +158,15 @@ export interface ShellHandle {
   setStatus(status: StatusMessage | null, options?: { delayMs?: number }): void;
   /** Shows or hides the empty-file hint. */
   setEmptyHint(visible: boolean): void;
-  /** Read-only canvas (invalid file): Model entries and creating palette entries become aria-disabled. */
-  setReadOnly(readOnly: boolean): void;
+  /**
+   * Read-only canvas (invalid file, guide §13.5). `true` locks at once: `isReadOnly()`, the palette
+   * veto (every entry but Lasso and Hand) and the Model entries of the menu. `data-readonly` and the
+   * `aria-disabled` palette entries show after `delayMs` (default 0; an invalid file passes
+   * `INVALID_STATUS_DELAY_MS`, as for `setStatus`), so typing in the text editor does not flicker.
+   * Repeated calls while the delay runs keep the first timer; `false` unlocks and hides at once.
+   */
+  setReadOnly(readOnly: boolean, options?: { delayMs?: number }): void;
+  /** The lock, true from the first `setReadOnly(true)` on, also while its marks are still delayed. */
   isReadOnly(): boolean;
   /** Removes every element, attribute, listener, observer and timer the shell added. Idempotent. */
   destroy(): void;
@@ -217,8 +224,16 @@ export interface PaletteRegistration {
   element: HTMLElement;
   /** Tooltip of an entry element (`.entry`), from `palette.getEntries()` title and shortcut. */
   entryTooltip(entry: HTMLElement): TooltipContent | null;
-  /** Called on registration and on every `setReadOnly`. */
-  setReadOnly(readOnly: boolean): void;
+  /** The read-only state, on registration and on every `setReadOnly` and its delayed marks. */
+  setReadOnly(state: PaletteReadOnlyState): void;
+}
+
+/** The read-only canvas as the palette sees it (guide §13.5). */
+export interface PaletteReadOnlyState {
+  /** Veto every entry but Lasso and Hand on `palette.trigger`, from the invalid import on. */
+  locked: boolean;
+  /** Mark those entries `aria-disabled` and muted, once the shell's delay has passed. */
+  shown: boolean;
 }
 
 export interface ProblemSummary {

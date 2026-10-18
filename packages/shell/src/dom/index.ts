@@ -12,6 +12,7 @@ export type {
   MenuHandle,
   MenuRadioGroup,
   MenuRadioOption,
+  PaletteReadOnlyState,
   PaletteRegistration,
   ProblemSummary,
   ProblemsOptions,

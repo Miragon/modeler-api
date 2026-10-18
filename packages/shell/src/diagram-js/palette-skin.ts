@@ -1,5 +1,5 @@
 import { defaultMessages } from "../core/index.js";
-import type { TooltipContent } from "../dom/index.js";
+import type { PaletteReadOnlyState, TooltipContent } from "../dom/index.js";
 
 /** The diagram-js palette group of the tools (`Palette#updateToolHighlight` looks for it). */
 export const TOOLS_GROUP = "tools";
@@ -30,7 +30,10 @@ export interface PaletteEntryLike {
 export class PaletteSkin {
   private label = defaultMessages.tools;
   private activeTool: string | null = null;
-  private readOnly = false;
+  /** The veto of a read-only canvas, at once with the invalid import. */
+  private locked = false;
+  /** The `aria-disabled` marks of a read-only canvas, once the shell's delay has passed. */
+  private readOnlyShown = false;
   private entries: Readonly<Record<string, PaletteEntryLike>> = {};
   private rovingAction: string | undefined;
   private focusedEntry: HTMLElement | undefined;
@@ -58,22 +61,24 @@ export class PaletteSkin {
     this.apply();
   }
 
-  setReadOnly(readOnly: boolean): void {
-    this.readOnly = readOnly;
+  setReadOnly(state: PaletteReadOnlyState): void {
+    this.locked = state.locked;
+    this.readOnlyShown = state.locked && state.shown;
     this.apply();
   }
 
   /**
-   * Whether `palette.trigger` must refuse `entry`: in read-only, the entries marked
-   * `aria-disabled`. `palette.trigger` carries the entry definition without its id, so the entry
-   * element is found through the DOM event; without one, only the tools group passes.
+   * Whether `palette.trigger` must refuse `entry`: on a locked canvas every entry but Lasso and
+   * Hand, also before their marks show. `palette.trigger` carries the entry definition without its
+   * id, so the entry element is found through the DOM event; without one, only the tools group
+   * passes.
    */
   vetoes(entry: PaletteEntryLike, event: Event | undefined): boolean {
-    if (!this.readOnly) return false;
+    if (!this.locked) return false;
     const element = this.entryOf(
       (event as { delegateTarget?: EventTarget } | undefined)?.delegateTarget ?? event?.target ?? null,
     );
-    if (element) return this.disabledEntries.has(element);
+    if (element) return !staysActive(element);
     return entry.group !== TOOLS_GROUP;
   }
 
@@ -123,8 +128,7 @@ export class PaletteSkin {
   }
 
   private applyDisabled(entry: HTMLElement): void {
-    const action = actionOf(entry);
-    if (this.readOnly && !(action !== undefined && READ_ONLY_ACTIONS.has(action))) {
+    if (this.readOnlyShown && !staysActive(entry)) {
       if (!this.disabledEntries.has(entry)) {
         this.disabledEntries.set(entry, entry.getAttribute("aria-disabled"));
       }
@@ -221,6 +225,11 @@ export class PaletteSkin {
 
 function actionOf(entry: Element): string | undefined {
   return entry.getAttribute("data-action") ?? undefined;
+}
+
+function staysActive(entry: Element): boolean {
+  const action = actionOf(entry);
+  return action !== undefined && READ_ONLY_ACTIONS.has(action);
 }
 
 function groupOf(entry: Element): string | undefined {

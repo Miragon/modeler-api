@@ -128,7 +128,7 @@ describe("mountVsCodeShell", () => {
     shell.setProblems({ count: 2, errors: 1 });
     shell.setStatus(status, { delayMs: 800 });
     shell.setEmptyHint(true);
-    shell.setReadOnly(false);
+    shell.setReadOnly(true, { delayMs: 800 });
     const palette = { element: root, entryTooltip: () => null, setReadOnly: () => undefined };
     shell.registerPalette(palette);
 
@@ -136,7 +136,7 @@ describe("mountVsCodeShell", () => {
     expect(inner.setProblems).toHaveBeenCalledWith({ count: 2, errors: 1 });
     expect(inner.setStatus).toHaveBeenCalledWith(status, { delayMs: 800 });
     expect(inner.setEmptyHint).toHaveBeenCalledWith(true);
-    expect(inner.setReadOnly).toHaveBeenCalledWith(false);
+    expect(inner.setReadOnly).toHaveBeenCalledWith(true, { delayMs: 800 });
     expect(inner.registerPalette).toHaveBeenCalledWith(palette);
     shell.destroy();
   });

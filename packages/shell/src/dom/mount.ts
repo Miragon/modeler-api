@@ -26,6 +26,7 @@ import type {
   LegendHandle,
   MenuCheckboxEntry,
   MenuHandle,
+  PaletteReadOnlyState,
   PaletteRegistration,
   ShellHandle,
   ShellOptions,
@@ -103,7 +104,11 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
       : undefined;
   const shellModelEntries: readonly MenuCheckboxEntry[] = legendEntry ? [legendEntry] : [];
 
+  /** The lock of `setReadOnly(true)`; `readOnlyShown` its marks, which may follow after a delay. */
   let readOnly = false;
+  let readOnlyShown = false;
+  let readOnlyTimer: ReturnType<typeof setTimeout> | undefined;
+  ledger.defer(() => clearTimeout(readOnlyTimer));
   const menu = createMenu({
     root,
     layer,
@@ -225,6 +230,23 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
   keyTarget.addEventListener("keydown", onKeydown as EventListener);
   ledger.defer(() => keyTarget.removeEventListener("keydown", onKeydown as EventListener));
 
+  function paletteReadOnlyState(): PaletteReadOnlyState {
+    return { locked: readOnly, shown: readOnlyShown };
+  }
+
+  function applyReadOnly(): void {
+    setState("data-readonly", readOnlyShown ? "" : null);
+    palette?.registration.setReadOnly(paletteReadOnlyState());
+    menu.refresh();
+  }
+
+  function showReadOnly(): void {
+    readOnlyTimer = undefined;
+    if (ledger.isClosed || !readOnly) return;
+    readOnlyShown = true;
+    applyReadOnly();
+  }
+
   function unregisterPalette(): void {
     if (!palette) return;
     palette.detachTooltip();
@@ -297,7 +319,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
         ),
       };
       resizeObserver?.observe(registration.element);
-      registration.setReadOnly(readOnly);
+      registration.setReadOnly(paletteReadOnlyState());
       updateLayout();
       const registered = palette;
       return () => {
@@ -320,12 +342,23 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
       hint.setShown(visible);
       placeHint();
     },
-    setReadOnly(next) {
+    setReadOnly(next, readOnlyOptions) {
       if (ledger.isClosed) return;
-      readOnly = next;
-      setState("data-readonly", next ? "" : null);
-      palette?.registration.setReadOnly(next);
-      menu.refresh();
+      if (!next) {
+        clearTimeout(readOnlyTimer);
+        readOnlyTimer = undefined;
+        readOnly = false;
+        readOnlyShown = false;
+      } else {
+        readOnly = true;
+        const delayMs = readOnlyOptions?.delayMs ?? 0;
+        // Repeated invalid imports while typing keep the first timer, like the status box.
+        if (!readOnlyShown && readOnlyTimer === undefined) {
+          if (delayMs > 0) readOnlyTimer = setTimeout(showReadOnly, delayMs);
+          else readOnlyShown = true;
+        }
+      }
+      applyReadOnly();
     },
     isReadOnly: () => readOnly,
     destroy() {

@@ -2,7 +2,13 @@ import { vi } from "vitest";
 
 import type { ZoomTarget } from "../core/index.js";
 import { mountShell } from "./mount.js";
-import type { PaletteRegistration, ShellHandle, ShellOptions, TooltipContent } from "./types.js";
+import type {
+  PaletteReadOnlyState,
+  PaletteRegistration,
+  ShellHandle,
+  ShellOptions,
+  TooltipContent,
+} from "./types.js";
 
 /** happy-dom has no layout: boxes are set per element. */
 export function setBox(
@@ -102,7 +108,7 @@ export function fakeZoomTarget(zoom = 1): FakeZoomTarget {
 }
 
 export interface FakePalette extends PaletteRegistration {
-  readonly readOnlyCalls: boolean[];
+  readonly readOnlyCalls: PaletteReadOnlyState[];
   entry(action: string, content: TooltipContent | null): HTMLElement;
 }
 
@@ -111,13 +117,13 @@ export function fakePalette(ownerDocument: Document = document): FakePalette {
   element.className = "djs-palette";
   element.dataset.chrome = "palette";
   const contents = new Map<string, TooltipContent | null>();
-  const readOnlyCalls: boolean[] = [];
+  const readOnlyCalls: PaletteReadOnlyState[] = [];
   return {
     element,
     readOnlyCalls,
     entryTooltip: (entry) => contents.get(entry.dataset.action ?? "") ?? null,
-    setReadOnly: (readOnly) => {
-      readOnlyCalls.push(readOnly);
+    setReadOnly: (state) => {
+      readOnlyCalls.push({ ...state });
     },
     entry(action, content) {
       const entry = ownerDocument.createElement("div");

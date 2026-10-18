@@ -125,6 +125,9 @@ function press(target: HTMLElement, key: string, init: KeyboardEventInit = {}): 
   return event;
 }
 
+const READ_ONLY = { locked: true, shown: true } as const;
+const EDITABLE = { locked: false, shown: false } as const;
+
 interface FakeShell {
   handle: ShellHandle;
   registrations: PaletteRegistration[];
@@ -143,7 +146,7 @@ function fakeShell(tools = "Werkzeuge"): FakeShell {
     setZoomTarget,
     registerPalette(registration: PaletteRegistration) {
       registrations.push(registration);
-      registration.setReadOnly(false);
+      registration.setReadOnly(EDITABLE);
       return unregister;
     },
   } as unknown as ShellHandle;
@@ -289,7 +292,7 @@ describe("read-only", () => {
     ]);
     const shell = fakeShell();
     connect(diagram, shell);
-    shell.registrations[0]?.setReadOnly(true);
+    shell.registrations[0]?.setReadOnly(READ_ONLY);
 
     expect(entry(diagram, "create.box").getAttribute("aria-disabled")).toBe("true");
     expect(entry(diagram, "create.untitled").getAttribute("aria-disabled")).toBe("true");
@@ -310,10 +313,26 @@ describe("read-only", () => {
     rebuild(diagram);
     expect(entry(diagram, "create.box").getAttribute("aria-disabled")).toBe("true");
 
-    shell.registrations[0]?.setReadOnly(false);
+    shell.registrations[0]?.setReadOnly(EDITABLE);
     expect(entries(diagram).some((element) => element.hasAttribute("aria-disabled"))).toBe(false);
     entry(diagram, "create.box").click();
     expect(clicks).toEqual(["click:hand", "click:box"]);
+  });
+
+  it("vetoes at once while the marks still wait for the shell's delay", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    connect(diagram, shell);
+    shell.registrations[0]?.setReadOnly({ locked: true, shown: false });
+    expect(entries(diagram).some((element) => element.hasAttribute("aria-disabled"))).toBe(false);
+    entry(diagram, "create.box").click();
+    entry(diagram, "hand-tool").click();
+    expect(clicks).toEqual(["click:hand"]);
+
+    shell.registrations[0]?.setReadOnly(READ_ONLY);
+    expect(entry(diagram, "create.box").getAttribute("aria-disabled")).toBe("true");
+    shell.registrations[0]?.setReadOnly({ locked: false, shown: true });
+    expect(entries(diagram).some((element) => element.hasAttribute("aria-disabled"))).toBe(false);
   });
 
   it("vetoes by group when palette.trigger comes without an entry element", () => {
@@ -324,7 +343,7 @@ describe("read-only", () => {
     const trigger = (group: string) =>
       bus.fire("palette.trigger", { entry: { group }, event: new Event("click") });
     expect(trigger("shapes")).toBeUndefined();
-    shell.registrations[0]?.setReadOnly(true);
+    shell.registrations[0]?.setReadOnly(READ_ONLY);
     expect(trigger("shapes")).toBe(false);
     expect(trigger("tools")).toBeUndefined();
   });
@@ -341,8 +360,8 @@ describe("read-only", () => {
     entry(diagram, "create.locked").setAttribute("aria-disabled", "true");
     const shell = fakeShell();
     connect(diagram, shell);
-    shell.registrations[0]?.setReadOnly(true);
-    shell.registrations[0]?.setReadOnly(false);
+    shell.registrations[0]?.setReadOnly(READ_ONLY);
+    shell.registrations[0]?.setReadOnly(EDITABLE);
     expect(entry(diagram, "create.locked").getAttribute("aria-disabled")).toBe("true");
     expect(entry(diagram, "create.box").hasAttribute("aria-disabled")).toBe(false);
   });
@@ -482,7 +501,7 @@ describe("connectDiagramJs", () => {
     expect(shell.setZoomTarget).toHaveBeenCalledWith(connection.viewport);
     expect(resized).toHaveBeenCalledTimes(1);
 
-    shell.registrations[0]?.setReadOnly(true);
+    shell.registrations[0]?.setReadOnly(READ_ONLY);
     connection.destroy();
     connection.destroy();
     expect(shell.unregister).toHaveBeenCalledTimes(1);

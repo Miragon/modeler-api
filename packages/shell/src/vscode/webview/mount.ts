@@ -43,7 +43,7 @@ function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHa
     setProblems: (summary) => shell.setProblems(summary),
     setStatus: (status, options) => shell.setStatus(status, options),
     setEmptyHint: (visible) => shell.setEmptyHint(visible),
-    setReadOnly: (readOnly) => shell.setReadOnly(readOnly),
+    setReadOnly: (readOnly, options) => shell.setReadOnly(readOnly, options),
     isReadOnly: () => shell.isReadOnly(),
     destroy() {
       beforeDestroy();

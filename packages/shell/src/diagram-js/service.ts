@@ -19,6 +19,9 @@ export const KEYBOARD_PRIORITY = 2000;
 /** Ahead of every default-priority `palette.trigger` listener, so the read-only veto comes first. */
 const TRIGGER_PRIORITY = 2000;
 
+/** A palette without a shell is editable. */
+const EDITABLE = { locked: false, shown: false } as const;
+
 /** didi's injector, which resolves a missing service to `null` with `strict: false`. */
 interface DidiInjectorLike {
   get(name: string, strict?: boolean): unknown;
@@ -95,7 +98,7 @@ export class ShellDiagramService {
     this.unregisterPalette = shell.registerPalette({
       element: skin.element,
       entryTooltip: (entry) => skin.entryTooltip(entry),
-      setReadOnly: (readOnly) => skin.setReadOnly(readOnly),
+      setReadOnly: (state) => skin.setReadOnly(state),
     });
   }
 
@@ -104,7 +107,7 @@ export class ShellDiagramService {
     this.unregisterPalette = undefined;
     this.shell = undefined;
     unregister?.();
-    this.skin?.setReadOnly(false);
+    this.skin?.setReadOnly(EDITABLE);
     this.skin?.setLabel(defaultMessages.tools);
   }
 

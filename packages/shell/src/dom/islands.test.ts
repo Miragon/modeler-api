@@ -295,6 +295,10 @@ describe("fitInsets and the palette row (guide §5.9, §5.15)", () => {
   });
 });
 
+const LOCKED = { locked: true, shown: false };
+const READ_ONLY = { locked: true, shown: true };
+const EDITABLE = { locked: false, shown: false };
+
 describe("palette registration", () => {
   it("forwards the read-only state on registration and on every setReadOnly", () => {
     const { shell, root } = mount();
@@ -305,7 +309,7 @@ describe("palette registration", () => {
     shell.registerPalette(palette);
     shell.setReadOnly(false);
     shell.setReadOnly(false);
-    expect(palette.readOnlyCalls).toEqual([true, false, false]);
+    expect(palette.readOnlyCalls).toEqual([READ_ONLY, EDITABLE, EDITABLE]);
     expect(root.hasAttribute("data-readonly")).toBe(false);
   });
 
@@ -321,7 +325,69 @@ describe("palette registration", () => {
     unregisterFirst();
     expect(observer.observed.has(second.element)).toBe(true);
     shell.setReadOnly(true);
-    expect(first.readOnlyCalls).toEqual([false]);
-    expect(second.readOnlyCalls).toEqual([false, true]);
+    expect(first.readOnlyCalls).toEqual([EDITABLE]);
+    expect(second.readOnlyCalls).toEqual([EDITABLE, READ_ONLY]);
+  });
+});
+
+describe("read-only (guide §13.5)", () => {
+  it("locks at once and shows its marks after the delay, keeping the first timer", () => {
+    vi.useFakeTimers();
+    const { shell, root } = mount({
+      menu: { model: [{ kind: "action", id: "size", label: "Map size…", onSelect() {} }] },
+    });
+    const palette = fakePalette();
+    shell.registerPalette(palette);
+
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    expect(shell.isReadOnly()).toBe(true);
+    expect(root.hasAttribute("data-readonly")).toBe(false);
+    expect(palette.readOnlyCalls.at(-1)).toEqual(LOCKED);
+    shell.menu.open();
+    expect(shell.menu.dropdown.querySelector('[data-menu-id="size"]')?.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+    shell.menu.close();
+
+    vi.advanceTimersByTime(INVALID_STATUS_DELAY_MS - 300);
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    vi.advanceTimersByTime(299);
+    expect(root.hasAttribute("data-readonly")).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(root.getAttribute("data-readonly")).toBe("");
+    expect(palette.readOnlyCalls.at(-1)).toEqual(READ_ONLY);
+  });
+
+  it("unlocks at once and drops a pending timer", () => {
+    vi.useFakeTimers();
+    const { shell, root } = mount();
+    const palette = fakePalette();
+    shell.registerPalette(palette);
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    shell.setReadOnly(false);
+    expect(shell.isReadOnly()).toBe(false);
+    vi.advanceTimersByTime(2 * INVALID_STATUS_DELAY_MS);
+    expect(root.hasAttribute("data-readonly")).toBe(false);
+    expect(palette.readOnlyCalls.at(-1)).toEqual(EDITABLE);
+  });
+
+  it("hands a palette registered during the delay the lock without the marks", () => {
+    vi.useFakeTimers();
+    const { shell } = mount();
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    const palette = fakePalette();
+    shell.registerPalette(palette);
+    expect(palette.readOnlyCalls).toEqual([LOCKED]);
+    vi.advanceTimersByTime(INVALID_STATUS_DELAY_MS);
+    expect(palette.readOnlyCalls).toEqual([LOCKED, READ_ONLY]);
+  });
+
+  it("clears the timer on destroy", () => {
+    vi.useFakeTimers();
+    const { shell, root } = mount();
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    shell.destroy();
+    vi.advanceTimersByTime(2 * INVALID_STATUS_DELAY_MS);
+    expect(root.hasAttribute("data-readonly")).toBe(false);
   });
 });
