@@ -241,3 +241,147 @@ describe("destroy", () => {
     expect(root.hasAttribute("data-readonly")).toBe(false);
   });
 });
+
+describe("mountShell: the embedded root's mode (guide §13.3)", () => {
+  const flushObservers = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-cd-theme");
+    document.documentElement.removeAttribute("data-cd-kontrast");
+  });
+
+  it("stays light inside a dark host page and takes the host's high contrast over", async () => {
+    document.documentElement.setAttribute("data-cd-theme", "dark");
+    const { shell, root } = mount({ host: "embedded" });
+    expect(root.getAttribute("data-cd-theme")).toBe("light");
+    expect(root.hasAttribute("data-cd-kontrast")).toBe(false);
+
+    document.documentElement.setAttribute("data-cd-kontrast", "hoch");
+    await flushObservers();
+    expect(root.getAttribute("data-cd-kontrast")).toBe("hoch");
+
+    document.documentElement.removeAttribute("data-cd-kontrast");
+    await flushObservers();
+    expect(root.hasAttribute("data-cd-kontrast")).toBe(false);
+
+    shell.destroy();
+    expect(root.hasAttribute("data-cd-theme")).toBe(false);
+    document.documentElement.setAttribute("data-cd-kontrast", "hoch");
+    await flushObservers();
+    expect(root.hasAttribute("data-cd-kontrast")).toBe(false);
+  });
+
+  it("follows the nearest mode carrier of the page", () => {
+    document.documentElement.setAttribute("data-cd-theme", "dark");
+    document.documentElement.setAttribute("data-cd-kontrast", "hoch");
+    const panel = document.createElement("div");
+    panel.setAttribute("data-cd-theme", "light");
+    const root = document.createElement("div");
+    panel.append(root);
+    document.body.append(panel);
+    setContainerSize(root, 1000, 800);
+    const shell = mountShell(root, { host: "embedded" });
+    expect(root.hasAttribute("data-cd-kontrast")).toBe(false);
+    shell.destroy();
+  });
+
+  it("takes the first of the modeler's themes, and writes no mode in an own document", () => {
+    const { root: embedded } = mount({ host: "embedded", themes: ["dark", "light"] });
+    expect(embedded.getAttribute("data-cd-theme")).toBe("dark");
+    const { root: own } = mount({ host: "ide", themes: ["light", "dark"] });
+    expect(own.hasAttribute("data-cd-theme")).toBe(false);
+  });
+
+  it("throws for empty themes before it touches the root", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    expect(() => mountShell(root, { host: "embedded", themes: [] })).toThrow(/at least one theme/);
+    expect(root.getAttributeNames()).toEqual([]);
+  });
+});
+
+describe("mountShell: robustness", () => {
+  it("removes everything again when rendering throws", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    setContainerSize(root, 1000, 800);
+    expect(() =>
+      mountShell(root, {
+        host: "ide",
+        menu: { export: [{ kind: "action", id: "png", label: "Export as PNG", onSelect() {} }] },
+        legend: {
+          render() {
+            throw new Error("legend broke");
+          },
+        },
+      }),
+    ).toThrow("legend broke");
+    expect(root.getAttributeNames()).toEqual([]);
+    expect(root.children).toHaveLength(0);
+    expect(document.documentElement.classList).not.toContain("cd-shell-document");
+    expect(FakeResizeObserver.instances.every((observer) => observer.observed.size === 0)).toBe(true);
+    expect(keydown(document.body, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(false);
+  });
+
+  it("numbers element ids page-wide, also across separate copies of the shell", () => {
+    const counter = Symbol.for("@miragon/modeler-shell.mounts");
+    const scope = globalThis as unknown as Record<symbol, number | undefined>;
+    const { shell: first } = mount({ menu: fullOptions.menu });
+    const { shell: second } = mount({ menu: fullOptions.menu });
+    expect(first.menu.dropdown.id).not.toBe(second.menu.dropdown.id);
+    // another bundle's copy counted on the same page global
+    scope[counter] = (scope[counter] ?? 0) + 5;
+    const { shell: third } = mount({ menu: fullOptions.menu });
+    expect(third.menu.dropdown.id).toBe(`cd-shell-menu-${scope[counter]}`);
+  });
+});
+
+describe("mountShell: focus when an island hides (guide §5.14)", () => {
+  function canvasWithSvg(): { canvas: HTMLElement; svg: SVGSVGElement } {
+    const canvas = document.createElement("div");
+    const container = document.createElement("div");
+    container.className = "djs-container";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("tabindex", "0");
+    container.append(svg);
+    canvas.append(container);
+    return { canvas, svg };
+  }
+
+  it("moves the focus from Insert example to the canvas when the hint hides", () => {
+    const { canvas, svg } = canvasWithSvg();
+    const { shell, root } = mount({ canvas, emptyHint: { onInsertExample() {} } });
+    shell.setEmptyHint(true);
+    root.querySelector<HTMLButtonElement>(".cd-shell-hint-action")?.focus();
+    shell.setEmptyHint(false);
+    expect(document.activeElement).toBe(svg);
+  });
+
+  it("moves the focus from a closing inspector to the canvas, else to the menu trigger", () => {
+    const { canvas, svg } = canvasWithSvg();
+    const { shell } = mount({ canvas, inspector: { label: "Properties" } });
+    const field = document.createElement("input");
+    shell.inspector?.element.append(field);
+    shell.inspector?.open();
+    field.focus();
+    shell.inspector?.close();
+    expect(document.activeElement).toBe(svg);
+
+    const bare = mount({ menu: fullOptions.menu, inspector: { label: "Properties" } }).shell;
+    const other = document.createElement("input");
+    bare.inspector?.element.append(other);
+    bare.inspector?.open();
+    other.focus();
+    bare.inspector?.close();
+    expect(document.activeElement).toBe(bare.menu.trigger);
+  });
+
+  it("leaves the focus alone when it is elsewhere", () => {
+    const { canvas } = canvasWithSvg();
+    const { shell } = mount({ canvas, emptyHint: { onInsertExample() {} }, menu: fullOptions.menu });
+    shell.setEmptyHint(true);
+    shell.menu.trigger.focus();
+    shell.setEmptyHint(false);
+    expect(document.activeElement).toBe(shell.menu.trigger);
+  });
+});

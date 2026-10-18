@@ -401,3 +401,99 @@ describe("menu: pointer", () => {
     expect(document.activeElement).toBe(shell.menu.trigger);
   });
 });
+
+describe("menu: keys stay in the menu", () => {
+  it("keeps every key it consumes from a document keyboard registered before the shell", () => {
+    // Event Storming's keyboard: on document, before the shell's listener, blind to defaultPrevented
+    const seen: string[] = [];
+    const modelerKeyboard = (event: KeyboardEvent) => seen.push(event.key);
+    document.addEventListener("keydown", modelerKeyboard);
+    try {
+      const { shell } = mount({ menu: groups() });
+      keydown(shell.menu.trigger, { key: "ArrowDown" });
+      for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "e", "Delete", "Backspace", "Enter", " "]) {
+        keydown(document.activeElement ?? document.body, { key });
+      }
+      expect(shell.menu.isOpen()).toBe(true);
+      expect(seen).toEqual([]);
+
+      keydown(document.activeElement ?? document.body, { key: "s", metaKey: true });
+      keydown(document.activeElement ?? document.body, { key: "Escape" });
+      expect(seen).toEqual(["s", "Escape"]);
+      expect(shell.menu.isOpen()).toBe(false);
+    } finally {
+      document.removeEventListener("keydown", modelerKeyboard);
+    }
+  });
+
+  it("lets the chrome keys act with the menu open: Shift+1 fits instead of a type-ahead to “!”", () => {
+    const { shell } = mount({ menu: groups() });
+    const fit = vi.fn();
+    shell.setZoomTarget({
+      zoom: () => 1,
+      stepZoom: () => undefined,
+      zoomToActual: () => undefined,
+      fit,
+      canFit: () => true,
+      onChange: () => () => undefined,
+    });
+    shell.menu.open();
+    const focused = document.activeElement;
+    const event = keydown(focused ?? document.body, { key: "!", code: "Digit1", shiftKey: true });
+    expect(fit).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(focused);
+  });
+
+  it("closes without moving the focus when the window loses the focus (a click into the workbench)", () => {
+    const { shell } = mount({ menu: groups() });
+    shell.menu.open();
+    const focused = document.activeElement;
+    window.dispatchEvent(new FocusEvent("blur"));
+    expect(shell.menu.isOpen()).toBe(false);
+    expect(document.activeElement).toBe(focused);
+    shell.menu.open();
+    shell.menu.close();
+    const listener = vi.spyOn(shell.menu, "close");
+    window.dispatchEvent(new FocusEvent("blur"));
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe("menu: read-only opt-out and key shortcuts", () => {
+  it("keeps a Model entry that is pure view state enabled with keepEnabledWhenReadOnly", () => {
+    const base = groups();
+    const model = (base.model ?? []).map((entry) =>
+      entry.kind === "checkbox" ? { ...entry, keepEnabledWhenReadOnly: true } : entry,
+    );
+    const { shell } = mount({ menu: { ...base, model } });
+    shell.setReadOnly(true);
+    shell.menu.open();
+    const captions = shell.menu.dropdown.querySelector('[data-menu-id="captions"]');
+    expect(captions?.hasAttribute("aria-disabled")).toBe(false);
+    expect(
+      shell.menu.dropdown.querySelector('[data-menu-value="process"]')?.getAttribute("aria-disabled"),
+    ).toBe("true");
+  });
+
+  it("names an action's shortcut in aria-keyshortcuts, derived from the chip or given", () => {
+    const base = groups();
+    const exportEntries = [
+      ...(base.export ?? []),
+      {
+        kind: "action" as const,
+        id: "json",
+        label: "Export as JSON",
+        shortcut: "J then S",
+        ariaKeyShortcuts: "Meta+J",
+        onSelect() {},
+      },
+    ];
+    const { shell } = mount({ menu: { ...base, export: exportEntries } });
+    shell.menu.open();
+    const of = (id: string) => shell.menu.dropdown.querySelector(`[data-menu-id="${id}"]`);
+    expect(of("svg")?.getAttribute("aria-keyshortcuts")).toBe("Meta+E");
+    expect(of("json")?.getAttribute("aria-keyshortcuts")).toBe("Meta+J");
+    expect(of("png")?.hasAttribute("aria-keyshortcuts")).toBe(false);
+  });
+});

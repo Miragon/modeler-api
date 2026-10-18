@@ -68,13 +68,20 @@ describe("renderWebviewHtml", () => {
     expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0" />');
   });
 
-  it("sets the strict CSP with data: fonts and the nonce'd script source", () => {
+  it("sets the CSP with data: fonts, inline styles and the nonce'd script source", () => {
     const document = parse(renderWebviewHtml(options()));
     const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
     expect(csp?.getAttribute("content")).toBe(
       `default-src 'none'; img-src ${CSP_SOURCE} data: blob:; style-src ${CSP_SOURCE} 'unsafe-inline'; ` +
         `font-src ${CSP_SOURCE} data:; script-src 'nonce-${NONCE}'`,
     );
+  });
+
+  it("drops 'unsafe-inline' with inlineStyles: false", () => {
+    const document = parse(renderWebviewHtml(options({ inlineStyles: false })));
+    const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content");
+    expect(csp).toContain(`style-src ${CSP_SOURCE}; `);
+    expect(csp).not.toContain("unsafe-inline");
   });
 
   it("puts the CSP before every stylesheet and keeps the stylesheet order", () => {

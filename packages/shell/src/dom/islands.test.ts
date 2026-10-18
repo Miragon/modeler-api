@@ -167,6 +167,25 @@ describe("legend (guide §5.10)", () => {
   });
 });
 
+describe("legend on a read-only canvas (guide §13.5)", () => {
+  it("cannot be closed from its card while the Legend checkbox is locked, and marks it with the delay", () => {
+    vi.useFakeTimers();
+    const { shell, root } = mount({ legend: { render() {}, open: true } });
+    const close = chrome(root, "legend").querySelector<HTMLButtonElement>(".cd-shell-legend-close");
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+    expect(close?.hasAttribute("aria-disabled")).toBe(false);
+    close?.click();
+    expect(shell.legend?.isOpen()).toBe(true);
+    vi.advanceTimersByTime(INVALID_STATUS_DELAY_MS);
+    expect(close?.getAttribute("aria-disabled")).toBe("true");
+
+    shell.setReadOnly(false);
+    expect(close?.hasAttribute("aria-disabled")).toBe(false);
+    close?.click();
+    expect(shell.legend?.isOpen()).toBe(false);
+  });
+});
+
 describe("inspector (guide §5.11)", () => {
   it("opens and closes the aside and the root attribute", () => {
     const { shell, root } = mount({ inspector: { label: "Properties" } });

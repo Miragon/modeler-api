@@ -6,7 +6,7 @@ export type Kontrast = "hoch";
 
 export interface Appearance {
   theme: Theme;
-  kontrast?: Kontrast;
+  kontrast?: Kontrast | undefined;
 }
 
 /**
@@ -55,7 +55,7 @@ export type ColorThemeSetting = "automatic" | "light" | "dark";
  * The requested appearance in an IDE host: the setting's theme unless it is `automatic` (or
  * missing), the contrast always from the color theme kind.
  */
-export function requestedAppearance(kind: number, setting?: ColorThemeSetting): Appearance {
+export function requestedAppearance(kind: number, setting?: ColorThemeSetting | undefined): Appearance {
   const fromKind = appearanceFromColorThemeKind(kind);
   const theme = setting === "light" || setting === "dark" ? setting : fromKind.theme;
   return withKontrast(theme, fromKind.kontrast);
@@ -74,6 +74,22 @@ export function appearanceFromBodyClasses(classes: Iterable<string>): Appearance
   if (present.has("vscode-light")) return { theme: "light" };
   return undefined;
 }
+
+/**
+ * VS Code's `workbench.reduceMotion` as the webview sees it: the body class `vscode-reduce-motion`
+ * (the webview host page sets it). Never use it for styling; the shell mirrors it as
+ * `REDUCED_MOTION_CLASS` on `<html>`.
+ */
+export function reducedMotionFromBodyClasses(classes: Iterable<string>): boolean {
+  return new Set(classes).has("vscode-reduce-motion");
+}
+
+/**
+ * On `<html>` while the host asks for reduced motion although the OS does not (VS Code's
+ * `workbench.reduceMotion`): the shell's animations stop as under `prefers-reduced-motion`, and an
+ * explicit fit jumps.
+ */
+export const REDUCED_MOTION_CLASS = "cd-shell-reduce-motion";
 
 export interface AppearanceAttributes {
   "data-cd-theme": Theme;

@@ -58,12 +58,12 @@ export interface FitLayout {
   /** The problems pill is shown (only the web app reserves room for it). */
   problemsVisible: boolean;
   /** Rendered width of the open legend; `undefined` when it is closed or the modeler has none. */
-  legendWidth?: number;
+  legendWidth?: number | undefined;
   /**
    * The open inspector; `undefined` when closed. Above `SHELL.narrow` it is the side panel; up to it
    * a bottom sheet whose top edge (`sheetTop`, px from the container top) must be measured.
    */
-  inspector?: { sheetTop?: number };
+  inspector?: { sheetTop?: number | undefined } | undefined;
 }
 
 /**

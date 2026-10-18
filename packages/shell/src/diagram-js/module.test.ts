@@ -1,4 +1,5 @@
 import DiagramExport from "diagram-js";
+import CommandExport from "diagram-js/lib/command/index.js";
 import EditorActionsExport from "diagram-js/lib/features/editor-actions/index.js";
 import KeyboardExport from "diagram-js/lib/features/keyboard/index.js";
 import PaletteExport from "diagram-js/lib/features/palette/index.js";
@@ -28,6 +29,7 @@ function esDefault<T>(module: unknown): T {
 }
 
 const Diagram = esDefault<DiagramConstructor>(DiagramExport);
+const CommandModule = esDefault<ModuleDeclarationLike>(CommandExport);
 const EditorActionsModule = esDefault<ModuleDeclarationLike>(EditorActionsExport);
 const KeyboardModule = esDefault<ModuleDeclarationLike>(KeyboardExport);
 const PaletteModule = esDefault<ModuleDeclarationLike>(PaletteExport);
@@ -37,6 +39,7 @@ interface TestEntry {
   group?: string;
   title?: string;
   shortcut?: string;
+  ariaKeyShortcuts?: string;
   separator?: boolean;
   action?: { click?: (event: Event) => void; dragstart?: (event: Event) => void };
 }
@@ -52,7 +55,7 @@ interface PaletteService {
 
 const clicks: string[] = [];
 
-function action(name: string): TestEntry["action"] {
+function action(name: string): NonNullable<TestEntry["action"]> {
   return {
     click: () => clicks.push(`click:${name}`),
     dragstart: () => clicks.push(`dragstart:${name}`),
@@ -133,28 +136,39 @@ interface FakeShell {
   registrations: PaletteRegistration[];
   unregister: ReturnType<typeof vi.fn>;
   setZoomTarget: ReturnType<typeof vi.fn>;
+  setEmptyHint: ReturnType<typeof vi.fn>;
 }
 
-function fakeShell(tools = "Werkzeuge"): FakeShell {
+function fakeShell(tools = "Werkzeuge", host: ShellHandle["host"] = "ide"): FakeShell {
   const registrations: PaletteRegistration[] = [];
   const unregister = vi.fn();
   const setZoomTarget = vi.fn();
+  const setEmptyHint = vi.fn();
   const insets: Insets = { top: 88, right: 24, bottom: 64, left: 24 };
   const handle = {
-    messages: { ...defaultMessages, tools },
+    host,
+    messages: { ...defaultMessages, tools, canvas: "Event Storming board" },
     fitInsets: () => insets,
     setZoomTarget,
+    setEmptyHint,
     registerPalette(registration: PaletteRegistration) {
       registrations.push(registration);
       registration.setReadOnly(EDITABLE);
       return unregister;
     },
   } as unknown as ShellHandle;
-  return { handle, registrations, unregister, setZoomTarget };
+  return { handle, registrations, unregister, setZoomTarget, setEmptyHint };
 }
 
 function connect(diagram: Diagram, shell: FakeShell = fakeShell()) {
   return connectDiagramJs(shell.handle, diagram, { contentBounds: () => undefined });
+}
+
+function svgOf(diagram: Diagram): SVGElement {
+  return diagram
+    .get<{ getContainer(): HTMLElement }>("canvas")
+    .getContainer()
+    .querySelector("svg") as SVGElement;
 }
 
 afterEach(() => {
@@ -266,6 +280,31 @@ describe("palette skin", () => {
     document.removeEventListener("keydown", listener);
     expect(listener).toHaveBeenCalledTimes(1);
     expect((listener.mock.calls[0]?.[0] as KeyboardEvent).key).toBe("Escape");
+  });
+
+  it("names each entry's shortcut in aria-keyshortcuts (guide §5.6)", () => {
+    const diagram = createDiagram([
+      PaletteModule,
+      providerModule({
+        ...ENTRIES,
+        "create.note": { group: "shapes", title: "Note", shortcut: "⇧N", action: action("note") },
+        "create.hotspot": {
+          group: "shapes",
+          title: "Hotspot",
+          shortcut: "H then S",
+          ariaKeyShortcuts: "H",
+          action: action("hotspot"),
+        },
+      }),
+      shellModule,
+    ]);
+    expect(entry(diagram, "lasso-tool").getAttribute("aria-keyshortcuts")).toBe("L");
+    expect(entry(diagram, "create.circle").getAttribute("aria-keyshortcuts")).toBe("C");
+    expect(entry(diagram, "create.note").getAttribute("aria-keyshortcuts")).toBe("Shift+N");
+    expect(entry(diagram, "create.hotspot").getAttribute("aria-keyshortcuts")).toBe("H");
+    expect(entry(diagram, "create.box").hasAttribute("aria-keyshortcuts")).toBe(false);
+    rebuild(diagram);
+    expect(entry(diagram, "lasso-tool").getAttribute("aria-keyshortcuts")).toBe("L");
   });
 
   it("provides tooltip contents from palette.getEntries()", () => {
@@ -429,6 +468,52 @@ describe("keyboard", () => {
     expect(spies[1]).toHaveBeenCalledWith(1);
   });
 
+  it("leaves a chrome key in a text field inside the <svg> to the field: stopped, not prevented", () => {
+    const diagram = createDiagram([KeyboardModule, shellModule]);
+    const field = document.createElement("textarea");
+    svgOf(diagram).append(field);
+    const typed = new KeyboardEvent("keydown", { key: "!", code: "Digit1", shiftKey: true, bubbles: true });
+    Object.defineProperty(typed, "target", { value: field });
+    expect(eventBus(diagram).fire("keyboard.keydown", { keyEvent: typed })).toBe(false);
+    const native = new KeyboardEvent("keydown", {
+      key: "!",
+      code: "Digit1",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    field.dispatchEvent(native);
+    expect(native.defaultPrevented).toBe(false);
+  });
+
+  it("in the IDE host leaves undo and redo to VS Code: no commandStack, not prevented (guide §13.5)", () => {
+    const modules = [CommandModule, KeyboardModule, EditorActionsModule, shellModule];
+    const undo = (diagram: Diagram) =>
+      vi.spyOn(diagram.get<{ undo(): void; redo(): void }>("commandStack"), "undo");
+    const presses = [
+      { key: "z", ctrlKey: true },
+      { key: "z", metaKey: true },
+    ];
+
+    const ide = createDiagram(modules);
+    connect(ide, fakeShell("Tools", "ide"));
+    const ideUndo = undo(ide);
+    for (const init of presses) {
+      const event = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
+      svgOf(ide).dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(ideUndo).not.toHaveBeenCalled();
+
+    const web = createDiagram(modules);
+    connect(web, fakeShell("Tools", "web"));
+    const webUndo = undo(web);
+    const event = new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true });
+    svgOf(web).dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(webUndo).toHaveBeenCalledTimes(1);
+  });
+
   it("is a no-op without a keyboard service (viewer)", () => {
     expect(() => createDiagram([PaletteModule, providerModule(ENTRIES), shellModule])).not.toThrow();
   });
@@ -487,6 +572,59 @@ describe("module", () => {
 });
 
 describe("connectDiagramJs", () => {
+  it("names the canvas as an application while connected and restores it on destroy", () => {
+    const diagram = createDiagram();
+    const svg = svgOf(diagram);
+    expect(svg.hasAttribute("role")).toBe(false);
+    const connection = connect(diagram);
+    expect(svg.getAttribute("role")).toBe("application");
+    expect(svg.getAttribute("aria-label")).toBe("Event Storming board");
+    connection.destroy();
+    expect(svg.hasAttribute("role")).toBe(false);
+    expect(svg.hasAttribute("aria-label")).toBe(false);
+
+    svg.setAttribute("aria-label", "Board of the modeler");
+    connect(diagram);
+    expect(svg.getAttribute("aria-label")).toBe("Board of the modeler");
+  });
+
+  it("keeps the empty-file hint in sync with the diagram after imports and canvas changes", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    let empty = true;
+    connectDiagramJs(shell.handle, diagram, { contentBounds: () => undefined, isEmpty: () => empty });
+    expect(shell.setEmptyHint).not.toHaveBeenCalled();
+    eventBus(diagram).fire("import.done", {});
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
+    empty = false;
+    eventBus(diagram).fire("elements.changed", { elements: [] });
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
+  });
+
+  it("derives emptiness from the content bounds by default", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    let bounds: { x: number; y: number; width: number; height: number } | undefined;
+    connectDiagramJs(shell.handle, diagram, { contentBounds: () => bounds });
+    eventBus(diagram).fire("import.done", {});
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
+    bounds = { x: 0, y: 0, width: 120, height: 80 };
+    eventBus(diagram).fire("elements.changed", { elements: [] });
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
+  });
+
+  it("unbinds itself on diagram.destroy", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    const connection = connect(diagram, shell);
+    diagram.destroy();
+    diagrams.splice(diagrams.indexOf(diagram), 1);
+    expect(shell.setZoomTarget).toHaveBeenLastCalledWith(null);
+    expect(() => connection.viewport.zoom()).not.toThrow();
+    connection.destroy();
+    expect(shell.setZoomTarget).toHaveBeenCalledTimes(2);
+  });
+
   it("throws without shellModule", () => {
     const diagram = createDiagram([PaletteModule, providerModule(ENTRIES)]);
     expect(() => connect(diagram)).toThrow(/shellModule/);

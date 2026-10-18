@@ -47,11 +47,11 @@ describe("zoom panel (guide §5.8)", () => {
     );
   });
 
-  it("is disabled without a target", () => {
+  it("disables the three buttons without a target, never the readout (guide §5.8)", () => {
     const { root } = mount();
     const { out, actual, in: zoomIn, fit } = parts(root);
-    for (const button of [out, actual, zoomIn, fit])
-      expect(button.getAttribute("aria-disabled")).toBe("true");
+    for (const button of [out, zoomIn, fit]) expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(actual.hasAttribute("aria-disabled")).toBe(false);
     expect(actual.textContent).toBe("100%");
     expect(actual.getAttribute("aria-label")).toBe("Zoom to 100% (now 100%)");
   });

@@ -55,5 +55,13 @@ export interface KeyboardLike {
 
 /** `palette` */
 export interface PaletteLike {
-  getEntries(): Record<string, { title?: string; shortcut?: string; group?: string }>;
+  getEntries(): Record<
+    string,
+    {
+      title?: string | undefined;
+      shortcut?: string | undefined;
+      ariaKeyShortcuts?: string | undefined;
+      group?: string | undefined;
+    }
+  >;
 }

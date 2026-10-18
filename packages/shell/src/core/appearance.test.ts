@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  REDUCED_MOTION_CLASS,
   appearanceAttributes,
   appearanceFromBodyClasses,
   appearanceFromColorThemeKind,
+  reducedMotionFromBodyClasses,
   requestedAppearance,
   resolveAppearance,
   type Appearance,
@@ -123,5 +125,17 @@ describe("appearanceAttributes", () => {
     expect(Object.keys(appearanceAttributes({ theme: "dark", kontrast: undefined }))).toEqual([
       "data-cd-theme",
     ]);
+  });
+});
+
+describe("reducedMotionFromBodyClasses", () => {
+  it("reads VS Code's vscode-reduce-motion body class", () => {
+    expect(reducedMotionFromBodyClasses(["vscode-light", "vscode-reduce-motion"])).toBe(true);
+    expect(reducedMotionFromBodyClasses(["vscode-dark"])).toBe(false);
+    expect(reducedMotionFromBodyClasses([])).toBe(false);
+  });
+
+  it("names the class the shell mirrors on <html>", () => {
+    expect(REDUCED_MOTION_CLASS).toBe("cd-shell-reduce-motion");
   });
 });

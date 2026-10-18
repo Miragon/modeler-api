@@ -242,3 +242,7 @@
     transition: none;
   }
 }
+
+html.cd-shell-reduce-motion .djs-palette[data-chrome="palette"] .entry {
+  transition: none;
+}

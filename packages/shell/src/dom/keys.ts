@@ -16,9 +16,13 @@ function isTextField(target: EventTarget | null): boolean {
   return element.isContentEditable === true || element.closest(TEXT_FIELD_SELECTOR) !== null;
 }
 
+// A dialog a modeler hides through CSS (a class with display: none) is closed as well.
 function isShown(element: Element): boolean {
+  if (element.localName === "dialog" && !element.hasAttribute("open")) return false;
   if (element.closest("[hidden]")) return false;
-  return element.localName !== "dialog" || element.hasAttribute("open");
+  return (
+    typeof element.checkVisibility !== "function" || element.checkVisibility({ visibilityProperty: true })
+  );
 }
 
 function isModal(element: Element): boolean {

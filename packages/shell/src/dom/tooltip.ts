@@ -90,8 +90,12 @@ export function createTooltip({ root, layer, id }: TooltipContext): TooltipContr
     if (!shown) {
       const describedBy = control.getAttribute("aria-describedby");
       shown = { control, describedBy };
-      // Only a tooltip that says more than the control's name describes it (guide §5.6).
-      if (!accessibleName(control).includes(content.label)) {
+      // Only a tooltip that says more than the control's name describes it (guide §5.6); a shortcut
+      // chip does, unless the control names its keys in aria-keyshortcuts.
+      const saysMore =
+        !accessibleName(control).includes(content.label) ||
+        (Boolean(content.shortcut) && !control.hasAttribute("aria-keyshortcuts"));
+      if (saysMore) {
         control.setAttribute("aria-describedby", [describedBy, id].filter(Boolean).join(" "));
       }
     }

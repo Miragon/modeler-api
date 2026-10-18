@@ -1,5 +1,6 @@
 import {
   FIT_ANIMATION_MS,
+  REDUCED_MOTION_CLASS,
   ZOOM_MAX,
   ZOOM_MIN,
   canZoomIn,
@@ -30,8 +31,11 @@ export interface ViewportOptions {
   contentBounds(): Bounds | undefined;
   /** Fit insets at the moment of a fit (`shell.fitInsets()`). */
   insets(): Insets;
-  /** Default: `matchMedia("(prefers-reduced-motion: reduce)").matches`. */
-  prefersReducedMotion?(): boolean;
+  /**
+   * Default: `matchMedia("(prefers-reduced-motion: reduce)").matches`, or `<html>` carries
+   * `REDUCED_MOTION_CLASS` (VS Code's `workbench.reduceMotion`, mirrored by `mountVsCodeShell`).
+   */
+  prefersReducedMotion?: (() => boolean) | undefined;
 }
 
 /**
@@ -45,7 +49,8 @@ export interface Viewport extends ZoomTarget {
   /**
    * Call after every successful import: fits (jump) the first time the content bounds are
    * non-empty, unless a persisted view was set (`setState`) or the user moved it. Otherwise a
-   * no-op. A `restore` keeps the view of an empty file, so its first content still fits.
+   * no-op. A `restore` keeps the view of an empty file, so its first content still fits; content
+   * the user created on the canvas does not (guide §5.9), so the next import keeps the view.
    */
   afterImport(): void;
   /** Restores a viewbox after a re-import (external change): reference updated, user-move state kept. */
@@ -58,7 +63,7 @@ export interface Viewport extends ZoomTarget {
   getState(): ViewportState | undefined;
   /** Restores a persisted view (it wins over the first automatic fit). */
   setState(state: ViewportState): void;
-  /** Disconnects observers, listeners and a running animation. */
+  /** Disconnects observers, listeners and a running animation; also runs on `diagram.destroy`. */
   destroy(): void;
 }
 
@@ -75,6 +80,15 @@ type View = Pick<ScaledViewbox, "x" | "y" | "scale">;
  */
 const IMPORT_START_EVENTS = ["import.parse.start", "import.render.start"];
 const IMPORT_DONE_EVENT = "import.done";
+
+/** Events after which the content bounds may differ (importers add shapes without `elements.changed`). */
+const CONTENT_EVENTS = [
+  "shape.added",
+  "shape.removed",
+  "connection.added",
+  "connection.removed",
+  "diagram.clear",
+];
 
 /** diagram-js `ZoomScroll`: `NUM_STEPS = 10` over `RANGE`, in log space. */
 const ZOOM_STEP = Math.log10(ZOOM_MAX / ZOOM_MIN) / 10;
@@ -101,6 +115,9 @@ export class DiagramViewport implements Viewport {
   private importing = false;
   private imported = false;
   private firstFitPending = true;
+  /** `canFit()` of the current content; the zoom panel asks every frame, `contentBounds` may be costly. */
+  private fittable: boolean | undefined;
+  private lastZoom = 1;
   /** An automatic fit is due but the container had no size yet (hidden tab). */
   private autoFitDue = false;
   /** A restored view waits for the container to get a size. */
@@ -121,7 +138,9 @@ export class DiagramViewport implements Viewport {
     this.subscribe("canvas.viewbox.changed", this.onViewboxChanged);
     this.subscribe(IMPORT_START_EVENTS, this.onImportStart);
     this.subscribe(IMPORT_DONE_EVENT, this.onImportDone);
-    this.subscribe("elements.changed", this.notify);
+    this.subscribe("elements.changed", this.onElementsChanged);
+    this.subscribe(CONTENT_EVENTS, this.onContentChanged);
+    this.subscribe("diagram.destroy", () => this.destroy());
 
     this.container.addEventListener("wheel", this.onPointerInput, { capture: true, passive: true });
     this.container.addEventListener("pointerdown", this.onPointerInput, CAPTURE);
@@ -134,7 +153,8 @@ export class DiagramViewport implements Viewport {
   }
 
   zoom(): number {
-    return this.canvas.zoom();
+    if (!this.destroyed) this.lastZoom = this.canvas.zoom();
+    return this.lastZoom;
   }
 
   stepZoom(direction: 1 | -1): void {
@@ -161,7 +181,9 @@ export class DiagramViewport implements Viewport {
   }
 
   canFit(): boolean {
-    return hasExtent(this.options.contentBounds());
+    if (this.destroyed) return false;
+    this.fittable ??= hasExtent(this.options.contentBounds());
+    return this.fittable;
   }
 
   onChange(listener: () => void): () => void {
@@ -175,6 +197,7 @@ export class DiagramViewport implements Viewport {
     if (this.destroyed) return;
     this.importing = false;
     this.imported = true;
+    this.fittable = undefined;
     if (this.firstFitPending && this.canFit()) {
       this.firstFitPending = false;
       if (!this.userMoved && !this.fitTo(false)) this.autoFitDue = true;
@@ -186,12 +209,14 @@ export class DiagramViewport implements Viewport {
     if (this.destroyed) return;
     this.importing = false;
     this.imported = true;
+    this.fittable = undefined;
     this.cancelAnimation();
     this.show(viewbox);
     this.notify();
   }
 
   getViewbox(): Bounds | undefined {
+    if (this.destroyed) return undefined;
     if (this.pendingView) return { ...this.pendingView };
     const size = this.canvas.getSize();
     if (!hasSize(size)) return undefined;
@@ -214,6 +239,7 @@ export class DiagramViewport implements Viewport {
     if (this.destroyed) return;
     this.importing = false;
     this.imported = true;
+    this.fittable = undefined;
     this.cancelAnimation();
     this.userMoved = state.userMoved;
     this.autoFitDue = false;
@@ -355,6 +381,7 @@ export class DiagramViewport implements Viewport {
 
   private prefersReducedMotion(): boolean {
     if (this.options.prefersReducedMotion) return this.options.prefersReducedMotion();
+    if (this.container.ownerDocument.documentElement.classList.contains(REDUCED_MOTION_CLASS)) return true;
     return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
@@ -385,6 +412,21 @@ export class DiagramViewport implements Viewport {
 
   private readonly onImportDone = (): void => {
     this.importing = false;
+    this.fittable = undefined;
+    this.notify();
+  };
+
+  private readonly onContentChanged = (): void => {
+    this.fittable = undefined;
+  };
+
+  // Guide §5.9: an element the user creates on the canvas never fits. Once such content exists,
+  // only imports that keep the view follow, so the first automatic fit is no longer due.
+  private readonly onElementsChanged = (): void => {
+    this.fittable = undefined;
+    if (this.imported && !this.importing && this.firstFitPending && this.canFit()) {
+      this.firstFitPending = false;
+    }
     this.notify();
   };
 

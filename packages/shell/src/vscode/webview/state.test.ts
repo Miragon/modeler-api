@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { SHELL_STATE_KEY, readShellState, writeShellState, type WebviewStateApi } from "./index.js";
+import {
+  SHELL_STATE_KEY,
+  persistView,
+  readShellState,
+  writeShellState,
+  type PersistableView,
+  type WebviewStateApi,
+} from "./index.js";
 
 function memoryApi(
   initial?: unknown,
@@ -135,5 +142,75 @@ describe("writeShellState", () => {
     const api = memoryApi({ other: [1], [SHELL_STATE_KEY]: 42 });
     writeShellState(api, { legendOpen: false });
     expect(api.state).toEqual({ other: [1], [SHELL_STATE_KEY]: { legendOpen: false } });
+  });
+});
+
+describe("persistView", () => {
+  function fakeView(): PersistableView & { change(next: typeof VIEW | undefined): void } {
+    const listeners = new Set<() => void>();
+    let state: typeof VIEW | undefined;
+    return {
+      onChange(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      getState: () => state,
+      change(next) {
+        state = next;
+        for (const listener of listeners) listener();
+      },
+    };
+  }
+
+  it("writes once the view rested for 250ms, not on every frame", () => {
+    vi.useFakeTimers();
+    try {
+      const api = memoryApi({ other: 1 });
+      const view = fakeView();
+      persistView(api, view);
+      for (let frame = 0; frame < 30; frame++) {
+        view.change({ ...VIEW, viewbox: { ...VIEW.viewbox, x: frame } });
+        vi.advanceTimersByTime(16);
+      }
+      expect(api.setState).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(250);
+      expect(api.setState).toHaveBeenCalledTimes(1);
+      expect(readShellState(api).view?.viewbox.x).toBe(29);
+      expect((api.state as Record<string, unknown>).other).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("writes a pending change when it stops, and nothing afterwards", () => {
+    vi.useFakeTimers();
+    try {
+      const api = memoryApi();
+      const view = fakeView();
+      const stop = persistView(api, view, { delayMs: 1000 });
+      view.change(VIEW);
+      stop();
+      expect(readShellState(api).view).toEqual(VIEW);
+      view.change({ ...VIEW, userMoved: false });
+      vi.advanceTimersByTime(2000);
+      stop();
+      expect(api.setState).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("leaves the stored view alone while the viewport has none", () => {
+    vi.useFakeTimers();
+    try {
+      const api = memoryApi({ [SHELL_STATE_KEY]: { view: VIEW } });
+      const view = fakeView();
+      persistView(api, view);
+      view.change(undefined);
+      vi.advanceTimersByTime(300);
+      expect(readShellState(api).view).toEqual(VIEW);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -12,12 +12,15 @@ export const INVALID_STATUS_DELAY_MS = 800;
 
 export interface PaletteRowInput {
   containerWidth: number;
-  /** The palette's intrinsic width (`scrollWidth`), so the decision does not flip once it moved. */
+  /**
+   * The palette's intrinsic border-box width (`scrollWidth` plus its borders), so the decision does
+   * not flip once the second row clips it.
+   */
   paletteWidth: number;
   /** Right edge of the menu trigger, relative to the shell root. */
   menuRight: number;
   /** Left edge of the primary action (web app), relative to the shell root; absent in IDE hosts. */
-  primaryLeft?: number;
+  primaryLeft?: number | undefined;
 }
 
 /**

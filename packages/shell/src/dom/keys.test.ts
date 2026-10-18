@@ -151,3 +151,20 @@ describe("the one keydown listener", () => {
     expect(add.mock.calls.find(([type]) => type === "keydown")?.[2]).toBeUndefined();
   });
 });
+
+describe("dialogs a modeler hides through CSS", () => {
+  it("count as closed: zoom keys act again", () => {
+    const { shell } = mount();
+    const target = fakeZoomTarget(1);
+    shell.setZoomTarget(target);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    document.body.append(dialog);
+    keydown(document.body, { key: "=", code: "Equal", metaKey: true });
+    expect(target.calls).toEqual([]);
+    dialog.style.display = "none";
+    keydown(document.body, { key: "=", code: "Equal", metaKey: true });
+    expect(target.calls).toEqual(["step:1"]);
+  });
+});

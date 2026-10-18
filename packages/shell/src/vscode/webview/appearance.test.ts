@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Appearance, Theme } from "../../core/index.js";
-import { APPEARANCE_MESSAGE_TYPE, appearanceMessage, applyAppearance, connectAppearance } from "./index.js";
+import {
+  APPEARANCE_MESSAGE_TYPE,
+  appearanceMessage,
+  applyAppearance,
+  connectAppearance,
+  connectReducedMotion,
+} from "./index.js";
 
 const NO_TRANSITION = "cd-shell-no-transition";
 
@@ -172,18 +178,18 @@ describe("connectAppearance", () => {
     ["null", null],
     ["a malformed appearance", { type: APPEARANCE_MESSAGE_TYPE, appearance: { theme: "system" } }],
   ])("ignores %s", async (_name, data) => {
-    connect(lightAndDark, { theme: "light" });
+    connect(lightAndDark);
 
     post(data);
-    expect(shown()).toEqual({ theme: "light", kontrast: null });
+    expect(shown()).toEqual({ theme: null, kontrast: null });
 
     setBodyClasses("vscode-dark");
     await flushObservers();
     expect(shown()).toEqual({ theme: "dark", kontrast: null });
   });
 
-  it("follows the VS Code body classes until the first message", async () => {
-    connect(lightAndDark, { theme: "light" });
+  it("follows the VS Code body classes until the first message (no attributes from the HTML)", async () => {
+    connect(lightAndDark);
 
     setBodyClasses("vscode-dark");
     await flushObservers();
@@ -199,7 +205,7 @@ describe("connectAppearance", () => {
   });
 
   it("reads High Contrast Light before High Contrast", async () => {
-    connect(lightAndDark, { theme: "dark" });
+    connect(lightAndDark);
 
     setBodyClasses("vscode-high-contrast", "vscode-high-contrast-light");
     await flushObservers();
@@ -208,7 +214,7 @@ describe("connectAppearance", () => {
   });
 
   it("resolves the body classes against the themes", async () => {
-    connect(lightOnly, { theme: "light" });
+    connect(lightOnly);
 
     setBodyClasses("vscode-dark");
     await flushObservers();
@@ -220,7 +226,7 @@ describe("connectAppearance", () => {
   });
 
   it("ignores the body classes once a message arrived (the setting may override them)", async () => {
-    connect(lightAndDark, { theme: "light" });
+    connect(lightAndDark);
 
     post(appearanceMessage({ theme: "dark" }));
     setBodyClasses("vscode-light");
@@ -234,6 +240,27 @@ describe("connectAppearance", () => {
     connect(lightAndDark, { theme: "dark" });
 
     expect(shown()).toEqual({ theme: "dark", kontrast: null });
+  });
+
+  it("with the attributes from the HTML, only the bridge switches (no flash of the setting-less mode)", async () => {
+    // a dark-capable modeler, colorTheme "dark" under VS Code Light: the extension rendered dark
+    setBodyClasses("vscode-light");
+    connect(lightAndDark, { theme: "dark" });
+    const batches: Array<string | null> = [];
+    const observer = new MutationObserver(() => batches.push(shown().theme));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cd-theme"] });
+
+    // VS Code switches to Dark+: the body classes change before the bridge's message arrives
+    setBodyClasses("vscode-dark");
+    await flushObservers();
+    setBodyClasses("vscode-light");
+    await flushObservers();
+    expect(shown()).toEqual({ theme: "dark", kontrast: null });
+
+    post(appearanceMessage({ theme: "light" }));
+    await flushObservers();
+    observer.disconnect();
+    expect(batches).toEqual(["light"]);
   });
 
   it("applies the body classes at once when <html> has no appearance yet", () => {
@@ -254,7 +281,7 @@ describe("connectAppearance", () => {
   it("starts the fallback once the body exists", async () => {
     const body = document.body;
     body.remove();
-    connect(lightAndDark, { theme: "light" });
+    connect(lightAndDark);
     document.documentElement.append(body);
     document.dispatchEvent(new Event("DOMContentLoaded"));
 
@@ -283,5 +310,29 @@ describe("connectAppearance", () => {
 
   it("throws without themes", () => {
     expect(() => connectAppearance({ themes: [] })).toThrow(/at least one theme/);
+  });
+});
+
+describe("connectReducedMotion", () => {
+  const CLASS = "cd-shell-reduce-motion";
+
+  it("mirrors VS Code's vscode-reduce-motion body class on <html> for the whole session", async () => {
+    setBodyClasses("vscode-light", "vscode-reduce-motion");
+    const disconnect = connectReducedMotion();
+    expect(document.documentElement.classList.contains(CLASS)).toBe(true);
+
+    setBodyClasses("vscode-light");
+    await flushObservers();
+    expect(document.documentElement.classList.contains(CLASS)).toBe(false);
+
+    setBodyClasses("vscode-dark", "vscode-reduce-motion");
+    await flushObservers();
+    expect(document.documentElement.classList.contains(CLASS)).toBe(true);
+
+    disconnect();
+    expect(document.documentElement.classList.contains(CLASS)).toBe(false);
+    setBodyClasses("vscode-reduce-motion");
+    await flushObservers();
+    expect(document.documentElement.classList.contains(CLASS)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { defaultMessages } from "../core/index.js";
+import { ariaKeyShortcutsFromLabel, defaultMessages } from "../core/index.js";
 import type { PaletteReadOnlyState, TooltipContent } from "../dom/index.js";
 
 /** The diagram-js palette group of the tools (`Palette#updateToolHighlight` looks for it). */
@@ -16,9 +16,11 @@ const ENTRY_SELECTOR = ".entry";
 
 /** One entry of `palette.getEntries()`, as far as the skin reads it. */
 export interface PaletteEntryLike {
-  title?: string;
-  shortcut?: string;
-  group?: string;
+  title?: string | undefined;
+  shortcut?: string | undefined;
+  /** `aria-keyshortcuts` (WAI-ARIA names); default `ariaKeyShortcutsFromLabel(shortcut)`. */
+  ariaKeyShortcuts?: string | undefined;
+  group?: string | undefined;
 }
 
 /**
@@ -113,11 +115,22 @@ export class PaletteSkin {
     const entries = this.entryElements();
     for (const entry of entries) {
       if (!entry.hasAttribute("role")) entry.setAttribute("role", "button");
+      this.applyKeyShortcuts(entry);
       this.applyPressed(entry);
       this.applyDisabled(entry);
     }
     this.applyTabStops(entries);
     this.restoreFocus(entries);
+  }
+
+  // Guide §5.6: a button with a shortcut names it for assistive technology, not only in the chip.
+  private applyKeyShortcuts(entry: HTMLElement): void {
+    const action = actionOf(entry);
+    const definition = action === undefined ? undefined : this.entries[action];
+    const keyShortcuts =
+      definition?.ariaKeyShortcuts ??
+      (definition?.shortcut ? ariaKeyShortcutsFromLabel(definition.shortcut) : undefined);
+    if (keyShortcuts) entry.setAttribute("aria-keyshortcuts", keyShortcuts);
   }
 
   private applyPressed(entry: HTMLElement): void {

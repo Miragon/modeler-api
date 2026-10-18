@@ -1,4 +1,4 @@
-import { defaultMessages, matchChromeKey } from "../core/index.js";
+import { TEXT_FIELD_SELECTOR, defaultMessages, isUndoRedoKey, matchChromeKey } from "../core/index.js";
 import type { ShellHandle } from "../dom/index.js";
 import { PaletteSkin, type PaletteEntryLike } from "./palette-skin.js";
 import type {
@@ -22,6 +22,17 @@ const TRIGGER_PRIORITY = 2000;
 /** A palette without a shell is editable. */
 const EDITABLE = { locked: false, shown: false } as const;
 
+/** What the shell sets on the canvas `<svg>` while a shell is attached, restored on detach. */
+const CANVAS_ATTRIBUTES = ["role", "aria-label"] as const;
+
+function isTextField(target: EventTarget | null): boolean {
+  if (!target || typeof (target as Element).closest !== "function") return false;
+  return (
+    (target as HTMLElement).isContentEditable === true ||
+    (target as Element).closest(TEXT_FIELD_SELECTOR) !== null
+  );
+}
+
 /** didi's injector, which resolves a missing service to `null` with `strict: false`. */
 interface DidiInjectorLike {
   get(name: string, strict?: boolean): unknown;
@@ -44,6 +55,8 @@ export class ShellDiagramService {
   static $inject = ["eventBus", "injector"];
 
   private svg: Element | undefined;
+  /** The canvas `<svg>`'s own `role` and `aria-label` before the shell named it. */
+  private canvasOriginals: Map<string, string | null> | undefined;
   private skin: PaletteSkin | undefined;
   private activeTool: string | null = null;
   private shell: ShellHandle | undefined;
@@ -57,6 +70,7 @@ export class ShellDiagramService {
   ) {
     this.subscribe("canvas.init", (event: { svg?: Element }) => {
       this.svg = event.svg;
+      this.nameCanvas();
     });
     this.subscribe("palette.create", (event: { container: HTMLElement }) =>
       this.onPaletteCreate(event.container),
@@ -85,6 +99,7 @@ export class ShellDiagramService {
     if (this.destroyed) return () => undefined;
     this.shell = shell;
     this.skin?.setLabel(shell.messages.tools);
+    this.nameCanvas();
     this.registerPalette();
     return () => {
       if (this.shell === shell) this.detachShell();
@@ -107,8 +122,33 @@ export class ShellDiagramService {
     this.unregisterPalette = undefined;
     this.shell = undefined;
     unregister?.();
+    this.unnameCanvas();
     this.skin?.setReadOnly(EDITABLE);
     this.skin?.setLabel(defaultMessages.tools);
+  }
+
+  /**
+   * The focusable canvas is an application with a name (WCAG 4.1.2): screen readers switch to focus
+   * mode, so the canvas's single-key commands reach it. A role or name the modeler set stays.
+   */
+  private nameCanvas(): void {
+    const { svg, shell } = this;
+    if (!svg || !shell || this.canvasOriginals) return;
+    this.canvasOriginals = new Map(CANVAS_ATTRIBUTES.map((name) => [name, svg.getAttribute(name)]));
+    if (!svg.hasAttribute("role")) svg.setAttribute("role", "application");
+    if (!svg.hasAttribute("aria-label") && !svg.hasAttribute("aria-labelledby")) {
+      svg.setAttribute("aria-label", shell.messages.canvas);
+    }
+  }
+
+  private unnameCanvas(): void {
+    const { svg, canvasOriginals } = this;
+    this.canvasOriginals = undefined;
+    if (!svg || !canvasOriginals) return;
+    for (const [name, value] of canvasOriginals) {
+      if (value === null) svg.removeAttribute(name);
+      else svg.setAttribute(name, value);
+    }
   }
 
   private onPaletteCreate(container: HTMLElement): void {
@@ -146,8 +186,19 @@ export class ShellDiagramService {
     return false;
   };
 
-  private readonly onKeyboardKeydown = (context: KeyboardEventContext): true | undefined =>
-    context.keyEvent && matchChromeKey(context.keyEvent) ? true : undefined;
+  /**
+   * `true` stops the diagram-js keyboard (and makes it call `preventDefault`), `false` stops it
+   * without: a chrome key in a text field inside the `<svg>` stays the field's (Shift+1 types "!"),
+   * and in the IDE host undo and redo stay the document's (guide §13.5), so they reach VS Code
+   * instead of the canvas `commandStack`.
+   */
+  private readonly onKeyboardKeydown = (context: KeyboardEventContext): boolean | undefined => {
+    const event = context.keyEvent;
+    if (!event) return undefined;
+    if (matchChromeKey(event)) return !isTextField(event.target);
+    if (this.shell?.host === "ide" && isUndoRedoKey(event)) return false;
+    return undefined;
+  };
 
   private subscribe<E>(name: string, listener: (event: E) => unknown, priority?: number): void {
     const handler = listener as DiagramEventListener;

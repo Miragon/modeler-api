@@ -162,6 +162,28 @@ describe("chrome tooltip (guide §5.6)", () => {
     expect(zoomButton(root, "in").hasAttribute("aria-describedby")).toBe(false);
   });
 
+  it("describes a control whose shortcut chip is not named in aria-keyshortcuts", () => {
+    const { shell, root } = mount();
+    const named = document.createElement("button");
+    named.setAttribute("aria-label", "Lasso");
+    named.setAttribute("aria-keyshortcuts", "L");
+    const unnamed = document.createElement("button");
+    unnamed.setAttribute("aria-label", "Hand");
+    root.append(named, unnamed);
+    shell.tooltip.attach(named, { label: "Lasso", shortcut: "L" });
+    shell.tooltip.attach(unnamed, { label: "Hand", shortcut: "H" });
+    const tooltipId = root.querySelector(".cd-shell-tooltip")?.id ?? "";
+
+    pointer(named, "pointerenter");
+    vi.advanceTimersByTime(TOOLTIP_DELAY_MS);
+    expect(named.hasAttribute("aria-describedby")).toBe(false);
+    pointer(named, "pointerleave");
+
+    pointer(unnamed, "pointerenter");
+    vi.advanceTimersByTime(TOOLTIP_DELAY_MS);
+    expect(unnamed.getAttribute("aria-describedby")).toBe(tooltipId);
+  });
+
   it("attach() works for modeler controls and detaches", () => {
     const { shell, root } = mount();
     const button = root.appendChild(document.createElement("button"));

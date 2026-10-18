@@ -12,7 +12,7 @@ export interface ThemeBridgeOptions {
   /** The modes the modeler can show, a static value of the modeler package (`["light"]` today). */
   themes: readonly Theme[];
   /** Full key of `miragon.<modeler>.colorTheme`; omit until the modeler can show dark. */
-  settingKey?: string;
+  settingKey?: string | undefined;
 }
 
 function isColorThemeSetting(value: unknown): value is ColorThemeSetting {

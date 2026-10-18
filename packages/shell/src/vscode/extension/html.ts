@@ -6,7 +6,7 @@ export interface WebviewHtmlOptions {
   /** The bundle, `webview.asWebviewUri(…).toString()`. */
   scriptUri: string;
   /** Stylesheets in load order (token CSS first, see API.md). */
-  styleUris?: readonly string[];
+  styleUris?: readonly string[] | undefined;
   /** `<title>` */
   title: string;
   /** The tool's UI language for `<html lang>`; English modelers pass `"en"`. */
@@ -14,9 +14,15 @@ export interface WebviewHtmlOptions {
   /** Resolved appearance (`currentAppearance`), written before the first paint. */
   appearance: Appearance;
   /** Markup inside `<body>` before the script; default `<div id="app"></div>`. */
-  body?: string;
+  body?: string | undefined;
   /** Script nonce; default `createNonce()`. */
-  nonce?: string;
+  nonce?: string | undefined;
+  /**
+   * Allow inline styles (`style-src … 'unsafe-inline'`), default `true`: renderers write `style`
+   * attributes into markup (palette entries, SVG strings). The shell and diagram-js themselves
+   * only style through the CSSOM and run without it; pass `false` once the renderer does too.
+   */
+  inlineStyles?: boolean | undefined;
 }
 
 const NONCE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -49,11 +55,11 @@ function attribute(name: string, value: string): string {
   return `${name}="${escapeHtml(value)}"`;
 }
 
-function contentSecurityPolicy(cspSource: string, nonce: string): string {
+function contentSecurityPolicy(cspSource: string, nonce: string, inlineStyles: boolean): string {
   return [
     "default-src 'none'",
     `img-src ${cspSource} data: blob:`,
-    `style-src ${cspSource} 'unsafe-inline'`,
+    inlineStyles ? `style-src ${cspSource} 'unsafe-inline'` : `style-src ${cspSource}`,
     `font-src ${cspSource} data:`,
     `script-src 'nonce-${nonce}'`,
   ].join("; ");
@@ -61,10 +67,11 @@ function contentSecurityPolicy(cspSource: string, nonce: string): string {
 
 /**
  * The webview document: `<html lang class="cd-shell-document" data-cd-theme [data-cd-kontrast]>`,
- * strict CSP (`default-src 'none'`, `img-src <cspSource> data: blob:`, `style-src <cspSource>
- * 'unsafe-inline'`, `font-src <cspSource> data:`, `script-src 'nonce-…'`), the stylesheets, `body`
- * and the nonce'd script. Attribute values and the title are escaped; `body` is markup and is not.
- * Throws for a `nonce` that is not a CSP base64 value.
+ * the CSP (`default-src 'none'`, `img-src <cspSource> data: blob:`, `style-src <cspSource>` plus
+ * `'unsafe-inline'` unless `inlineStyles: false`, `font-src <cspSource> data:`,
+ * `script-src 'nonce-…'`), the stylesheets, `body` and the nonce'd script. Attribute values and the
+ * title are escaped; `body` is markup and is not. Throws for a `nonce` that is not a CSP base64
+ * value.
  */
 export function renderWebviewHtml(options: WebviewHtmlOptions): string {
   const nonce = options.nonce ?? createNonce();
@@ -87,7 +94,7 @@ export function renderWebviewHtml(options: WebviewHtmlOptions): string {
 <html ${htmlAttributes}>
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" ${attribute("content", contentSecurityPolicy(options.cspSource, nonce))} />
+    <meta http-equiv="Content-Security-Policy" ${attribute("content", contentSecurityPolicy(options.cspSource, nonce, options.inlineStyles !== false))} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />${stylesheets.join("")}
     <title>${escapeHtml(options.title)}</title>
   </head>

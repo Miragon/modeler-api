@@ -4,6 +4,7 @@ import type {
   ShellHost,
   ShellMessageOverrides,
   ShellMessages,
+  Theme,
   ZoomTarget,
 } from "../core/index.js";
 import type { ShellIconName } from "./icons.js";
@@ -16,36 +17,44 @@ export interface ShellOptions {
    * moves it into its canvas slot and adds `cd-shell-canvas`. Omitted: the shell creates the slot,
    * and the modeler is constructed with `container: handle.canvas`.
    */
-  canvas?: HTMLElement;
+  canvas?: HTMLElement | undefined;
   /**
    * The tool's UI language (BCP 47) for `Intl` and `<html lang>` (guide §2: one language per tool).
    * Default in an own document (`ide`, `web`): the closest `[lang]` of the root, else `"en"`. In the
    * `embedded` host the page's language is not the tool's, so the default is the root's own `lang`
    * attribute, else `"en"`, and the root carries `lang` itself.
    */
-  lang?: string;
-  messages?: ShellMessageOverrides;
+  lang?: string | undefined;
+  messages?: ShellMessageOverrides | undefined;
   /** Platform of the shortcut labels; default `detectPlatform(navigator)`. */
-  platform?: Platform;
+  platform?: Platform | undefined;
   /** Where the one `keydown` listener sits; default `document`, `root` in the `embedded` host. */
-  keyScope?: "document" | "root";
+  keyScope?: "document" | "root" | undefined;
+  /**
+   * The modes the modeler can show (a static value of the modeler package), default `["light"]`.
+   * Read in the `embedded` host only: there the root carries `data-cd-theme="<themes[0]>"` itself
+   * (until contract 1.1 an embedded modeler stays in its first mode, whatever the page shows) and
+   * mirrors the host's `data-cd-kontrast` (guide §13.3). In an own document the host writes the
+   * mode on `<html>`.
+   */
+  themes?: readonly Theme[] | undefined;
   /** The fixed menu groups this modeler fills (guide §5.4); omitted groups and empty ones collapse. */
-  menu?: MenuGroups;
+  menu?: MenuGroups | undefined;
   /** The problems pill; omitted = the modeler has no diagnostics. */
-  problems?: ProblemsOptions;
+  problems?: ProblemsOptions | undefined;
   /** The legend card; omitted = the notation has no legend. */
-  legend?: LegendOptions;
+  legend?: LegendOptions | undefined;
   /** The inspector slot; omitted = the modeler has no inspector. */
-  inspector?: InspectorOptions;
+  inspector?: InspectorOptions | undefined;
   /** The empty-file hint of IDE and embedded hosts (guide §13.5); omitted = no hint. */
-  emptyHint?: EmptyHintOptions;
+  emptyHint?: EmptyHintOptions | undefined;
 }
 
 /** Rendered in this order, separated by separators: Model, Export, Help (guide §5.4). */
 export interface MenuGroups {
-  model?: readonly MenuEntry[];
-  export?: readonly MenuEntry[];
-  help?: readonly MenuEntry[];
+  model?: readonly MenuEntry[] | undefined;
+  export?: readonly MenuEntry[] | undefined;
+  help?: readonly MenuEntry[] | undefined;
 }
 
 export type MenuEntry = MenuActionEntry | MenuDialogEntry | MenuCheckboxEntry | MenuRadioGroup;
@@ -55,18 +64,28 @@ interface MenuItemBase {
   id: string;
   label: string;
   /** Only the entries the guide gives an icon (the common set, guide §5.14). */
-  icon?: ShellIconName;
+  icon?: ShellIconName | undefined;
   /** Read whenever the menu opens or `refresh()` runs; disabled entries stay focusable. */
-  disabled?: () => boolean;
+  disabled?: (() => boolean) | undefined;
+  /**
+   * A Model entry that stays enabled on a read-only canvas (pure view state that never touches the
+   * document). Default `false`: guide §13.5 disables every Model entry.
+   */
+  keepEnabledWhenReadOnly?: boolean | undefined;
 }
 
 /** `menuitem`: closes the menu, returns focus to the trigger, then runs `onSelect`. */
 export interface MenuActionEntry extends MenuItemBase {
   kind: "action";
   /** Shortcut chip text shown on the right, verbatim. */
-  shortcut?: string;
+  shortcut?: string | undefined;
+  /**
+   * `aria-keyshortcuts` (WAI-ARIA names, guide §5.6); default `ariaKeyShortcutsFromLabel(shortcut)`.
+   * An empty string sets none.
+   */
+  ariaKeyShortcuts?: string | undefined;
   /** Destructive: icon in `--cd-ui-danger` (confirm per guide §9 in `onSelect`). */
-  danger?: boolean;
+  danger?: boolean | undefined;
   onSelect(): void;
 }
 
@@ -95,7 +114,9 @@ export interface MenuRadioGroup {
   options: readonly MenuRadioOption[];
   value(): string | undefined;
   onSelect(value: string): void;
-  disabled?: () => boolean;
+  disabled?: (() => boolean) | undefined;
+  /** As `MenuItemBase.keepEnabledWhenReadOnly`. */
+  keepEnabledWhenReadOnly?: boolean | undefined;
 }
 
 export interface MenuRadioOption {
@@ -111,15 +132,15 @@ export interface ProblemsOptions {
 export interface LegendOptions {
   /** Renders the legend rows into `body` once (classes `cd-shell-legend-*`, see API.md). */
   render(body: HTMLElement): void;
-  /** Start state the host remembered; default `legendStartsOpen(container height)`. */
-  open?: boolean;
+  /** Start state the host remembered; default (also `undefined`) `legendStartsOpen(container height)`. */
+  open?: boolean | undefined;
   /**
    * Every change of the open state (close button, menu checkbox, `setOpen`, `toggle`), so the host
    * can persist it; not the automatic start decision.
    */
-  onToggle?(open: boolean): void;
+  onToggle?: ((open: boolean) => void) | undefined;
   /** Append the "Legend" checkbox to the Model group; default `true`. */
-  menuEntry?: boolean;
+  menuEntry?: boolean | undefined;
 }
 
 export interface InspectorOptions {
@@ -129,7 +150,7 @@ export interface InspectorOptions {
 
 export interface EmptyHintOptions {
   /** Shows the "Insert example" button; the modeler writes the example as one document change. */
-  onInsertExample?(): void;
+  onInsertExample?: (() => void) | undefined;
 }
 
 export interface ShellHandle {
@@ -155,8 +176,11 @@ export interface ShellHandle {
   /** Shows the pill for `count > 0`, hides it at 0. */
   setProblems(summary: ProblemSummary): void;
   /** Shows (after `delayMs`, default 0) or hides (at once) the status box under the palette. */
-  setStatus(status: StatusMessage | null, options?: { delayMs?: number }): void;
-  /** Shows or hides the empty-file hint. */
+  setStatus(status: StatusMessage | null, options?: { delayMs?: number | undefined }): void;
+  /**
+   * Shows or hides the empty-file hint. `connectDiagramJs` keeps it in sync with the diagram
+   * (`ConnectOptions.isEmpty`). Hiding it while it holds the focus moves the focus to the canvas.
+   */
   setEmptyHint(visible: boolean): void;
   /**
    * Read-only canvas (invalid file, guide §13.5). `true` locks at once: `isReadOnly()`, the palette
@@ -165,7 +189,7 @@ export interface ShellHandle {
    * `INVALID_STATUS_DELAY_MS`, as for `setStatus`), so typing in the text editor does not flicker.
    * Repeated calls while the delay runs keep the first timer; `false` unlocks and hides at once.
    */
-  setReadOnly(readOnly: boolean, options?: { delayMs?: number }): void;
+  setReadOnly(readOnly: boolean, options?: { delayMs?: number | undefined }): void;
   /** The lock, true from the first `setReadOnly(true)` on, also while its marks are still delayed. */
   isReadOnly(): boolean;
   /** Removes every element, attribute, listener, observer and timer the shell added. Idempotent. */
@@ -179,7 +203,7 @@ export interface MenuHandle {
   /** Opens on the first (default) or last entry. */
   open(focus?: "first" | "last"): void;
   /** Closes; `restoreFocus` moves focus back to the trigger (default `false`). */
-  close(options?: { restoreFocus?: boolean }): void;
+  close(options?: { restoreFocus?: boolean | undefined }): void;
   /** Re-reads `checked`, `value` and `disabled` (call after an external state change). */
   refresh(): void;
   setGroups(groups: MenuGroups): void;
@@ -188,7 +212,7 @@ export interface MenuHandle {
 export interface TooltipContent {
   label: string;
   /** Shortcut chip text, verbatim (`⌘+`). */
-  shortcut?: string;
+  shortcut?: string | undefined;
 }
 
 export interface TooltipHandle {
@@ -215,6 +239,7 @@ export interface InspectorHandle {
   readonly element: HTMLElement;
   isOpen(): boolean;
   open(): void;
+  /** Closes; a focus inside it moves to the canvas. */
   close(): void;
 }
 

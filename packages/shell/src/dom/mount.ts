@@ -9,6 +9,7 @@ import {
   type Insets,
   type PaletteRow,
   type Size,
+  type Theme,
   type ZoomTarget,
 } from "../core/index.js";
 import { boxRelativeTo, createElement } from "./element.js";
@@ -34,7 +35,18 @@ import type {
 } from "./types.js";
 import { createZoomPanel } from "./zoom-panel.js";
 
-let mountCount = 0;
+// Page-global: every modeler bundles its own copy of the shell (and the CJS entries inline one each),
+// and two shells on one foreign page must not share element ids.
+const MOUNT_COUNTER = Symbol.for("@miragon/modeler-shell.mounts");
+
+function nextMountIndex(): number {
+  const scope = globalThis as unknown as Record<symbol, number | undefined>;
+  const index = (scope[MOUNT_COUNTER] ?? 0) + 1;
+  scope[MOUNT_COUNTER] = index;
+  return index;
+}
+
+const DEFAULT_THEMES: readonly Theme[] = ["light"];
 
 // In a foreign page the closest [lang] is the page's language, not the tool's (guide §2).
 function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: string | undefined): string {
@@ -44,6 +56,12 @@ function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: st
   return declared || "en";
 }
 
+/** The contrast of the host page around an embedded root: the nearest mode carrier above it. */
+function hostKontrast(root: HTMLElement): "hoch" | null {
+  const carrier = root.parentElement?.closest("[data-cd-theme], [data-cd-kontrast]");
+  return carrier?.getAttribute("data-cd-kontrast") === "hoch" ? "hoch" : null;
+}
+
 /**
  * Turns `root` into the shell (`.cd-shell`, container `cd-shell`) and renders the chrome in the
  * DOM order of guide §5.14: menu trigger, canvas slot, status box, empty-file hint, inspector,
@@ -51,13 +69,30 @@ function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: st
  * `keydown` listener (see `ShellOptions.keyScope`) and the root `ResizeObserver`.
  *
  * `root` must get its size from outside (`container-type: size`): `height: 100%` in an own
- * document, an explicitly sized element in a foreign page.
+ * document, an explicitly sized element in a foreign page. When rendering throws (a modeler's
+ * `legend.render`), everything added so far is removed again before the error propagates.
  */
 export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandle {
+  const themes = options.themes ?? DEFAULT_THEMES;
+  if (themes.length === 0) throw new Error("@miragon/modeler-shell: mountShell needs at least one theme");
+  const ledger = new Ledger();
+  try {
+    return renderShell(root, options, themes, ledger);
+  } catch (error) {
+    ledger.close();
+    throw error;
+  }
+}
+
+function renderShell(
+  root: HTMLElement,
+  options: ShellOptions,
+  themes: readonly Theme[],
+  ledger: Ledger,
+): ShellHandle {
   const ownerDocument = root.ownerDocument;
   const { host } = options;
-  const index = ++mountCount;
-  const ledger = new Ledger();
+  const index = nextMountIndex();
   const messages = resolveMessages(options.messages);
   const platform = options.platform ?? detectPlatform(globalThis.navigator);
   const lang = languageOf(root, host, options.lang);
@@ -66,15 +101,27 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
   ledger.addClass(root, "cd-shell");
   ledger.attribute(root, "data-cd-shell-host", host);
   ledger.attribute(root, "data-palette", "top");
-  if (host === "embedded") ledger.attribute(root, "lang", lang);
-  else ledger.addClass(ownerDocument.documentElement, "cd-shell-document");
+  if (host === "embedded") {
+    ledger.attribute(root, "lang", lang);
+    carryOwnMode(root, themes[0] ?? "light", ledger);
+  } else {
+    ledger.addClass(ownerDocument.documentElement, "cd-shell-document");
+  }
 
   const setState = (name: string, value: string | null): void => {
     if (!ledger.isClosed) ledger.attribute(root, name, value);
   };
 
   const layer = createElement(ownerDocument, "div", { class: "cd-shell-layer" });
+  ledger.defer(() => layer.remove());
   const tooltip = createTooltip({ root, layer, id: `cd-shell-tooltip-${index}` });
+  ledger.defer(() => tooltip.destroy());
+
+  /** The lock of `setReadOnly(true)`; `readOnlyShown` its marks, which may follow after a delay. */
+  let readOnly = false;
+  let readOnlyShown = false;
+  let readOnlyTimer: ReturnType<typeof setTimeout> | undefined;
+  ledger.defer(() => clearTimeout(readOnlyTimer));
 
   const legend = options.legend
     ? createLegend({
@@ -91,6 +138,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
         focusAfterClose: () => menu.trigger.focus(),
       })
     : undefined;
+  if (legend) ledger.defer(() => legend.destroy());
 
   const legendEntry: MenuCheckboxEntry | undefined =
     legend && options.legend?.menuEntry !== false
@@ -104,11 +152,6 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
       : undefined;
   const shellModelEntries: readonly MenuCheckboxEntry[] = legendEntry ? [legendEntry] : [];
 
-  /** The lock of `setReadOnly(true)`; `readOnlyShown` its marks, which may follow after a delay. */
-  let readOnly = false;
-  let readOnlyShown = false;
-  let readOnlyTimer: ReturnType<typeof setTimeout> | undefined;
-  ledger.defer(() => clearTimeout(readOnlyTimer));
   const menu = createMenu({
     root,
     layer,
@@ -119,22 +162,33 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
     shellModelEntries: () => shellModelEntries,
     isReadOnly: () => readOnly,
   });
-  const detachTriggerTooltip = tooltip.attach(menu.trigger, () =>
-    menu.isOpen() ? null : { label: messages.menu },
-  );
+  ledger.defer(() => menu.destroy());
+  ledger.defer(tooltip.attach(menu.trigger, () => (menu.isOpen() ? null : { label: messages.menu })));
 
   const canvas = options.canvas ?? createElement(ownerDocument, "div");
   ledger.addClass(canvas, "cd-shell-canvas");
   if (!options.canvas) ledger.defer(() => canvas.remove());
 
+  /** Where the focus goes when the island holding it hides: the canvas, else the menu trigger. */
+  function moveFocusOutOf(island: HTMLElement): void {
+    if (!island.contains(ownerDocument.activeElement)) return;
+    const canvasTarget = canvas.querySelector<HTMLElement | SVGElement>("svg[tabindex]");
+    canvasTarget?.focus({ preventScroll: true });
+    if (canvasTarget && ownerDocument.activeElement === canvasTarget) return;
+    if (!menu.trigger.hidden) menu.trigger.focus({ preventScroll: true });
+  }
+
   const status = createStatusBox(ownerDocument);
+  ledger.defer(() => status.destroy());
   const hint = options.emptyHint ? createEmptyHint(ownerDocument, messages, options.emptyHint) : undefined;
+  if (hint) ledger.defer(() => hint.destroy());
   const inspector = options.inspector
     ? createInspector(ownerDocument, options.inspector, (open) => {
         setState("data-inspector", open ? "open" : null);
         placeHint();
       })
     : undefined;
+  if (inspector) ledger.defer(() => inspector.destroy());
   const pill = options.problems
     ? createProblemsPill({
         ownerDocument,
@@ -145,7 +199,9 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
         options: options.problems,
       })
     : undefined;
+  if (pill) ledger.defer(() => pill.destroy());
   const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip });
+  ledger.defer(() => zoomPanel.destroy());
 
   root.prepend(menu.trigger, canvas);
   root.append(
@@ -170,6 +226,12 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
   function menuRight(): number {
     const box = boxRelativeTo(menu.trigger, root);
     return box.width > 0 ? box.x + box.width : SHELL.edge + SHELL.row;
+  }
+
+  /** The palette's intrinsic border-box width: it does not shrink once the second row clips it. */
+  function paletteWidth(): number {
+    const element = palette?.registration.element;
+    return element ? element.offsetWidth - element.clientWidth + element.scrollWidth : 0;
   }
 
   function currentFitInsets(): Insets {
@@ -199,7 +261,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
     if (size.width === 0 || size.height === 0) return;
     paletteRow = decidePaletteRow({
       containerWidth: size.width,
-      paletteWidth: palette?.registration.element.scrollWidth ?? 0,
+      paletteWidth: paletteWidth(),
       menuRight: menuRight(),
     });
     setState("data-palette", paletteRow);
@@ -230,13 +292,14 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
   keyTarget.addEventListener("keydown", onKeydown as EventListener);
   ledger.defer(() => keyTarget.removeEventListener("keydown", onKeydown as EventListener));
 
-  function paletteReadOnlyState(): PaletteReadOnlyState {
+  function readOnlyState(): PaletteReadOnlyState {
     return { locked: readOnly, shown: readOnlyShown };
   }
 
   function applyReadOnly(): void {
     setState("data-readonly", readOnlyShown ? "" : null);
-    palette?.registration.setReadOnly(paletteReadOnlyState());
+    palette?.registration.setReadOnly(readOnlyState());
+    legend?.setReadOnly(readOnlyState());
     menu.refresh();
   }
 
@@ -253,6 +316,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
     resizeObserver?.unobserve(palette.registration.element);
     palette = undefined;
   }
+  ledger.defer(unregisterPalette);
 
   const menuHandle: MenuHandle = {
     trigger: menu.trigger,
@@ -290,7 +354,9 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
       if (!ledger.isClosed) inspector.open();
     },
     close: () => {
-      if (!ledger.isClosed) inspector.close();
+      if (ledger.isClosed) return;
+      if (inspector.isOpen()) moveFocusOutOf(inspector.element);
+      inspector.close();
     },
   };
 
@@ -319,7 +385,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
         ),
       };
       resizeObserver?.observe(registration.element);
-      registration.setReadOnly(paletteReadOnlyState());
+      registration.setReadOnly(readOnlyState());
       updateLayout();
       const registered = palette;
       return () => {
@@ -339,6 +405,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
     },
     setEmptyHint(visible) {
       if (ledger.isClosed || !hint) return;
+      if (!visible && hint.isShown()) moveFocusOutOf(hint.element);
       hint.setShown(visible);
       placeHint();
     },
@@ -362,19 +429,33 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
     },
     isReadOnly: () => readOnly,
     destroy() {
-      if (ledger.isClosed) return;
-      unregisterPalette();
-      detachTriggerTooltip();
-      menu.destroy();
-      zoomPanel.destroy();
-      status.destroy();
-      hint?.destroy();
-      inspector?.destroy();
-      pill?.destroy();
-      legend?.destroy();
-      tooltip.destroy();
-      layer.remove();
       ledger.close();
     },
   };
+}
+
+/**
+ * An embedded root carries its own mode (guide §13.3): the token CSS resolves the roles on the
+ * nearest `[data-cd-theme]`, so without it a light-only modeler would inherit a dark host page and
+ * be half-dark against its light-drawn diagram. The root's own `data-cd-theme` would also drop the
+ * host's high contrast, so `data-cd-kontrast` is mirrored from the host for as long as it lives.
+ */
+function carryOwnMode(root: HTMLElement, theme: Theme, ledger: Ledger): void {
+  ledger.attribute(root, "data-cd-theme", theme);
+  const mirror = (): void => {
+    if (ledger.isClosed) return;
+    const kontrast = hostKontrast(root);
+    if (root.getAttribute("data-cd-kontrast") !== kontrast)
+      ledger.attribute(root, "data-cd-kontrast", kontrast);
+  };
+  mirror();
+  const MutationObserverClass = globalThis.MutationObserver;
+  if (!MutationObserverClass) return;
+  const observer = new MutationObserverClass(mirror);
+  observer.observe(root.ownerDocument.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-cd-theme", "data-cd-kontrast"],
+    subtree: true,
+  });
+  ledger.defer(() => observer.disconnect());
 }

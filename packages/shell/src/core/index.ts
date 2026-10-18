@@ -50,6 +50,7 @@ export type {
 export {
   TEXT_FIELD_SELECTOR,
   ariaKeyShortcuts,
+  ariaKeyShortcutsFromLabel,
   decideKey,
   detectPlatform,
   isUndoRedoKey,
@@ -59,9 +60,11 @@ export {
 
 export type { Appearance, AppearanceAttributes, ColorThemeSetting, Kontrast, Theme } from "./appearance.js";
 export {
+  REDUCED_MOTION_CLASS,
   appearanceAttributes,
   appearanceFromBodyClasses,
   appearanceFromColorThemeKind,
+  reducedMotionFromBodyClasses,
   requestedAppearance,
   resolveAppearance,
 } from "./appearance.js";

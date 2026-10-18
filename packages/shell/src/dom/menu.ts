@@ -1,4 +1,4 @@
-import type { ShellMessages } from "../core/index.js";
+import { ariaKeyShortcutsFromLabel, matchChromeKey, type ShellMessages } from "../core/index.js";
 import { createElement, toggleAttribute } from "./element.js";
 import { iconElement, type ShellIconName } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
@@ -79,9 +79,10 @@ export function createMenu(context: MenuContext): MenuController {
     if (trigger.hidden) close();
   }
 
-  // Guide §13.5: on a read-only canvas every Model entry is aria-disabled, the Legend toggle too.
+  // Guide §13.5: on a read-only canvas every Model entry is aria-disabled, the Legend toggle too;
+  // an entry that is pure view state may opt out.
   function isDisabled(entry: MenuEntry, group: GroupName): boolean {
-    if (group === "model" && context.isReadOnly()) return true;
+    if (group === "model" && context.isReadOnly() && entry.keepEnabledWhenReadOnly !== true) return true;
     return entry.disabled?.() ?? false;
   }
 
@@ -142,6 +143,11 @@ export function createMenu(context: MenuContext): MenuController {
         : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;
+    if (entry.kind === "action") {
+      const keyShortcuts =
+        entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
+      toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
+    }
     if (entry.kind === "dialog") element.setAttribute("aria-haspopup", "dialog");
     if (entry.kind === "action" && entry.danger) element.dataset.danger = "";
     return {
@@ -259,6 +265,10 @@ export function createMenu(context: MenuContext): MenuController {
     close();
   };
 
+  // The focus left the document (a click into the VS Code workbench, another iframe): from the
+  // user's view a click outside, so the menu closes without moving the focus (guide §5.4).
+  const onWindowBlur = (): void => close();
+
   function open(focus: "first" | "last" = "first"): void {
     if (destroyed || !hasEntries()) return;
     tooltip.hide();
@@ -269,6 +279,7 @@ export function createMenu(context: MenuContext): MenuController {
       trigger.setAttribute("aria-expanded", "true");
       // Capture phase: diagram-js stops pointer events on palette, context pad and canvas.
       ownerDocument.addEventListener("pointerdown", onOutsidePointerDown, true);
+      ownerDocument.defaultView?.addEventListener("blur", onWindowBlur);
     }
     focusAt(focus === "last" ? items.length - 1 : 0);
   }
@@ -278,6 +289,7 @@ export function createMenu(context: MenuContext): MenuController {
     dropdown.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
     ownerDocument.removeEventListener("pointerdown", onOutsidePointerDown, true);
+    ownerDocument.defaultView?.removeEventListener("blur", onWindowBlur);
     if (options.restoreFocus && !trigger.hidden) trigger.focus();
   }
 
@@ -290,17 +302,27 @@ export function createMenu(context: MenuContext): MenuController {
     else open("first");
   });
 
+  // Keys the menu consumes stop here, in every host like the palette's: a modeler's keyboard on
+  // document (Event Storming moves the selection on ↑/↓, deletes it on Delete, creates a sticky on
+  // E) must never act on them, and VS Code never sees them.
+  function consume(event: KeyboardEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   trigger.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
-      event.preventDefault();
+      consume(event);
       open("first");
     } else if (event.key === "ArrowUp") {
-      event.preventDefault();
+      consume(event);
       open("last");
     }
   });
 
   dropdown.addEventListener("keydown", (event) => {
+    // Zoom and fit keys still act with the menu open; the shell's key listener runs them.
+    if (matchChromeKey(event)) return;
     switch (event.key) {
       case "ArrowDown":
         focusAt(currentIndex() + 1);
@@ -321,11 +343,21 @@ export function createMenu(context: MenuContext): MenuController {
         // trigger it moves on to the palette instead of leaving the shell from the layer.
         close({ restoreFocus: true });
         return;
+      case "Escape":
+        // The shell's key listener closes the menu (and keeps Escape from VS Code in the IDE host).
+        return;
+      case "Enter":
+      case " ":
+      case "Delete":
+      case "Backspace":
+        // The entry's native click handles Enter and Space; nothing else may act on these keys.
+        event.stopPropagation();
+        return;
       default:
         if (!isPrintable(event)) return;
         typeAhead(event.key);
     }
-    event.preventDefault();
+    consume(event);
   });
 
   updateTriggerVisibility();

@@ -5,6 +5,7 @@ describe("defaultMessages (guide §2)", () => {
   it("names the chrome with the shared English terms", () => {
     expect(defaultMessages.menu).toBe("Menu");
     expect(defaultMessages.tools).toBe("Tools");
+    expect(defaultMessages.canvas).toBe("Diagram");
     expect(defaultMessages.zoom).toBe("Zoom");
     expect(defaultMessages.zoomOut).toBe("Zoom out");
     expect(defaultMessages.zoomIn).toBe("Zoom in");
@@ -79,6 +80,7 @@ describe("resolveMessages", () => {
     const german: ShellMessages = {
       menu: "Menü",
       tools: "Werkzeuge",
+      canvas: "Diagramm",
       zoom: "Zoom",
       zoomOut: "Verkleinern",
       zoomIn: "Vergrößern",

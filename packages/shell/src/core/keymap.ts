@@ -12,7 +12,7 @@ export interface KeyLike {
   ctrlKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
-  isComposing?: boolean;
+  isComposing?: boolean | undefined;
 }
 
 /**
@@ -126,15 +126,15 @@ export type Platform = "mac" | "other";
 
 /** The `navigator` fields `detectPlatform` reads. */
 export interface NavigatorLike {
-  platform?: string;
-  userAgentData?: { platform?: string };
+  platform?: string | undefined;
+  userAgentData?: { platform?: string | undefined } | undefined;
 }
 
 /**
  * `mac` when `userAgentData.platform ?? platform` matches `/mac/i`, else `other`; `other` without a
  * navigator. Read it in the webview or page itself, never from the extension host (VS Code Remote).
  */
-export function detectPlatform(navigator?: NavigatorLike): Platform {
+export function detectPlatform(navigator?: NavigatorLike | undefined): Platform {
   // An empty userAgentData.platform means "unknown", not "not a Mac": fall back to navigator.platform.
   const platform = navigator?.userAgentData?.platform || navigator?.platform || "";
   return /mac/i.test(platform) ? "mac" : "other";
@@ -185,4 +185,91 @@ export function ariaKeyShortcuts(key: ChromeKey, platform: Platform): string {
     case "fit":
       return "Shift+1";
   }
+}
+
+const MAC_MODIFIER_SYMBOLS: Readonly<Record<string, string>> = {
+  "⌘": "Meta",
+  "⇧": "Shift",
+  "⌥": "Alt",
+  "⌃": "Control",
+};
+
+const MODIFIER_NAMES: Readonly<Record<string, string>> = {
+  cmd: "Meta",
+  command: "Meta",
+  meta: "Meta",
+  ctrl: "Control",
+  control: "Control",
+  strg: "Control",
+  shift: "Shift",
+  umschalt: "Shift",
+  alt: "Alt",
+  option: "Alt",
+  opt: "Alt",
+};
+
+const NAMED_KEYS: Readonly<Record<string, string>> = {
+  esc: "Escape",
+  escape: "Escape",
+  del: "Delete",
+  delete: "Delete",
+  entf: "Delete",
+  backspace: "Backspace",
+  enter: "Enter",
+  return: "Enter",
+  tab: "Tab",
+  space: "Space",
+  home: "Home",
+  end: "End",
+  pageup: "PageUp",
+  pagedown: "PageDown",
+  arrowup: "ArrowUp",
+  arrowdown: "ArrowDown",
+  arrowleft: "ArrowLeft",
+  arrowright: "ArrowRight",
+  "↑": "ArrowUp",
+  "↓": "ArrowDown",
+  "←": "ArrowLeft",
+  "→": "ArrowRight",
+  plus: "Plus",
+};
+
+function ariaKeyName(key: string): string | undefined {
+  const named = NAMED_KEYS[key.toLowerCase()];
+  if (named) return named;
+  if (/^f\d{1,2}$/i.test(key)) return key.toUpperCase();
+  if (key.length !== 1 || MAC_MODIFIER_SYMBOLS[key]) return undefined;
+  if (key === "+") return "Plus";
+  if (key === " ") return "Space";
+  return key.toUpperCase();
+}
+
+/**
+ * The `aria-keyshortcuts` value (WAI-ARIA names, guide §5.6) for a shortcut chip label: `"L"` →
+ * `"L"`, `"⇧L"` → `"Shift+L"`, `"⌘⇧Z"` → `"Meta+Shift+Z"`, `"Ctrl+Shift+E"` → `"Control+Shift+E"`,
+ * `"Del"` → `"Delete"`, `"Ctrl++"` → `"Control+Plus"`. `undefined` for a label that is not one key
+ * combination (`"G then D"`, `"1–9"`, empty).
+ */
+export function ariaKeyShortcutsFromLabel(label: string): string | undefined {
+  let rest = label.trim();
+  const modifiers: string[] = [];
+  for (let symbol = MAC_MODIFIER_SYMBOLS[rest.charAt(0)]; symbol && rest.length > 1;) {
+    modifiers.push(symbol);
+    rest = rest.slice(1).trim();
+    symbol = MAC_MODIFIER_SYMBOLS[rest.charAt(0)];
+  }
+  if (!rest || /\s/.test(rest.replace(/\s*\+\s*/g, "+"))) return undefined;
+  const parts = rest.split("+").map((part) => part.trim());
+  let key = parts.pop() ?? "";
+  if (key === "" && parts.at(-1) === "") {
+    parts.pop();
+    key = "+";
+  }
+  for (const part of parts) {
+    const modifier = MODIFIER_NAMES[part.toLowerCase()];
+    if (!modifier) return undefined;
+    modifiers.push(modifier);
+  }
+  const name = ariaKeyName(key);
+  return name ? [...new Set(modifiers), name].join("+") : undefined;
 }

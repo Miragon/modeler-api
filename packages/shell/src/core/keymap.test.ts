@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   TEXT_FIELD_SELECTOR,
   ariaKeyShortcuts,
+  ariaKeyShortcutsFromLabel,
   decideKey,
   detectPlatform,
   isUndoRedoKey,
@@ -520,5 +521,31 @@ describe("ariaKeyShortcuts", () => {
     expect(ariaKeyShortcuts("zoomOut", "other")).toBe("Control+-");
     expect(ariaKeyShortcuts("zoomToActual", "other")).toBe("Control+0");
     expect(ariaKeyShortcuts("fit", "other")).toBe("Shift+1");
+  });
+});
+
+describe("ariaKeyShortcutsFromLabel", () => {
+  it.each([
+    ["L", "L"],
+    ["l", "L"],
+    ["⇧L", "Shift+L"],
+    ["⌘⇧Z", "Meta+Shift+Z"],
+    ["⌥⌘K", "Alt+Meta+K"],
+    ["Ctrl+Shift+E", "Control+Shift+E"],
+    ["Strg+Umschalt+E", "Control+Shift+E"],
+    ["Shift+1", "Shift+1"],
+    ["Ctrl++", "Control+Plus"],
+    ["Del", "Delete"],
+    ["Esc", "Escape"],
+    ["Space", "Space"],
+    ["?", "?"],
+    ["F2", "F2"],
+    ["⇧ L", "Shift+L"],
+  ])("maps the chip %j to %j", (label, expected) => {
+    expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
+  });
+
+  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+"])("gives nothing for %j", (label) => {
+    expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
   });
 });

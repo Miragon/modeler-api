@@ -1,8 +1,8 @@
 import { mountShell, type ShellHandle, type ShellOptions } from "../../dom/index.js";
-import { connectAppearance, type AppearanceListenerOptions } from "./appearance.js";
+import { connectAppearance, connectReducedMotion, type AppearanceListenerOptions } from "./appearance.js";
 
 export interface VsCodeShellOptions
-  extends Omit<ShellOptions, "host" | "keyScope">, AppearanceListenerOptions {}
+  extends Omit<ShellOptions, "host" | "keyScope" | "themes">, AppearanceListenerOptions {}
 
 /** The shell's handle with a `destroy` that runs `beforeDestroy` first; every other member delegates. */
 function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHandle {
@@ -55,17 +55,22 @@ function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHa
 /**
  * `mountShell` for a VS Code webview: `host: "ide"`, the key listener on `document` (VS Code's own
  * listener sits on `window`, so handled keys are stopped before it), `cd-shell-document` on
- * `<html>`, plus `connectAppearance`. `destroy()` also disconnects the appearance listener.
+ * `<html>`, plus `connectAppearance` and `connectReducedMotion`. `destroy()` also disconnects both.
  */
 export function mountVsCodeShell(root: HTMLElement, options: VsCodeShellOptions): ShellHandle {
-  const { themes, ...shellOptions } = options;
+  const { themes } = options;
   const disconnectAppearance = connectAppearance({ themes });
+  const disconnectReducedMotion = connectReducedMotion();
+  const disconnect = (): void => {
+    disconnectAppearance();
+    disconnectReducedMotion();
+  };
   let shell: ShellHandle;
   try {
-    shell = mountShell(root, { ...shellOptions, host: "ide", keyScope: "document" });
+    shell = mountShell(root, { ...options, host: "ide", keyScope: "document" });
   } catch (error) {
-    disconnectAppearance();
+    disconnect();
     throw error;
   }
-  return withDestroyHook(shell, disconnectAppearance);
+  return withDestroyHook(shell, disconnect);
 }

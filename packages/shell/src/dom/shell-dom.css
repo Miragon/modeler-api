@@ -34,19 +34,70 @@ html.cd-shell-document {
   height: 100%;
 }
 
-.cd-shell-canvas {
+/*
+ * The slot's layout must win over a renderer's own container class (Event Storming's
+ * .event-storming-container sets position: relative); its paint must not, so the renderer's paper
+ * (a dot grid, a dark board) shows.
+ */
+.cd-shell > .cd-shell-canvas {
   position: absolute;
   inset: 0;
   z-index: 0;
   isolation: isolate;
   overflow: hidden;
-  background: var(--cd-ui-grund);
+}
+
+:where(.cd-shell-canvas) {
+  background-color: var(--cd-ui-grund);
 }
 
 /* Buttons and fields show the chrome font, not the browser's control font (13.33px). */
 :where(.cd-shell) :where(button, input, select, textarea) {
   font: inherit;
   color: inherit;
+}
+
+/*
+ * The chrome's own islands, controls and texts take nothing from a foreign page's element rules
+ * (button { text-transform: uppercase }, p { font-size: 18px }, section { font-family: serif }):
+ * class specificity beats them, and every component rule below comes later and sets its own size
+ * and weight (guide §5.1, §5.14).
+ */
+:where(.cd-shell)
+  :is(
+    .cd-shell-layer,
+    .cd-shell-island,
+    .cd-shell-menu,
+    .cd-shell-menu-group,
+    .cd-shell-status,
+    .cd-shell-hint,
+    .cd-shell-inspector,
+    .cd-shell-legend-header,
+    .cd-shell-legend-body,
+    .cd-shell-tooltip,
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item,
+    .cd-shell-menu-item-label,
+    .cd-shell-menu-shortcut,
+    .cd-shell-menu-heading,
+    .cd-shell-problems,
+    .cd-shell-problems-text,
+    .cd-shell-legend-close,
+    .cd-shell-legend-title,
+    .cd-shell-hint-text,
+    .cd-shell-hint-action,
+    .cd-shell-status-text,
+    .cd-shell-tooltip-label,
+    .cd-shell-kbd
+  ) {
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-indent: 0;
+  text-shadow: none;
 }
 
 .cd-shell-layer {
@@ -131,6 +182,19 @@ html.cd-shell-document {
 
 /* Dense containers: inside, or the container cuts the ring off and the neighbour covers it. */
 .cd-shell :is(.cd-shell-menu-item, .cd-shell-zoom .cd-shell-target):focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * The canvas <svg> is a tab stop (guide §5.14) and fills the slot, which clips: its ring lies inside.
+ * diagram-js leaves it the browser's own ring.
+ */
+.cd-shell-canvas .djs-container > svg:focus {
+  outline: none;
+}
+
+.cd-shell-canvas .djs-container > svg:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
   outline-offset: -2px;
 }
 
@@ -256,7 +320,8 @@ html.cd-shell-document {
   cursor: not-allowed;
 }
 
-.cd-shell-menu-item[aria-disabled="true"]:hover {
+.cd-shell-menu-item[aria-disabled="true"]:hover,
+.cd-shell-menu-item[aria-disabled="true"]:focus-visible {
   background: transparent;
 }
 
@@ -647,6 +712,13 @@ html.cd-shell-document kbd {
   background: var(--cd-ui-hover);
 }
 
+.cd-shell-legend-close[aria-disabled="true"],
+.cd-shell-legend-close[aria-disabled="true"]:hover {
+  color: var(--cd-ui-text-leise);
+  background: transparent;
+  cursor: not-allowed;
+}
+
 .cd-shell-legend-body {
   display: flex;
   flex-direction: column;
@@ -757,6 +829,16 @@ html.cd-shell-document kbd {
   }
 }
 
+/* The host asks for it although the OS does not: VS Code's workbench.reduceMotion. */
+html.cd-shell-reduce-motion .cd-shell,
+html.cd-shell-reduce-motion .cd-shell *,
+html.cd-shell-reduce-motion .cd-shell *::before,
+html.cd-shell-reduce-motion .cd-shell *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 /* One frame of a mode switch: no colour fades (guide §7). */
 html.cd-shell-no-transition,
 html.cd-shell-no-transition *,
@@ -786,6 +868,14 @@ html.cd-shell-no-transition *::after {
 
 .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
   :is(.cd-shell-menu-item, .cd-shell-zoom .cd-shell-target):focus-visible {
+  outline-offset: -3px;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  .cd-shell-canvas
+  .djs-container
+  > svg:focus-visible {
+  outline-width: 3px;
   outline-offset: -3px;
 }
 
@@ -819,7 +909,11 @@ html.cd-shell-no-transition *::after {
     box-shadow: inset 0 0 0 2px Highlight;
   }
 
-  .cd-shell :is(.cd-shell-target, .cd-shell-menu-item)[aria-disabled="true"] {
+  .cd-shell .cd-shell-canvas .djs-container > svg:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .cd-shell :is(.cd-shell-target, .cd-shell-menu-item, .cd-shell-legend-close)[aria-disabled="true"] {
     color: GrayText;
   }
 }
@@ -871,4 +965,9 @@ html.cd-shell-document :where(a, input, select, textarea):focus {
 html.cd-shell-document :where(a, input, select, textarea, button, summary):focus-visible {
   outline: 2px solid var(--cd-ui-fokus);
   outline-offset: 2px;
+}
+
+html.cd-shell-document[data-cd-kontrast="hoch"]
+  :where(a, input, select, textarea, button, summary):focus-visible {
+  outline-width: 3px;
 }

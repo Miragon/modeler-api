@@ -8,8 +8,8 @@ export interface WebviewStateApi {
 
 /** What the shell keeps across a webview rebuild (guide §13.5: legend state and view). */
 export interface ShellWebviewState {
-  legendOpen?: boolean;
-  view?: ViewportState;
+  legendOpen?: boolean | undefined;
+  view?: ViewportState | undefined;
 }
 
 /** The key under which the shell's part lives in the webview state; other keys stay untouched. */
@@ -68,4 +68,49 @@ export function writeShellState(api: WebviewStateApi, patch: ShellWebviewState):
   if (view) next.view = view;
   if (JSON.stringify(next) === JSON.stringify(state[SHELL_STATE_KEY])) return;
   api.setState({ ...state, [SHELL_STATE_KEY]: next });
+}
+
+/** What `persistView` reads of a viewport (`connectDiagramJs(…).viewport`). */
+export interface PersistableView {
+  onChange(listener: () => void): () => void;
+  getState(): ViewportState | undefined;
+}
+
+export interface PersistViewOptions {
+  /** Quiet time before the write, default 250ms. */
+  delayMs?: number | undefined;
+}
+
+/** A pan, a wheel zoom or a fit animation changes the view on every frame. */
+const PERSIST_VIEW_DELAY_MS = 250;
+
+/**
+ * Keeps the stored view (`writeShellState(api, { view })`) up to date once the view has rested for
+ * `delayMs`, instead of one `vscode.setState` IPC message per animation frame. Returns the stop
+ * function; it writes a pending change at once.
+ */
+export function persistView(
+  api: WebviewStateApi,
+  viewport: PersistableView,
+  options: PersistViewOptions = {},
+): () => void {
+  const delayMs = options.delayMs ?? PERSIST_VIEW_DELAY_MS;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const write = (): void => {
+    timer = undefined;
+    writeShellState(api, { view: viewport.getState() });
+  };
+  const unsubscribe = viewport.onChange(() => {
+    clearTimeout(timer);
+    timer = setTimeout(write, delayMs);
+  });
+  let stopped = false;
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    unsubscribe();
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    write();
+  };
 }

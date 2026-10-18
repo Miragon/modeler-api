@@ -34,7 +34,11 @@ afterEach(() => {
 });
 
 function setup(
-  options: Partial<ViewportOptions> & { content?: Bounds; zoomScroll?: boolean; deferUpdate?: boolean } = {},
+  options: Partial<ViewportOptions> & {
+    content?: Bounds | undefined;
+    zoomScroll?: boolean;
+    deferUpdate?: boolean;
+  } = {},
 ): Setup {
   const bus = new FakeEventBus();
   const canvas = new FakeCanvas(bus);
@@ -213,6 +217,24 @@ describe("fit", () => {
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
   });
 
+  it("jumps while <html> carries the host's reduced-motion class (VS Code workbench.reduceMotion)", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false }) as MediaQueryList);
+    const bus = new FakeEventBus();
+    const canvas = new FakeCanvas(bus);
+    const viewport = createViewport(
+      { get: <T>(name: string) => ({ canvas, eventBus: bus })[name] as T },
+      { contentBounds: () => CONTENT, insets: () => INSETS },
+    );
+    document.documentElement.classList.add("cd-shell-reduce-motion");
+    try {
+      viewport.fit();
+      expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+      expect(frames.pending).toBe(0);
+    } finally {
+      document.documentElement.classList.remove("cd-shell-reduce-motion");
+    }
+  });
+
   it.each([
     [
       "wheel",
@@ -321,6 +343,42 @@ describe("afterImport", () => {
     if (!keep) throw new Error("no viewbox");
     setContent(CONTENT);
     viewport.restore(keep);
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+  });
+
+  it("never fits content the user created on the canvas, so the next import keeps the view", () => {
+    const { viewport, canvas, bus, setContent } = setup({ content: undefined });
+    viewport.afterImport();
+    // the first sticky from the palette, through the command stack, outside any import
+    setContent({ x: 400, y: 300, width: 120, height: 80 });
+    bus.fire("elements.changed", { elements: [] });
+    // the user types in the text editor beside the board: an external import that keeps the view
+    const keep = viewport.getViewbox();
+    if (!keep) throw new Error("no viewbox");
+    bus.fire("import.parse.start");
+    setContent(CONTENT);
+    bus.fire("import.done");
+    viewport.restore(keep);
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toEqual([keep]);
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("still fits the first content an import brings through the command stack", () => {
+    const { viewport, canvas, bus, setContent } = setup({ content: undefined });
+    viewport.afterImport();
+    bus.fire("import.render.start");
+    setContent(CONTENT);
+    bus.fire("elements.changed", { elements: [] });
+    bus.fire("import.done");
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+  });
+
+  it("does not count content changes before the first import", () => {
+    const { viewport, canvas, bus } = setup();
+    bus.fire("elements.changed", { elements: [] });
     viewport.afterImport();
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
   });
@@ -573,7 +631,48 @@ describe("onChange", () => {
   });
 });
 
+describe("canFit", () => {
+  it("reads the content bounds once per content change, not on every frame", () => {
+    const contentBounds = vi.fn(() => CONTENT);
+    const { viewport, bus, canvas } = setup({ contentBounds });
+    for (let frame = 0; frame < 5; frame++) {
+      canvas.pan(1, 0);
+      expect(viewport.canFit()).toBe(true);
+    }
+    expect(contentBounds).toHaveBeenCalledTimes(1);
+    for (const event of [
+      "elements.changed",
+      "shape.added",
+      "shape.removed",
+      "import.done",
+      "diagram.clear",
+    ]) {
+      bus.fire(event, { elements: [] });
+      viewport.canFit();
+      viewport.canFit();
+    }
+    expect(contentBounds).toHaveBeenCalledTimes(6);
+  });
+});
+
 describe("destroy", () => {
+  it("destroys itself on diagram.destroy and stays safe to ask", () => {
+    const { viewport, canvas, bus, observer } = setup();
+    viewport.afterImport();
+    const zoom = viewport.zoom();
+    bus.fire("diagram.destroy");
+    expect(observer.disconnected).toBe(true);
+    expect(bus.count()).toBe(0);
+    canvas.zoom = () => {
+      throw new TypeError("destroyed canvas");
+    };
+    expect(viewport.zoom()).toBe(zoom);
+    expect(viewport.canFit()).toBe(false);
+    expect(viewport.getViewbox()).toBeUndefined();
+    expect(viewport.getState()).toBeUndefined();
+    expect(() => viewport.stepZoom(1)).not.toThrow();
+  });
+
   it("disconnects observer, listeners and a running animation", () => {
     const { viewport, canvas, bus, observer } = setup();
     const listener = vi.fn();

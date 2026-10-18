@@ -98,7 +98,7 @@ export function createZoomPanel(context: ZoomPanelContext): ZoomPanel {
     toggleAttribute(zoomOut, "aria-disabled", (!target || !state.canZoomOut) && "true");
     toggleAttribute(zoomIn, "aria-disabled", (!target || !state.canZoomIn) && "true");
     toggleAttribute(fit, "aria-disabled", (!target || !target.canFit()) && "true");
-    toggleAttribute(readout, "aria-disabled", !target && "true");
+    // The readout is never disabled (guide §5.8); without a target its click does nothing.
   }
 
   function schedule(): void {

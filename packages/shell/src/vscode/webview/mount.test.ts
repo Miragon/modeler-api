@@ -69,12 +69,12 @@ describe("mountVsCodeShell", () => {
     const [mountedRoot, mountedOptions] = dom.mountShell.mock.calls[0] as [HTMLElement, ShellOptions];
     expect(mountedRoot).toBe(root);
     expect(mountedOptions).toEqual({
+      themes: ["light"],
       lang: "en",
       problems: options.problems,
       host: "ide",
       keyScope: "document",
     });
-    expect(mountedOptions).not.toHaveProperty("themes");
     expect(shell.host).toBe("ide");
     shell.destroy();
   });

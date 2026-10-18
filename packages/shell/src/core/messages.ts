@@ -8,6 +8,8 @@ export interface ShellMessages {
   menu: string;
   /** Palette `aria-label`. */
   tools: string;
+  /** `aria-label` of the focusable canvas `<svg>` (`role="application"`); a modeler names its notation. */
+  canvas: string;
   /** Zoom panel `aria-label`. */
   zoom: string;
   zoomOut: string;
@@ -35,13 +37,17 @@ export interface ShellMessages {
   keyNames: { ctrl: string; shift: string; plus: string; minus: string };
 }
 
-export type ShellMessageOverrides = Partial<Omit<ShellMessages, "keyNames">> & {
-  keyNames?: Partial<ShellMessages["keyNames"]>;
+/** Every key optional; an `undefined` value keeps the default (a conditional override). */
+export type ShellMessageOverrides = {
+  [Key in Exclude<keyof ShellMessages, "keyNames">]?: ShellMessages[Key] | undefined;
+} & {
+  keyNames?: { [Key in keyof ShellMessages["keyNames"]]?: string | undefined } | undefined;
 };
 
 export const defaultMessages: ShellMessages = {
   menu: "Menu",
   tools: "Tools",
+  canvas: "Diagram",
   zoom: "Zoom",
   zoomOut: "Zoom out",
   zoomIn: "Zoom in",
@@ -64,7 +70,7 @@ export const defaultMessages: ShellMessages = {
 };
 
 /** `defaultMessages` with `overrides` applied (`keyNames` merged key by key). */
-export function resolveMessages(overrides?: ShellMessageOverrides): ShellMessages {
+export function resolveMessages(overrides?: ShellMessageOverrides | undefined): ShellMessages {
   const { keyNames, ...texts } = overrides ?? {};
   return {
     ...defaultMessages,
@@ -75,6 +81,8 @@ export function resolveMessages(overrides?: ShellMessageOverrides): ShellMessage
 
 // `{ menu: undefined }` (a spread of optional fields, a conditional override) keeps the default
 // instead of blanking the text.
-function definedEntries<T extends object>(partial: T): Partial<T> {
-  return Object.fromEntries(Object.entries(partial).filter(([, value]) => value !== undefined)) as Partial<T>;
+function definedEntries<T extends object>(partial: T): { [Key in keyof T]?: Exclude<T[Key], undefined> } {
+  return Object.fromEntries(Object.entries(partial).filter(([, value]) => value !== undefined)) as {
+    [Key in keyof T]?: Exclude<T[Key], undefined>;
+  };
 }
