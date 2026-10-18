@@ -1,4 +1,5 @@
 import type { Appearance, ShellHost, Size, Theme } from "../core/index.js";
+import { createCases } from "./cases.js";
 import type { PageLike } from "./page.js";
 
 export interface OpenContext {
@@ -51,7 +52,7 @@ export interface ShellConformanceCase {
  * `cleanup` (after `destroy` no shell element, class, attribute or key handling remains).
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
-  throw new Error("@miragon/modeler-shell: shellConformanceCases is not implemented yet");
+  return createCases();
 }
 
 /** Playwright's `test` (or any runner whose body receives `{ page }`). */
@@ -69,7 +70,19 @@ export interface RegisterShellConformanceOptions {
 export function registerShellConformance<P extends PageLike>(
   harness: ShellConformanceHarness<P>,
   test: ShellConformanceTest<P>,
-  options?: RegisterShellConformanceOptions,
+  options: RegisterShellConformanceOptions = {},
 ): void {
-  throw new Error("@miragon/modeler-shell: registerShellConformance is not implemented yet");
+  const onSkip =
+    options.onSkip ??
+    ((caseName: string, reason: string) => {
+      console.warn(
+        `@miragon/modeler-shell conformance: SKIPPED "${caseName}" (${harness.host} host): ${reason}`,
+      );
+    });
+  for (const conformanceCase of shellConformanceCases()) {
+    test(`shell conformance: ${conformanceCase.name}`, async ({ page }) => {
+      const outcome = await conformanceCase.run(page, harness);
+      if (outcome?.skipped) onSkip(conformanceCase.name, outcome.skipped);
+    });
+  }
 }

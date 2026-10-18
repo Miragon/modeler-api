@@ -1,22 +1,20 @@
-import { test, type Page } from "@playwright/test";
+import { test } from "@playwright/test";
 
 import { registerShellConformance } from "../src/testing.js";
+import { EXPECTED_SKIPS, demoHarness } from "./demo-harness.js";
 
-// The kit against the demo page, as a modeler's e2e suite would run it against its webview.
-registerShellConformance(
-  {
-    host: "ide",
-    themes: ["light"],
-    async open(page: Page, { size, requested }) {
-      await page.setViewportSize(size);
-      const query = new URLSearchParams({ host: "ide", themes: "light", theme: requested.theme });
-      if (requested.kontrast) query.set("kontrast", requested.kontrast);
-      await page.goto(`/?${query.toString()}`);
-      await page.waitForFunction(() => window.__demo?.ready === true);
-    },
-    async destroy(page: Page) {
-      await page.evaluate(() => window.__demo?.destroy());
-    },
-  },
-  test,
-);
+// The kit against the demo page, as a modeler's e2e suite runs it against its webview. The demo
+// feeds every hook, so a skip is a failure here unless the host cannot provide the input yet.
+for (const host of ["ide", "web", "embedded"] as const) {
+  test.describe(`${host} host`, () => {
+    test.describe.configure({ timeout: 60_000 });
+    registerShellConformance(demoHarness(host), test, {
+      onSkip(caseName, reason) {
+        const expected = EXPECTED_SKIPS[host] ?? [];
+        if (!expected.some((pattern) => pattern.test(reason))) {
+          throw new Error(`the demo harness left "${caseName}" unverified: ${reason}`);
+        }
+      },
+    });
+  });
+}
