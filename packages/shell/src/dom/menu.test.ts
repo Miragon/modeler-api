@@ -347,12 +347,12 @@ describe("menu: activation", () => {
     expect(document.activeElement).toBe(item());
   });
 
-  it("read-only disables every Model entry, the Legend toggle and the rest stay", () => {
+  it("read-only disables every Model entry including the Legend toggle, the rest stay", () => {
     const { shell } = mount({ menu: groups(), legend: { render() {}, open: true } });
     shell.setReadOnly(true);
     shell.menu.open();
     const disabled = items(shell.menu.dropdown).map((item) => item.getAttribute("aria-disabled") === "true");
-    expect(disabled).toEqual([true, true, true, false, false, false, false]);
+    expect(disabled).toEqual([true, true, true, true, false, false, false]);
     shell.setReadOnly(false);
     expect(items(shell.menu.dropdown).some((item) => item.hasAttribute("aria-disabled"))).toBe(false);
   });

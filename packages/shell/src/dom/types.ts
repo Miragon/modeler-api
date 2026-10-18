@@ -18,8 +18,10 @@ export interface ShellOptions {
    */
   canvas?: HTMLElement;
   /**
-   * The tool's UI language (BCP 47) for `Intl` and the messages. Default: the closest `[lang]`
-   * ancestor of the root, else `"en"`. In the `embedded` host the root gets `lang` itself.
+   * The tool's UI language (BCP 47) for `Intl` and `<html lang>` (guide §2: one language per tool).
+   * Default in an own document (`ide`, `web`): the closest `[lang]` of the root, else `"en"`. In the
+   * `embedded` host the page's language is not the tool's, so the default is the root's own `lang`
+   * attribute, else `"en"`, and the root carries `lang` itself.
    */
   lang?: string;
   messages?: ShellMessageOverrides;
@@ -111,7 +113,10 @@ export interface LegendOptions {
   render(body: HTMLElement): void;
   /** Start state the host remembered; default `legendStartsOpen(container height)`. */
   open?: boolean;
-  /** Every toggle (close button, menu checkbox), so the host can persist it. */
+  /**
+   * Every change of the open state (close button, menu checkbox, `setOpen`, `toggle`), so the host
+   * can persist it; not the automatic start decision.
+   */
   onToggle?(open: boolean): void;
   /** Append the "Legend" checkbox to the Model group; default `true`. */
   menuEntry?: boolean;

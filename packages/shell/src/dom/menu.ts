@@ -79,9 +79,9 @@ export function createMenu(context: MenuContext): MenuController {
     if (trigger.hidden) close();
   }
 
+  // Guide §13.5: on a read-only canvas every Model entry is aria-disabled, the Legend toggle too.
   function isDisabled(entry: MenuEntry, group: GroupName): boolean {
-    const shellEntry = context.shellModelEntries().includes(entry as MenuCheckboxEntry);
-    if (group === "model" && !shellEntry && context.isReadOnly()) return true;
+    if (group === "model" && context.isReadOnly()) return true;
     return entry.disabled?.() ?? false;
   }
 

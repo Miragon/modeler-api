@@ -35,9 +35,12 @@ import { createZoomPanel } from "./zoom-panel.js";
 
 let mountCount = 0;
 
-function languageOf(root: HTMLElement, requested: string | undefined): string {
+// In a foreign page the closest [lang] is the page's language, not the tool's (guide §2).
+function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: string | undefined): string {
   if (requested) return requested;
-  return root.closest("[lang]")?.getAttribute("lang") || "en";
+  const declared =
+    host === "embedded" ? root.getAttribute("lang") : root.closest("[lang]")?.getAttribute("lang");
+  return declared || "en";
 }
 
 /**
@@ -56,7 +59,7 @@ export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandl
   const ledger = new Ledger();
   const messages = resolveMessages(options.messages);
   const platform = options.platform ?? detectPlatform(globalThis.navigator);
-  const lang = languageOf(root, options.lang);
+  const lang = languageOf(root, host, options.lang);
   const keyScope = options.keyScope ?? (host === "embedded" ? "root" : "document");
 
   ledger.addClass(root, "cd-shell");

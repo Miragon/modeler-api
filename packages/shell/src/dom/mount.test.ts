@@ -125,6 +125,26 @@ describe("mountShell: root and document", () => {
     expect(document.documentElement.classList).not.toContain("cd-shell-document");
   });
 
+  it("embedded: the foreign page's language is not the tool's (guide §2)", () => {
+    document.documentElement.lang = "de";
+    const page = document.createElement("div");
+    page.lang = "de-DE";
+    const root = document.createElement("div");
+    page.append(root);
+    document.body.append(page);
+    setContainerSize(root, 1000, 800);
+    const english = mountShell(root, { host: "embedded" });
+    expect(english.lang).toBe("en");
+    expect(root.getAttribute("lang")).toBe("en");
+    english.destroy();
+
+    root.setAttribute("lang", "fr");
+    const declared = mountShell(root, { host: "embedded" });
+    expect(declared.lang).toBe("fr");
+    declared.destroy();
+    expect(root.getAttribute("lang")).toBe("fr");
+  });
+
   it("reads the language from the closest [lang], else English", () => {
     const wrapper = document.createElement("div");
     wrapper.lang = "de-DE";
