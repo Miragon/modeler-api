@@ -69,6 +69,70 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("aria fails for a palette shortcut that only the tooltip chip names", async ({ page }) => {
+    const harness = sabotaged(() => {
+      for (const entry of document.querySelectorAll('[data-chrome="palette"] [aria-keyshortcuts]')) {
+        entry.removeAttribute("aria-keyshortcuts");
+      }
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /palette: entry "lasso-tool" shows the shortcut "L" in its tooltip but has no aria-keyshortcuts/,
+    );
+  });
+
+  test("aria fails for an extra tab stop a renderer puts on .djs-container", async ({ page }) => {
+    // Event Storming's keyboard sets tabindex="0" on canvas.getContainer()
+    const harness = sabotaged(() => {
+      document.querySelector(".djs-container")?.setAttribute("tabindex", "0");
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /tab order: Tab from the menu trigger lands on div\.djs-container.*\[tabindex="0"\], expected the palette's roving entry/,
+    );
+  });
+
+  test("aria fails when the open menu lets its arrow keys reach document listeners", async ({ page }) => {
+    const harness = sabotaged(() => {
+      const ignore = () => {};
+      Event.prototype.stopPropagation = ignore;
+      Event.prototype.stopImmediatePropagation = ignore;
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: ArrowUp in the open menu reached a keydown listener on document/,
+    );
+  });
+
+  test("aria fails for a canvas without an accessible name", async ({ page }) => {
+    const harness = sabotaged(() => {
+      document.querySelector(".djs-container > svg")?.removeAttribute("aria-label");
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /canvas: the focusable <svg> has no accessible name/,
+    );
+  });
+
+  test("keys fails when the canvas takes Cmd/Ctrl+Z from VS Code's document history", async ({ page }) => {
+    const harness = sabotaged(() => {
+      document.addEventListener("keydown", (event) => {
+        const onCanvas = (event.target as Element | null)?.closest?.(".djs-container") !== null;
+        if (onCanvas && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+          event.preventDefault();
+        }
+      });
+    });
+    await expect(runCase("keys", page, harness)).rejects.toThrow(
+      /Control\+KeyZ on the canvas \(undo and redo belong to the VS Code document\) arrived prevented/,
+    );
+  });
+
+  test("appearance fails for an embedded root that takes the host page's mode", async ({ page }) => {
+    const harness = sabotaged(() => {
+      document.querySelector(".cd-shell")?.removeAttribute("data-cd-theme");
+    }, "embedded");
+    await expect(runCase("appearance", page, harness)).rejects.toThrow(
+      /\[requested dark\] the embedded root has no data-cd-theme \(host page dark, expected light\)/,
+    );
+  });
+
   test("keys fails when a handled key reaches a keydown listener on window", async ({ page }) => {
     const harness = sabotaged(() => {
       const ignore = () => {};

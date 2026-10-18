@@ -1,8 +1,8 @@
 import type { Page } from "@playwright/test";
 
 import type { Appearance, ShellHost, Theme } from "../src/index.js";
-import type { ShellConformanceHarness } from "../src/testing.js";
-import { colorThemeKindOf } from "../demo/vscode-host-stub.js";
+import { vsCodeStubSearch, type ShellConformanceHarness } from "../src/testing.js";
+import { colorThemeKindOf } from "../src/testing-vscode-stub.js";
 
 /**
  * What the demo's foreign page (demo.css) puts around the embedded root's container: 40px page
@@ -40,8 +40,9 @@ export function demoHarness(
       const frame = host === "embedded" ? EMBEDDED_FRAME : { width: 0, height: 0 };
       await page.setViewportSize({ width: size.width + frame.width, height: size.height + frame.height });
       const initial = switchAtRuntime ? LIGHT : requested;
-      const query = new URLSearchParams({ host, themes: themes.join(","), theme: initial.theme });
-      if (initial.kontrast) query.set("kontrast", initial.kontrast);
+      const query = new URLSearchParams(vsCodeStubSearch(initial));
+      query.set("host", host);
+      query.set("themes", themes.join(","));
       query.set("legend", "");
       query.set("inspector", "");
       await page.goto(`/?${query.toString()}`);
@@ -79,8 +80,3 @@ export function demoHarness(
     },
   };
 }
-
-/** Until contract 1.1 an embedded modeler has no appearance channel (guide §13.3). */
-export const EXPECTED_SKIPS: Readonly<Partial<Record<ShellHost, readonly RegExp[]>>> = {
-  embedded: [/high contrast not verified/],
-};

@@ -93,3 +93,143 @@ test.describe("chrome typography and host hygiene", () => {
     expect(action["font-family"]).toMatch(GEIST);
   });
 });
+
+test.describe("the chrome in a foreign page", () => {
+  // Plain element rules of the host page (specificity 0,0,1) must not reach into the chrome (§5.1, §5.14).
+  const HOSTILE_PAGE_CSS = `
+    button { font-family: serif; text-transform: uppercase; line-height: 2.5; letter-spacing: 3px; }
+    p { font-size: 18px; line-height: 2; color: rgb(255, 0, 0); }
+    span { font-size: 21px; text-transform: uppercase; }
+    section { font-family: serif; }
+  `;
+
+  async function openEmbedded(page: Page, query: string): Promise<void> {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`/?host=embedded&${query}`);
+    await page.waitForFunction(() => window.__demo?.ready === true);
+    await page.addStyleTag({ content: HOSTILE_PAGE_CSS });
+  }
+
+  test("keeps readout, menu trigger, status text and Insert example in the chrome's type", async ({
+    page,
+  }) => {
+    await openEmbedded(page, "empty&status=danger&legend=open");
+    const readout = await styleOf(page, ".cd-shell-zoom-readout", [
+      "font-family",
+      "font-size",
+      "font-weight",
+      "text-transform",
+      "letter-spacing",
+    ]);
+    expect(readout).toEqual({
+      "font-family": expect.stringMatching(GEIST),
+      "font-size": "13px",
+      "font-weight": "600",
+      "text-transform": "none",
+      "letter-spacing": "normal",
+    });
+    const trigger = await styleOf(page, '[data-chrome="menu"]', ["font-family", "line-height"]);
+    expect(trigger).toEqual({ "font-family": expect.stringMatching(GEIST), "line-height": "19.5px" });
+    const status = await styleOf(page, ".cd-shell-status-text", ["font-size", "line-height", "color"]);
+    expect(status["font-size"]).toBe("13px");
+    expect(status["line-height"]).toBe("19.5px");
+    expect(status.color).not.toBe("rgb(255, 0, 0)");
+    const action = await styleOf(page, ".cd-shell-hint-action", [
+      "text-transform",
+      "font-weight",
+      "font-family",
+    ]);
+    expect(action).toEqual({
+      "text-transform": "none",
+      "font-weight": "600",
+      "font-family": expect.stringMatching(GEIST),
+    });
+    const legendTitle = await styleOf(page, ".cd-shell-legend-title", ["font-family", "font-size"]);
+    expect(legendTitle).toEqual({ "font-family": expect.stringMatching(GEIST), "font-size": "13px" });
+
+    await page.locator('[data-zoom="in"]').hover();
+    await expect(page.locator(".cd-shell-tooltip")).toBeVisible();
+    const label = await styleOf(page, ".cd-shell-tooltip-label", ["font-size", "text-transform"]);
+    expect(label).toEqual({ "font-size": "13px", "text-transform": "none" });
+  });
+
+  test("stays light under a dark host page and takes its high contrast over", async ({ page }) => {
+    await openEmbedded(page, "theme=dark&kontrast=hoch");
+    const root = await page.evaluate(() => {
+      const element = document.querySelector(".cd-shell")!;
+      return {
+        theme: element.getAttribute("data-cd-theme"),
+        kontrast: element.getAttribute("data-cd-kontrast"),
+        colorScheme: getComputedStyle(element).colorScheme,
+        page: getComputedStyle(document.querySelector(".demo-foreign-page")!).colorScheme,
+      };
+    });
+    expect(root).toEqual({ theme: "light", kontrast: "hoch", colorScheme: "light", page: "dark" });
+  });
+});
+
+test.describe("the canvas slot", () => {
+  test("keeps its layout over a renderer's container class, and the renderer's paper", async ({ page }) => {
+    await open(page);
+    const style = await page.evaluate(() => {
+      // a renderer stylesheet, loaded before shell.css as the stylesheet order says
+      const renderer = document.createElement("style");
+      renderer.textContent = `.demo-renderer-paper {
+        position: relative;
+        background-color: rgb(8, 10, 32);
+        background-image: radial-gradient(rgb(255, 255, 255) 1px, transparent 1px);
+      }`;
+      document.head.prepend(renderer);
+      const canvas = document.querySelector(".cd-shell-canvas")!;
+      canvas.classList.add("demo-renderer-paper");
+      const computed = getComputedStyle(canvas);
+      return {
+        position: computed.position,
+        backgroundColor: computed.backgroundColor,
+        backgroundImage: computed.backgroundImage,
+      };
+    });
+    expect(style.position).toBe("absolute");
+    expect(style.backgroundColor).toBe("rgb(8, 10, 32)");
+    expect(style.backgroundImage).toContain("radial-gradient");
+  });
+
+  test("rings the focused canvas in --cd-ui-fokus, inside the slot; 3px in high contrast", async ({
+    page,
+  }) => {
+    for (const [query, width, offset] of [
+      ["", "2px", "-2px"],
+      ["&theme=dark&kontrast=hoch", "3px", "-3px"],
+    ] as const) {
+      await open(page, query);
+      for (let step = 0; step < 3; step++) await page.keyboard.press("Tab");
+      const ring = await page.evaluate(() => {
+        const svg = document.activeElement;
+        if (!svg?.matches(".djs-container > svg")) return null;
+        const style = getComputedStyle(svg);
+        const fokus = getComputedStyle(document.documentElement).getPropertyValue("--cd-ui-fokus").trim();
+        const probe = document.createElement("span");
+        probe.style.color = fokus;
+        document.body.append(probe);
+        const expected = getComputedStyle(probe).color;
+        probe.remove();
+        return {
+          style: style.outlineStyle,
+          width: style.outlineWidth,
+          offset: style.outlineOffset,
+          sameColour: style.outlineColor === expected,
+          role: svg.getAttribute("role"),
+          name: svg.getAttribute("aria-label"),
+        };
+      });
+      expect(ring).toEqual({
+        style: "solid",
+        width,
+        offset,
+        sameColour: true,
+        role: "application",
+        name: "Diagram",
+      });
+    }
+  });
+});

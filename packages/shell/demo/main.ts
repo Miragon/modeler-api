@@ -17,16 +17,28 @@ import {
   type Theme,
 } from "../src/index.js";
 import { connectDiagramJs, type DiagramJsConnection } from "../src/diagram-js.js";
-import { mountVsCodeShell } from "../src/vscode-webview.js";
+import {
+  installVsCodeWebviewStub,
+  stubOptionsFromSearch,
+  type StubWindow,
+} from "../src/testing-vscode-stub.js";
+import {
+  mountVsCodeShell,
+  persistView,
+  readShellState,
+  writeShellState,
+  type ShellWebviewState,
+} from "../src/vscode-webview.js";
 import { addSampleShapes, createDemoDiagram, demoContentBounds } from "./demo-diagram.js";
-import { startVsCodeHostStub } from "./vscode-host-stub.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
- * - `host`: `ide` (default, a VS Code webview with a stubbed host, see vscode-host-stub.ts), `web`
+ * - `host`: `ide` (default, a VS Code webview inside the stub of `./testing/vscode-stub`), `web`
  *   or `embedded` (a foreign page);
  * - `themes`: the modes the demo modeler declares, comma-separated (default `light`);
- * - `theme`, `kontrast`: what the host requests (default `light`, none);
+ * - `theme`, `kontrast`: what the host requests (default `light`, none); embedded: the foreign
+ *   page's own mode;
+ * - `colorTheme`, `reduceMotion` (ide): the modeler's setting and VS Code's workbench.reduceMotion;
  * - `empty`: start without content; `legend` (`legend=open`: open at start), `inspector`: mount
  *   those slots;
  * - `problems=<count>:<errors>`, `status=danger|warning`: show pill and status box at start;
@@ -35,10 +47,8 @@ import { startVsCodeHostStub } from "./vscode-host-stub.js";
 const params = new URLSearchParams(location.search);
 const host = (params.get("host") ?? "ide") as ShellHost;
 const themes = (params.get("themes") ?? "light").split(",") as Theme[];
-const requested: Appearance = {
-  theme: (params.get("theme") ?? "light") as Theme,
-  ...(params.get("kontrast") === "hoch" ? { kontrast: "hoch" as const } : {}),
-};
+const stubOptions = stubOptionsFromSearch(location.search);
+const requested: Appearance = stubOptions.requested;
 
 const calls: string[] = [];
 let snap = true;
@@ -103,9 +113,12 @@ function hostElement(): HTMLElement {
   const app = document.getElementById("app");
   if (!app) throw new Error("demo: #app is missing");
   if (host !== "embedded") return app;
-  // a foreign page: its own language and layout, the modeler in a sized box
+  // a foreign page: its own language, mode and layout, the modeler in a sized box
   document.documentElement.classList.remove("cd-shell-document");
   document.documentElement.lang = "de";
+  for (const [name, value] of Object.entries(appearanceAttributes(requested))) {
+    document.documentElement.setAttribute(name, value);
+  }
   app.classList.add("demo-foreign-page");
   const box = document.createElement("div");
   box.className = "demo-embedded-host";
@@ -114,7 +127,9 @@ function hostElement(): HTMLElement {
 }
 
 const root = hostElement();
-const vscodeHost = host === "ide" ? startVsCodeHostStub(requested, themes) : undefined;
+const vscodeHost = host === "ide" ? installVsCodeWebviewStub({ ...stubOptions, themes }) : undefined;
+const vscode = host === "ide" ? (window as StubWindow).acquireVsCodeApi?.() : undefined;
+const stored: ShellWebviewState = vscode ? readShellState(vscode) : {};
 if (host === "web") {
   for (const [name, value] of Object.entries(appearanceAttributes(resolveAppearance(requested, themes)))) {
     document.documentElement.setAttribute(name, value);
@@ -128,6 +143,7 @@ const diagram = createDemoDiagram(canvasElement);
 const options = {
   canvas: canvasElement,
   lang: "en",
+  themes,
   menu,
   problems: { onActivate: () => calls.push("show-problems") },
   emptyHint: { onInsertExample: () => insertExample() },
@@ -137,8 +153,11 @@ const options = {
           render(body: HTMLElement) {
             body.innerHTML = `<div class="cd-shell-legend-row"><span class="cd-shell-legend-preview demo-legend-box"></span><span>Box</span></div>`;
           },
-          onToggle: (open: boolean) => calls.push(`legend:${open}`),
-          ...(params.get("legend") === "open" ? { open: true } : {}),
+          onToggle: (open: boolean) => {
+            calls.push(`legend:${open}`);
+            if (vscode) writeShellState(vscode, { legendOpen: open });
+          },
+          open: params.get("legend") === "open" ? true : stored.legendOpen,
         },
       }
     : {}),
@@ -151,6 +170,7 @@ const shell: ShellHandle =
 const connection: DiagramJsConnection = connectDiagramJs(shell, diagram, {
   contentBounds: () => demoContentBounds(diagram),
 });
+const stopPersisting = vscode ? persistView(vscode, connection.viewport) : undefined;
 
 function insertExample(): void {
   calls.push("insert-example");
@@ -163,6 +183,7 @@ if (params.has("empty")) {
   shell.setEmptyHint(true);
 } else {
   addSampleShapes(diagram);
+  if (stored.view) connection.viewport.setState(stored.view);
   connection.viewport.afterImport();
 }
 
@@ -198,6 +219,7 @@ const demo = {
   destroy(): void {
     if (destroyed) return;
     destroyed = true;
+    stopPersisting?.();
     connection.destroy();
     diagram.destroy();
     shell.destroy();

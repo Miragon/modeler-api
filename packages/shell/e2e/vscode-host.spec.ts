@@ -100,3 +100,62 @@ test.describe("VS Code host stub", () => {
     expect(record.transitions).toBe(0);
   });
 });
+
+test.describe("VS Code host stub: setting and motion", () => {
+  test("a rendered webview switches only with the bridge: the colorTheme setting never flashes", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`/?host=ide&themes=light,dark&theme=light&colorTheme=dark`);
+    await page.waitForFunction(() => window.__demo?.ready === true);
+    expect(await htmlMode(page)).toEqual({ theme: "dark", kontrast: null, body: "vscode-light" });
+    await page.evaluate(() => {
+      const seen: Array<string | null> = [];
+      (window as unknown as { __themes: typeof seen }).__themes = seen;
+      new MutationObserver(() => seen.push(document.documentElement.getAttribute("data-cd-theme"))).observe(
+        document.documentElement,
+        { attributes: true, attributeFilter: ["data-cd-theme"] },
+      );
+    });
+    await switchTo(page, 2);
+    await switchTo(page, 1);
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => (window as unknown as { __themes: string[] }).__themes)).toEqual([]);
+    expect(await htmlMode(page)).toEqual({ theme: "dark", kontrast: null, body: "vscode-light" });
+
+    await page.evaluate(() => window.__demo?.vscode?.setColorTheme("automatic"));
+    await page.waitForFunction(() => document.documentElement.getAttribute("data-cd-theme") === "light");
+  });
+
+  test("VS Code's reduce motion stops the chrome's animations and makes an explicit fit jump", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`/?host=ide&reduceMotion`);
+    await page.waitForFunction(() => window.__demo?.ready === true);
+    expect(
+      await page.evaluate(() => document.documentElement.classList.contains("cd-shell-reduce-motion")),
+    ).toBe(true);
+    await page.locator('[data-chrome="menu"]').click();
+    const duration = await page.evaluate(
+      () => getComputedStyle(document.querySelector(".cd-shell-menu")!).animationDuration,
+    );
+    expect(parseFloat(duration)).toBeLessThan(0.001);
+    await page.keyboard.press("Escape");
+
+    await page.locator('[data-zoom="in"]').click();
+    await page.locator('[data-zoom="in"]').click();
+    const zooms = await page.evaluate(async () => {
+      const viewport = window.__demo!.connection.viewport;
+      viewport.fit();
+      const first = viewport.zoom();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return { first, settled: viewport.zoom() };
+    });
+    expect(zooms.first).toBe(zooms.settled);
+    expect(zooms.first).toBeLessThanOrEqual(1);
+
+    await page.evaluate(() => window.__demo?.vscode?.setReduceMotion(false));
+    await page.waitForFunction(() => !document.documentElement.classList.contains("cd-shell-reduce-motion"));
+  });
+});

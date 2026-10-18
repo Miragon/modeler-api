@@ -2,6 +2,7 @@ import Diagram from "diagram-js";
 import type ElementFactory from "diagram-js/lib/core/ElementFactory";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
 import CreateModule from "diagram-js/lib/features/create";
 import type Create from "diagram-js/lib/features/create/Create";
 import EditorActionsModule from "diagram-js/lib/features/editor-actions";
@@ -101,12 +102,14 @@ export function createDemoDiagram(container: HTMLElement): Diagram {
   });
 }
 
-/** Adds a few boxes, standing in for an import. */
+/** Adds a few boxes, standing in for an import: inside the import events a renderer fires. */
 export function addSampleShapes(diagram: Diagram): void {
   const canvas = diagram.get<Canvas>("canvas");
   const modeling = diagram.get<Modeling>("modeling");
   const elementFactory = diagram.get<ElementFactory>("elementFactory");
+  const eventBus = diagram.get<EventBus>("eventBus");
   const root = canvas.getRootElement() as Parent;
+  eventBus.fire("import.render.start", {});
   for (const [x, y] of [
     [100, 100],
     [400, 160],
@@ -114,6 +117,7 @@ export function addSampleShapes(diagram: Diagram): void {
   ] as const) {
     modeling.createShape(elementFactory.createShape({ width: 160, height: 100 }), { x, y }, root);
   }
+  eventBus.fire("import.done", { warnings: [] });
 }
 
 /** Bounds of every shape; `undefined` for an empty diagram. */
