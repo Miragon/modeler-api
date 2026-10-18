@@ -1,0 +1,6 @@
+/*
+ * Chrome of @miragon/modeler-shell (owned by src/dom): shell root, canvas slot, islands, menu,
+ * tooltip, zoom panel, problems pill, status box, empty-file hint, legend, inspector, layers,
+ * focus, high contrast, forced colours, reduced motion and the own-document reset
+ * (html.cd-shell-document). Colours only from var(--cd-ui-*), sizes from var(--cd-shell-*).
+ */

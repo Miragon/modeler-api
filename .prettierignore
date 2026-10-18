@@ -1,2 +1,6 @@
 dist/
 CHANGELOG.md
+# vendored unchanged from Miragon/corporate-identity
+packages/shell/fixtures/tokens/
+test-results/
+playwright-report/

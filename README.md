@@ -9,10 +9,10 @@ This repository is an npm workspace. Each package under `packages/` is
 versioned, tagged (`<component>-vX.Y.Z`, e.g. `modeler-api-v1.0.0`) and
 published on its own.
 
-| Package                                | Path             | Status                                                                                       |
-| -------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
-| [`@miragon/modeler-api`](packages/api) | `packages/api`   | the collaborative-modeler contract and its conformance kit, 0 runtime dependencies           |
-| `@miragon/modeler-shell`               | `packages/shell` | planned: menu button, zoom panel, keys, fit and host plumbing (diagram-js, VS Code webviews) |
+| Package                                    | Path             | Status                                                                                                                                |
+| ------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@miragon/modeler-api`](packages/api)     | `packages/api`   | the collaborative-modeler contract and its conformance kit, 0 runtime dependencies                                                    |
+| [`@miragon/modeler-shell`](packages/shell) | `packages/shell` | 0.1 in development: menu button, zoom panel, keys, fit and host plumbing (diagram-js, VS Code webviews), [API](packages/shell/API.md) |
 
 The contract's laws, the conformance kit and its versioning are documented in
 the [package README](packages/api/README.md). The plan for the shell, the

@@ -33,9 +33,10 @@ every package builds with the same versions. Each package under `packages/`
 owns its `src/`, `test/`, `tsconfig.json`, `tsup.config.ts`, `README.md` and
 `LICENSE` (npm packs only the package directory, so the license is copied in).
 
-| Path           | Package                |
-| -------------- | ---------------------- |
-| `packages/api` | `@miragon/modeler-api` |
+| Path             | Package                  |
+| ---------------- | ------------------------ |
+| `packages/api`   | `@miragon/modeler-api`   |
+| `packages/shell` | `@miragon/modeler-shell` |
 
 ## Releases
 
@@ -69,6 +70,8 @@ npm run lint      # tsc in every package + prettier over the repo
 npm test          # the kit's own conformance suite (reference modeler + saboteurs)
 npm run build     # tsup: dual ESM/CJS + d.ts
 npm run publint   # the published package shape (exports, types, files)
+npm run test:e2e  # Playwright suites (the shell's conformance kit against its demo);
+                  # once: npx playwright install chromium
 ```
 
 Adding a case to the kit means adding a saboteur flaw to

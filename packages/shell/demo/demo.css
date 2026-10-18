@@ -1,0 +1,32 @@
+/* Demo page only: a foreign page around the embedded host, and previews for the demo shapes. */
+
+.demo-foreign-page {
+  box-sizing: border-box;
+  height: 100vh;
+  margin: 0;
+  padding: 40px;
+  background: var(--cd-ui-flaeche);
+}
+
+.demo-embedded-host {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--cd-ui-linie);
+}
+
+.djs-palette .entry.demo-entry-box::before,
+.djs-palette .entry.demo-entry-wide-box::before,
+.demo-legend-box {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 20px;
+  height: 14px;
+  border: 2px solid var(--cd-ui-kontur);
+  border-radius: 2px;
+}
+
+.djs-palette .entry.demo-entry-wide-box::before {
+  width: 24px;
+  height: 10px;
+}

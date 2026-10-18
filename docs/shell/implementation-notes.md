@@ -3,8 +3,9 @@
 `@miragon/modeler-shell` will be the shared, framework-free implementation of everything around a
 Miragon diagram-js modeler: menu button, tool palette, tooltips, zoom panel, keys, fit, problems pill,
 legend, status box and the plumbing to its host (a VS Code webview, a web app, or an embedding host
-such as designIQ). **Status: planned**, Phase 4 of [#4](https://github.com/Miragon/modeler-api/issues/4).
-No package in this repository implements these notes yet.
+such as designIQ). **Status: 0.1 in development** in [`packages/shell`](../../packages/shell), Phase 4
+of [#4](https://github.com/Miragon/modeler-api/issues/4); its public API is fixed in
+[`packages/shell/API.md`](../../packages/shell/API.md).
 
 The source of truth for look and behaviour is the Miragon design system: the Claude skill
 `modeler-tool-design` in Miragon/corporate-identity, guide
@@ -204,7 +205,13 @@ tab order.
   tool entries.
 - **Active tool.** diagram-js fires `tool-manager.update` with `{ tool }` (the tool name, `null` when
   none is active) and marks the matching entry in group `tools` (`data-action="<tool>-tool"`) with
-  `highlighted-entry`. The shell mirrors that to `aria-pressed="true"`.
+  `highlighted-entry`. Do not mirror that class: `Palette#updateToolHighlight` caches the tools group
+  on its first call (`_toolsContainer`) and never refreshes it, so after a rebuild the class lands on
+  detached entries. The shell keeps the tool name of the last `tool-manager.update` itself, sets
+  `aria-pressed` from it after every `palette.changed`, and styles `[aria-pressed="true"]`.
+- **Two columns.** On every `canvas.resized` diagram-js decides from the container height whether
+  the vertical palette needs two columns and toggles `two-column` on the palette and
+  `djs-palette-two-column` on the container. The horizontal skin ignores both classes.
 - **Group separator.** Between two `.group` elements: `margin-left: 8px` before the line and
   `padding-left: 8px` after it, so 8px of space show on each side. Draw the 1px line as a `::before`
   inset 4px at top and bottom; a `border-left` would run the full 32px.
@@ -345,6 +352,10 @@ the modeler know the same key.
   [Where the listener listens](#where-the-listener-listens)). It handles them regardless of
   `defaultPrevented`, because diagram-js's `Keyboard` has called `preventDefault()` on every key a
   listener returned a value for, including the shell's own.
+- Listeners on one target run in registration order. A modeler whose own keyboard listens on
+  `document` (Event Storming does) must register it before the shell's listener, so construct the
+  diagram before mounting the shell; otherwise the shell's listener runs first and cannot see that the
+  modeler handled the key (`defaultPrevented`). Listeners on the canvas `<svg>` are always earlier.
 
 ### Where the listener listens
 
@@ -452,9 +463,13 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
 - On every `canvas.viewbox.changed`, compare the event's viewbox with the last box the shell set
   itself (fit or restore), with a relative tolerance of 1/1000. If it differs, the user moved the
   view.
-- Compare `x`, `y` and `scale`, not `width` and `height`: those change with the container size, and a
-  resize must not count as a move. The getter rounds the transform to three decimals, which is why an
-  exact comparison would fail.
+- Compare the scale and the translation, not `width` and `height`: those change with the container
+  size, and a resize must not count as a move. The getter rounds the transform to three decimals, which
+  is why an exact comparison would fail. Compare the translation in screen pixels (`x · scale`,
+  `y · scale`), relative to `max(1, |value|)`: the getter rounds the screen translation
+  (`matrix.e`, `matrix.f`) and then divides by the scale, so near the origin and at small zoom the
+  diagram coordinates `x` and `y` carry an error of up to `0.0005 / scale` that a tolerance relative
+  to them would not absorb.
 - Do not count own changes with a flag or counter around the fit: with `canvas.deferUpdate` diagram-js
   emits `canvas.viewbox.changed` up to 300ms later (debounced), so the delayed event would be
   attributed to the user. During a fit animation without `deferUpdate`, ignore the synchronous
@@ -597,8 +612,10 @@ function resolveAppearance(requested: Appearance, themes: readonly Theme[]): App
 - `themes` is a static value of the modeler package (for example an exported `themes` constant) that
   the host reads when it renders the HTML, not from the running instance; the attributes must be
   right before the first paint.
-- `resolveAppearance` ships with contract 1.1 in `@miragon/modeler-api`; the host part of the shell
-  uses it ([#4](https://github.com/Miragon/modeler-api/issues/4)).
+- `resolveAppearance` ships in `@miragon/modeler-shell/core`. The shell has no runtime dependencies,
+  so it does not import the rule from the contract; contract 1.1 of `@miragon/modeler-api` adds the
+  `appearance` surface for embedded hosts, which decide with the same rule
+  ([#4](https://github.com/Miragon/modeler-api/issues/4)).
 - Shell conformance requests dark from a light-only modeler and asserts that nothing turns dark.
 
 ## Appearance in embedded hosts
@@ -734,7 +751,8 @@ a theme change switches at once, both attributes in one step, without a fade.
   `vscode-high-contrast` and `vscode-high-contrast-light`; watch them with a `MutationObserver`. Check
   `vscode-high-contrast-light` first: for backwards compatibility VS Code adds `vscode-high-contrast`
   to High Contrast Light as well, so "High Contrast Light" would otherwise be read as dark. Never use
-  the body classes for styling (guide §13.5).
+  the body classes for styling (guide §13.5). Use the fallback only until the first message from the
+  extension arrives: the setting can override the color theme, and the body classes do not know it.
 
 ## VS Code: language
 
@@ -877,7 +895,8 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 - [ ] `Canvas`: `zoom()` rounded to three decimals, `canvas.viewbox.changing` synchronous,
       `deferUpdate` debounce of 300ms, `resized()` dropping the cached viewbox.
 - [ ] `Palette`: appended after the `<svg>`, `palette.create` with `{ container }`, full rebuild on
-      `palette.changed`, `highlighted-entry` for the active tool.
+      `palette.changed`, `highlighted-entry` for the active tool on a cached (stale after a rebuild)
+      tools group, `two-column` toggled on `canvas.resized`.
 - [ ] `PaletteTooltip` still registered as `paletteTooltip`; `HoverTooltip` `SHOW_DELAY = 300`.
 - [ ] `Keyboard`: bound to the canvas `<svg>`, `preventDefault()` without `stopPropagation()`;
       `KeyboardBindings` at default priority 1000.

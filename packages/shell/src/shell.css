@@ -1,0 +1,6 @@
+/*
+ * @miragon/modeler-shell/shell.css. Load after the vendored cd-tokens.generated.css and after
+ * diagram-js.css (and the renderer's CSS), so the palette skin wins regardless of its specificity.
+ */
+@import "./dom/shell-dom.css";
+@import "./diagram-js/palette.css";

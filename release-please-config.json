@@ -4,12 +4,20 @@
   "bootstrap-sha": "176ab0ffaaf21d0e5a10d0104366f83f24291be2",
   "include-component-in-tag": true,
   "bump-minor-pre-major": true,
-  "plugins": [{ "type": "node-workspace" }],
+  "plugins": [
+    {
+      "type": "node-workspace"
+    }
+  ],
   "packages": {
     "packages/api": {
       "component": "modeler-api",
       "initial-version": "1.0.0",
       "extra-files": ["src/index.ts"]
+    },
+    "packages/shell": {
+      "component": "modeler-shell",
+      "initial-version": "0.1.0"
     }
   }
 }
