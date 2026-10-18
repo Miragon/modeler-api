@@ -842,7 +842,8 @@ html.cd-shell-document {
   scrollbar-color: var(--cd-ui-kontur) transparent;
 }
 
-html.cd-shell-document :where(button, input, select, textarea) {
+/* Zero specificity: the chrome's own rules (the readout's 600, a hint button's weight) must win. */
+:where(html.cd-shell-document) :where(button, input, select, textarea) {
   font: inherit;
   color: inherit;
 }

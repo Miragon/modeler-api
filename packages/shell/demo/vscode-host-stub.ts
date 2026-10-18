@@ -21,6 +21,17 @@ const BODY_CLASSES: Readonly<Record<ColorThemeKind, readonly string[]>> = {
 };
 const ALL_BODY_CLASSES = Object.values(BODY_CLASSES).flat();
 
+/**
+ * The rules of VS Code's default webview stylesheet the shell's own-document reset must beat
+ * (implementation notes, "VS Code: host hygiene"), with deliberately foreign values so a leak shows.
+ */
+const VSCODE_DEFAULT_STYLES = `@layer vscode-default {
+  body { margin: 0; padding: 0 20px; color: currentColor; font-family: serif; font-size: 17px; }
+  kbd { box-shadow: inset 0 -1px 0 currentColor; vertical-align: middle; padding: 1px 3px; border-radius: 3px; font-family: serif; }
+  code { font-family: serif; padding: 1px 3px; border-radius: 4px; }
+  a:focus, input:focus, select:focus, textarea:focus { outline: 1px solid -webkit-focus-ring-color; outline-offset: -1px; }
+}`;
+
 /** The VS Code color theme that requests `appearance` (guide §13.3). */
 export function colorThemeKindOf(appearance: Appearance): ColorThemeKind {
   if (appearance.kontrast) return appearance.theme === "dark" ? 3 : 4;
@@ -36,9 +47,10 @@ export interface VsCodeHostStub {
 }
 
 /**
- * Stands in for VS Code around the demo's webview: `<html>` gets the attributes `renderWebviewHtml`
- * writes before the first paint, `<body>` the host page's theme classes, and the real
- * `connectThemeBridge` runs against a fake `vscode` namespace whose panel posts to this window.
+ * Stands in for VS Code around the demo's webview: its default stylesheet in `@layer vscode-default`,
+ * `<html>` with the attributes `renderWebviewHtml` writes before the first paint, `<body>` with the
+ * host page's theme classes, and the real `connectThemeBridge` running against a fake `vscode`
+ * namespace whose panel posts to this window.
  */
 export function startVsCodeHostStub(requested: Appearance, themes: readonly Theme[]): VsCodeHostStub {
   let kind = colorThemeKindOf(requested);
@@ -74,6 +86,11 @@ export function startVsCodeHostStub(requested: Appearance, themes: readonly Them
     onDidChangeViewState: () => none,
     onDidDispose: () => none,
   };
+
+  const defaults = document.createElement("style");
+  defaults.id = "_defaultStyles";
+  defaults.textContent = VSCODE_DEFAULT_STYLES;
+  document.head.prepend(defaults);
 
   const html = new DOMParser().parseFromString(
     renderWebviewHtml({
