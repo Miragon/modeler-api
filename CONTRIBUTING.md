@@ -60,14 +60,17 @@ release-please treats any other manifest version as the last release and
 bumps from it instead of using `initial-version`.
 
 The first release of a new package also needs one manual step on npm: trusted publishing (OIDC)
-can only be bound to a package that already exists, so the release job's `npm publish` fails for a
-name npm has never seen. Before merging the package's first release PR, a maintainer with publish
-rights to the `@miragon` scope publishes a placeholder once with a token, from a clean checkout,
-with the version set to `0.0.0-stage` in the package's `package.json` only for that command:
-`npm publish -w packages/<name> --tag stage --access public` (as `@miragon/modeler-api@0.0.0-stage`
-was). Then, on npmjs.com, the package's settings get a trusted publisher: repository
-`Miragon/modeler-api`, workflow `release-please.yml`, environment `npm`. From then on the release job
-publishes without a token.
+can only be bound to a package that already exists, so the release job's `npm publish` fails with
+E404 for a name npm has never seen. This is how `@miragon/modeler-api@1.0.0` was bootstrapped:
+
+1. Merge the package's first release PR as usual. The tag is created, the publish job fails (expected).
+2. A maintainer with publish rights to the `@miragon` scope publishes that version once by hand from a
+   clean checkout of the tag: `npm ci && npm run build -w packages/<name> && npm publish -w packages/<name>`
+   (2FA in the browser; in a non-interactive shell npm aborts the web 2FA with EOTP, so run it in a
+   terminal). npm briefly lists a `0.0.0-stage` placeholder while it processes the first upload.
+3. Bind the trusted publisher: `npm trust github @miragon/<name> --repo Miragon/modeler-api --file release-please.yml --env npm --allow-publish`.
+4. Re-run the failed publish job. It skips with "already published"; from the next release on it
+   publishes without a token.
 
 ## Checks
 
