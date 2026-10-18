@@ -12,16 +12,23 @@ import {
   keyReachProblem,
   leftoverProblems,
   menuClosedProblems,
+  menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  paletteShortcutProblems,
+  tabSequenceProblems,
   type KeyReach,
+  type PaletteShortcutFacts,
+  type TabStop,
 } from "./checks.js";
 import {
   MODE_ROLES,
+  activeStopProbe,
   appearanceProbe,
   ariaProbe,
   menuProbe,
   paletteFocusProbe,
+  paletteShortcutProbe,
   zoomButtonsProbe,
   type AppearanceFacts,
   type MenuFacts,
@@ -50,6 +57,7 @@ import {
   findOverlay,
   findTarget,
   focusTarget,
+  hostPageModeProbe,
   inPage,
   injectProbe,
   leftoverProbe,
@@ -86,6 +94,21 @@ const HOVER_MARGIN_MS = 200;
 
 /** A spot without chrome: the root's top-left corner lies outside every island (12px edge). */
 const PARK = { x: 1, y: 1 } as const;
+
+/** Every kind of text field a modeler renders: inspector and dialog fields, the label editor. */
+const TEXT_FIELDS: ReadonlyArray<readonly [InjectedKind, string]> = [
+  ["input", "a text field"],
+  ["textarea", "a textarea"],
+  ["contenteditable", "an editable label"],
+];
+
+const UNDO_REDO_PRESSES = [
+  "Control+KeyZ",
+  "Meta+KeyZ",
+  "Control+Shift+KeyZ",
+  "Meta+Shift+KeyZ",
+  "Control+KeyY",
+] as const;
 
 const ONE_STEP_UP = 135;
 const TWO_STEPS_UP = 182;
@@ -258,6 +281,7 @@ async function menuKeyboardProblems(page: PageLike, root: string): Promise<strin
       ["End", (count) => count - 1],
       ["Home", () => 0],
     ];
+    await inPage(page, clearKeysProbe, null);
     for (const [key, target] of moves) {
       await page.keyboard.press(key);
       const moved = await menuState(page, root);
@@ -268,6 +292,13 @@ async function menuKeyboardProblems(page: PageLike, root: string): Promise<strin
         );
       }
     }
+    const { documentKeys } = await inPage(page, afterPressProbe, { root });
+    problems.push(
+      ...menuKeysAtDocumentProblems(
+        moves.map(([key]) => key),
+        documentKeys,
+      ),
+    );
   }
   if (opened) await close("Enter");
   if (await openWith("ArrowDown", "first")) await close("ArrowDown");
@@ -303,6 +334,34 @@ async function paletteKeyboardProblems(page: PageLike, root: string): Promise<st
     }
   }
   return problems;
+}
+
+/** Every palette entry by keyboard: a shortcut its tooltip shows is named in `aria-keyshortcuts`. */
+async function paletteShortcutWalk(page: PageLike, root: string): Promise<string[]> {
+  const before = await inPage(page, paletteFocusProbe, { root });
+  if (!before || before.entries.length === 0) return [];
+  if (!(await focusTarget(page, root, "palette-tab-stop"))) return [];
+  if (before.entries.length > 1) await page.keyboard.press("End");
+  await page.keyboard.press("Home");
+  const seen: PaletteShortcutFacts[] = [];
+  for (let index = 0; index < before.entries.length; index++) {
+    const facts = await inPage(page, paletteShortcutProbe, { root });
+    if (facts) seen.push(facts);
+    await page.keyboard.press("ArrowRight");
+  }
+  return paletteShortcutProblems(seen);
+}
+
+/** Tab from the menu trigger: the palette's one stop, then the canvas (guide §5.14). */
+async function tabSequenceFromMenu(page: PageLike, root: string): Promise<string[]> {
+  if (!(await focusTarget(page, root, "menu"))) return [];
+  const stops: TabStop[] = [];
+  for (let step = 0; step < 3; step++) {
+    await page.keyboard.press("Tab");
+    const stop = await inPage(page, activeStopProbe, { root });
+    stops.push({ description: stop.description, kind: stop.kind as TabStop["kind"] });
+  }
+  return tabSequenceProblems(stops);
 }
 
 /** `aria-disabled` at 400 % and 20 % (guide §5.8), reached by clicking the buttons. */
@@ -360,6 +419,8 @@ const ariaCase: ShellConformanceCase = {
     const problems = ariaProblems(facts, harness.host);
     problems.push(...(await menuKeyboardProblems(page, root)));
     problems.push(...(await paletteKeyboardProblems(page, root)));
+    problems.push(...(await paletteShortcutWalk(page, root)));
+    problems.push(...(await tabSequenceFromMenu(page, root)));
     problems.push(...(await zoomLimitProblems(page, root)));
 
     const shown = new Set<string>();
@@ -463,20 +524,29 @@ const keysCase: ShellConformanceCase = {
       await press(key, undefined, "unchanged");
     }
     await press("F1", "free", undefined);
+    await press("Escape", "free", undefined, "on the canvas without a menu or dialog");
     if (await inPage(page, canvasHandlesProbe, { root, key: "F9" })) {
       await press("F9", "canvas", undefined, "handled by the canvas");
     }
     await inPage(page, removeInjectedProbe, null);
+    if (host === "ide") {
+      // Guide §13.5: on the canvas, undo and redo use the document's history, never the canvas's.
+      for (const key of UNDO_REDO_PRESSES) {
+        await press(key, "free", undefined, "on the canvas (undo and redo belong to the VS Code document)");
+      }
+    }
 
     await press("Control+Equal", "handled", ONE_STEP_UP);
-    await inside("input", "a text field", async () => {
-      await press("Control+Equal", "blocked", "unchanged", "in a text field");
-      await press("Control+Minus", "blocked", "unchanged", "in a text field");
-      await press("Shift+Digit1", "free", "unchanged", "in a text field");
-      await press("Control+KeyZ", "blocked", undefined, "in a text field");
-      await press("Meta+Shift+KeyZ", "blocked", undefined, "in a text field");
-      await press("Control+KeyY", "blocked", undefined, "in a text field");
-    });
+    for (const [kind, field] of TEXT_FIELDS) {
+      await inside(kind, field, async () => {
+        await press("Control+Equal", "blocked", "unchanged", `in ${field}`);
+        await press("Control+Minus", "blocked", "unchanged", `in ${field}`);
+        await press("Shift+Digit1", "free", "unchanged", `in ${field}`);
+        await press("Control+KeyZ", "blocked", undefined, `in ${field}`);
+        await press("Meta+Shift+KeyZ", "blocked", undefined, `in ${field}`);
+        await press("Control+KeyY", "blocked", undefined, `in ${field}`);
+      });
+    }
     await inside("modal", "a modal dialog", async () => {
       await press("Control+Equal", "blocked", "unchanged", "with a modal dialog open");
       await press("Shift+Digit1", "free", "unchanged", "with a modal dialog open");
@@ -535,10 +605,16 @@ const appearanceCase: ShellConformanceCase = {
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
     const problems: string[] = [];
-    const unverified: string[] = [];
     for (const requested of REQUESTED_APPEARANCES) {
       const at = `[requested ${appearanceLabel(requested)}]`;
       await harness.open(page, { size, requested });
+      if (harness.host === "embedded") {
+        // The foreign page itself in that mode: a themed page around the modeler (guide §13.3).
+        await inPage(page, hostPageModeProbe, {
+          theme: requested.theme,
+          kontrast: requested.kontrast ?? null,
+        });
+      }
       await settle(page);
       const facts = await appearanceFacts(page, root);
       if (!facts) {
@@ -547,9 +623,8 @@ const appearanceCase: ShellConformanceCase = {
       }
       const verdict = appearanceProblems(facts, harness.host, requested, harness.themes);
       problems.push(...verdict.problems.map((problem) => `${at} ${problem}`));
-      if (verdict.unverified) unverified.push(verdict.unverified);
     }
-    return finish("appearance", harness.host, problems, unverified);
+    return finish("appearance", harness.host, problems, []);
   },
 };
 

@@ -381,14 +381,33 @@ export function tooltipProblems(
   tolerance = GEOMETRY_TOLERANCE_PX,
 ): string[] {
   const { edge, gap, row: rowHeight, free } = SHELL;
-  const centred = anchor.left + anchor.width / 2 - tooltip.width / 2;
-  const left = Math.max(edge, Math.min(centred, container.width - edge - tooltip.width));
-  const expected: ExpectedBox =
+  const clamp = (centred: number) =>
+    Math.max(edge, Math.min(centred, container.width - edge - tooltip.width));
+  const expectedAt = (left: number): ExpectedBox =>
     row === "bottom"
       ? { left, bottom: edge + rowHeight + gap }
       : { left, top: (row === "top" ? edge : free) + rowHeight + gap };
+  let mismatches = boxMismatches(
+    "tooltip",
+    tooltip,
+    expectedAt(clamp(anchor.left + anchor.width / 2 - tooltip.width / 2)),
+    container,
+    tolerance,
+  );
+  // Guide §5.15 reads "mittig im Container" for the second row; until the guide settles whether
+  // that means the container or the entry, either centre conforms.
+  if (row === "second-row" && mismatches.length > 0) {
+    const inContainer = boxMismatches(
+      "tooltip",
+      tooltip,
+      expectedAt(clamp(container.width / 2 - tooltip.width / 2)),
+      container,
+      tolerance,
+    );
+    if (inContainer.length === 0) mismatches = inContainer;
+  }
   return [
-    ...boxMismatches("tooltip", tooltip, expected, container, tolerance),
+    ...mismatches,
     ...limitViolations(
       "tooltip",
       tooltip,

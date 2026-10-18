@@ -333,18 +333,21 @@ export const clearKeysProbe = (_: null): void => {
   tools.documentKeys.splice(0);
 };
 
-export type InjectedKind = "input" | "modal" | "popover" | "focus-target";
+export type InjectedKind = "input" | "textarea" | "contenteditable" | "modal" | "popover" | "focus-target";
 
 /**
- * Adds a stand-in for what modelers render inside the shell (a text field, a modal dialog, a
- * popover, a plain focus target), inside the root or, once it is gone, the body; focuses it.
+ * Adds a stand-in for what modelers render inside the shell (text fields: an input, a textarea, an
+ * editable label; a modal dialog, a popover, a plain focus target), inside the root or, once it is
+ * gone, the body; focuses it.
  */
 export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const parent = document.querySelector(root) ?? tools.armedRoot ?? document.body;
   const host = parent.isConnected ? parent : document.body;
   const element =
-    kind === "input" ? document.createElement("input") : (document.createElement("div") as HTMLElement);
+    kind === "input" || kind === "textarea"
+      ? document.createElement(kind)
+      : (document.createElement("div") as HTMLElement);
   element.setAttribute("data-modeler-shell-conformance", kind);
   element.style.cssText = "position:absolute;left:0;top:0;width:40px;height:20px;";
   if (kind === "modal" || kind === "popover") {
@@ -352,7 +355,8 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
     element.setAttribute("aria-label", "Conformance stand-in");
     if (kind === "modal") element.setAttribute("aria-modal", "true");
   }
-  if (kind !== "input") element.tabIndex = -1;
+  if (kind === "contenteditable") element.setAttribute("contenteditable", "true");
+  else if (kind !== "input" && kind !== "textarea") element.tabIndex = -1;
   host.append(element);
   tools.injected.push(element);
   element.focus();
@@ -419,4 +423,12 @@ export const leftoverProbe = (_: null): LeftoverFacts => {
     rootAttributes: root ? root.getAttributeNames() : [],
     errors: [...tools.errors],
   };
+};
+
+/** Puts a foreign page's `<html>` in a mode, as a themed host page around an embedded modeler. */
+export const hostPageModeProbe = ({ theme, kontrast }: { theme: string; kontrast: string | null }): void => {
+  const html = document.documentElement;
+  html.setAttribute("data-cd-theme", theme);
+  if (kontrast) html.setAttribute("data-cd-kontrast", kontrast);
+  else html.removeAttribute("data-cd-kontrast");
 };

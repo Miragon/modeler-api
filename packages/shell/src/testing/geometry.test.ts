@@ -354,6 +354,22 @@ describe("tooltipProblems", () => {
     ).toEqual(["tooltip: top is 60px, expected 112px (±1px)"]);
   });
 
+  it("accepts the second-row tooltip centred in the container as well (guide §5.15, open reading)", () => {
+    const entry = { left: 150, top: 68, width: 32, height: 32 };
+    const centredInContainer = NARROW.width / 2 - 30;
+    expect(
+      tooltipProblems(
+        { left: centredInContainer, top: 112, width: 60, height: 28 },
+        entry,
+        "second-row",
+        NARROW,
+      ),
+    ).toEqual([]);
+    expect(
+      tooltipProblems({ left: 300, top: 112, width: 60, height: 28 }, entry, "second-row", NARROW),
+    ).toEqual(["tooltip: left is 300px, expected 136px (±1px)"]);
+  });
+
   it("ends 60px above the bottom over the bottom row", () => {
     const zoomIn = { left: 1182, top: 852, width: 32, height: 32 };
     const tooltip = { left: 1150, top: 812, width: 96, height: 28 };

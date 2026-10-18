@@ -36,6 +36,8 @@ export interface AriaFacts {
   controlled: ElementFacts | null;
   palette: ElementFacts | null;
   toolbar: ElementFacts | null;
+  /** The focusable canvas `<svg>` (`.djs-container > svg`). */
+  canvas: ElementFacts | null;
   entries: PaletteEntryFacts[];
   zoom: ElementFacts | null;
   zoomButtons: Partial<Record<ZoomButton, ElementFacts>>;
@@ -104,6 +106,7 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
     controlled: factsOf(controlsId ? document.getElementById(controlsId) : null),
     palette: factsOf(palette),
     toolbar: factsOf(toolbar),
+    canvas: factsOf(find(".djs-container > svg")),
     entries: [...(palette?.querySelectorAll("[data-action]") ?? [])].map((entry) => ({
       ...tools.facts(entry),
       group: entry.closest("[data-group]")?.getAttribute("data-group") ?? null,
@@ -293,5 +296,47 @@ export const appearanceProbe = ({
       kontrast: element.getAttribute("data-cd-kontrast"),
     })),
     parts,
+  };
+};
+
+/** The element with the focus, classified for the tab-sequence check. */
+export const activeStopProbe = ({ root }: { root: string }): { description: string; kind: string } => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const active = document.activeElement;
+  const rootElement = document.querySelector(root);
+  if (!active || active === document.body || !rootElement) return { description: "<body>", kind: "other" };
+  const description = tools.describe(active);
+  if (!rootElement.contains(active))
+    return { description: `${description} outside the shell root`, kind: "other" };
+  if (active.matches('[data-chrome="palette"] [data-action]')) return { description, kind: "palette" };
+  if (active.matches(".djs-container > svg")) return { description, kind: "canvas" };
+  if (active.closest('[data-chrome="primary"]')) return { description, kind: "primary" };
+  const tabindex = active.getAttribute("tabindex");
+  return {
+    description: tabindex === null ? description : `${description}[tabindex="${tabindex}"]`,
+    kind: "other",
+  };
+};
+
+/** The focused palette entry, its `aria-keyshortcuts` and the chip of the visible tooltip. */
+export const paletteShortcutProbe = ({
+  root,
+}: {
+  root: string;
+}): { action: string; chip: string; keyShortcuts: string | null } | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector(root);
+  const active = document.activeElement;
+  if (!rootElement || !active?.matches('[data-chrome="palette"] [data-action]')) return null;
+  const tooltip = [...rootElement.querySelectorAll('[role="tooltip"]')].find((element) =>
+    tools.visible(element),
+  );
+  const chip = tooltip
+    ? [...tooltip.querySelectorAll("kbd")].find((element) => tools.visible(element))
+    : undefined;
+  return {
+    action: active.getAttribute("data-action") ?? "",
+    chip: (chip?.textContent ?? "").trim(),
+    keyShortcuts: active.getAttribute("aria-keyshortcuts"),
   };
 };

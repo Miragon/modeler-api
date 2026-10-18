@@ -149,6 +149,12 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
     );
   }
   if (!present.has("canvas")) problems.push("canvas: no diagram-js <svg> (.djs-container > svg) in the root");
+  const canvas = facts.canvas;
+  if (canvas && !normalize(attribute(canvas, "aria-label") ?? "") && !attribute(canvas, "aria-labelledby")) {
+    problems.push(
+      'canvas: the focusable <svg> has no accessible name (WCAG 4.1.2); shellModule names it role="application" with messages.canvas',
+    );
+  }
   for (const element of facts.positiveTabindex)
     problems.push(`positive tabindex on ${element} (guide §5.14)`);
   for (const element of facts.titled) {
@@ -210,6 +216,71 @@ export function optionalIslandProblems(facts: AriaFacts, shown: ReadonlySet<stri
     }
   }
   return problems;
+}
+
+/** One Tab stop as the kit's tab-sequence probe saw it. */
+export interface TabStop {
+  description: string;
+  /** What the stop is: the palette's roving entry, the canvas `<svg>`, the web app's primary action. */
+  kind: "palette" | "canvas" | "primary" | "other";
+}
+
+/**
+ * Tab from the menu trigger (guide §5.14): the primary action (web app), the palette's one tab
+ * stop, then the canvas `<svg>`; nothing else in between (a renderer's own `tabindex` on
+ * `.djs-container` would be an extra, unnamed stop).
+ */
+export function tabSequenceProblems(stops: readonly TabStop[]): string[] {
+  const [first, second, third] = stops;
+  const sequence = first?.kind === "primary" ? [second, third] : [first, second];
+  const [palette, canvas] = sequence;
+  const problems: string[] = [];
+  if (palette?.kind !== "palette") {
+    problems.push(
+      `tab order: Tab from the menu trigger lands on ${palette?.description ?? "nothing"}, expected the palette's roving entry (guide §5.14)`,
+    );
+  } else if (canvas?.kind !== "canvas") {
+    problems.push(
+      `tab order: Tab from the palette lands on ${canvas?.description ?? "nothing"}, expected the canvas <svg> (an unexpected tab stop, guide §5.14)`,
+    );
+  }
+  return problems;
+}
+
+/** A palette entry with the keyboard focus: its tooltip's chip and what it names for assistive technology. */
+export interface PaletteShortcutFacts {
+  action: string;
+  /** Text of the visible tooltip's `kbd` chip; empty without a chip. */
+  chip: string;
+  keyShortcuts: string | null;
+}
+
+/** Guide §5.6: an entry whose tooltip shows a shortcut carries `aria-keyshortcuts`. */
+export function paletteShortcutProblems(entries: readonly PaletteShortcutFacts[]): string[] {
+  return entries
+    .filter((entry) => entry.chip && !entry.keyShortcuts)
+    .map(
+      (entry) =>
+        `palette: entry "${entry.action}" shows the shortcut "${entry.chip}" in its tooltip but has no aria-keyshortcuts (guide §5.6)`,
+    );
+}
+
+/**
+ * The keys an open menu consumes (↑ ↓ Home End, a letter) never reach a `keydown` listener on
+ * `document`: a modeler's document keyboard would act on them (Event Storming moves the selection
+ * on ↑/↓).
+ */
+export function menuKeysAtDocumentProblems(
+  pressed: readonly string[],
+  documentKeys: readonly RecordedKey[],
+): string[] {
+  const reached = new Set(documentKeys.map((key) => key.key));
+  return pressed
+    .filter((key) => reached.has(key))
+    .map(
+      (key) =>
+        `menu: ${key} in the open menu reached a keydown listener on document; a modeler's document keyboard acts on it (stop it at the menu, guide §5.4)`,
+    );
 }
 
 /** An open menu (guide §5.4): expanded trigger, labelled `role="menu"`, named items, focus. */
@@ -329,37 +400,46 @@ const describeAppearance = (appearance: Appearance): string =>
 
 export interface AppearanceVerdict {
   problems: string[];
-  /** What could not be verified (an embedded host without appearance attributes). */
-  unverified?: string;
 }
 
-/** No half-dark (guide §13.3, §13.5): one mode on `<html>` (own document), the same everywhere. */
+/**
+ * What an embedded root must show (guide §13.3): until contract 1.1 there is no channel to ask
+ * it for a mode, so it stays in its first one whatever the page shows, and takes the page's high
+ * contrast over from the nearest mode carrier above it.
+ */
+export function expectedEmbeddedAppearance(facts: AppearanceFacts, themes: readonly Theme[]): Appearance {
+  const fallback = themes[0];
+  if (fallback === undefined) throw new Error("@miragon/modeler-shell conformance: harness.themes is empty");
+  const host = facts.themed.filter((element) => element.relation === "ancestor").at(-1);
+  return host?.kontrast === "hoch" ? { theme: fallback, kontrast: "hoch" } : { theme: fallback };
+}
+
+/** No half-dark (guide §13.3, §13.5): one mode on `<html>` (own document) or the root (embedded). */
 export function appearanceProblems(
   facts: AppearanceFacts,
   host: ShellHost,
   requested: Appearance,
   themes: readonly Theme[],
 ): AppearanceVerdict {
-  const expected = expectedAppearance(requested, themes);
-  const problems: string[] = [];
-  let unverified: string | undefined;
-  const label = `requested ${describeAppearance(requested)}, expected ${describeAppearance(expected)}`;
   const ownDocument = host !== "embedded";
+  const expected = ownDocument
+    ? expectedAppearance(requested, themes)
+    : expectedEmbeddedAppearance(facts, themes);
+  const problems: string[] = [];
+  const label = ownDocument
+    ? `requested ${describeAppearance(requested)}, expected ${describeAppearance(expected)}`
+    : `host page ${describeAppearance(requested)}, expected ${describeAppearance(expected)}`;
 
   const carrier = ownDocument
     ? facts.themed.find((element) => element.isDocument && element.theme !== null)
-    : facts.themed
-        .filter(
-          (element) =>
-            element.theme !== null && (element.relation === "self" || element.relation === "ancestor"),
-        )
-        .at(-1);
-  if (ownDocument && !carrier) {
+    : facts.themed.find((element) => element.relation === "self" && element.theme !== null);
+  if (!carrier) {
     problems.push(
-      `<html> has no data-cd-theme (${label}); the host always writes it, also "light" (guide §13.3)`,
+      ownDocument
+        ? `<html> has no data-cd-theme (${label}); the host always writes it, also "light" (guide §13.3)`
+        : `the embedded root has no data-cd-theme (${label}): it takes the host page's mode instead of its own (guide §13.3)`,
     );
-  }
-  if (carrier) {
+  } else {
     if (carrier.theme !== expected.theme) {
       problems.push(`${carrier.description} has data-cd-theme="${carrier.theme}" (${label})`);
     }
@@ -368,19 +448,12 @@ export function appearanceProblems(
         `${carrier.description} has ${carrier.kontrast ? `data-cd-kontrast="${carrier.kontrast}"` : "no data-cd-kontrast"} (${label})`,
       );
     }
-  } else if (!ownDocument) {
-    if (expected.theme !== "light") {
-      problems.push(`no data-cd-theme on the root or above it (${label}); without it everything is light`);
-    }
-    if (expected.kontrast) {
-      unverified = "embedded host without data-cd-theme on the root or above it: high contrast not verified";
-    }
   }
   for (const element of facts.themed) {
     if (element === carrier) continue;
     const stray = ownDocument
       ? !element.isDocument || element.theme === null
-      : element.relation === "descendant";
+      : element.relation === "descendant" || element.relation === "self";
     if (!stray) continue;
     const values = [
       element.theme !== null ? `data-cd-theme="${element.theme}"` : "",
@@ -441,7 +514,7 @@ export function appearanceProblems(
       problems.push(`${required}: not visible when the kit opened it, so its mode was not checked`);
     }
   }
-  return unverified ? { problems, unverified } : { problems };
+  return { problems };
 }
 
 /** The root attributes the shell writes (API.md, DOM). */
@@ -453,6 +526,9 @@ const SHELL_ROOT_ATTRIBUTES = [
   "data-problems",
   "data-readonly",
 ];
+
+/** What an embedded root carries on top (its own mode). */
+const EMBEDDED_ROOT_ATTRIBUTES = ["data-cd-theme", "data-cd-kontrast"];
 
 /** Messages of benign browser reports that are no shell error. */
 const BENIGN_ERRORS = /ResizeObserver loop/;
@@ -468,8 +544,11 @@ export function leftoverProblems(facts: LeftoverFacts, host: ShellHost): string[
   }
   for (const element of facts.chromeElements) problems.push(`${element} is left after destroy`);
   for (const name of facts.rootClasses) problems.push(`the root keeps the class ${name} after destroy`);
+  const written = ownDocument
+    ? SHELL_ROOT_ATTRIBUTES
+    : [...SHELL_ROOT_ATTRIBUTES, ...EMBEDDED_ROOT_ATTRIBUTES];
   for (const name of facts.rootAttributes) {
-    if (SHELL_ROOT_ATTRIBUTES.includes(name)) problems.push(`the root keeps ${name} after destroy`);
+    if (written.includes(name)) problems.push(`the root keeps ${name} after destroy`);
   }
   for (const error of facts.errors) {
     if (!BENIGN_ERRORS.test(error)) problems.push(`the page reported an error after destroy: ${error}`);

@@ -9,8 +9,11 @@ import {
   keyReachProblem,
   leftoverProblems,
   menuClosedProblems,
+  menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  paletteShortcutProblems,
+  tabSequenceProblems,
   type KeyReach,
 } from "./checks.js";
 import type { AppearanceFacts, AriaFacts, MenuFacts, ModeFacts } from "./facts.js";
@@ -36,6 +39,7 @@ function conformingAria(): AriaFacts {
     controlled: element("div", { id: "cd-shell-menu-1", role: "menu", "aria-label": "Menu" }),
     palette: element("div", { "data-chrome": "palette" }),
     toolbar: element("div", { role: "toolbar", "aria-label": "Tools" }),
+    canvas: element("svg", { tabindex: "0", role: "application", "aria-label": "Diagram" }),
     entries: [
       {
         ...element("div", {
@@ -175,6 +179,69 @@ describe("ariaProblems", () => {
       "root: an embedded shell root carries the tool's lang itself (guide §2, §12)",
     ]);
     expect(ariaProblems({ ...conformingAria(), rootLang: "en" }, "embedded")).toEqual([]);
+  });
+});
+
+describe("the canvas name, the tab sequence, palette shortcuts and menu keys", () => {
+  it("wants a name on the focusable canvas", () => {
+    const facts = conformingAria();
+    facts.canvas = element("svg", { tabindex: "0" });
+    expect(ariaProblems(facts, "ide")).toEqual([
+      'canvas: the focusable <svg> has no accessible name (WCAG 4.1.2); shellModule names it role="application" with messages.canvas',
+    ]);
+    facts.canvas = element("svg", { tabindex: "0", "aria-labelledby": "board-title" });
+    expect(ariaProblems(facts, "ide")).toEqual([]);
+  });
+
+  it("accepts trigger → palette → canvas, with the web app's primary action first", () => {
+    const palette = { description: "div.entry", kind: "palette" } as const;
+    const canvas = { description: "svg", kind: "canvas" } as const;
+    expect(tabSequenceProblems([palette, canvas, { description: "button", kind: "other" }])).toEqual([]);
+    expect(tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas])).toEqual([]);
+  });
+
+  it("names an extra tab stop between palette and canvas, and a palette Tab skips", () => {
+    const extra = { description: 'div.djs-container[tabindex="0"]', kind: "other" } as const;
+    expect(
+      tabSequenceProblems([
+        { description: "div.entry", kind: "palette" },
+        extra,
+        { description: "svg", kind: "canvas" },
+      ]),
+    ).toEqual([
+      'tab order: Tab from the palette lands on div.djs-container[tabindex="0"], expected the canvas <svg> (an unexpected tab stop, guide §5.14)',
+    ]);
+    expect(tabSequenceProblems([extra])).toEqual([
+      `tab order: Tab from the menu trigger lands on div.djs-container[tabindex="0"], expected the palette's roving entry (guide §5.14)`,
+    ]);
+  });
+
+  it("wants aria-keyshortcuts on a palette entry whose tooltip shows a shortcut", () => {
+    expect(
+      paletteShortcutProblems([
+        { action: "lasso-tool", chip: "L", keyShortcuts: "L" },
+        { action: "hand-tool", chip: "H", keyShortcuts: null },
+        { action: "create.box", chip: "", keyShortcuts: null },
+      ]),
+    ).toEqual([
+      'palette: entry "hand-tool" shows the shortcut "H" in its tooltip but has no aria-keyshortcuts (guide §5.6)',
+    ]);
+  });
+
+  it("reports menu keys that reached a document listener", () => {
+    const recorded = (key: string): RecordedKey => ({
+      key,
+      code: key,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+      altKey: false,
+      defaultPrevented: true,
+    });
+    expect(menuKeysAtDocumentProblems(["ArrowUp", "ArrowDown"], [])).toEqual([]);
+    expect(menuKeysAtDocumentProblems(["ArrowUp", "ArrowDown"], [recorded("ArrowDown")])).toEqual([
+      "menu: ArrowDown in the open menu reached a keydown listener on document; a modeler's document keyboard acts on it (stop it at the menu, guide §5.4)",
+    ]);
   });
 });
 
@@ -456,6 +523,7 @@ describe("appearanceProblems", () => {
     ).toEqual(["<html> lacks cd-shell-document in an own document (the reset of the webview's host styles)"]);
     const embedded = appearance({
       themed: [
+        { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: "hoch" },
         {
           description: "div.cd-shell",
           isDocument: false,
@@ -470,34 +538,57 @@ describe("appearanceProblems", () => {
     ]);
   });
 
-  it("lets an embedded modeler without attributes stay light, but reports unverified high contrast", () => {
-    const facts = appearance({
-      documentClasses: [],
-      themed: [],
-      parts: appearance().parts.map((entry) => ({ ...entry, colorScheme: "normal" })),
-    });
-    expect(appearanceProblems(facts, "embedded", { theme: "dark" }, ["light"])).toEqual({ problems: [] });
-    expect(appearanceProblems(facts, "embedded", darkHigh, ["light"])).toEqual({
-      problems: [],
-      unverified: "embedded host without data-cd-theme on the root or above it: high contrast not verified",
-    });
-  });
-
-  it("uses the nearest themed ancestor of an embedded root and ignores the host page's own mode", () => {
+  it("wants an embedded root to carry its own mode: without, it takes a dark page's", () => {
     const facts = appearance({
       documentClasses: [],
       themed: [
         { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: null },
-        {
-          description: "div.cd-shell",
-          isDocument: false,
-          relation: "self",
-          theme: "light",
-          kontrast: "hoch",
-        },
       ],
+      parts: appearance().parts.map((entry) => ({ ...entry, colorScheme: "dark" })),
     });
-    expect(appearanceProblems(facts, "embedded", darkHigh, ["light"])).toEqual({ problems: [] });
+    expect(appearanceProblems(facts, "embedded", { theme: "dark" }, ["light"]).problems).toEqual([
+      "the embedded root has no data-cd-theme (host page dark, expected light): it takes the host page's mode instead of its own (guide §13.3)",
+      'root: color-scheme is "dark" (host page dark, expected light)',
+      'canvas: color-scheme is "dark" (host page dark, expected light)',
+      'menu: color-scheme is "dark" (host page dark, expected light)',
+      'palette: color-scheme is "dark" (host page dark, expected light)',
+      'zoom: color-scheme is "dark" (host page dark, expected light)',
+      'dropdown: color-scheme is "dark" (host page dark, expected light)',
+      'tooltip: color-scheme is "dark" (host page dark, expected light)',
+    ]);
+  });
+
+  it("keeps an embedded root in its first mode under a dark page and takes the page's contrast over", () => {
+    const root = (kontrast: string | null) => ({
+      description: "div.cd-shell",
+      isDocument: false,
+      relation: "self" as const,
+      theme: "light",
+      kontrast,
+    });
+    const page = (kontrast: string | null) => ({
+      description: "html",
+      isDocument: true,
+      relation: "ancestor" as const,
+      theme: "dark",
+      kontrast,
+    });
+    const embedded = (themed: AppearanceFacts["themed"]) => appearance({ documentClasses: [], themed });
+    expect(
+      appearanceProblems(embedded([page("hoch"), root("hoch")]), "embedded", darkHigh, ["light"]),
+    ).toEqual({
+      problems: [],
+    });
+    expect(
+      appearanceProblems(embedded([page("hoch"), root("hoch")]), "embedded", darkHigh, ["light", "dark"]),
+    ).toEqual({ problems: [] });
+    expect(
+      appearanceProblems(embedded([page("hoch"), root(null)]), "embedded", darkHigh, ["light"]).problems,
+    ).toEqual(["div.cd-shell has no data-cd-kontrast (host page dark + hoch, expected light + hoch)"]);
+    expect(
+      appearanceProblems(embedded([page(null), root("hoch")]), "embedded", { theme: "dark" }, ["light"])
+        .problems,
+    ).toEqual(['div.cd-shell has data-cd-kontrast="hoch" (host page dark, expected light)']);
   });
 
   it("requires the dropdown and tooltip to have been checked and the tokens to be loaded", () => {
@@ -558,6 +649,16 @@ describe("leftoverProblems", () => {
       "the root keeps data-cd-shell-host after destroy",
       "the page reported an error after destroy: TypeError: x is null",
     ]);
+  });
+
+  it("wants an embedded root to drop its own mode, an own document's root has none to drop", () => {
+    const facts = leftovers({ rootAttributes: ["id", "data-cd-theme", "data-cd-kontrast"] });
+    expect(leftoverProblems(facts, "embedded")).toEqual([
+      "<html> keeps the class cd-shell-document after destroy",
+      "the root keeps data-cd-theme after destroy",
+      "the root keeps data-cd-kontrast after destroy",
+    ]);
+    expect(leftoverProblems(facts, "ide")).toEqual([]);
   });
 });
 

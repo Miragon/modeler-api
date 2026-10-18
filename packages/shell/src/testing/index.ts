@@ -10,4 +10,4 @@ export type {
   ShellConformanceTest,
   ShowHooks,
 } from "./harness.js";
-export { registerShellConformance, shellConformanceCases } from "./harness.js";
+export { registerShellConformance, shellConformanceCases, vsCodeStubSearch } from "./harness.js";
