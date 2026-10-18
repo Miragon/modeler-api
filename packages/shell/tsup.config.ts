@@ -9,6 +9,7 @@ export default defineConfig([
       "vscode-extension": "src/vscode-extension.ts",
       "vscode-webview": "src/vscode-webview.ts",
       testing: "src/testing.ts",
+      "testing-vscode-stub": "src/testing-vscode-stub.ts",
     },
     format: ["esm", "cjs"],
     dts: true,

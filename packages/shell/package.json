@@ -75,12 +75,44 @@
         "default": "./dist/testing.cjs"
       }
     },
+    "./testing/vscode-stub": {
+      "import": {
+        "types": "./dist/testing-vscode-stub.d.ts",
+        "default": "./dist/testing-vscode-stub.js"
+      },
+      "require": {
+        "types": "./dist/testing-vscode-stub.d.cts",
+        "default": "./dist/testing-vscode-stub.cjs"
+      }
+    },
     "./shell.css": "./dist/shell.css",
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "core": [
+        "./dist/core.d.ts"
+      ],
+      "diagram-js": [
+        "./dist/diagram-js.d.ts"
+      ],
+      "vscode/extension": [
+        "./dist/vscode-extension.d.ts"
+      ],
+      "vscode/webview": [
+        "./dist/vscode-webview.d.ts"
+      ],
+      "testing": [
+        "./dist/testing.d.ts"
+      ],
+      "testing/vscode-stub": [
+        "./dist/testing-vscode-stub.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "API.md",
@@ -90,7 +122,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsup",
