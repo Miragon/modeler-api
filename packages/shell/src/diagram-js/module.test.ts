@@ -1,0 +1,508 @@
+import DiagramExport from "diagram-js";
+import EditorActionsExport from "diagram-js/lib/features/editor-actions/index.js";
+import KeyboardExport from "diagram-js/lib/features/keyboard/index.js";
+import PaletteExport from "diagram-js/lib/features/palette/index.js";
+import ZoomScrollExport from "diagram-js/lib/navigation/zoomscroll/index.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { defaultMessages, type Insets } from "../core/index.js";
+import type { PaletteRegistration, ShellHandle } from "../dom/index.js";
+import { connectDiagramJs } from "./connect.js";
+import { shellModule } from "./module.js";
+import type { ModuleDeclarationLike } from "./types.js";
+
+interface Diagram {
+  get<T>(name: string): T;
+  destroy(): void;
+}
+
+type DiagramConstructor = new (options: {
+  canvas: { container: HTMLElement };
+  modules: ModuleDeclarationLike[];
+}) => Diagram;
+
+// diagram-js ships ESM without "type": "module": NodeNext types its default exports as CommonJS
+// namespaces, while Vitest loads the real ES modules.
+function esDefault<T>(module: unknown): T {
+  return ((module as { default?: T }).default ?? module) as T;
+}
+
+const Diagram = esDefault<DiagramConstructor>(DiagramExport);
+const EditorActionsModule = esDefault<ModuleDeclarationLike>(EditorActionsExport);
+const KeyboardModule = esDefault<ModuleDeclarationLike>(KeyboardExport);
+const PaletteModule = esDefault<ModuleDeclarationLike>(PaletteExport);
+const ZoomScrollModule = esDefault<ModuleDeclarationLike>(ZoomScrollExport);
+
+interface TestEntry {
+  group?: string;
+  title?: string;
+  shortcut?: string;
+  separator?: boolean;
+  action?: { click?: (event: Event) => void; dragstart?: (event: Event) => void };
+}
+
+interface EventBusService {
+  fire(type: string, data?: object): unknown;
+  on(type: string, priority: number, listener: (event: never) => unknown): void;
+}
+
+interface PaletteService {
+  registerProvider(provider: { getPaletteEntries(): Record<string, TestEntry> }): void;
+}
+
+const clicks: string[] = [];
+
+function action(name: string): TestEntry["action"] {
+  return {
+    click: () => clicks.push(`click:${name}`),
+    dragstart: () => clicks.push(`dragstart:${name}`),
+  };
+}
+
+const ENTRIES: Record<string, TestEntry> = {
+  "lasso-tool": { group: "tools", title: "Lasso", shortcut: "L", action: action("lasso") },
+  "hand-tool": { group: "tools", title: "Hand", shortcut: "H", action: action("hand") },
+  "create.box": { group: "shapes", title: "Box", action: action("box") },
+  "create.circle": { group: "shapes", title: "Circle", shortcut: "C", action: action("circle") },
+  "create.untitled": { action: action("untitled") },
+};
+
+function providerModule(entries: Record<string, TestEntry>): ModuleDeclarationLike {
+  class TestPaletteProvider {
+    static $inject = ["palette"];
+    constructor(palette: PaletteService) {
+      palette.registerProvider(this);
+    }
+    getPaletteEntries(): Record<string, TestEntry> {
+      return entries;
+    }
+  }
+  return { __init__: ["testPaletteProvider"], testPaletteProvider: ["type", TestPaletteProvider] };
+}
+
+const diagrams: Diagram[] = [];
+
+function createDiagram(
+  modules: ModuleDeclarationLike[] = [PaletteModule, providerModule(ENTRIES), shellModule],
+): Diagram {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const diagram = new Diagram({ canvas: { container }, modules });
+  diagrams.push(diagram);
+  return diagram;
+}
+
+function paletteOf(diagram: Diagram): HTMLElement {
+  const palette = diagram
+    .get<{ getContainer(): HTMLElement }>("canvas")
+    .getContainer()
+    .querySelector(".djs-palette");
+  if (!(palette instanceof HTMLElement)) throw new Error("no palette");
+  return palette;
+}
+
+function entry(diagram: Diagram, actionName: string): HTMLElement {
+  const element = paletteOf(diagram).querySelector(`[data-action="${actionName}"]`);
+  if (!(element instanceof HTMLElement)) throw new Error(`no entry ${actionName}`);
+  return element;
+}
+
+function entries(diagram: Diagram): HTMLElement[] {
+  return Array.from(paletteOf(diagram).querySelectorAll<HTMLElement>(".djs-palette-entries .entry"));
+}
+
+function eventBus(diagram: Diagram): EventBusService {
+  return diagram.get<EventBusService>("eventBus");
+}
+
+function rebuild(diagram: Diagram): void {
+  eventBus(diagram).fire("i18n.changed");
+}
+
+function press(target: HTMLElement, key: string, init: KeyboardEventInit = {}): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+  target.dispatchEvent(event);
+  return event;
+}
+
+interface FakeShell {
+  handle: ShellHandle;
+  registrations: PaletteRegistration[];
+  unregister: ReturnType<typeof vi.fn>;
+  setZoomTarget: ReturnType<typeof vi.fn>;
+}
+
+function fakeShell(tools = "Werkzeuge"): FakeShell {
+  const registrations: PaletteRegistration[] = [];
+  const unregister = vi.fn();
+  const setZoomTarget = vi.fn();
+  const insets: Insets = { top: 88, right: 24, bottom: 64, left: 24 };
+  const handle = {
+    messages: { ...defaultMessages, tools },
+    fitInsets: () => insets,
+    setZoomTarget,
+    registerPalette(registration: PaletteRegistration) {
+      registrations.push(registration);
+      registration.setReadOnly(false);
+      return unregister;
+    },
+  } as unknown as ShellHandle;
+  return { handle, registrations, unregister, setZoomTarget };
+}
+
+function connect(diagram: Diagram, shell: FakeShell = fakeShell()) {
+  return connectDiagramJs(shell.handle, diagram, { contentBounds: () => undefined });
+}
+
+afterEach(() => {
+  for (const diagram of diagrams.splice(0)) diagram.destroy();
+  clicks.length = 0;
+  document.body.replaceChildren();
+});
+
+describe("palette skin", () => {
+  it("marks the palette as chrome and moves it in front of the canvas <svg>", () => {
+    const diagram = createDiagram();
+    const container = diagram.get<{ getContainer(): HTMLElement }>("canvas").getContainer();
+    const palette = paletteOf(diagram);
+    expect(palette.getAttribute("data-chrome")).toBe("palette");
+    const children = Array.from(container.children);
+    const svg = children.find((child) => child.localName === "svg");
+    expect(svg).toBeDefined();
+    expect(children.indexOf(palette)).toBeLessThan(children.indexOf(svg as Element));
+    expect(palette.nextElementSibling).toBe(svg);
+  });
+
+  it("gives the entries toolbar semantics, a roving tab stop and the default label", () => {
+    const diagram = createDiagram();
+    const toolbar = paletteOf(diagram).querySelector(".djs-palette-entries");
+    expect(toolbar?.getAttribute("role")).toBe("toolbar");
+    expect(toolbar?.getAttribute("aria-label")).toBe("Tools");
+    expect(entries(diagram).map((element) => element.tabIndex)).toEqual([0, -1, -1, -1, -1]);
+    expect(entries(diagram).every((element) => element.getAttribute("role") === "button")).toBe(true);
+    expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("false");
+    expect(entry(diagram, "create.box").hasAttribute("aria-pressed")).toBe(false);
+  });
+
+  it("re-applies role, label, tab stop and aria-pressed from the last tool-manager.update after a rebuild", () => {
+    const diagram = createDiagram();
+    connect(diagram, fakeShell("Werkzeuge"));
+    eventBus(diagram).fire("tool-manager.update", { tool: "hand" });
+    expect(entry(diagram, "hand-tool").getAttribute("aria-pressed")).toBe("true");
+    entry(diagram, "create.box").focus();
+    const before = entry(diagram, "hand-tool");
+
+    rebuild(diagram);
+
+    const hand = entry(diagram, "hand-tool");
+    expect(hand).not.toBe(before);
+    expect(hand.getAttribute("aria-pressed")).toBe("true");
+    expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("false");
+    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
+      "Werkzeuge",
+    );
+    expect(entries(diagram).filter((element) => element.tabIndex === 0)).toEqual([
+      entry(diagram, "create.box"),
+    ]);
+    expect(document.activeElement).toBe(entry(diagram, "create.box"));
+
+    // diagram-js's own highlight still points at the detached tools group; the shell does not.
+    eventBus(diagram).fire("tool-manager.update", { tool: "lasso" });
+    expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("true");
+    expect(entry(diagram, "hand-tool").getAttribute("aria-pressed")).toBe("false");
+    eventBus(diagram).fire("tool-manager.update", { tool: null });
+    expect(entries(diagram).filter((element) => element.getAttribute("aria-pressed") === "true")).toEqual([]);
+  });
+
+  it("moves the tab stop with ← → Home End and wraps", () => {
+    const diagram = createDiagram();
+    const all = entries(diagram);
+    all[0]?.focus();
+    const right = press(all[0] as HTMLElement, "ArrowRight");
+    expect(right.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(all[1]);
+    expect(all.map((element) => element.tabIndex)).toEqual([-1, 0, -1, -1, -1]);
+    press(all[1] as HTMLElement, "End");
+    expect(document.activeElement).toBe(all[4]);
+    press(all[4] as HTMLElement, "ArrowRight");
+    expect(document.activeElement).toBe(all[0]);
+    press(all[0] as HTMLElement, "ArrowLeft");
+    expect(document.activeElement).toBe(all[4]);
+    press(all[4] as HTMLElement, "Home");
+    expect(document.activeElement).toBe(all[0]);
+    expect(all.map((element) => element.tabIndex)).toEqual([0, -1, -1, -1, -1]);
+  });
+
+  it("leaves modified keys and other keys alone", () => {
+    const diagram = createDiagram();
+    const first = entries(diagram)[0] as HTMLElement;
+    first.focus();
+    expect(press(first, "ArrowRight", { metaKey: true }).defaultPrevented).toBe(false);
+    expect(press(first, "ArrowRight", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(press(first, "a").defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(first);
+  });
+
+  it("triggers the focused entry with Enter and Space, once per press", () => {
+    const diagram = createDiagram();
+    const box = entry(diagram, "create.box");
+    box.focus();
+    expect(press(box, "Enter").defaultPrevented).toBe(true);
+    expect(press(box, " ").defaultPrevented).toBe(true);
+    press(box, "Enter", { repeat: true });
+    expect(clicks).toEqual(["click:box", "click:box"]);
+  });
+
+  it("keeps a stopped key from reaching document listeners", () => {
+    const diagram = createDiagram();
+    const listener = vi.fn();
+    document.addEventListener("keydown", listener);
+    entry(diagram, "lasso-tool").focus();
+    press(entry(diagram, "lasso-tool"), "ArrowRight");
+    press(entry(diagram, "hand-tool"), "Escape");
+    document.removeEventListener("keydown", listener);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect((listener.mock.calls[0]?.[0] as KeyboardEvent).key).toBe("Escape");
+  });
+
+  it("provides tooltip contents from palette.getEntries()", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    connect(diagram, shell);
+    const registration = shell.registrations[0];
+    expect(registration?.element).toBe(paletteOf(diagram));
+    expect(registration?.entryTooltip(entry(diagram, "lasso-tool"))).toEqual({
+      label: "Lasso",
+      shortcut: "L",
+    });
+    expect(registration?.entryTooltip(entry(diagram, "create.box"))).toEqual({ label: "Box" });
+    expect(registration?.entryTooltip(entry(diagram, "create.untitled"))).toBeNull();
+  });
+});
+
+describe("read-only", () => {
+  it("keeps Lasso and Hand active, marks every other entry aria-disabled and vetoes it on palette.trigger", () => {
+    const diagram = createDiagram([
+      PaletteModule,
+      providerModule({ ...ENTRIES, "draw-tool": { group: "tools", title: "Draw", action: action("draw") } }),
+      shellModule,
+    ]);
+    const shell = fakeShell();
+    connect(diagram, shell);
+    shell.registrations[0]?.setReadOnly(true);
+
+    expect(entry(diagram, "create.box").getAttribute("aria-disabled")).toBe("true");
+    expect(entry(diagram, "create.untitled").getAttribute("aria-disabled")).toBe("true");
+    expect(entry(diagram, "draw-tool").getAttribute("aria-disabled")).toBe("true");
+    expect(entry(diagram, "lasso-tool").hasAttribute("aria-disabled")).toBe(false);
+    expect(entry(diagram, "hand-tool").hasAttribute("aria-disabled")).toBe(false);
+
+    entry(diagram, "create.box").click();
+    entry(diagram, "draw-tool").click();
+    entry(diagram, "hand-tool").click();
+    const drag = new Event("dragstart", { bubbles: true, cancelable: true });
+    entry(diagram, "create.circle").dispatchEvent(drag);
+    expect(drag.defaultPrevented).toBe(true);
+    entry(diagram, "create.circle").focus();
+    press(entry(diagram, "create.circle"), "Enter");
+    expect(clicks).toEqual(["click:hand"]);
+
+    rebuild(diagram);
+    expect(entry(diagram, "create.box").getAttribute("aria-disabled")).toBe("true");
+
+    shell.registrations[0]?.setReadOnly(false);
+    expect(entries(diagram).some((element) => element.hasAttribute("aria-disabled"))).toBe(false);
+    entry(diagram, "create.box").click();
+    expect(clicks).toEqual(["click:hand", "click:box"]);
+  });
+
+  it("vetoes by group when palette.trigger comes without an entry element", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    connect(diagram, shell);
+    const bus = eventBus(diagram);
+    const trigger = (group: string) =>
+      bus.fire("palette.trigger", { entry: { group }, event: new Event("click") });
+    expect(trigger("shapes")).toBeUndefined();
+    shell.registrations[0]?.setReadOnly(true);
+    expect(trigger("shapes")).toBe(false);
+    expect(trigger("tools")).toBeUndefined();
+  });
+
+  it("leaves an entry's own aria-disabled alone", () => {
+    const diagram = createDiagram([
+      PaletteModule,
+      providerModule({
+        ...ENTRIES,
+        "create.locked": { group: "shapes", title: "Locked", action: action("locked") },
+      }),
+      shellModule,
+    ]);
+    entry(diagram, "create.locked").setAttribute("aria-disabled", "true");
+    const shell = fakeShell();
+    connect(diagram, shell);
+    shell.registrations[0]?.setReadOnly(true);
+    shell.registrations[0]?.setReadOnly(false);
+    expect(entry(diagram, "create.locked").getAttribute("aria-disabled")).toBe("true");
+    expect(entry(diagram, "create.box").hasAttribute("aria-disabled")).toBe(false);
+  });
+});
+
+describe("keyboard", () => {
+  it("registers at priority 2000 and returns true only for chrome keys", () => {
+    const addListener = vi.fn();
+    createDiagram([{ keyboard: ["value", { addListener }] }, shellModule]);
+    expect(addListener).toHaveBeenCalledTimes(1);
+    const [priority, listener] = addListener.mock.calls[0] as [
+      number,
+      (context: { keyEvent: object }) => unknown,
+    ];
+    expect(priority).toBe(2000);
+    const key = (init: Partial<KeyboardEvent>) => ({
+      keyEvent: {
+        key: "",
+        code: "",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        ...init,
+      },
+    });
+    expect(listener(key({ key: "+", ctrlKey: true }))).toBe(true);
+    expect(listener(key({ key: "=", metaKey: true }))).toBe(true);
+    expect(listener(key({ key: "_", ctrlKey: true, shiftKey: true }))).toBe(true);
+    expect(listener(key({ key: "Insert", code: "Numpad0", metaKey: true }))).toBe(true);
+    expect(listener(key({ key: "!", code: "Digit1", shiftKey: true }))).toBe(true);
+    expect(listener(key({ key: "+" }))).toBeUndefined();
+    expect(listener(key({ key: "a", ctrlKey: true }))).toBeUndefined();
+    expect(listener(key({ key: "z", metaKey: true }))).toBeUndefined();
+    expect(listener(key({ key: "=", ctrlKey: true, altKey: true }))).toBeUndefined();
+  });
+
+  it("keeps diagram-js's keyboard bindings from acting on chrome keys", () => {
+    const withShell = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule, shellModule]);
+    const withoutShell = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule]);
+    const spies = [withShell, withoutShell].map((diagram) =>
+      vi
+        .spyOn(diagram.get<{ stepZoom(delta: number): void }>("zoomScroll"), "stepZoom")
+        .mockImplementation(() => {}),
+    );
+    const svgOf = (diagram: Diagram) =>
+      diagram
+        .get<{ getContainer(): HTMLElement }>("canvas")
+        .getContainer()
+        .querySelector("svg") as SVGElement;
+
+    const handled = new KeyboardEvent("keydown", {
+      key: "+",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    svgOf(withShell).dispatchEvent(handled);
+    svgOf(withoutShell).dispatchEvent(
+      new KeyboardEvent("keydown", { key: "+", ctrlKey: true, bubbles: true }),
+    );
+
+    expect(spies[0]).not.toHaveBeenCalled();
+    expect(handled.defaultPrevented).toBe(true);
+    expect(spies[1]).toHaveBeenCalledWith(1);
+  });
+
+  it("is a no-op without a keyboard service (viewer)", () => {
+    expect(() => createDiagram([PaletteModule, providerModule(ENTRIES), shellModule])).not.toThrow();
+  });
+});
+
+describe("module", () => {
+  it("resolves paletteTooltip to null, even when an earlier module defines one", () => {
+    class OwnPaletteTooltip {}
+    const diagram = createDiagram([
+      PaletteModule,
+      { paletteTooltip: ["type", OwnPaletteTooltip] },
+      providerModule(ENTRIES),
+      shellModule,
+    ]);
+    expect(diagram.get("paletteTooltip")).toBeNull();
+  });
+
+  it("buffers the palette until connectDiagramJs hands it to the shell", () => {
+    const diagram = createDiagram();
+    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
+      "Tools",
+    );
+    const shell = fakeShell("Werkzeuge");
+    connect(diagram, shell);
+    expect(shell.registrations).toHaveLength(1);
+    expect(shell.registrations[0]?.element).toBe(paletteOf(diagram));
+    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
+      "Werkzeuge",
+    );
+  });
+
+  it("registers a palette diagram-js creates after the connection", () => {
+    const diagram = createDiagram([PaletteModule, shellModule]);
+    const shell = fakeShell();
+    connect(diagram, shell);
+    expect(shell.registrations).toHaveLength(0);
+    diagram.get<PaletteService>("palette").registerProvider({ getPaletteEntries: () => ENTRIES });
+    expect(shell.registrations).toHaveLength(1);
+    expect(paletteOf(diagram).getAttribute("data-chrome")).toBe("palette");
+  });
+
+  it("cleans up on diagram.destroy", () => {
+    const diagram = createDiagram([KeyboardModule, PaletteModule, providerModule(ENTRIES), shellModule]);
+    const shell = fakeShell();
+    connect(diagram, shell);
+    const bus = eventBus(diagram);
+    diagram.destroy();
+    diagrams.splice(diagrams.indexOf(diagram), 1);
+    expect(shell.unregister).toHaveBeenCalledTimes(1);
+    const chromeKey = new KeyboardEvent("keydown", { key: "+", ctrlKey: true });
+    expect(bus.fire("keyboard.keydown", { keyEvent: chromeKey })).toBeUndefined();
+    expect(
+      bus.fire("palette.trigger", { entry: ENTRIES["create.box"], event: new Event("click") }),
+    ).toBeUndefined();
+  });
+});
+
+describe("connectDiagramJs", () => {
+  it("throws without shellModule", () => {
+    const diagram = createDiagram([PaletteModule, providerModule(ENTRIES)]);
+    expect(() => connect(diagram)).toThrow(/shellModule/);
+  });
+
+  it("binds the viewport as zoom target, calls canvas.resized and unbinds on destroy", () => {
+    const diagram = createDiagram();
+    const resized = vi.fn();
+    eventBus(diagram).on("canvas.resized", 1500, resized);
+    const shell = fakeShell();
+    const connection = connect(diagram, shell);
+    expect(shell.setZoomTarget).toHaveBeenCalledWith(connection.viewport);
+    expect(resized).toHaveBeenCalledTimes(1);
+
+    shell.registrations[0]?.setReadOnly(true);
+    connection.destroy();
+    connection.destroy();
+    expect(shell.unregister).toHaveBeenCalledTimes(1);
+    expect(shell.setZoomTarget).toHaveBeenLastCalledWith(null);
+    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
+      "Tools",
+    );
+    expect(entry(diagram, "create.box").hasAttribute("aria-disabled")).toBe(false);
+  });
+
+  it("hands the palette to the newest shell only", () => {
+    const diagram = createDiagram();
+    const first = fakeShell("Eins");
+    const second = fakeShell("Zwei");
+    const firstConnection = connect(diagram, first);
+    connect(diagram, second);
+    expect(first.unregister).toHaveBeenCalledTimes(1);
+    expect(second.registrations).toHaveLength(1);
+    firstConnection.destroy();
+    expect(second.unregister).not.toHaveBeenCalled();
+    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe("Zwei");
+  });
+});

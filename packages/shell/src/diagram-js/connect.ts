@@ -1,7 +1,8 @@
 import type { Bounds } from "../core/index.js";
 import type { ShellHandle } from "../dom/index.js";
+import { shellServiceOf } from "./service.js";
 import type { InjectorLike } from "./types.js";
-import type { Viewport } from "./viewport.js";
+import { DiagramViewport, type Viewport } from "./viewport.js";
 
 export interface ConnectOptions {
   /** Content bounds in diagram coordinates; `undefined` = nothing to fit (empty file). */
@@ -25,5 +26,27 @@ export function connectDiagramJs(
   diagram: InjectorLike,
   options: ConnectOptions,
 ): DiagramJsConnection {
-  throw new Error("@miragon/modeler-shell: connectDiagramJs is not implemented yet");
+  const service = shellServiceOf(diagram);
+  const prefersReducedMotion = options.prefersReducedMotion?.bind(options);
+  const viewport = new DiagramViewport(diagram, {
+    contentBounds: () => options.contentBounds(),
+    insets: () => shell.fitInsets(),
+    ...(prefersReducedMotion ? { prefersReducedMotion } : {}),
+  });
+  shell.setZoomTarget(viewport);
+  const detachPalette = service.attachShell(shell);
+  // The shell has moved the canvas element into its slot; diagram-js caches the old size.
+  viewport.resized();
+
+  let destroyed = false;
+  return {
+    viewport,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      detachPalette();
+      shell.setZoomTarget(null);
+      viewport.destroy();
+    },
+  };
 }

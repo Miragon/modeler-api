@@ -1,3 +1,4 @@
+import { SHELL_SERVICE, ShellDiagramService } from "./service.js";
 import type { ModuleDeclarationLike } from "./types.js";
 
 /**
@@ -12,4 +13,8 @@ import type { ModuleDeclarationLike } from "./types.js";
  * It buffers the palette until `connectDiagramJs` hands it to a shell, so the diagram may be
  * constructed before `mountShell`.
  */
-export const shellModule: ModuleDeclarationLike = {};
+export const shellModule: ModuleDeclarationLike = {
+  __init__: [SHELL_SERVICE],
+  [SHELL_SERVICE]: ["type", ShellDiagramService],
+  paletteTooltip: ["value", null],
+};
