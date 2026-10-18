@@ -40,6 +40,7 @@ All JavaScript entries ship as ESM and CJS with types; importing any of them has
 ```ts
 import "./theme/cd-tokens.generated.css"; // vendored, unchanged, first
 import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist-mono/wght.css"; // shortcut chips
 import "diagram-js/assets/diagram-js.css"; // usually through the renderer's CSS
 import "@miragon/<notation>-renderer/…css"; // the renderer
 import "@miragon/modeler-shell/shell.css"; // last
@@ -138,8 +139,9 @@ function shellSizesFromTokens(shellGroup: Readonly<Record<string, string>>): She
 ```
 
 `SHELL` equals `parseFloat` of the `shell` group of `cd-tokens.generated.json`; a drift test pins it
-to the token fixture. `shellSizesFromTokens` reads a vendored JSON's `shell` group (throws on a
-missing or non-numeric size).
+to the token fixture. `shellSizesFromTokens` reads a vendored JSON's `shell` group and throws, naming
+the token, when a size is missing or neither `"<n>px"` nor a plain number (so `"12em"` fails instead
+of silently becoming 12); unknown tokens are ignored.
 
 ### Fit
 
@@ -176,12 +178,16 @@ function easeStandard(progress: number): number; // cubic-bezier(0.4, 0, 0.2, 1)
 
 - `fitViewbox` centres `bounds` in the free rectangle (container minus insets) at the largest scale
   that fits, capped at `maxZoom`, and returns a box with the container's aspect ratio, so
-  `canvas.viewbox(box)` shows exactly that view (§5.9). `undefined` for a 0 × 0 container or bounds
-  without width and height; a zero width or height scales by the other dimension.
+  `canvas.viewbox(box)` shows exactly that view (§5.9). `undefined` for a container with a 0 side,
+  for bounds without width and height, or for a non-finite result; a zero width or height scales by
+  the other dimension. An axis whose insets leave no room (a container lower or narrower than its
+  chrome) centres in the whole container.
 - `fitInsets` (§5.9): top 88, 140 in the second row; left and right 24; bottom 64, in the `web` host
   with a visible pill 92; right 324 (12 + 288 + 24) with an open side inspector (container wider
-  than 760); left 12 + legend width + 24 with an open legend in containers wider than 440; bottom
-  `container.height − sheetTop + 12` with an open bottom sheet (up to 760).
+  than 760); left 12 + legend width + 24 with an open legend in containers wider than 440
+  (`legendWidth <= 0` counts as closed); bottom `container.height − sheetTop + 12` with an open
+  bottom sheet (up to 760). The sheet hides zoom panel, pill and legend (§5.11), so while it is open
+  neither the legend nor the web pill counts; without a measured `sheetTop` the bottom stays 64.
 - `sameView` compares `scale` and the screen translation (`x · scale`, `y · scale`) within
   `tolerance` relative to `max(1, |value|)`; width and height never count, so a resize is no move.
 - `interpolateViewbox` interpolates the scale in log space and the centre linearly.
@@ -194,7 +200,7 @@ const ZOOM_MAX = 4;
 function canZoomOut(zoom: number): boolean; // zoom > 0.2 · 1.001
 function canZoomIn(zoom: number): boolean; // zoom < 4 · 0.999
 function formatPercent(zoom: number, lang: string): string; // "86%", German "86 %" (U+00A0)
-function formatNumber(value: number, lang: string): string;
+function formatNumber(value: number, lang: string): string; // a tag Intl rejects ("") formats as "en"
 interface ZoomReadout {
   text: string;
   ariaLabel: string;
@@ -229,8 +235,8 @@ interface KeyContext {
   host: ShellHost;
   inTextField: boolean; // target matches TEXT_FIELD_SELECTOR or isContentEditable
   menuOpen: boolean; // the shell's dropdown
-  dialogOpen: boolean; // any [role="dialog"], modal or not (popovers)
-  modalOpen: boolean; // [role="dialog"][aria-modal="true"]
+  dialogOpen: boolean; // any shown [role="dialog"], [role="alertdialog"] or <dialog open>, modal or not
+  modalOpen: boolean; // one of them with aria-modal="true" or :modal
   defaultPrevented: boolean; // the canvas or the modeler handled the key
 }
 type KeyAction = ChromeKey | "closeMenu";
@@ -266,8 +272,8 @@ it. `stopPropagation` is only ever `true` in the `ide` host.
 
 | Case                                                      | Action      | preventDefault | stopPropagation (`ide`) |
 | --------------------------------------------------------- | ----------- | -------------- | ----------------------- |
-| Escape (no modifier), menu open                           | `closeMenu` | yes            | yes                     |
-| Escape, popover or dialog open                            | —           | no             | yes                     |
+| Escape (no modifier), menu open, not composing            | `closeMenu` | yes            | yes                     |
+| Escape, popover or dialog open, or menu open while IME    | —           | no             | yes                     |
 | zoom key, not composing, not in a text field, no modal    | the key     | yes            | yes                     |
 | zoom key while composing, in a text field or with a modal | —           | no             | yes                     |
 | Shift+1, not composing, not in a text field, no modal     | `fit`       | yes            | yes                     |
@@ -276,10 +282,18 @@ it. `stopPropagation` is only ever `true` in the `ide` host.
 | any other key with `defaultPrevented`                     | —           | no             | yes                     |
 | everything else                                           | —           | no             | no                      |
 
+- "No modifier" means no Meta, Ctrl, Alt or Shift. During IME composition Escape belongs to the IME.
+- Zoom keys act whatever `defaultPrevented` says (diagram-js's keyboard prevents every key a listener
+  answered, the shell's own guard included); a blocked Shift+1 is never stopped.
+- `isUndoRedoKey` (Cmd/Ctrl + Z, Shift+Z, Y) decides by the typed character when it is ASCII, so
+  QWERTZ and Dvorak work, and falls back to `code` `KeyZ`/`KeyY` only for non-ASCII layouts
+  (Cyrillic, Greek). Cmd/Ctrl+Shift+Y is not redo: VS Code toggles its Debug Console with it.
+
 Shortcut labels (§5.8): macOS `⌘+`, `⌘−` (U+2212), `⌘0`, `⇧1`; elsewhere `Ctrl+Plus`, `Ctrl+Minus`,
 `Ctrl+0`, `Shift+1` from `keyNames`. `aria-keyshortcuts`: `Meta+= Meta+Plus`, `Meta+-`, `Meta+0`,
 `Shift+1`; outside macOS `Control` for `Meta`. The platform is read in the page itself
-(`detectPlatform(navigator)`), never in the extension host (VS Code Remote).
+(`detectPlatform(navigator)`, `userAgentData.platform || platform`, so an empty `userAgentData`
+platform falls back), never in the extension host (VS Code Remote).
 
 ### Appearance
 
@@ -303,9 +317,10 @@ function appearanceAttributes(appearance: Appearance): AppearanceAttributes;
 ```
 
 - `resolveAppearance` is the one decision of §13.5: a theme outside `themes` becomes `themes[0]`, so
-  a modeler declaring `["light"]` is never half-dark; `kontrast` always passes (VS Code High
-  Contrast on a light-only modeler gives `{ theme: "light", kontrast: "hoch" }`). Throws for empty
-  `themes`. `themes` is a static value of the modeler package, known before the first paint.
+  a modeler declaring `["light"]` is never half-dark; `kontrast: "hoch"` always passes (VS Code High
+  Contrast on a light-only modeler gives `{ theme: "light", kontrast: "hoch" }`), any other value is
+  dropped, since appearances arrive by `postMessage`. Throws for empty `themes`. `themes` is a static
+  value of the modeler package, known before the first paint.
 - `appearanceFromColorThemeKind`: 1 → light, 2 → dark, 3 → dark + hoch, 4 → light + hoch, other →
   light. `requestedAppearance` lets the setting's theme win unless it is `automatic`; the contrast
   always comes from the kind.
@@ -385,7 +400,7 @@ function mountShell(root: HTMLElement, options: ShellOptions): ShellHandle;
 interface ShellOptions {
   host: ShellHost;
   canvas?: HTMLElement; // diagram-js's container; omitted: the shell creates it (handle.canvas)
-  lang?: string; // default closest [lang], else "en"; the embedded root gets lang itself
+  lang?: string; // see below; the embedded root carries lang itself
   messages?: ShellMessageOverrides;
   platform?: Platform; // default detectPlatform(navigator)
   keyScope?: "document" | "root"; // default "document", "root" for embedded
@@ -398,11 +413,18 @@ interface ShellOptions {
 ```
 
 `mountShell` turns `root` into the shell: class `cd-shell`, `container: cd-shell / size`,
-`isolation: isolate`. `root` must be sized from outside (`height: 100%` in an own document, an
-explicitly sized element in a foreign page), otherwise size containment collapses it to 0. In the
-`ide` and `web` hosts `<html>` gets `cd-shell-document` (own-document reset). The shell observes the
-root with a `ResizeObserver` (palette row, legend start state; 0 × 0 is skipped) and installs exactly
-one `keydown` listener (bubble phase) on `document` or on the root.
+`isolation: isolate`. `root` must be sized from outside, otherwise size containment collapses it to 0:
+in an own document a root that is a direct child of `<body>` gets `height: 100%` from `shell.css`
+(a zero-specificity rule), any other root and an embedded one need an explicit size. In the `ide` and
+`web` hosts `<html>` gets `cd-shell-document` (own-document reset). The shell observes the root and
+the registered palette with a `ResizeObserver` (palette row, legend start state; 0 × 0 is skipped)
+and installs exactly one `keydown` listener (bubble phase) on `document` or on the root.
+
+`lang` is the tool's UI language for `Intl` (guide §2: one language per tool). Default in an own
+document (`ide`, `web`): the closest `[lang]` of the root (the `<html lang>` the host wrote), else
+`"en"`. In the `embedded` host the page's language is not the tool's, so the default is the root's
+own `lang` attribute, else `"en"`; the embedded root carries `lang` itself. A localized modeler
+passes `lang` together with its messages.
 
 **Order with document listeners.** Listeners on one target run in registration order. A modeler
 whose own keyboard listens on `document` (Event Storming does) constructs its diagram **before**
@@ -465,7 +487,9 @@ interface MenuRadioOption {
 - `checkbox` and `radio` toggle and keep the menu open. State is read through `checked()`, `value()`
   and `disabled()` whenever the menu opens and on `menu.refresh()`.
 - Icons only from the common set and only where the guide gives one; the icon column stays 16px wide
-  without an icon. With `setReadOnly(true)` every Model entry is `aria-disabled`.
+  without an icon. On a read-only canvas (`setReadOnly(true)`) every Model entry is `aria-disabled`,
+  the shell's Legend checkbox included (§13.5); disabled entries stay focusable and do nothing.
+- The trigger is `hidden` while no group has an entry (no menu groups and no Legend entry).
 - Keys: Enter, Space and ↓ on the trigger open on the first entry, ↑ on the last; ↑/↓ wrap, Home/End
   jump, a letter jumps to the next entry starting with it; Escape and Tab close (Escape returns focus
   to the trigger). A `pointerdown` outside (capture phase on `document`) closes without moving focus
@@ -480,7 +504,7 @@ interface ProblemsOptions {
 interface LegendOptions {
   render(body: HTMLElement): void; // once
   open?: boolean; // remembered start state; default legendStartsOpen(container height)
-  onToggle?(open: boolean): void; // persist it
+  onToggle?(open: boolean): void; // every change (close button, checkbox, setOpen, toggle); persist it
   menuEntry?: boolean; // default true
 }
 interface InspectorOptions {
@@ -511,7 +535,7 @@ interface ShellHandle {
   setProblems(summary: ProblemSummary): void;
   setStatus(status: StatusMessage | null, options?: { delayMs?: number }): void;
   setEmptyHint(visible: boolean): void;
-  setReadOnly(readOnly: boolean): void;
+  setReadOnly(readOnly: boolean, options?: { delayMs?: number }): void;
   isReadOnly(): boolean;
   destroy(): void;
 }
@@ -548,7 +572,11 @@ interface InspectorHandle {
 interface PaletteRegistration {
   element: HTMLElement; // .djs-palette
   entryTooltip(entry: HTMLElement): TooltipContent | null;
-  setReadOnly(readOnly: boolean): void;
+  setReadOnly(state: PaletteReadOnlyState): void; // on registration and on every change
+}
+interface PaletteReadOnlyState {
+  locked: boolean; // veto every entry but Lasso and Hand, from the invalid import on
+  shown: boolean; // mark them aria-disabled and muted, once the delay has passed
 }
 interface ProblemSummary {
   count: number;
@@ -562,19 +590,40 @@ interface StatusMessage {
 ```
 
 - `setZoomTarget` binds zoom panel, readout and chrome keys; the readout reads `zoom()` at most once
-  per animation frame after `onChange`. With `null` the buttons are `aria-disabled`.
-- `fitInsets()` is `fitInsets(layout)` of `./core` for what is open and measured right now.
+  per animation frame after `onChange`. With `null` all four buttons are `aria-disabled`. Buttons and
+  keys never call `stepZoom` past a limit (zoom out at or below 20 % never zooms in), never
+  `zoomToActual` at exactly 100 % and never `fit` while `canFit()` is false.
+- `fitInsets()` is `fitInsets(layout)` of `./core` for what is open and measured right now (palette
+  row, pill, legend width, side inspector or measured sheet top).
+- `registerPalette` is the adapter's API (`connectDiagramJs` calls it, possibly from inside
+  diagram-js's `palette.create`, before any entry exists); a later registration replaces the
+  earlier one, and the returned unregister function is safe to call twice and after `destroy()`.
+- `setProblems`: the pill shows for `count > 0` with `Intl` numbers in `lang` and the icon by severity;
+  its tooltip "Show in Problems view" exists only in the `ide` host (`aria-describedby`, since it
+  says more than the label).
 - `setStatus(status, { delayMs })`: shows after `delayMs` (an invalid file: `INVALID_STATUS_DELAY_MS`,
   so typing does not flicker and `role="alert"` does not re-announce), hides at once with `null`.
-- `setReadOnly(true)` (invalid file, §13.5): `data-readonly` on the root, Model entries and creating
-  palette entries `aria-disabled`; Lasso and Hand stay active. Blocking context pad, moves, deletes
-  and the label editor stays the modeler's job.
+  Repeated calls while the delay runs keep the first timer (the box appears once the text stayed
+  invalid for 800ms), `null` drops it, and an unchanged text is not written again.
+- `setReadOnly(true, { delayMs })` (invalid file, §13.5) locks at once: `isReadOnly()`, the palette
+  veto (every entry but Lasso and Hand) and the Model entries of the menu. The marks follow after
+  `delayMs` (pass `INVALID_STATUS_DELAY_MS`, as for the status box): `data-readonly` on the root and
+  the palette entries `aria-disabled`, muted, previews in `grayscale(1)`. Repeated calls keep the
+  first timer; `setReadOnly(false)` unlocks and hides at once. Blocking context pad, moves, deletes
+  and the label editor stays the modeler's job (read `isReadOnly()`).
 - `tooltip.attach` shows the chrome tooltip after `TOOLTIP_DELAY_MS` hover or at once on keyboard
-  focus (a neighbour's at once while one is shown), hides it on click, Escape, leave and menu open,
-  never on touch. The shell attaches it to its own buttons; the palette gets it through
-  `registerPalette`.
+  focus (`:focus-visible`, also on `aria-disabled` buttons); after a hover-hide a neighbour shows at
+  once for the same delay. It hides on click (until the pointer leaves), Escape, leave, blur and menu
+  open, never on touch. It sets `aria-describedby` only when its text says more than the control's
+  name. The shell attaches it to its own buttons; the palette gets it through `registerPalette`.
+- The legend's start state comes from `legend.open` or, at the first non-zero container size, from
+  `legendStartsOpen`; that automatic decision does not call `onToggle`. Its close button returns the
+  focus to the menu trigger.
 - `destroy()` removes every element, class, attribute, listener, observer and timer the shell added
-  (a passed `canvas` stays where it is, without `cd-shell-canvas`); a second call is a no-op.
+  and restores what was there before the mount: a passed `canvas` stays where it is, without
+  `cd-shell-canvas`, and a `cd-shell-document` class or a `lang` the page already had stays (the
+  class `renderWebviewHtml` writes on `<html>` included). A second call and every later handle call
+  are no-ops.
 
 ### Icons
 
@@ -642,7 +691,7 @@ attributes pass, so palette providers can put it into an entry's `html`.
   </div>
   <div class="cd-shell-layer">                           <!-- z 40: dropdown and tooltip -->
     <div class="cd-shell-menu" id="cd-shell-menu-1" role="menu" aria-label="Menu">…</div>
-    <div class="cd-shell-tooltip" role="tooltip">Zoom in <kbd class="cd-shell-kbd">⌘+</kbd></div>
+    <div class="cd-shell-tooltip" role="tooltip"><span class="cd-shell-tooltip-label">Zoom in</span><kbd class="cd-shell-kbd">⌘+</kbd></div>
   </div>
 </div>
 ```
@@ -667,9 +716,10 @@ pill, legend, zoom panel); nothing has a positive `tabindex`. Islands that are n
 | `cd-shell`, `cd-shell-document`, `cd-shell-canvas`, `cd-shell-layer`                                                                                                                                                       | root, own document, canvas slot, layer     |
 | `cd-shell-island`, `cd-shell-target`                                                                                                                                                                                       | glass island, 32px target in an island     |
 | `cd-shell-menu-trigger`, `cd-shell-menu`, `cd-shell-menu-item`, `cd-shell-menu-item-icon`, `cd-shell-menu-item-label`, `cd-shell-menu-item-end`, `cd-shell-menu-separator`, `cd-shell-menu-heading`, `cd-shell-menu-group` | menu                                       |
-| `cd-shell-tooltip`, `cd-shell-kbd`                                                                                                                                                                                         | tooltip and shortcut chip                  |
+| `cd-shell-menu-shortcut`, `cd-shell-menu-check`                                                                                                                                                                            | shortcut text and check mark of an entry   |
+| `cd-shell-tooltip`, `cd-shell-tooltip-label`, `cd-shell-kbd`                                                                                                                                                               | tooltip and shortcut chip                  |
 | `cd-shell-zoom`, `cd-shell-zoom-readout`, `cd-shell-zoom-separator`                                                                                                                                                        | zoom panel                                 |
-| `cd-shell-problems`                                                                                                                                                                                                        | pill                                       |
+| `cd-shell-problems`, `cd-shell-problems-icon`, `cd-shell-problems-text`                                                                                                                                                    | pill                                       |
 | `cd-shell-status`, `cd-shell-status-icon`, `cd-shell-status-text`                                                                                                                                                          | status box (bar as `::before`)             |
 | `cd-shell-hint`, `cd-shell-hint-text`, `cd-shell-hint-action`                                                                                                                                                              | empty-file hint                            |
 | `cd-shell-legend`, `cd-shell-legend-header`, `cd-shell-legend-title`, `cd-shell-legend-close`, `cd-shell-legend-body`                                                                                                      | legend card                                |
@@ -677,24 +727,30 @@ pill, legend, zoom panel); nothing has a positive `tabindex`. Islands that are n
 | `cd-shell-inspector`                                                                                                                                                                                                       | inspector                                  |
 | `cd-shell-no-transition`                                                                                                                                                                                                   | on `<html>` for one frame of a mode switch |
 
+Internal attributes: `data-severity` on pill and status box, `data-danger` on a dangerous menu
+entry, `data-menu-id` on entries and radio groups (the shell's Legend entry is `data-menu-id="legend"`,
+so a modeler does not use the id `legend`), `data-menu-value` on radio options, `data-zoom` on the
+zoom buttons.
+
 Modelers style only their own content (legend rows, inspector fields); every other class is
 internal to the shell CSS and may change in a minor release.
 
 ### Geometry
 
-Relative to the shell root, ±1px (§5.2 to §5.12). `ide` and `embedded` share the IDE column.
+Relative to the shell root's padding box (a border a foreign page gives the root does not count),
+±1px (§5.2 to §5.15). `ide` and `embedded` share the IDE column.
 
-| Island      | Box                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `menu`      | 40 × 40 at `top: 12px; left: 12px`                                                                                  |
-| `palette`   | 40 high at `top: 12px`, horizontally centred; second row `top: 64px`, at most `100cqw − 24px` wide                  |
-| `zoom`      | 173 × 40 (56px readout) at `right: 12px; bottom: 12px`                                                              |
-| `problems`  | 40 high at `left: 12px; bottom: 12px` (web `40px`)                                                                  |
-| `legend`    | `left: 12px`, `bottom: 12px` without pill, `60px` with pill (web `40px`, `88px`); up to 440px width at least `60px` |
-| `inspector` | 288 wide at `top: 64px; right: 12px`; up to 760px width a bottom sheet with 12px left, right and bottom             |
-| `status`    | centred at `top: 64px` (second row `116px`); with an open side inspector centred in the strip left of it            |
-| dropdown    | `top: 60px; left: 12px`, at least 248px wide                                                                        |
-| tooltip     | top row `top: 60px`, second row `top: 112px`, bottom row `bottom: 60px`                                             |
+| Island      | Box                                                                                                                                                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `menu`      | 40 × 40 at `top: 12px; left: 12px`                                                                                                                    |
+| `palette`   | 40 high at `top: 12px`, horizontally centred; second row `top: 64px`, at most `100cqw − 24px` wide                                                    |
+| `zoom`      | 173 × 40 (56px readout) at `right: 12px; bottom: 12px`                                                                                                |
+| `problems`  | 40 high at `left: 12px; bottom: 12px` (web `40px`)                                                                                                    |
+| `legend`    | `left: 12px`, `bottom: 12px` without pill, `60px` with pill (web `40px`, `88px`); up to 440px width at least `60px`                                   |
+| `inspector` | 288 wide at `top: 64px; right: 12px`; up to 760px width a bottom sheet with 12px left, right and bottom                                               |
+| `status`    | centred at `top: 64px` (second row `116px`); with an open side inspector centred in the strip left of it; 1px border and 4px bar in the status colour |
+| dropdown    | `top: 60px; left: 12px`, at least 248px wide                                                                                                          |
+| tooltip     | top row `top: 60px`, second row `top: 112px`, bottom row `bottom: 60px`                                                                               |
 
 Layers (§5.13): the canvas slot is layer 0 with `isolation: isolate` (palette `z-index: 110` above
 context pad and label editor at 100); islands `--cd-shell-ebene-inseln` (20), inspector 25, menu
@@ -775,18 +831,28 @@ interface Viewport extends ZoomTarget {
 function createViewport(diagram: InjectorLike, options: ViewportOptions): Viewport;
 ```
 
-**`shellModule`** goes into the modeler's modules after the renderer's own (`additionalModules`):
+**`shellModule`** goes into the modeler's modules after the renderer's own (`additionalModules`). It
+registers one internal didi service named `modelerShell` (a modeler does not reuse the name):
 
 - `paletteTooltip: ["value", null]` replaces diagram-js's (and a renderer's) palette tooltip; the
   chrome tooltip takes over with `title` and `shortcut` from `palette.getEntries()`.
 - Palette skin: on `palette.create` it sets `data-chrome="palette"` and moves the container in front
   of the canvas `<svg>` (`canvas.getContainer()`'s child), so tab order puts the palette first. After
-  every `palette.changed` it re-applies `role="toolbar"` and `aria-label` on `.djs-palette-entries`,
-  roving `tabindex` (← → Home End, Enter and Space trigger), and `aria-pressed` for the tool of the
-  last `tool-manager.update` (group `tools`, `data-action="<tool>-tool"`), styled through
+  every `palette.changed` it re-applies `role="toolbar"` and `aria-label` (`messages.tools`) on
+  `.djs-palette-entries`, `role="button"` on every entry, roving `tabindex` (the last focused entry
+  keeps the tab stop across rebuilds) and `aria-pressed` for the tool of the last
+  `tool-manager.update` (group `tools`, `data-action="<tool>-tool"`), styled through
   `[aria-pressed="true"]`: diagram-js's `highlighted-entry` goes stale after a rebuild, and its
-  `two-column` class is ignored. In read-only it marks the entries outside group `tools`
-  `aria-disabled` and vetoes them on `palette.trigger`.
+  `two-column` class is ignored. `separator` entries become vertical rules.
+- Palette keys, without modifiers: ← and → move and wrap, Home and End jump, Enter and Space trigger
+  the entry once (a synthetic click through `palette.trigger`, repeats ignored). They are stopped at
+  the palette, so a modeler's document listener and VS Code never see them; chrome keys still bubble
+  to the shell.
+- Read-only (§13.5): only `lasso-tool` and `hand-tool` stay active. Every other entry, also tools of
+  group `tools` such as draw, space or connect, is vetoed on `palette.trigger` from the lock on (a
+  vetoed `dragstart` is `preventDefault`-ed) and marked `aria-disabled` once the shell shows the
+  read-only state; an entry's own `aria-disabled` comes back afterwards. Without an entry element
+  in the event only group `tools` passes.
 - Keyboard: `keyboard.addListener(2000, …)` returns `true` for every `matchChromeKey` hit, so
   `KeyboardBindings` and the modeler's keyboard modules (priority 1000) never act on them; the
   shell's `keydown` listener executes them exactly once.
@@ -794,26 +860,42 @@ function createViewport(diagram: InjectorLike, options: ViewportOptions): Viewpo
 
 **`connectDiagramJs`** creates the viewport with `insets: shell.fitInsets`, binds it
 (`shell.setZoomTarget`), registers the palette and calls `canvas.resized()` (the canvas element has
-moved). It throws when `shellModule` is missing.
+moved). It throws when `shellModule` is missing. A later connection to another shell takes the
+palette over; `destroy()` (idempotent) unregisters the palette, unbinds the zoom target and destroys
+the viewport, while the keyboard guard stays until `diagram.destroy`.
 
 **`Viewport`** (§5.8, §5.9):
 
 - `stepZoom` is `zoomScroll.stepZoom(±1)` (the wheel's raster, snapping to the nearest step);
-  `zoomToActual` is `canvas.zoom(1)`; both around the container centre. No rounding of its own.
+  `zoomToActual` is `canvas.zoom(1)`; both around the container centre. No rounding of its own. A
+  step past a limit is refused (`canZoomOut`/`canZoomIn`), so zoom out never zooms in, whatever the
+  caller checks; without a `zoomScroll` service it steps on the same raster itself.
 - `fit()` uses `fitViewbox(contentBounds(), canvas.getSize(), insets())` and `canvas.viewbox(box)`,
   never `canvas.zoom("fit-viewport")`; animated over 250ms in `requestAnimationFrame` with
   `easeStandard` unless `animate: false` or reduced motion; a `wheel`, `pointerdown` or zoom key
   cancels the animation. A no-op when the bounds are empty.
 - `afterImport()` jump-fits the first import whose bounds are non-empty (also after an empty file got
-  its first content), unless the view was restored (`restore`, `setState`) or the user moved it.
-- A `ResizeObserver` on `canvas.getContainer()`, coalesced per frame, skips 0 × 0 (hidden tab), calls
-  `canvas.resized()` and refits while the view is automatic.
+  its first content), unless the user moved the view or a stored view was set with `setState` while
+  there was content. `restore` does not block it: a modeler restores on every re-import, and an
+  empty file must still fit its first content ("Insert example").
+- A `ResizeObserver` on `canvas.getContainer()`, coalesced per frame, skips 0 × 0 (hidden tab) and
+  compares with the size the view was last set for, so a tab coming back at the same size neither
+  refits nor calls `resized()`. On a real change it calls `canvas.resized()` and refits while the view
+  is automatic. A `restore` or `setState` made at 0 × 0 waits for a size and is not refitted then.
 - User moves: every `canvas.viewbox.changed` (and `canvas.viewbox.changing` for the readout under
-  `deferUpdate`) is compared with the last box the viewport set (`sameView`); a difference is a user
-  move. Fit makes the view automatic again; `restore` updates the reference without resetting it.
-- diagram-js events used: `palette.create`, `palette.changed`, `tool-manager.update`,
-  `palette.trigger`, `canvas.viewbox.changing`, `canvas.viewbox.changed`, `canvas.resized`,
-  `keyboard.keydown`, `diagram.destroy`. The shell fires no events of its own.
+  `deferUpdate`) is compared with the last view the viewport set (`sameView`; during an animation
+  also with the last written frame); a difference is a user move. Changes between
+  `import.parse.start`/`import.render.start` and `import.done` are not (renderers set the viewbox
+  while importing); that window also ends on `afterImport`, `restore`, `setState` and user input.
+  Fit makes the view automatic again; `restore` updates the reference without resetting it.
+- `getViewbox()` takes width and height from the fresh container size; `getState()` is `undefined`
+  before the first `afterImport`, `restore` or `setState`. `onChange` fires on
+  `canvas.viewbox.changing`/`.changed`, `elements.changed` (so Fit enables with the first element),
+  `import.done` and the viewport's own calls.
+- diagram-js events used: `canvas.init`, `palette.create`, `palette.changed`, `tool-manager.update`,
+  `palette.trigger`, `keyboard.keydown` (through `keyboard.addListener`), `canvas.viewbox.changing`,
+  `canvas.viewbox.changed`, `elements.changed`, `import.parse.start`, `import.render.start`,
+  `import.done`, `diagram.destroy`. The shell fires no events of its own.
 
 ## `./vscode/extension`
 
@@ -882,9 +964,12 @@ function isAppearanceMessage(value: unknown): value is AppearanceMessage;
 
 - The real `vscode` namespace is assignable to `VsCodeLike` and a `WebviewPanel` to
   `WebviewPanelLike` (pinned by a type test against `@types/vscode`).
+- `createNonce()`: 32 characters `[A-Za-z0-9]` from `crypto.getRandomValues`, unbiased.
 - `renderWebviewHtml` writes the appearance attributes on `<html>` before the first paint, always
   (also `light`), and a strict CSP (`data:` fonts for the bundled Geist). `lang` is the tool's UI
-  language: English modelers pass `"en"`, not `vscode.env.language`.
+  language: English modelers pass `"en"`, not `vscode.env.language`. Title and attribute values are
+  escaped, `body` is inserted as markup; the script is a classic `<script nonce src>` (an IIFE
+  bundle). It throws for a `nonce` that is not a CSP base64 value.
 
   ```text
   <html lang="en" class="cd-shell-document" data-cd-theme="light" data-cd-kontrast="hoch">
@@ -892,12 +977,17 @@ function isAppearanceMessage(value: unknown): value is AppearanceMessage;
     style-src {cspSource} 'unsafe-inline'; font-src {cspSource} data:; script-src 'nonce-{nonce}'
   ```
 
-- `currentAppearance` resolves `requestedAppearance(kind, setting)` against `themes`.
-  `connectThemeBridge` posts `appearanceMessage(currentAppearance(…))` on
-  `onDidChangeActiveColorTheme`, on `onDidChangeConfiguration` affecting `settingKey`, and on
-  `onDidChangeViewState` when the panel becomes visible; it disposes with the panel.
+- `currentAppearance` resolves `requestedAppearance(kind, setting)` against `themes`; a setting value
+  outside `automatic | light | dark` counts as `automatic`.
+- `connectThemeBridge` posts nothing on connect (the HTML carries the appearance) and then
+  `appearanceMessage(currentAppearance(…))` on `onDidChangeActiveColorTheme`, on
+  `onDidChangeConfiguration` affecting `settingKey` (no configuration listener without one), and on
+  `onDidChangeViewState` when the panel goes from hidden to visible (not on active or column
+  changes). It disposes with the panel or through the returned disposable (twice is safe) and throws
+  for empty `themes`.
 - `revealFileLabel(process.platform)`: "Reveal in Finder" (`darwin`), "Reveal in File Explorer"
-  (`win32`), "Open Containing Folder" (other), for the export notification (§13.5).
+  (`win32`), "Open Containing Folder" (other), for the export notification (§13.5); English, the
+  labels of VS Code itself (a localized modeler translates them with `vscode.l10n`).
 
 ## `./vscode/webview`
 
@@ -928,18 +1018,29 @@ function writeShellState(api: WebviewStateApi, patch: ShellWebviewState): void;
 ```
 
 - `applyAppearance` sets `data-cd-theme` and `data-cd-kontrast` in one task, with
-  `cd-shell-no-transition` on `<html>` until a nested `requestAnimationFrame` (no colour fades).
-- `connectAppearance` applies every `AppearanceMessage` arriving on `window`. Until the first one
-  arrives it watches the body classes with a `MutationObserver` and applies
-  `resolveAppearance(appearanceFromBodyClasses(…), themes)`; from the first message on, messages
-  win. The body classes are never used for styling.
-- `mountVsCodeShell` is `mountShell` with `host: "ide"`, `keyScope: "document"` and
-  `connectAppearance(options)`; its `destroy()` disconnects the appearance listener too. This wires
-  the IDE key interception: handled keys are stopped on `document`, before VS Code's listener on
-  `window` forwards them to the workbench.
+  `cd-shell-no-transition` on `<html>` until a nested `requestAnimationFrame` (no colour fades; after
+  several quick switches only the last one lifts it).
+- `connectAppearance` applies every `AppearanceMessage` arriving on `window`, resolved against its own
+  `themes` once more (what this bundle can show wins over what the extension passed); a message that
+  changes nothing leaves `<html>` alone. Until the first one arrives it watches the body classes with
+  a `MutationObserver` and applies `resolveAppearance(appearanceFromBodyClasses(…), themes)`; at
+  connect it applies them only while `<html>` has no `data-cd-theme` yet, because the attributes of
+  `renderWebviewHtml` already honour the `colorTheme` setting. From the first message on, messages
+  win. The body classes are never used for styling. Throws for empty `themes`.
+- `mountVsCodeShell` is `mountShell` with `host: "ide"` and `keyScope: "document"` (both always win)
+  plus `connectAppearance(options)`, connected first, so empty `themes` throw before anything mounts
+  (and disconnected again if `mountShell` throws). It returns a handle that passes every member
+  through and whose `destroy()` disconnects the appearance listener too. This wires the IDE key
+  interception: handled keys are stopped on `document`, before VS Code's listener on `window`
+  forwards them to the workbench.
 - `readShellState`/`writeShellState` keep the shell's part (legend state, view) under
-  `SHELL_STATE_KEY` of `vscode.getState()`, merging and leaving every other key alone. The modeler
-  owns `acquireVsCodeApi()` (callable once) and passes its API object.
+  `SHELL_STATE_KEY` of `vscode.getState()`. `readShellState` returns `{}` for a missing or malformed
+  part and only valid fields (a view with finite `x`/`y`, positive width and height and a boolean
+  `userMoved`), as copies. `writeShellState` merges: every other top-level key and unknown keys in its
+  own part stay, an `undefined` or malformed value leaves the stored one alone (so
+  `{ view: viewport.getState() }` before the first import erases nothing), and nothing is written
+  when nothing changed. The modeler owns `acquireVsCodeApi()` (callable once) and passes its API
+  object.
 
 ## `./testing`
 
@@ -953,8 +1054,8 @@ interface PageLike {
 }
 
 interface OpenContext {
-  size: Size;
-  requested: Appearance;
+  size: Size; // the shell container's size (grow the page by any frame around an embedded root)
+  requested: Appearance; // what the host requests; the harness opens the page with it
 }
 interface ShowHooks<P extends PageLike = PageLike> {
   problems?(page: P): Promise<void>;
@@ -1021,19 +1122,30 @@ function expectedChromeBoxes(
 ): Partial<Record<ChromeIsland, ExpectedBox>>;
 ```
 
-Cases (each named `shell conformance: <name>`, failures throw plain `Error`s, a case the harness
-cannot feed reports `skipped` through `onSkip`, default `console.warn`):
+`IslandBox` and `ExpectedBox` are relative to the root's padding box (`getBoundingClientRect()` minus
+the root's box and border), where the islands anchor.
 
-| Case         | Checks                                                                                                                                                                                                                                                         |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `geometry`   | every visible `data-chrome` island against the geometry table, ±1px, per size (top row and second row, side inspector and sheet)                                                                                                                               |
-| `aria`       | trigger `aria-haspopup`/`-expanded`/`-controls` → `role="menu"`; palette `role="toolbar"` with roving tabindex; zoom `role="group"`, readout `aria-label`, `aria-keyshortcuts`, `aria-disabled` at the limits; DOM order; no positive `tabindex`               |
-| `keys`       | each chrome key changes the zoom exactly once (100 % → 135 % → 100 %, fit); unmodified `+`/`-` do nothing; in the `ide` host a `keydown` listener on `window` never fires for a handled key (zoom keys incl. Shift and numpad, Shift+1, Escape with open menu) |
-| `appearance` | the harness requests dark (and high contrast): a light-only modeler keeps `data-cd-theme="light"` (with `hoch`), and `color-scheme` is light on root, palette, islands, dropdown and tooltip — never half-dark                                                 |
-| `cleanup`    | after `destroy`: no `.cd-shell*` element, class or attribute left, chrome keys do nothing, no error                                                                                                                                                            |
+Cases (each named `shell conformance: <name>`, failures throw plain `Error`s listing every problem, a
+case the harness cannot feed reports `skipped` through `onSkip`, default `console.warn`):
 
-The kit never imports Playwright; a modeler's suite passes its `page` and `test`
-(`registerShellConformance(harness, test)` from `@playwright/test`).
+| Case         | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `geometry`   | per size, as opened and after each show hook in turn (legend, problems, status, inspector): every visible `data-chrome` island against the geometry table, ±1px; the palette row decision (second row up to 760px, 16px clearance); the guide's limits (legend ≥ 184px, status ≤ `min(560px, 100cqw − 24px)`, side inspector ≥ 64px above the bottom, sheet ≤ 45 %, second-row palette ≤ `100cqw − 24px`); root state attributes against what is visible; zoom, pill and legend hidden under a bottom sheet; the dropdown at 60/12 and 248 to `min(320px, 100cqw − 24px)` wide; tooltips on the menu trigger, a palette entry and zoom in at 60, 112 and bottom 60, centred and 12px from the sides                |
+| `aria`       | trigger `aria-haspopup`/`-expanded`/`-controls` → `role="menu"`; the menu keyboard (Enter and ↓ open on the first entry, ↑ on the last, wrap, Home/End, Escape returns focus); named items, `aria-checked`, labelled radio groups, dialog entries ending in "…"; palette `role="toolbar"` with roving tabindex driven by ←/→/Home/End and `aria-pressed` on tools; zoom `role="group"`, readout `aria-label` with the shown percentage, `aria-keyshortcuts` for the page's platform, `aria-disabled` (never native `disabled`) at 400 % and 20 % reached by clicking; roles of pill, status, legend and inspector; DOM order; no positive `tabindex`; no native `title`; `lang` on `<html>` or on an embedded root |
+| `keys`       | on the canvas, each chrome key changes the zoom exactly once (Ctrl, Meta, Shift and numpad variants 100 % → 135 % → 100 %, 0 and Numpad0 to 100 %, Shift+1 fits at most 100 %); unmodified `+`/`-` and Alt combinations do nothing; text field, modal and popover stand-ins block, Escape with the open menu closes it. `ide`: a `keydown` listener on `window` never sees a handled or blocked key while F1 still arrives, and a `document` listener registered after the shell's sees handled keys prevented and blocked ones (Cmd/Ctrl+Z in a text field) not; other hosts: every key reaches `window`, the handled ones prevented                                                                              |
+| `appearance` | the harness opens with dark, dark + high contrast and light + high contrast requested: the mode on `<html>` (own document) or the nearest themed ancestor (embedded) is `resolveAppearance(requested, themes)`, recomputed by the kit (a light-only modeler stays light, `hoch` passes); no themed descendant; `cd-shell-document` on `<html>` in `ide`/`web`, never in a foreign page; tokens loaded; `color-scheme` and four `--cd-ui-*` roles equal on root, canvas, every island, the open dropdown and the visible tooltip — never half-dark                                                                                                                                                                  |
+| `cleanup`    | with a tooltip timer pending: after `destroy` and 800ms, a resize and chrome keys that must arrive unprevented, no `cd-shell*` class or element, no `data-chrome`, no root state attribute and no page error is left                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+- An embedded host without `data-cd-theme` on the root or above it reports `appearance` as skipped
+  ("high contrast not verified"): until contract 1.1 an embedded modeler has no appearance channel
+  and stays light (§13.3).
+- The kit never imports Playwright; a modeler's suite passes its `page` and `test`
+  (`registerShellConformance(harness, test)` from `@playwright/test`). It installs one page global,
+  `__modelerShellConformance`, with `keydown` recorders on `window` and `document`, and briefly
+  injects stand-ins marked `data-modeler-shell-conformance` (an input, a modal dialog, a popover, a
+  focus target) into the shell root.
+- `geometry` takes about 10s per host; wrap the registration in
+  `test.describe.configure({ timeout: 60_000 })`.
 
 ## `./shell.css`
 
@@ -1044,9 +1156,16 @@ never viewport units, and no element inside gets a `container-type` of its own. 
 islands (`color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent)`
 with `backdrop-filter: blur(8px)`), opaque popups, focus rings (inset in dense containers),
 `[data-cd-kontrast="hoch"]` (no shadows, 3px focus), `@media (forced-colors: active)` (rings in
-`Highlight`, status bar and island borders in `CanvasText`), `prefers-reduced-motion`, and under
+`Highlight`, status bar and island borders in `CanvasText`), `prefers-reduced-motion`,
+`html.cd-shell-no-transition` (no transitions for the frame of a mode switch), and under
 `html.cd-shell-document` the own-document reset: no body padding, `--cd-ui-grund` background, Geist
-13px/1.5, own `kbd`, `code`, links, focus and scrollbars, never `var(--vscode-*)`.
+13px/1.5, own `kbd`, `code`, links, focus and scrollbars, never `var(--vscode-*)`. The reset is
+unlayered, so it wins over VS Code's `@layer vscode-default`; its button and field font reset has
+zero specificity, so the chrome's own rules (the readout's 13px/600) win over it. Private helper
+properties are named `--modeler-shell-*`.
+
+The shell bundles no font: the modeler loads Geist and Geist Mono (`@fontsource-variable/geist`,
+`@fontsource-variable/geist-mono`), as the stylesheet order above shows.
 
 ## Usage: Event Storming in VS Code
 
@@ -1088,6 +1207,7 @@ Webview (`src/webview/main.ts`):
 ```ts
 import "./theme/cd-tokens.generated.css";
 import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist-mono/wght.css";
 import { BoardBounds, Modeler, type EventStormingViewOptions } from "@miragon/event-storming-renderer";
 import "@miragon/modeler-shell/shell.css";
 import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell";
@@ -1172,7 +1292,8 @@ async function importText(text: string, first: boolean): Promise<void> {
     shell.setEmptyHint(isEmpty());
     shell.menu.refresh();
   } catch {
-    shell.setReadOnly(true); // at once; the box follows after 800ms without a valid import
+    // locked at once; read-only marks and status box show after 800ms without a valid import
+    shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
     shell.setStatus(
       { severity: "danger", text: shell.messages.invalidFile("Event Storming board") },
       { delayMs: INVALID_STATUS_DELAY_MS },
@@ -1196,6 +1317,7 @@ Document sync, echo suppression, minimal edits and undo stay in the modeler for 
   undo/redo through the document's history (no canvas `commandStack` bindings on Cmd+Z), "Insert
   example" as one edit, diagnostics to the Problems view, export save dialog. The modelers keep
   their own code; the shell only stops undo/redo keys in text fields and keys the canvas handled.
+- An ES-module webview bundle (`renderWebviewHtml` writes a classic script; a `scriptType` option).
 - **Web-app chrome**: primary action (`data-chrome="primary"`) with label collapse, legal line,
   File and Appearance menu groups, problems popover, toasts, empty-state card, drop zone, the
   `localStorage` mode script. `host: "web"` in 0.1 covers keys (page zoom), fit insets and the
