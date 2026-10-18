@@ -1,5 +1,9 @@
 /* Demo page only: a foreign page around the embedded host, and previews for the demo shapes. */
 
+body:has(> .demo-foreign-page) {
+  margin: 0;
+}
+
 .demo-foreign-page {
   box-sizing: border-box;
   height: 100vh;
@@ -8,7 +12,9 @@
   background: var(--cd-ui-flaeche);
 }
 
+/* The modeler's container in the foreign page: 40px page padding around it, a 1px frame inside. */
 .demo-embedded-host {
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   border: 1px solid var(--cd-ui-linie);

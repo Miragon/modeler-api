@@ -4,6 +4,7 @@ import "../src/shell.css";
 import "./demo.css";
 
 import {
+  INVALID_STATUS_DELAY_MS,
   appearanceAttributes,
   mountShell,
   resolveAppearance,
@@ -14,16 +15,20 @@ import {
   type Theme,
 } from "../src/index.js";
 import { connectDiagramJs, type DiagramJsConnection } from "../src/diagram-js.js";
-import { applyAppearance, mountVsCodeShell } from "../src/vscode-webview.js";
+import { mountVsCodeShell } from "../src/vscode-webview.js";
 import { addSampleShapes, createDemoDiagram, demoContentBounds } from "./demo-diagram.js";
+import { startVsCodeHostStub } from "./vscode-host-stub.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
- * - `host`: `ide` (default, a simulated VS Code webview), `web` or `embedded` (a foreign page);
+ * - `host`: `ide` (default, a VS Code webview with a stubbed host, see vscode-host-stub.ts), `web`
+ *   or `embedded` (a foreign page);
  * - `themes`: the modes the demo modeler declares, comma-separated (default `light`);
  * - `theme`, `kontrast`: what the host requests (default `light`, none);
- * - `empty`: start without content; `legend`, `inspector`: mount those slots;
- * - `problems=<count>:<errors>`, `status=danger|warning`: show pill and status box at start.
+ * - `empty`: start without content; `legend` (`legend=open`: open at start), `inspector`: mount
+ *   those slots;
+ * - `problems=<count>:<errors>`, `status=danger|warning`: show pill and status box at start;
+ * - `invalid`: the invalid-file state (read-only canvas and status box after 800ms).
  */
 const params = new URLSearchParams(location.search);
 const host = (params.get("host") ?? "ide") as ShellHost;
@@ -107,7 +112,7 @@ function hostElement(): HTMLElement {
 }
 
 const root = hostElement();
-if (host === "ide") applyAppearance(resolveAppearance(requested, themes));
+const vscodeHost = host === "ide" ? startVsCodeHostStub(requested, themes) : undefined;
 if (host === "web") {
   for (const [name, value] of Object.entries(appearanceAttributes(resolveAppearance(requested, themes)))) {
     document.documentElement.setAttribute(name, value);
@@ -131,6 +136,7 @@ const options = {
             body.innerHTML = `<div class="cd-shell-legend-row"><span class="cd-shell-legend-preview demo-legend-box"></span><span>Box</span></div>`;
           },
           onToggle: (open: boolean) => calls.push(`legend:${open}`),
+          ...(params.get("legend") === "open" ? { open: true } : {}),
         },
       }
     : {}),
@@ -167,6 +173,13 @@ const status = params.get("status");
 if (status === "danger" || status === "warning") {
   shell.setStatus({ severity: status, text: shell.messages.invalidFile("demo diagram") });
 }
+if (params.has("invalid")) {
+  shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+  shell.setStatus(
+    { severity: "danger", text: shell.messages.invalidFile("demo diagram") },
+    { delayMs: INVALID_STATUS_DELAY_MS },
+  );
+}
 
 let destroyed = false;
 
@@ -179,6 +192,7 @@ const demo = {
   shell,
   connection,
   diagram,
+  vscode: vscodeHost,
   destroy(): void {
     if (destroyed) return;
     destroyed = true;
