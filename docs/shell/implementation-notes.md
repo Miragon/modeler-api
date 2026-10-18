@@ -1,11 +1,12 @@
 # @miragon/modeler-shell — implementation notes
 
-`@miragon/modeler-shell` will be the shared, framework-free implementation of everything around a
+`@miragon/modeler-shell` is the shared, framework-free implementation of everything around a
 Miragon diagram-js modeler: menu button, tool palette, tooltips, zoom panel, keys, fit, problems pill,
 legend, status box and the plumbing to its host (a VS Code webview, a web app, or an embedding host
-such as designIQ). **Status: 0.1 in development** in [`packages/shell`](../../packages/shell), Phase 4
-of [#4](https://github.com/Miragon/modeler-api/issues/4); its public API is fixed in
-[`packages/shell/API.md`](../../packages/shell/API.md).
+such as designIQ). **Status: 0.1** in [`packages/shell`](../../packages/shell), Phase 4 of
+[#4](https://github.com/Miragon/modeler-api/issues/4); its public API is documented in
+[`packages/shell/API.md`](../../packages/shell/API.md). Where building 0.1 showed a note to be wrong or
+incomplete, the note was corrected here.
 
 The source of truth for look and behaviour is the Miragon design system: the Claude skill
 `modeler-tool-design` in Miragon/corporate-identity, guide
@@ -142,10 +143,13 @@ sizes in every host; tests check the position of each island to 1px.
   `problems`, `legend`, `inspector`, `status`. On the palette the attribute goes onto diagram-js's
   `.djs-palette` element.
 - Shell conformance runs in every modeler's e2e suite in a real browser. It finds the islands through
-  this attribute and asserts their boxes (`getBoundingClientRect()` relative to the shell root) within
-  ±1px. There are no pixel goldens: the islands are glass, so their pixels depend on the diagram
-  underneath.
-- The expected boxes, relative to the shell root (guide §5.2 to §5.12, IDE host unless noted):
+  this attribute and asserts their boxes within ±1px. There are no pixel goldens: the islands are
+  glass, so their pixels depend on the diagram underneath.
+- "Relative to the shell root" means relative to the root's padding box, where `position: absolute`
+  islands anchor: `getBoundingClientRect()` minus the root's `getBoundingClientRect()` minus
+  `root.clientLeft`/`clientTop`. A foreign page may give the root a border (a framed embedded
+  modeler); measured against the border box, every island would be off by its width.
+- The expected boxes, relative to the shell root (guide §5.2 to §5.15, IDE host unless noted):
 
   | Island      | Expected box                                                                                                                        |
   | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -157,6 +161,15 @@ sizes in every host; tests check the position of each island to 1px.
   | `legend`    | `left: 12px`, `bottom: 12px` without pill, `60px` with pill (web app `40px` and `88px`); up to 440px width at least `60px`          |
   | `inspector` | 288 wide at `top: 64px; right: 12px`; up to 760px width a bottom sheet with 12px left, right, bottom                                |
   | `status`    | horizontally centred under the palette at `top: 64px` (second row `116px`); with an open inspector centred in the strip to its left |
+  | dropdown    | `top: 60px; left: 12px`                                                                                                             |
+  | tooltip     | top row `top: 60px`, second row `top: 112px`, bottom row `bottom: 60px`, centred on its control                                     |
+
+- The guide's limits belong to the same check: legend at least 184px wide, status box at most
+  `min(560px, 100cqw - 24px)`, side inspector ending at least 64px above the bottom, bottom sheet at
+  most `45cqh`, palette in the second row at most `100cqw - 24px`, dropdown between 248px and
+  `min(320px, 100cqw - 24px)` wide and at least 12px above the bottom, tooltip at most
+  `min(280px, 100cqw - 24px)` wide and 12px from the sides. While the bottom sheet is open, zoom
+  panel, pill and legend are hidden (guide §5.11).
 
 ## Menu
 
@@ -169,6 +182,11 @@ still acts on its target, also on the canvas.
   propagation when a listener returns `false`. A bubble-phase listener would miss these clicks.
 - Neither stop nor prevent the event, so the click still reaches its target (a palette tool, an
   element on the canvas).
+- Open on Enter, Space and ↓ in the trigger's `keydown` with `preventDefault()`; otherwise the
+  button's native click toggles the menu a second time.
+- The dropdown lives in the layer at the end of the shell root (see [Tooltip](#tooltip)), so a Tab
+  from it would leave the shell. On Tab, close the menu and move the focus to the trigger without
+  `preventDefault()`: the browser's Tab then continues from the trigger to the palette.
 - Dropdown limits: `max-width: min(320px, 100cqw - 24px)`, `max-height: calc(100cqh - 72px)` (see
   [Container, not window](#container-not-window)).
 
@@ -194,7 +212,8 @@ tab order.
   editor 100 (set by the modeler).
 - **DOM order.** `Palette#_init` appends the palette to `canvas.getContainer()` after the `<svg>` and
   then fires `palette.create` with `{ container }`. On that event the shell moves it in front of the
-  canvas `<svg>` (the `svg` of the `canvas.init` event): `canvasContainer.insertBefore(container, svg)`.
+  canvas `<svg>` (the `svg` of the `canvas.init` event, which diagram-js fires on `diagram.init`,
+  after every `__init__` service exists): `canvasContainer.insertBefore(container, svg)`.
   DOM order, and with it the tab order, then puts the palette before the canvas (the `<svg>` carries
   `tabindex="0"`).
 - **Rebuilds.** `Palette#_update` clears and rebuilds all entries on every change and then fires
@@ -208,13 +227,32 @@ tab order.
   `highlighted-entry`. Do not mirror that class: `Palette#updateToolHighlight` caches the tools group
   on its first call (`_toolsContainer`) and never refreshes it, so after a rebuild the class lands on
   detached entries. The shell keeps the tool name of the last `tool-manager.update` itself, sets
-  `aria-pressed` from it after every `palette.changed`, and styles `[aria-pressed="true"]`.
+  `aria-pressed` from it after every `palette.changed`, and styles `[aria-pressed="true"]`. Until
+  the first rebuild the class still sits on a live entry, and `diagram-js.css` colours
+  `.djs-palette .highlighted-entry` with `!important`: the skin overrides that colour with
+  `!important` at a higher specificity (plus a hover variant).
+- **Keyboard.** Roving tabindex: ← and → move and wrap, Home and End jump, all without
+  modifiers and stopped there (a modeler's document listener and VS Code never see them; chrome keys
+  still bubble to the shell). Enter and Space dispatch a synthetic `click` at the entry's centre: it
+  goes through diagram-js's click delegate and `palette.trigger`, so the read-only veto applies
+  without calling private palette methods. Placing a created element in the centre of the free
+  rectangle (guide §5.5) is a 0.2 candidate.
+- **Read-only** (guide §13.5). Only Lasso and Hand stay active; every other entry changes the diagram
+  and is vetoed, also tools of group `tools` such as draw, space or connect. `palette.trigger`
+  carries the entry definition without its id, so the veto finds the entry element through the
+  event's `delegateTarget` or `target` (min-dom's delegate sets `delegateTarget`); without one only
+  group `tools` passes. The veto applies from the invalid import on, the `aria-disabled` marks after
+  the delay of [Status box](#status-box).
 - **Two columns.** On every `canvas.resized` diagram-js decides from the container height whether
   the vertical palette needs two columns and toggles `two-column` on the palette and
   `djs-palette-two-column` on the container. The horizontal skin ignores both classes.
 - **Group separator.** Between two `.group` elements: `margin-left: 8px` before the line and
-  `padding-left: 8px` after it, so 8px of space show on each side. Draw the 1px line as a `::before`
-  inset 4px at top and bottom; a `border-left` would run the full 32px.
+  `padding-left: 9px` after it (the 1px line at `left: 0` sits inside the padding, so 9px leave 8px
+  of space after it). Draw the line as a `::before` inset 4px at top and bottom; a `border-left`
+  would run the full 32px.
+- **Separator entries.** Entries with `separator: true` render as `<hr class="separator">`, which
+  diagram-js styles as a horizontal line; the horizontal skin draws them as a 24px vertical rule with
+  8px of space on each side (6px margin plus the 2px gap).
 
 ## Tooltip
 
@@ -228,7 +266,16 @@ legend and inspector.
 - Do not render it inside an island either: an island with a `z-index` is a stacking context of its
   own, so a tooltip inside it could not rise above the inspector, and `backdrop-filter` makes a glass
   island the containing block of `position: fixed` descendants. Position the tooltip with
-  `position: absolute` in shell-root coordinates (differences of `getBoundingClientRect()`).
+  `position: absolute` in the shell root's padding-box coordinates: differences of
+  `getBoundingClientRect()`, minus `root.clientLeft` and `clientTop` (a foreign page may border the
+  root).
+- "At once on keyboard focus" means `:focus-visible`: in Chromium a mouse click focuses the button
+  too, and showing on every focus would flash the tooltip the click must hide.
+- "A neighbour's at once while one is shown" needs a grace window: `pointerleave` on one control
+  hides its tooltip before `pointerenter` reaches the next, so at that moment none is shown. After a
+  hover-hide, a neighbour shows at once for `TOOLTIP_DELAY_MS`.
+- Set `aria-describedby` only where the tooltip says more than the control's name (guide §5.6), for
+  example the pill's "Show in Problems view".
 - diagram-js 15.28 ships its own palette tooltip: `PaletteTooltip` on top of `HoverTooltip`, shown on
   `mouseover` only and therefore never on keyboard focus, placed to the right of a vertical palette.
   The shell replaces it with an empty service in the modeler's modules:
@@ -329,7 +376,9 @@ inspector, dialog and popover fields).
 - Fit is matched by `event.code === "Digit1"` with `shiftKey` and without `metaKey`, `ctrlKey` and
   `altKey`, so it is the physical 1 key of the number row on every keyboard layout (`key` is `"!"` on
   US and German layouts, but `"1"` on French AZERTY).
-- Ignore every shortcut with `altKey` or while `event.isComposing` is true.
+- Ignore every shortcut with `altKey` or while `event.isComposing` is true. Escape during IME
+  composition belongs to the IME: it does not close the menu (but in VS Code it is still stopped
+  while a menu or dialog is open).
 - A text field is `input`, `textarea`, `select` or `[contenteditable]`: check the event target with
   `target.closest("input, textarea, select")` or `target.isContentEditable`; this covers the label
   editor and the fields of inspector, dialogs and popovers. There the zoom keys do not zoom and
@@ -369,7 +418,9 @@ fields and dialogs.
   shell which keys the canvas handled.
 - The listener does not execute the chrome keys while the focus is in a text field or a modal dialog
   (guide §8, `[role="dialog"][aria-modal="true"]`) is open. Popovers are `role="dialog"` without
-  `aria-modal` and do not block the keys. In VS Code the listener still stops the blocked keys and
+  `aria-modal` and do not block the keys. Count `[role="dialog"]`, `[role="alertdialog"]` and
+  `<dialog open>` outside `[hidden]`, in the document or (embedded) in the shell root; modal is
+  `aria-modal="true"` or `:modal` (a `<dialog>` opened with `showModal()`). In VS Code the listener still stops the blocked keys and
   the keys the canvas handled (see [VS Code: key interception](#vs-code-key-interception)).
 - Foreign page (embedded without iframe): the listener sits on the shell root. `keydown` is
   dispatched to the focused element, so it only reaches the root while the focus is inside it.
@@ -388,8 +439,10 @@ is not on the plus key of German keyboards. `aria-keyshortcuts` follows the same
 key names.
 
 - Read the platform in the webview or page itself, in every host:
-  `navigator.userAgentData?.platform ?? navigator.platform`, macOS if it matches `/mac/i`. The webview
-  always runs on the client, so its own `navigator` reports the keyboard in front of the user.
+  `navigator.userAgentData?.platform || navigator.platform`, macOS if it matches `/mac/i`. Use `||`,
+  not `??`: an empty `userAgentData.platform` means unknown and must fall back to
+  `navigator.platform`. The webview always runs on the client, so its own `navigator` reports the
+  keyboard in front of the user.
 - Do not label shortcuts from `process.platform` in the extension: with VS Code Remote (SSH, WSL, Dev
   Containers) a custom-editor extension usually runs on the remote machine, so `process.platform`
   names the remote OS. See [Open verification points](#open-verification-points).
@@ -426,6 +479,11 @@ container minus the fit insets and whatever is open), never above 100 %.
   });
   ```
 
+- Guard the degenerate cases the snippet leaves out: bounds with a zero width or height scale by the
+  other dimension (a single line), bounds without both and a container with a 0 side fit nothing (a
+  no-op), and an axis whose insets leave no room (a container lower than 88 + 64 or narrower than 48)
+  centres in the whole container instead of producing a zero or negative scale.
+
 - `bounds` are the content bounds the modeler supplies. The insets (guide §5.9):
   - top `--cd-shell-einpassen-oben` (88px), with the palette in the second row
     `--cd-shell-einpassen-oben-schmal` (140px);
@@ -436,11 +494,17 @@ container minus the fit insets and whatever is open), never above 100 %.
   - left with an open legend (container wider than 440px): 12 + the legend's rendered width + 24; up
     to 440px the legend does not count;
   - bottom with an open bottom sheet (up to 760px): the distance from the container's bottom edge to
-    the sheet's top edge, plus 12.
+    the sheet's top edge, plus 12. While the sheet is open, zoom panel, pill and legend are hidden
+    (guide §5.11), so the legend's left inset and the web pill's 92px do not count; the sheet alone
+    sets the bottom. Without a measured sheet top the bottom stays 64.
 - Animated fit (explicit fit only, 250ms, guide §5.9): diagram-js has no animated viewbox change.
   Interpolate the viewbox in `requestAnimationFrame` (the scale in log space) and set each frame with
   `canvas.viewbox(box)`. Record the target as the last fitted box before the first frame, and cancel
-  the animation on `wheel`, `pointerdown` or a zoom key.
+  the animation on `wheel`, `pointerdown` or a zoom key. While it runs, also compare incoming
+  viewbox events with the last written frame (a `deferUpdate` event of a throttled frame carries an
+  intermediate view); a cancelled animation leaves its last written frame as the reference. Stop
+  the frames when the container drops to 0 × 0 (diagram-js's setter would set a scale of 0) and fit
+  again once it has a size.
 
 ### Resize
 
@@ -453,6 +517,11 @@ view refits until the user has zoomed or panned; a 0 × 0 container (hidden tab)
   re-lays itself out on it). Refit if the view is still automatic.
 - Skip entries with width or height 0 (hidden tab, see [VS Code: host hygiene](#vs-code-host-hygiene),
   `retainContextWhenHidden`).
+- Compare with the container size the view was last set for, not with the previous observation: a
+  tab that comes back at the same size then neither refits nor needs `canvas.resized()`.
+- A `restore` or a stored view that arrives while the container is 0 × 0 is kept and applied once
+  the container has a size, without a refit at that moment; otherwise the stored view would never
+  win.
 
 ### Detecting a user move
 
@@ -469,13 +538,22 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
   `y · scale`), relative to `max(1, |value|)`: the getter rounds the screen translation
   (`matrix.e`, `matrix.f`) and then divides by the scale, so near the origin and at small zoom the
   diagram coordinates `x` and `y` carry an error of up to `0.0005 / scale` that a tolerance relative
-  to them would not absorb.
+  to them would not absorb. Far from the origin the relative tolerance grows: at a translation of
+  10 000px a pan below 10px does not count as a move, which is harmless.
+- Renderers may set the viewbox while they import: Event Storming's importer calls
+  `canvas.viewbox(contentBounds)` on every import. Changes between `import.parse.start` or
+  `import.render.start` and `import.done` are therefore no user moves. The window also closes on the
+  viewport's own `afterImport`, `restore` and `setState` and on user input (wheel, pointerdown,
+  keydown on the canvas container), because a failed import never fires `import.done`.
 - Do not count own changes with a flag or counter around the fit: with `canvas.deferUpdate` diagram-js
   emits `canvas.viewbox.changed` up to 300ms later (debounced), so the delayed event would be
   attributed to the user. During a fit animation without `deferUpdate`, ignore the synchronous
   intermediate events until the animation ends or is cancelled.
 - A restore after an import (guide §5.9: external changes keep viewbox and selection) updates the
-  reference box but does not reset the "user moved" state.
+  reference box but does not reset the "user moved" state. It also does not count as a stored view:
+  a modeler restores on every re-import, and an empty file must still fit its first content
+  ("Insert example", guide §13.5). Only a persisted view (`setState`, see
+  [VS Code: state](#vs-code-state)) applied while there is content replaces the first automatic fit.
 
 ## Legend state
 
@@ -484,6 +562,8 @@ across a window reload, in the web app across sessions.
 
 - VS Code: `vscode.setState`, together with the viewbox (see [VS Code: state](#vs-code-state)).
 - Web app: `localStorage`. Wrap the access in `try`/`catch`: it throws when storage is blocked.
+- Without a stored state the start state (closed up to 820px height) is decided at the first
+  non-zero container size: a tab hidden at mount reports 0 × 0 and waits for its first real size.
 
 ## Status box
 
@@ -492,7 +572,20 @@ bend at the rounded corner.
 
 Draw the bar as its own element (`::before`, absolutely positioned over the full height:
 `top: 0; bottom: 0; left: 0; width: 4px`). A `border-left` follows the border radius and turns into a
-crescent at the rounded corners.
+crescent at the rounded corners. The box's own 1px border is in the status colour as well (guide §8:
+"Rand 1px plus links 4px deckend in `--cd-ui-<status>`").
+
+**Guide [§5.12][guide-5.12], [§13.5][guide-13.5].** Rule: the box for an invalid file and the visible
+read-only state appear only after 800ms without a valid import and end at once with the next valid
+one; the read-only lock itself applies at once.
+
+- Repeated invalid imports while typing keep the first timer: the box shows once the text stayed
+  invalid for 800ms, not 800ms after the last keystroke. A valid import cancels the timer.
+- The same holds for the read-only marks (`data-readonly`, the `aria-disabled` palette entries):
+  delayed like the box, so the palette does not flicker while the user types in the text editor next
+  to the diagram. The lock behind them (palette veto, Model entries, `isReadOnly()`) applies with the
+  invalid import, so nothing can overwrite the text in the meantime.
+- An unchanged text is not written again, so `role="alert"` does not announce it again.
 
 ## Layers
 
@@ -686,6 +779,9 @@ selection; in text fields the field's own undo applies.
   webview host calls `preventDefault()` on every Ctrl/Cmd + Z or Y that reaches `window` and forwards
   it: without the stop the field loses its native undo and VS Code undoes the last document change;
   with `preventDefault()` the field loses its native undo too.
+- Match these keys by the typed character (`event.key`), because QWERTZ swaps the Y and Z keys; fall
+  back to `code` `KeyZ`/`KeyY` only when `key` is not an ASCII character (Cyrillic, Greek layouts).
+  Cmd/Ctrl+Shift+Y is not redo: VS Code toggles the Debug Console with it.
 
 ## VS Code: key interception
 
@@ -716,8 +812,13 @@ sees it and never runs it again (for example as a window zoom); every other key 
   webview (in VS Code for the Web the browser handles them, see above), and select all would select
   the chrome's text. Every other key propagates to VS Code (Cmd+S, Cmd+P, Cmd+W, F1).
 - Test: a `keydown` listener on `window` (where VS Code's host page picks keys up) must not see any
-  handled key. Acceptance runs in real VS Code with Light, Dark and both High Contrast themes, plus
-  Cmd+Shift+- and Cmd+A on the canvas.
+  handled key. A window listener cannot see whether a stopped key was prevented, so add a `keydown`
+  listener on `document`, registered after the shell's and the modeler's: handled keys must arrive
+  prevented, blocked ones (zoom keys and undo/redo in text fields, Escape with a dialog or popover)
+  unprevented, so the field keeps its native undo, and unhandled keys such as F1 must still reach
+  `window` unprevented. That is what catches a modeler's own document undo binding taking Cmd+Z from
+  the label editor. Acceptance runs in real VS Code with Light, Dark and both High Contrast themes,
+  plus Cmd+Shift+- and Cmd+A on the canvas.
 
 ## VS Code: theme bridge
 
@@ -746,13 +847,18 @@ a theme change switches at once, both attributes in one step, without a fade.
   mode renders without transitions.
 - Hidden tabs: the VS Code API documentation contradicts itself on whether a hidden webview with
   `retainContextWhenHidden` receives messages. Re-send the current appearance from
-  `webviewPanel.onDidChangeViewState` when the panel becomes visible again.
+  `webviewPanel.onDidChangeViewState` when the panel goes from hidden to visible, and only then: the
+  event also fires when the active state or the view column changes while the panel stays visible.
 - Fallback signal inside the webview: VS Code sets the body classes `vscode-light`, `vscode-dark`,
   `vscode-high-contrast` and `vscode-high-contrast-light`; watch them with a `MutationObserver`. Check
   `vscode-high-contrast-light` first: for backwards compatibility VS Code adds `vscode-high-contrast`
   to High Contrast Light as well, so "High Contrast Light" would otherwise be read as dark. Never use
   the body classes for styling (guide §13.5). Use the fallback only until the first message from the
   extension arrives: the setting can override the color theme, and the body classes do not know it.
+  For the same reason apply the body classes at start only while `<html>` has no `data-cd-theme`:
+  the attributes the extension wrote into the HTML already include the setting.
+- The webview resolves every message against its own `themes` once more: they are what its bundle
+  can actually show, whatever the extension passed.
 
 ## VS Code: language
 
@@ -763,8 +869,11 @@ a localized modeler is localized completely.
   `package.nls.<language>.json`.
 - Extension code: `vscode.l10n.t(…)`, with the bundle directory named by `l10n` in `package.json`
   (`bundle.l10n.<language>.json`).
-- Webview: the extension passes `vscode.env.language` (and `vscode.l10n.bundle` for the webview's
-  strings) to the webview. The webview sets `<html lang>` and its texts from it.
+- Webview: the modelers are English today (guide §13.5), so the extension writes `<html lang="en">`
+  when it renders the webview HTML (`renderWebviewHtml({ lang: "en" })`), not `vscode.env.language`.
+  Only a fully localized modeler passes `vscode.env.language` there, and `vscode.l10n.bundle` for the
+  webview's strings (the shell's messages table), so native contributions and webview speak the same
+  language.
 
 ## VS Code: host hygiene
 
@@ -805,7 +914,9 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   `font-family` declaration invalid at computed-value time: a font list after the `var()` does not
   help, and the browser renders Times.
 - `button, input, select, textarea { font: inherit; color: inherit; }`; otherwise buttons render in
-  the browser's control font, typically Arial 13.33px.
+  the browser's control font, typically Arial 13.33px. Give this reset zero specificity
+  (`:where(html) :where(button, …)`): any author rule beats the browser's control font, and a
+  reset with specificity would also beat the chrome's own rules (the zoom readout's 13px/600).
 - Style `kbd` (guide §5.6), `code` and `a` completely yourself (links in `--cd-ui-link`). VS Code's
   defaults colour all three with its own colours: `kbd` with the keybinding-label colours, an inset
   shadow and `vertical-align: middle`; `code` with the preformat colours and the editor's monospace
@@ -834,9 +945,14 @@ webview (for example a window reload); the stored view wins over fitting.
 
 - `const vscode = acquireVsCodeApi()` (it may be called only once per webview). Store whether the
   legend is open and the viewbox with `vscode.setState({ … })` (JSON-serializable), updated after
-  `canvas.viewbox.changed` and on every legend toggle.
+  `canvas.viewbox.changed` and on every legend toggle. The shell's `readShellState` and
+  `writeShellState` keep its part under the key `modelerShell` next to the modeler's own keys:
+  `legendOpen` and `view` (viewbox and the user-moved state).
 - On start read `vscode.getState()`. If a viewbox is stored, apply it after the first import instead
-  of the automatic first fit, as a restore (see [Detecting a user move](#detecting-a-user-move)).
+  of the automatic first fit, as a stored view (`setState`), not as a `restore` (see
+  [Detecting a user move](#detecting-a-user-move)).
+- `canvas.viewbox()` caches `outer` until the next change, so derive the stored width and height
+  from the fresh `canvas.getSize()` and the scale.
 
 ## Not covered here
 
