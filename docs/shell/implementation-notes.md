@@ -126,6 +126,20 @@ webview.
 - No element inside the shell gets a `container-type` of its own. `cqw`/`cqh` resolve against the
   nearest query container, so a nested one would silently change their meaning. Name the root
   (`container-name: cd-shell`) and write `@container cd-shell (…)` so host CSS cannot interfere.
+- The canvas slot is usually the renderer's own container (`modeler.container`), which brings its
+  own class rule: Event Storming's `.event-storming-container` sets `position: relative`, a paper
+  colour and a dot grid at the same specificity as `.cd-shell-canvas`. Split the slot's rule: the
+  layout (`position: absolute; inset: 0`, layer 0, `isolation: isolate`) at a higher specificity
+  (`.cd-shell > .cd-shell-canvas`), so it does not depend on stylesheet order; the paint at zero
+  specificity (`:where(.cd-shell-canvas) { background-color: var(--cd-ui-grund) }`, never the
+  `background` shorthand), so the renderer's paper, also a dark board's, shows.
+- In a foreign page the page's element rules (`button { text-transform: uppercase }`,
+  `p { font-size: 18px }`, `section { font-family: serif }`, specificity 0,0,1) beat inheritance and
+  any zero-specificity reset. Re-establish font, colour, letter and word spacing, text transform,
+  indent and shadow on the chrome's own islands, controls and texts with one rule at class
+  specificity (`:where(.cd-shell) :is(.cd-shell-island, .cd-shell-target, .cd-shell-status-text, …)`,
+  0,1,0), placed before the component rules, which then set their own size and weight (the readout's
+  13px/600) at the same specificity later in the file.
 - Breakpoints are `@container` queries on the shell root, never `@media` (see
   [Narrow and low containers](#narrow-and-low-containers)).
 - Scripts measure the container with a `ResizeObserver` on the shell root, never with
@@ -187,6 +201,16 @@ still acts on its target, also on the canvas.
 - The dropdown lives in the layer at the end of the shell root (see [Tooltip](#tooltip)), so a Tab
   from it would leave the shell. On Tab, close the menu and move the focus to the trigger without
   `preventDefault()`: the browser's Tab then continues from the trigger to the palette.
+- Stop every key the menu consumes (↑ ↓ Home End, the type-ahead letters, Enter, Space, Delete,
+  Backspace, and ↓ ↑ Enter Space on the trigger) with `stopPropagation()`, in every host, as the
+  palette does. A modeler's keyboard on `document` runs before the shell's listener and does not
+  look at `defaultPrevented`: Event Storming's would move the selected sticky on ↓ (and write that
+  to the document), delete it on Delete and start a sticky on E. Let Escape, Tab, modified keys and
+  the chrome keys through (the shell's listener closes on Escape, zooms and fits with the menu open).
+- A click into the VS Code workbench (side bar, another editor) or into another iframe moves the
+  focus out of the document without a `pointerdown` in it. Close the menu on the window's `blur`,
+  without moving the focus: from the user's view it was a click outside. Do not close on a
+  `focusout` without `relatedTarget`: a click on the menu's own heading or separator causes one too.
 - Dropdown limits: `max-width: min(320px, 100cqw - 24px)`, `max-height: calc(100cqh - 72px)` (see
   [Container, not window](#container-not-window)).
 
@@ -215,13 +239,19 @@ tab order.
   canvas `<svg>` (the `svg` of the `canvas.init` event, which diagram-js fires on `diagram.init`,
   after every `__init__` service exists): `canvasContainer.insertBefore(container, svg)`.
   DOM order, and with it the tab order, then puts the palette before the canvas (the `<svg>` carries
-  `tabindex="0"`).
+  `tabindex="0"`). A renderer must not add a tab stop of its own around them: Event Storming sets
+  `tabindex="0"` on `canvas.getContainer()` (the `.djs-container` holding palette and `<svg>`), an
+  unnamed stop before the palette. Shell conformance tabs from the menu trigger to find such stops;
+  a check of the elements' tree order alone does not.
 - **Rebuilds.** `Palette#_update` clears and rebuilds all entries on every change and then fires
   `palette.changed`. Entries are `div.entry` elements with `data-action`, plus `role="button"` and
   `aria-label` when the entry has a `title`; entries without a `group` land in group `default`. After
   every `palette.changed` the shell re-applies what it adds: `role="toolbar"` and `aria-label="Tools"`
-  on the entries container, roving `tabindex` (0 on one entry, -1 on the rest) and `aria-pressed` on
-  tool entries.
+  on the entries container, roving `tabindex` (0 on one entry, -1 on the rest), `aria-pressed` on
+  tool entries and `aria-keyshortcuts` on every entry with a `shortcut` (guide §5.6; the chip alone
+  never reaches a screen reader, because the tooltip's label equals the entry's `aria-label`).
+  Renderers give `title` and `shortcut` separately; a title like "Domain Event — E" puts the key into
+  the name instead.
 - **Active tool.** diagram-js fires `tool-manager.update` with `{ tool }` (the tool name, `null` when
   none is active) and marks the matching entry in group `tools` (`data-action="<tool>-tool"`) with
   `highlighted-entry`. Do not mirror that class: `Palette#updateToolHighlight` caches the tools group
@@ -275,7 +305,8 @@ legend and inspector.
   hides its tooltip before `pointerenter` reaches the next, so at that moment none is shown. After a
   hover-hide, a neighbour shows at once for `TOOLTIP_DELAY_MS`.
 - Set `aria-describedby` only where the tooltip says more than the control's name (guide §5.6), for
-  example the pill's "Show in Problems view".
+  example the pill's "Show in Problems view". A shortcut chip says more, unless the control names
+  its keys in `aria-keyshortcuts` (the zoom buttons, palette entries and menu actions do).
 - diagram-js 15.28 ships its own palette tooltip: `PaletteTooltip` on top of `HoverTooltip`, shown on
   `mouseover` only and therefore never on keyboard focus, placed to the right of a vertical palette.
   The shell replaces it with an empty service in the modeler's modules:
@@ -401,6 +432,12 @@ the modeler know the same key.
   [Where the listener listens](#where-the-listener-listens)). It handles them regardless of
   `defaultPrevented`, because diagram-js's `Keyboard` has called `preventDefault()` on every key a
   listener returned a value for, including the shell's own.
+- diagram-js 15 binds its `Keyboard` to the canvas `<svg>` and ignores no event target
+  (`_isEventIgnored` returns `false`), so a text field inside the `<svg>` (a `foreignObject` label
+  editor) reaches it too. For a chrome key from a text field the listener returns `false` instead of
+  `true`: the event bus stops there, and since only a truthy result makes the `Keyboard` call
+  `preventDefault()`, Shift+1 still types "!" and the shell's DOM listener treats the zoom keys as
+  blocked.
 - Listeners on one target run in registration order. A modeler whose own keyboard listens on
   `document` (Event Storming does) must register it before the shell's listener, so construct the
   diagram before mounting the shell; otherwise the shell's listener runs first and cannot see that the
@@ -554,6 +591,18 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
   a modeler restores on every re-import, and an empty file must still fit its first content
   ("Insert example", guide §13.5). Only a persisted view (`setState`, see
   [VS Code: state](#vs-code-state)) applied while there is content replaces the first automatic fit.
+- An element the user creates on the canvas never fits (guide §5.9), and edits from the canvas are
+  echo-suppressed, so no import follows them. Without care the first fit would still be due when the
+  user next types in the text editor, and that import would jump-fit and throw the view away. An
+  `elements.changed` outside an import window, after the first import and with content, therefore
+  ends the wait for the first fit. Importers usually add shapes with `canvas.addShape` (no
+  `elements.changed`); one that goes through the command stack must fire `import.parse.start` or
+  `import.render.start` first, or its first content counts as the user's.
+- The zoom panel asks `canFit()` on every frame it renders (pan, wheel, fit animation). Cache it and
+  read the content bounds again only after a content change (`elements.changed`, `shape.added` and
+  `.removed`, `connection.added` and `.removed`, `diagram.clear`, `import.done`, the viewport's own
+  `afterImport`, `restore`, `setState`): a modeler's bounds may be costly (Event Storming's
+  `exportMap()` validates the whole board).
 
 ## Legend state
 
@@ -644,6 +693,23 @@ The palette comes before the `<svg>` because the shell moves it there (see [Pale
 primary action exists only in the web app. Dropdowns, popovers and the tooltip live in the layer
 element described under [Tooltip](#tooltip) and are reached through their triggers, not by Tab.
 
+### The canvas as a tab stop
+
+**Guide [§12][guide-12], [§5.14][guide-5.14].** Rule: every interactive element shows the focus ring
+in `--cd-ui-fokus` (3px in high contrast), and the focus never gets lost.
+
+- The canvas `<svg>` is focusable but unnamed: screen readers announce a bare "image", and in NVDA's
+  and JAWS's browse mode the canvas's single-key commands (E, C, L, arrows, Delete) go to the screen
+  reader. While a shell is attached the adapter gives it `role="application"` and an `aria-label`
+  from the messages table ("Diagram"; a modeler names its notation), and restores both on detach.
+- diagram-js leaves the `<svg>` the browser's own ring (`.djs-container svg:focus { outline-offset:
+-1px }`). The shell sets `outline: none` on `:focus` and the guide's ring on `:focus-visible`,
+  inside (`outline-offset: -2px`, `-3px` with 3px in high contrast), because the slot clips with
+  `overflow: hidden`; under forced colours in `Highlight`.
+- When an island hides while it holds the focus, move the focus first, or it falls to `<body>`: the
+  empty-file hint after "Insert example" and a closing inspector hand it to the canvas `<svg>` (the
+  guide's "the focus goes to the canvas"), the legend's close button to the menu trigger.
+
 ### Forced colours
 
 **Guide [§5.14][guide-5.14].** Rule: under forced colours nothing disappears: the active tool and
@@ -668,8 +734,9 @@ sheet up to 760px; legend above the bottom row up to 440px; legend starts closed
   `max-width: 440px`, `max-height: 820px`); scripts read the same values from `shell` in
   `cd-tokens.generated.json` (`--cd-shell-schmal`, `--cd-shell-sehr-schmal`, `--cd-shell-niedrig`).
 - The 16px gap is measured by script on every container resize and on `palette.changed`. Use the
-  palette's intrinsic width (`scrollWidth`), not its current box, so the decision does not flip once
-  the palette has moved: the top row fits if `(width - paletteWidth) / 2 >= menuTrigger.right + 16`
+  palette's intrinsic border-box width (`offsetWidth - clientWidth + scrollWidth`: `scrollWidth`
+  leaves out the 1px borders), not its current box, so the decision does not flip once the palette
+  has moved: the top row fits if `(width - paletteWidth) / 2 >= menuTrigger.right + 16`
   and, where a primary action exists, `(width + paletteWidth) / 2 <= primaryAction.left - 16` (both
   relative to the shell root). In the web app evaluate twice, with the primary action's label and
   then with its icon-only width, because the label goes first.
@@ -717,6 +784,16 @@ function resolveAppearance(requested: Appearance, themes: readonly Theme[]): App
 requests another one, and the mode is view state that never touches the document or exports; until
 contract 1.1 an embedded modeler stays light.
 
+- Until then the shell keeps an embedded modeler light by itself. The token CSS resolves the roles on
+  the nearest `[data-cd-theme]` and they inherit, so a root without its own attribute would take the
+  mode of a themed host page (designIQ, a web app on `system` under a dark OS) and draw dark chrome
+  over a renderer that paints light attribute colours (guide §10.2): half-dark. The embedded root
+  therefore carries `data-cd-theme="<themes[0]>"` itself (`ShellOptions.themes`, default `light`).
+  The root's own `[data-cd-theme]` block would also drop the host's high contrast, so the root
+  mirrors `data-cd-kontrast` from the nearest mode carrier above it, with a `MutationObserver` on the
+  document's `data-cd-theme` and `data-cd-kontrast` attributes (guide §13.3: a container with its
+  own `data-cd-theme` takes `data-cd-kontrast` over from the host). Shell conformance puts the
+  foreign page's `<html>` in the requested mode for the embedded host, so every suite proves this.
 - Contract 1.1 adds the optional surface `appearance` with `themes` (supported modes) and `set` (mode
   and contrast); hosts feature-detect it (`if (modeler.appearance)`).
 - In a foreign page `set` writes `data-cd-theme` and `data-cd-kontrast` on the modeler's container
@@ -762,9 +839,15 @@ selection; in text fields the field's own undo applies.
 
 - The modeler does not bind Cmd+Z, Cmd+Shift+Z and Ctrl+Y to the diagram-js `commandStack`.
   `KeyboardBindings` binds them (`isUndo`/`isRedo`) as soon as the editor actions `undo` and `redo`
-  are registered; a renderer option such as `keyboard.undoRedo: false` keeps them unbound. The keys
-  then propagate to `window`, where VS Code's webview host forwards them and VS Code undoes the
-  document edit.
+  are registered. In the IDE host the shell's keyboard listener (priority 2000) returns `false` for
+  them: that stops `KeyboardBindings` without `preventDefault()`, so the keys propagate to `window`,
+  where VS Code's webview host forwards them and VS Code undoes the document edit.
+- A modeler's own DOM binding must go in the webview as well: Event Storming's document keyboard
+  calls `preventDefault()` and `commandStack.undo()` on Cmd+Z (also with an empty stack). The shell
+  then stops the key as one the canvas handled, VS Code never undoes, and since Event Storming
+  clears its stack on every import, Cmd+Z on the canvas does nothing at all after an external edit.
+  Shell conformance presses Cmd/Ctrl+Z, Shift+Z and Ctrl+Y on the canvas in the IDE host and expects
+  each on `window`, once and unprevented.
 - Each canvas change is written as one `WorkspaceEdit` with minimal line changes, applied with
   `vscode.workspace.applyEdit` (one undo step). Multi-step actions (insert example, resize) are one
   edit.
@@ -806,6 +889,12 @@ sees it and never runs it again (for example as a window zoom); every other key 
   still stopped, so VS Code does not zoom the window; Shift+1 stays a character there.
 - Cmd/Ctrl+0 belongs to the canvas (100 %) while the webview has focus, although VS Code binds the key
   itself (by default: focus the primary side bar). That is intended.
+- Cmd and Ctrl both count on every platform (guide §5.8), so with the focus in the webview it also
+  takes VS Code's Ctrl+- (Go Back) and Ctrl+Shift+- (Go Forward) on macOS, and Ctrl+Shift+- on Linux.
+  That follows the guide like Cmd+0 does; the product owner confirms it is intended (see
+  [Open verification points](#open-verification-points)).
+- Keys the open menu consumes are stopped at the menu (see [Menu](#menu)), so VS Code does not see
+  them either.
 - A key the canvas has already handled (`event.defaultPrevented`, for example Cmd+A, Cmd+C, Cmd+V from
   diagram-js) is stopped as well. Otherwise VS Code runs it a second time on the webview: on desktop
   (Electron) its host page prevents copy, cut and paste and the workbench dispatches them back to the
@@ -815,9 +904,10 @@ sees it and never runs it again (for example as a window zoom); every other key 
   handled key. A window listener cannot see whether a stopped key was prevented, so add a `keydown`
   listener on `document`, registered after the shell's and the modeler's: handled keys must arrive
   prevented, blocked ones (zoom keys and undo/redo in text fields, Escape with a dialog or popover)
-  unprevented, so the field keeps its native undo, and unhandled keys such as F1 must still reach
-  `window` unprevented. That is what catches a modeler's own document undo binding taking Cmd+Z from
-  the label editor. Acceptance runs in real VS Code with Light, Dark and both High Contrast themes,
+  unprevented, so the field keeps its native undo, and unhandled keys such as F1 and Cmd/Ctrl+Z on
+  the canvas must still reach `window` unprevented. That is what catches a modeler's own document
+  undo binding taking Cmd+Z from the label editor (an input, a textarea or editable text) or from the
+  document's history on the canvas. Acceptance runs in real VS Code with Light, Dark and both High Contrast themes,
   plus Cmd+Shift+- and Cmd+A on the canvas.
 
 ## VS Code: theme bridge
@@ -853,10 +943,15 @@ a theme change switches at once, both attributes in one step, without a fade.
   `vscode-high-contrast` and `vscode-high-contrast-light`; watch them with a `MutationObserver`. Check
   `vscode-high-contrast-light` first: for backwards compatibility VS Code adds `vscode-high-contrast`
   to High Contrast Light as well, so "High Contrast Light" would otherwise be read as dark. Never use
-  the body classes for styling (guide §13.5). Use the fallback only until the first message from the
-  extension arrives: the setting can override the color theme, and the body classes do not know it.
-  For the same reason apply the body classes at start only while `<html>` has no `data-cd-theme`:
-  the attributes the extension wrote into the HTML already include the setting.
+  the body classes for styling (guide §13.5).
+- Use the fallback only where no extension speaks for the mode: when `<html>` has no
+  `data-cd-theme` at start (the HTML did not come from `renderWebviewHtml`), and only until the first
+  message. With the extension's attributes it stays off entirely: the setting can override the color
+  theme and the body classes do not know it, and on a theme change VS Code's renderer updates the
+  body classes before the extension host's message arrives from its own process. A fallback that
+  applied them in between would flash the setting-less mode for a few frames (a dark-capable
+  modeler set to "dark" turning light under Light+, then dark again). Hidden webviews may miss a
+  message; the re-send on becoming visible covers that.
 - The webview resolves every message against its own `themes` once more: they are what its bundle
   can actually show, whatever the extension passed.
 
@@ -932,7 +1027,14 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   and once it is set Chromium (121 and later) ignores the `::-webkit-scrollbar` pseudo-elements.
 - CSP: if the fonts are bundled as data URLs (as an esbuild `dataurl` loader does), the webview CSP
   needs `font-src ${webview.cspSource} data:`; otherwise Geist does not load and the fallback font
-  shows.
+  shows. `style-src` keeps `'unsafe-inline'` for the renderers, which write `style` attributes into
+  markup (palette entries, SVG strings); the shell and diagram-js style only through the CSSOM, which
+  the CSP does not restrict, and run without it (`renderWebviewHtml({ inlineStyles: false })`).
+- Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on` holds
+  without it) and hands the result to the webview only as the body class `vscode-reduce-motion`;
+  `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole session as a class of
+  your own on `<html>` (`cd-shell-reduce-motion`; never style with the host's class), stop the
+  chrome's animations under it as under the media query, and let an explicit fit jump.
 - Hidden tabs: register the custom editor with
   `webviewOptions: { retainContextWhenHidden: true }`, so a hidden tab keeps its document, view and
   selection. A hidden tab then reports a 0 × 0 container: skip fitting and measuring while hidden
@@ -944,10 +1046,12 @@ unlayered (or in a layer declared after it). The defaults and their resets:
 webview (for example a window reload); the stored view wins over fitting.
 
 - `const vscode = acquireVsCodeApi()` (it may be called only once per webview). Store whether the
-  legend is open and the viewbox with `vscode.setState({ … })` (JSON-serializable), updated after
-  `canvas.viewbox.changed` and on every legend toggle. The shell's `readShellState` and
-  `writeShellState` keep its part under the key `modelerShell` next to the modeler's own keys:
-  `legendOpen` and `view` (viewbox and the user-moved state).
+  legend is open and the viewbox with `vscode.setState({ … })` (JSON-serializable), on every legend
+  toggle and once the view has rested: every `setState` is an IPC message with the whole state, and
+  the view changes on every frame of a pan, a wheel zoom or a fit animation (`persistView` writes
+  250ms after the last change). The shell's `readShellState` and `writeShellState` keep its part
+  under the key `modelerShell` next to the modeler's own keys: `legendOpen` and `view` (viewbox and
+  the user-moved state).
 - On start read `vscode.getState()`. If a viewbox is stored, apply it after the first import instead
   of the automatic first fit, as a stored view (`setState`), not as a `restore` (see
   [Detecting a user move](#detecting-a-user-move)).
@@ -1000,6 +1104,15 @@ the notes rely on that the sources alone do not settle.
       padding, fonts (no Times, no Arial 13.33px), `kbd`, `code`, links, focus rings and scrollbars
       checked in all four themes.
 - [ ] Geist loads from data URLs without a CSP violation (webview developer tools).
+- [ ] `workbench.reduceMotion` `on` sets the body class `vscode-reduce-motion` in the webview (and
+      `off` removes it), at start and when the setting changes.
+- [ ] A click into the side bar or another editor while the webview menu is open fires `blur` on the
+      webview's window, so the menu is closed when the user comes back.
+- [ ] Ctrl+- and Ctrl+Shift+- on macOS with the focus in the webview zoom the canvas instead of VS
+      Code's Go Back and Go Forward: confirmed as intended by the product owner.
+- [ ] NVDA and JAWS with Chromium announce the status box when it appears with `role="status"` (a
+      warning); `role="alert"` (an invalid file) is announced on appearance. If not, write the text
+      one frame after the box shows.
 - [ ] `vscode.env.language` and `vscode.l10n.bundle` reach the webview, and `<html lang>` matches the
       native contributions.
 - [ ] The export notification shows the platform's reveal label and opens the file manager.

@@ -49,19 +49,24 @@ import "@miragon/<notation>-renderer/…css";
 import "@miragon/modeler-shell/shell.css"; // last
 ```
 
-| Entry                                     | For                                                         |
-| ----------------------------------------- | ----------------------------------------------------------- |
-| `@miragon/modeler-shell`                  | `mountShell`, icons, and everything of `./core`             |
-| `@miragon/modeler-shell/core`             | DOM-free: fit math, keymap, zoom readout, appearance, sizes |
-| `@miragon/modeler-shell/diagram-js`       | `shellModule`, the viewport, `connectDiagramJs`             |
-| `@miragon/modeler-shell/vscode/extension` | webview HTML with CSP and nonce, theme bridge               |
-| `@miragon/modeler-shell/vscode/webview`   | `mountVsCodeShell`, appearance handler, webview state       |
-| `@miragon/modeler-shell/testing`          | the Playwright-driven shell conformance kit                 |
-| `@miragon/modeler-shell/shell.css`        | every style of the shell                                    |
+| Entry                                        | For                                                         |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| `@miragon/modeler-shell`                     | `mountShell`, icons, and everything of `./core`             |
+| `@miragon/modeler-shell/core`                | DOM-free: fit math, keymap, zoom readout, appearance, sizes |
+| `@miragon/modeler-shell/diagram-js`          | `shellModule`, the viewport, `connectDiagramJs`             |
+| `@miragon/modeler-shell/vscode/extension`    | webview HTML with CSP and nonce, theme bridge               |
+| `@miragon/modeler-shell/vscode/webview`      | `mountVsCodeShell`, appearance handler, webview state       |
+| `@miragon/modeler-shell/testing`             | the Playwright-driven shell conformance kit                 |
+| `@miragon/modeler-shell/testing/vscode-stub` | a stand-in for VS Code around a webview test page           |
+| `@miragon/modeler-shell/shell.css`           | every style of the shell                                    |
+
+TypeScript: every entry resolves under `moduleResolution` `node16`, `bundler` and `node10`, and
+every optional input field accepts `undefined`, so a modeler compiling with
+`exactOptionalPropertyTypes` forwards optional values as they are.
 
 ## Usage in a VS Code webview
 
-Extension host, in `resolveCustomTextEditor`:
+Extension host:
 
 ```ts
 import * as vscode from "vscode";
@@ -73,6 +78,12 @@ import {
 
 const THEMES = ["light"] as const; // until the shared dark-mode release of the modelers
 
+// activate(): a hidden tab keeps document, view and selection
+vscode.window.registerCustomEditorProvider(viewType, provider, {
+  webviewOptions: { retainContextWhenHidden: true },
+});
+
+// resolveCustomTextEditor():
 const asset = (file: string) =>
   webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "dist", file)).toString();
 webview.html = renderWebviewHtml({
@@ -91,22 +102,37 @@ Webview:
 ```ts
 import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
-import { mountVsCodeShell, readShellState, writeShellState } from "@miragon/modeler-shell/vscode/webview";
+import {
+  mountVsCodeShell,
+  persistView,
+  readShellState,
+  writeShellState,
+} from "@miragon/modeler-shell/vscode/webview";
 
 const vscode = acquireVsCodeApi();
 const stored = readShellState(vscode);
 
 // The diagram first: a modeler keyboard on document must run before the shell's key listener.
-const modeler = new Modeler({ additionalModules: [shellModule] });
+// A renderer that builds its diagram lazily builds it now; width and height follow the shell's slot.
+const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: [shellModule] });
+modeler.get("canvas");
 const shell = mountVsCodeShell(document.getElementById("app")!, {
   themes: ["light"],
   canvas: modeler.container,
   menu: { model: [/* Level, Type captions … */], export: [/* Export as PNG, SVG */] },
+  legend: {
+    render: renderLegend,
+    open: stored.legendOpen,
+    onToggle: (open) => writeShellState(vscode, { legendOpen: open }),
+  },
   problems: { onActivate: () => vscode.postMessage({ type: "showProblems" }) },
   emptyHint: { onInsertExample: () => vscode.postMessage({ type: "insertExample" }) },
 });
-const { viewport } = connectDiagramJs(shell, modeler, { contentBounds: () => boardBounds() });
-viewport.onChange(() => writeShellState(vscode, { view: viewport.getState() }));
+const { viewport } = connectDiagramJs(shell, modeler, {
+  contentBounds: () => boardBounds(), // undefined while there is nothing to fit
+  isEmpty: () => elementCount() === 0, // cheap: no export, no validation
+});
+persistView(vscode, viewport); // writes the view once it rested, not on every frame
 
 async function importText(text: string, first: boolean): Promise<void> {
   const keep = first ? undefined : viewport.getViewbox();
@@ -116,8 +142,7 @@ async function importText(text: string, first: boolean): Promise<void> {
     shell.setStatus(null);
     if (keep) viewport.restore(keep);
     else if (first && stored.view) viewport.setState(stored.view);
-    viewport.afterImport(); // the first import with content fits
-    shell.setEmptyHint(isEmpty());
+    viewport.afterImport(); // the first import with content fits; the empty-file hint follows by itself
   } catch {
     // locked at once, visible after 800ms without a valid import (no flicker while typing)
     shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
@@ -131,9 +156,13 @@ async function importText(text: string, first: boolean): Promise<void> {
 
 `mountVsCodeShell` stops every key the webview handles on `document`, before VS Code's listener on
 `window` forwards it to the workbench, and keeps the webview in the mode the extension resolved: a
-modeler declaring `["light"]` stays light under any VS Code theme, high contrast passes. The
-complete Event Storming example, including the export notification, is in [API.md][api]. Document
-sync, undo through the document and diagnostics stay in the modeler for 0.1.
+modeler declaring `["light"]` stays light under any VS Code theme, high contrast passes, and VS
+Code's `workbench.reduceMotion` stops the chrome's animations. Undo and redo on the canvas go to VS
+Code (the shell keeps diagram-js's bindings off them), so a modeler's own keyboard binds no Cmd/Ctrl+Z
+in the webview either; it also ignores keys with `defaultPrevented` and keys from outside the
+canvas container, and puts no `tabindex` on it. The complete Event Storming example, including the
+export notification, is in [API.md][api]. Document sync, undo through the document and diagnostics
+stay in the modeler for 0.1.
 
 ## Usage in a web app
 
@@ -142,7 +171,7 @@ import { mountShell } from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
 
 // index.html carries <html lang="en" data-cd-theme="light"> statically while the modeler is light-only
-const modeler = new Modeler({ additionalModules: [shellModule] });
+const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: [shellModule] });
 const shell = mountShell(document.getElementById("app")!, {
   host: "web",
   canvas: modeler.container,
@@ -161,10 +190,13 @@ part of 0.1.
 
 ## Usage in a foreign page
 
-`mountShell(container, { host: "embedded", canvas })` on an explicitly sized container: the root
-carries the tool's `lang` itself, keys act only while the focus is inside the modeler, and the page's
-`<html>` stays untouched. Until contract 1.1 of `@miragon/modeler-api` an embedded modeler has no
-appearance channel and stays light.
+`mountShell(container, { host: "embedded", themes: ["light"], canvas })` on an explicitly sized
+container: the root carries the tool's `lang` itself, keys act only while the focus is inside the
+modeler, and the page's `<html>` stays untouched. Until contract 1.1 of `@miragon/modeler-api` an
+embedded modeler has no appearance channel, so the root carries its own `data-cd-theme` (the first
+of `themes`, light) and stays light inside a dark host page; it takes the page's
+`data-cd-kontrast="hoch"` over from the nearest mode carrier above it. The page's element styles
+(`button { text-transform: uppercase }`) do not reach the chrome.
 
 ## The conformance kit
 
@@ -173,9 +205,22 @@ the geometry of every island (±1px), ARIA and the keyboard models, that every c
 once and never reaches VS Code, that nothing is ever half-dark, and that `destroy()` leaves nothing
 behind:
 
+For the `ide` host the suite serves a test page that puts a stand-in for VS Code around the
+modeler's webview code: VS Code's default webview styles, `<html>` as `renderWebviewHtml` writes it,
+the host page's theme classes, `acquireVsCodeApi()` and the real theme bridge.
+
 ```ts
+// e2e/webview-test.ts, the entry of e2e/webview-test.html
+import { installVsCodeWebviewStub, stubOptionsFromSearch } from "@miragon/modeler-shell/testing/vscode-stub";
+
+installVsCodeWebviewStub({ ...stubOptionsFromSearch(location.search), themes: ["light"] });
+await import("../src/webview/main"); // the webview, which calls acquireVsCodeApi() and mounts the shell
+```
+
+```ts
+// e2e/shell-conformance.spec.ts
 import { test } from "@playwright/test";
-import { registerShellConformance } from "@miragon/modeler-shell/testing";
+import { registerShellConformance, vsCodeStubSearch } from "@miragon/modeler-shell/testing";
 
 test.describe("shell conformance", () => {
   test.describe.configure({ timeout: 60_000 }); // geometry measures three sizes
@@ -185,11 +230,16 @@ test.describe("shell conformance", () => {
       themes: ["light"],
       async open(page, { size, requested }) {
         await page.setViewportSize(size);
-        await page.goto(`/webview.html?theme=${requested.theme}&kontrast=${requested.kontrast ?? ""}`);
-        await page.waitForSelector(".cd-shell");
+        await page.goto(`/e2e/webview-test.html?${vsCodeStubSearch(requested)}`);
+        await page.waitForFunction(() => window.webviewReady === true); // the first import is done
       },
       async destroy(page) {
-        await page.evaluate(() => window.modeler.destroy());
+        // the webview's own teardown path: connection, diagram, then the shell
+        await page.evaluate(() => {
+          window.connection.destroy();
+          window.modeler.destroy();
+          window.shell.destroy();
+        });
       },
       show: {
         async problems(page) {
@@ -202,8 +252,9 @@ test.describe("shell conformance", () => {
 });
 ```
 
-The harness opens the modeler with the appearance the kit requests, the way its host would. What
-each case asserts, and what the kit installs in the page, is listed in [API.md][api].
+The harness opens the modeler with the appearance the kit requests, the way its host would; for
+the `embedded` host the kit puts the foreign page itself in that mode. What each case asserts, and
+what the kit installs in the page, is listed in [API.md][api].
 
 ## Development
 
@@ -220,15 +271,16 @@ npm run demo -w packages/shell        # the demo page on http://localhost:5181
 
 The demo page (`demo/`) is a small diagram-js modeler around the shell. Its query parameters choose
 the host (`host=ide|web|embedded`), the modes the modeler declares (`themes=light,dark`), what the
-host requests (`theme`, `kontrast=hoch`) and the state to start in (`legend=open`, `inspector`,
-`problems=2:1`, `status=danger`, `invalid`, `empty`). In the `ide` host it stands in for VS Code: the
-default webview stylesheet in `@layer vscode-default`, `<html>` from `renderWebviewHtml`, the host
-page's theme classes and the real theme bridge.
+host requests (`theme`, `kontrast=hoch`; embedded: the foreign page's own mode), the `ide` host's
+`colorTheme` setting and `reduceMotion`, and the state to start in (`legend=open`, `inspector`,
+`problems=2:1`, `status=danger`, `invalid`, `empty`). In the `ide` host it runs inside the stub of
+`./testing/vscode-stub`, and keeps view and legend state through `acquireVsCodeApi()`.
 
 The e2e suite runs the conformance kit for the `ide`, `web` and `embedded` hosts with a light-only
-and a dark-capable modeler, switches VS Code themes at runtime, checks the chrome's typography
-against VS Code's default styles, and proves with saboteurs that every case of the kit fails when
-its rule is broken.
+and a dark-capable modeler, switches VS Code themes and the `colorTheme` setting at runtime, checks
+VS Code's reduce motion, the chrome's typography against VS Code's default styles and a hostile
+foreign page, the canvas slot's paint and focus ring, and proves with saboteurs that every case of
+the kit fails when its rule is broken.
 
 | Directory                   | Module                                                             |
 | --------------------------- | ------------------------------------------------------------------ |
@@ -236,9 +288,10 @@ its rule is broken.
 | `src/dom`                   | `mountShell`: menu, zoom panel, tooltip, pill, status, slots, keys |
 | `src/diagram-js`            | `shellModule`, viewport, `connectDiagramJs`, palette skin          |
 | `src/vscode`                | extension side (HTML, theme bridge) and webview side               |
-| `src/testing`               | the Playwright-driven conformance kit                              |
+| `src/testing`               | the Playwright-driven conformance kit and the VS Code stub         |
 | `src/*.ts`, `src/shell.css` | the entry points                                                   |
-| `demo/`, `e2e/`             | the demo modeler, its VS Code stub and the e2e suite               |
+| `test/`                     | package boundaries, token drift, the unit tests' helpers           |
+| `demo/`, `e2e/`             | the demo modeler and the e2e suite                                 |
 | `fixtures/tokens`           | the token files, vendored unchanged for the tests and the demo     |
 
 A module imports another one only through its `index.ts`; `src/core` imports nothing outside
