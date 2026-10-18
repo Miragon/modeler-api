@@ -10,7 +10,7 @@ import {
   mount,
   setBox,
   setContainerSize,
-} from "./test-support.js";
+} from "../../test/support/dom.js";
 
 beforeEach(installFakes);
 afterEach(cleanup);

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cleanup, fakeZoomTarget, installFakes, keydown, mount } from "./test-support.js";
+import { cleanup, fakeZoomTarget, installFakes, keydown, mount } from "../../test/support/dom.js";
 
 beforeEach(installFakes);
 afterEach(cleanup);

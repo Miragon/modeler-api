@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIT_ANIMATION_MS, fitViewbox, sameView, type Bounds, type Insets } from "../core/index.js";
-import { FakeCanvas, FakeEventBus, FakeResizeObserver, FrameQueue } from "./test-support.js";
+import { FakeCanvas, FakeEventBus, FakeResizeObserver, FrameQueue } from "../../test/support/diagram-js.js";
 import { createViewport, type Viewport, type ViewportOptions } from "./viewport.js";
 
 const INSETS: Insets = { top: 88, right: 24, bottom: 64, left: 24 };

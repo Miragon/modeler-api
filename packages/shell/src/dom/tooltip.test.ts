@@ -11,7 +11,7 @@ import {
   mount,
   pointer,
   setBox,
-} from "./test-support.js";
+} from "../../test/support/dom.js";
 
 beforeEach(() => {
   installFakes();

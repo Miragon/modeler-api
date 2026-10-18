@@ -1,5 +1,5 @@
-import type { Bounds, Point, Size } from "../core/index.js";
-import type { DiagramViewbox } from "./types.js";
+import type { Bounds, Point, Size } from "../../src/core/index.js";
+import type { DiagramViewbox } from "../../src/diagram-js/types.js";
 
 type Listener = (event: never) => unknown;
 

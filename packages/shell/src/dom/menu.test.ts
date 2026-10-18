@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cleanup, installFakes, keydown, mount, pointer } from "./test-support.js";
+import { cleanup, installFakes, keydown, mount, pointer } from "../../test/support/dom.js";
 import type { MenuGroups } from "./types.js";
 
 beforeEach(installFakes);

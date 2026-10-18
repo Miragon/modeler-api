@@ -1,14 +1,14 @@
 import { vi } from "vitest";
 
-import type { ZoomTarget } from "../core/index.js";
-import { mountShell } from "./mount.js";
+import type { ZoomTarget } from "../../src/core/index.js";
+import { mountShell } from "../../src/dom/mount.js";
 import type {
   PaletteReadOnlyState,
   PaletteRegistration,
   ShellHandle,
   ShellOptions,
   TooltipContent,
-} from "./types.js";
+} from "../../src/dom/types.js";
 
 /** happy-dom has no layout: boxes are set per element. */
 export function setBox(
