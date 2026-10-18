@@ -19,6 +19,13 @@ the [package README](packages/api/README.md). The plan for the shell, the
 contract roadmap and the rollout across the modeler repositories live in
 [#4](https://github.com/Miragon/modeler-api/issues/4).
 
+## Docs
+
+- [Shell implementation notes](docs/shell/implementation-notes.md): how
+  `@miragon/modeler-shell` will implement the chrome anatomy and the IDE-host
+  rules of the Miragon design system with diagram-js, VS Code and browser
+  APIs, section by section, with the rule each section implements.
+
 ## Development
 
 ```sh
