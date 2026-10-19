@@ -3,8 +3,402 @@
  * popover (guide §5.10, §8, §9). Colours only from var(--cd-ui-*), sizes from var(--cd-shell-*).
  * Toasts render in the web and embedded hosts, so their rules also reset what a foreign page's
  * element rules would set (font, colour, letter spacing, text transform), like shell-dom.css.
- *
- * TODO(feedback): .cd-shell-toasts (layer 60, popover reset in the web host), .cd-shell-toast
- * [data-status] with bar and dot, the leaving state, .cd-shell-problems-popover and its rows,
- * reduced motion, high contrast and forced colours for each.
+ * The toast action is a .cd-shell-button (buttons.css), which resets itself and is left out here.
+ * Private helper properties are named --modeler-shell-*, never --cd-*.
  */
+
+/* ---- Foreign-page reset --------------------------------------------------------------------- */
+
+:where(.cd-shell)
+  :is(
+    .cd-shell-toasts,
+    .cd-shell-toast,
+    .cd-shell-toast-text,
+    .cd-shell-toast-close,
+    .cd-shell-problems-popover,
+    .cd-shell-problems-popover-title,
+    .cd-shell-problems-list,
+    .cd-shell-problem,
+    .cd-shell-problem-message,
+    .cd-shell-problem-location
+  ) {
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-indent: 0;
+  text-shadow: none;
+}
+
+/* ---- Toast stack (guide §8, §9) ------------------------------------------------------------- */
+
+/*
+ * Centred column at the bottom; the script sets `bottom` (toastStackBottom). In the web host it is
+ * a manual popover in the top layer, so the UA's popover box (fixed, centred, bordered, padded,
+ * Canvas colours) is reset; in the embedded host it is absolute in the root at layer 60.
+ */
+.cd-shell-toasts {
+  position: absolute;
+  top: auto;
+  right: 0;
+  bottom: var(--cd-shell-rand);
+  left: 0;
+  z-index: var(--cd-shell-ebene-toast);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cd-shell-luecke);
+  width: min(480px, 100cqw - 2 * var(--cd-shell-rand));
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  overflow: visible;
+  color: var(--cd-ui-text);
+  background: transparent;
+  border: 0;
+  pointer-events: none;
+}
+
+/* Always in the DOM, no box while empty (data-chrome="toasts" measures nothing then). */
+.cd-shell-toasts:empty {
+  display: none;
+}
+
+/* The author display above would otherwise show a closed popover; engines without it drop the rule. */
+.cd-shell-toasts[popover]:not(:popover-open) {
+  display: none;
+}
+
+.cd-shell-toast {
+  --modeler-shell-toast-status: var(--cd-ui-info);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--cd-shell-luecke);
+  max-width: 100%;
+  min-height: var(--cd-shell-zeile);
+  margin: 0;
+  padding: 4px 4px 4px 16px;
+  overflow: hidden;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: cd-shell-toast-in var(--cd-motion-base) var(--cd-ease-out);
+}
+
+.cd-shell-toast[data-status="success"] {
+  --modeler-shell-toast-status: var(--cd-ui-success);
+}
+
+.cd-shell-toast[data-status="warning"] {
+  --modeler-shell-toast-status: var(--cd-ui-warning);
+}
+
+.cd-shell-toast[data-status="danger"] {
+  --modeler-shell-toast-status: var(--cd-ui-danger);
+}
+
+/* Its own element, clipped by the card: a border-left would follow the radius into a crescent. */
+.cd-shell-toast::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: var(--modeler-shell-toast-status);
+}
+
+.cd-shell-toast-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--modeler-shell-toast-status);
+  border-radius: var(--cd-radius-pill);
+}
+
+.cd-shell-toast-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 0;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* A 32px ghost button (buttons.css), before Close. */
+.cd-shell-toast .cd-shell-toast-action {
+  height: var(--cd-shell-ziel);
+}
+
+.cd-shell-toast-close {
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--cd-shell-ziel);
+  height: var(--cd-shell-ziel);
+  margin: 0;
+  padding: 0;
+  color: var(--cd-ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-toast-close:hover {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+
+.cd-shell-toast-close svg {
+  display: block;
+  flex: none;
+}
+
+.cd-shell-toast[data-leaving] {
+  pointer-events: none;
+  animation: cd-shell-toast-out var(--cd-motion-base) var(--cd-ease) forwards;
+}
+
+@keyframes cd-shell-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes cd-shell-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---- Problems popover (guide §5.10) --------------------------------------------------------- */
+
+/* Left-aligned with the pill, its bottom 8px above the pill's top: 12 + 40 + 8, web 12 + 20 + 8 + 40 + 8. */
+.cd-shell-problems-popover {
+  --modeler-shell-problems-bottom: calc(
+    var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+  );
+  position: absolute;
+  left: var(--cd-shell-rand);
+  bottom: var(--modeler-shell-problems-bottom);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(320px, 100cqw - 2 * var(--cd-shell-rand));
+  max-height: min(320px, 100cqh - var(--modeler-shell-problems-bottom) - var(--cd-shell-rand));
+  margin: 0;
+  padding: 6px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: cd-shell-problems-in var(--cd-motion-fast) var(--cd-ease-out);
+}
+
+.cd-shell[data-cd-shell-host="web"] .cd-shell-problems-popover {
+  --modeler-shell-problems-bottom: calc(
+    var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+  );
+}
+
+.cd-shell-problems-popover[hidden] {
+  display: none;
+}
+
+/* Focus lands on the dialog itself only when it has no row to take it; the rows carry the ring. */
+.cd-shell-problems-popover:focus {
+  outline: none;
+}
+
+.cd-shell-problems-popover-title {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px 4px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.cd-shell-problems-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.cd-shell-problems-list > li {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cd-shell-problem {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  width: 100%;
+  min-height: var(--cd-shell-eintrag);
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+}
+
+button.cd-shell-problem {
+  cursor: pointer;
+  transition: background-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+button.cd-shell-problem:hover,
+button.cd-shell-problem:focus-visible {
+  background: var(--cd-ui-hover);
+}
+
+/* The pill's icon, centred on the message's first line (19.5px). */
+.cd-shell-problem-icon {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.cd-shell-problem-icon svg {
+  display: block;
+  flex: none;
+}
+
+.cd-shell-problem[data-severity="error"] .cd-shell-problem-icon {
+  color: var(--cd-ui-danger);
+}
+
+.cd-shell-problem[data-severity="warning"] .cd-shell-problem-icon {
+  color: var(--cd-ui-warning);
+}
+
+.cd-shell-problem-message {
+  grid-column: 2;
+  color: var(--cd-ui-text);
+  overflow-wrap: anywhere;
+}
+
+.cd-shell-problem-location {
+  grid-column: 2;
+  color: var(--cd-ui-text-leise);
+  overflow-wrap: anywhere;
+}
+
+@keyframes cd-shell-problems-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ---- Focus (guide §8): inside the dense toast and the scrolling list ------------------------ */
+
+.cd-shell :is(.cd-shell-toast-close, .cd-shell-problem):focus {
+  outline: none;
+}
+
+.cd-shell :is(.cd-shell-toast-close, .cd-shell-toast-action, .cd-shell-problem):focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
+}
+
+/* ---- High contrast (guide §5.3): no shadows, 3px focus -------------------------------------- */
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-toast, .cd-shell-problems-popover) {
+  box-shadow: none;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-toast-close, .cd-shell-toast-action, .cd-shell-problem):focus-visible {
+  outline-width: 3px;
+  outline-offset: -3px;
+}
+
+/* ---- Forced colours (guide §5.14): nothing disappears --------------------------------------- */
+
+@media (forced-colors: active) {
+  .cd-shell :is(.cd-shell-toast, .cd-shell-problems-popover) {
+    border-color: CanvasText;
+  }
+
+  /* Bar and dot keep their shape; the text carries the status. */
+  .cd-shell .cd-shell-toast::before,
+  .cd-shell .cd-shell-toast-dot {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .cd-shell :is(.cd-shell-toast-close, .cd-shell-toast-action, .cd-shell-problem):focus-visible {
+    outline-color: Highlight;
+  }
+
+  /* The hover fill is forced away; a thin ring shows which row the pointer is on. */
+  .cd-shell button.cd-shell-problem:hover:not(:focus-visible) {
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+}
+
+/* ---- Reduced motion (guide §7): no slide, no pop-in ----------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-shell :is(.cd-shell-toast, .cd-shell-problems-popover) {
+    animation: none;
+  }
+}
+
+/* The host asks for it although the OS does not: VS Code's workbench.reduceMotion. */
+html.cd-shell-reduce-motion .cd-shell :is(.cd-shell-toast, .cd-shell-problems-popover) {
+  animation: none;
+}
