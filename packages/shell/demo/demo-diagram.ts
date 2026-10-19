@@ -55,6 +55,11 @@ export interface DemoHooks {
   isReadOnly(): boolean;
   /** `viewport.freeRectCenter()`. */
   freeRectCenter(): Point | undefined;
+  /**
+   * Further creating entries in a group of their own, so the palette is as wide as a notation's
+   * (Event Storming's sticky types) and the web app's top row gets tight above 760px.
+   */
+  readonly extraShapes?: number;
 }
 
 /** Guide §5.5: a keyboard-created element moves 24px diagonally off an element already centred there. */
@@ -131,6 +136,17 @@ class DemoPaletteProvider {
         className: "demo-entry-wide-box",
         action: { dragstart: startCreate(200, 80), click: clickCreate(200, 80) },
       },
+      ...Object.fromEntries(
+        Array.from({ length: this.hooks.extraShapes ?? 0 }, (_, index) => [
+          `create.sticky-${index + 1}`,
+          {
+            group: "stickies",
+            title: `Sticky ${index + 1}`,
+            className: "demo-entry-box",
+            action: { dragstart: startCreate(120, 80), click: clickCreate(120, 80) },
+          },
+        ]),
+      ),
     };
   }
 

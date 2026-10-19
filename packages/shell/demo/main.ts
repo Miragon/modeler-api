@@ -31,6 +31,7 @@ import {
 } from "../src/vscode-webview.js";
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
 
+import tokens from "../fixtures/tokens/cd-tokens.generated.json";
 import { addSampleShapes, createDemoDiagram, demoContentBounds, type DemoFlaws } from "./demo-diagram.js";
 
 /**
@@ -175,8 +176,13 @@ const options = {
   ...(params.has("inspector") ? { inspector: { label: "Properties" } } : {}),
 };
 
+// The whole web column is on /web.html; here the web host keeps its 0.1 parts, so a dark-capable
+// modeler only needs its theme colours (mountShell throws without them).
+const appearance = { themeColors: { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] } };
 const shell: ShellHandle =
-  host === "ide" ? mountVsCodeShell(root, { ...options, themes }) : mountShell(root, { ...options, host });
+  host === "ide"
+    ? mountVsCodeShell(root, { ...options, themes })
+    : mountShell(root, { ...options, host, ...(host === "web" ? { appearance } : {}) });
 
 const connection: DiagramJsConnection = connectDiagramJs(shell, diagram, {
   contentBounds: () => demoContentBounds(diagram),

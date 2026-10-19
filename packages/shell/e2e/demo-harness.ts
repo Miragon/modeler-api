@@ -58,6 +58,18 @@ export function demoHarness(
     async invalid(page) {
       await page.evaluate(() => window.__demo?.setInvalid(true));
     },
+    // Embedded: toasts until the contract has a channel to the host (guide §5.2); IDE: inert.
+    async toast(page, toast) {
+      await page.evaluate(
+        ({ status, text, actionLabel }) =>
+          window.__demo?.shell.toast({
+            status,
+            text,
+            ...(actionLabel ? { action: { label: actionLabel, onSelect() {} } } : {}),
+          }),
+        toast,
+      );
+    },
   };
   for (const slot of without) delete show[slot];
   return {
