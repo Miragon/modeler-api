@@ -195,7 +195,10 @@ lane, richer element info) is a minor, and hosts feature-detect it. A new
 required member or a stricter law is a major. A minor may still add a case
 that enforces what the contract text already states; a requirement the text
 does not state yet ships as a RECOMMENDATION with an advisory, so no
-conforming modeler turns red in a minor.
+conforming modeler turns red in a minor. A case that needs a new optional
+harness field (`openInteraction`) reports a skip until the harness provides
+it; a suite whose `onSkip` throws, to keep every law verified, turns red on
+that upgrade by its own choice, and the skip names the field to add.
 
 ### Candidates for 2.0
 
