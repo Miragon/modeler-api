@@ -33,9 +33,9 @@ export interface ShellOptions {
   /**
    * The modes the modeler can show (a static value of the modeler package), default `["light"]`.
    * Read in the `embedded` host only: there the root carries `data-cd-theme="<themes[0]>"` itself
-   * (until contract 1.1 an embedded modeler stays in its first mode, whatever the page shows) and
-   * mirrors the host's `data-cd-kontrast` (guide §13.3). In an own document the host writes the
-   * mode on `<html>`.
+   * (until the contract's `appearance` surface an embedded modeler stays in its first mode,
+   * whatever the page shows) and mirrors the host's `data-cd-kontrast` (guide §13.3). In an own
+   * document the host writes the mode on `<html>`.
    */
   themes?: readonly Theme[] | undefined;
   /** The fixed menu groups this modeler fills (guide §5.4); omitted groups and empty ones collapse. */

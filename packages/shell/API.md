@@ -469,8 +469,9 @@ passes `lang` together with its messages.
 **The embedded root's mode** (§13.3). The token CSS resolves the roles on the nearest
 `[data-cd-theme]`, so a root without one would take the mode of a themed host page (designIQ, a web
 app on `system` under a dark OS) and be half-dark against its light-drawn diagram. The `embedded`
-root therefore carries `data-cd-theme="<themes[0]>"` itself (until contract 1.1 there is no channel
-to ask an embedded modeler for another mode, so it stays in its first one), and mirrors the host's
+root therefore carries `data-cd-theme="<themes[0]>"` itself (until the contract's `appearance`
+surface, planned for a later 1.x minor of `@miragon/modeler-api`, there is no channel to ask an
+embedded modeler for another mode, so it stays in its first one), and mirrors the host's
 `data-cd-kontrast` from the nearest mode carrier above it for as long as it lives (a
 `MutationObserver` on the document's `data-cd-theme`/`data-cd-kontrast` attributes), because its own
 `data-cd-theme` would otherwise drop the host's high contrast. In an own document (`ide`, `web`) the
@@ -1224,11 +1225,11 @@ What the webview bundle needs under this CSP:
   must be in the panel's `localResourceRoots`. `data:` stays allowed for renderers that inline
   fonts.
 - **zod 4 without eval.** `script-src` admits only the nonce'd script, so eval and `new Function` are
-  blocked (correctly, there is no `'unsafe-eval'`). zod 4 probes for eval while it builds object
-  schemas and catches the error, but the browser still reports every probe as a
-  `securitypolicyviolation`. A webview that bundles zod 4 runs `z.config({ jitless: true })` in a
-  module it imports before any schema module (Event Storming: `import "./zod-jitless"`, the first
-  line of `main.ts`).
+  blocked (correctly, there is no `'unsafe-eval'`). zod 4 probes once for eval when it builds its
+  first object schema and catches the error, but the browser still reports that `new Function` as a
+  `securitypolicyviolation`; under `jitless` zod skips the probe. A webview that bundles zod 4 runs
+  `z.config({ jitless: true })` in a module it imports before any schema module (Event Storming:
+  `import "./zod-jitless"`, the first line of `main.ts`).
 - **A smoke test of the production bundle.** A test page served by Vite runs the webview from source
   without a CSP, so a loader or CSP mistake of the shipped bundle shows only behind the real HTML.
   Build the bundle as shipped, serve it under a fake origin behind `renderWebviewHtml`, and fail on
@@ -1885,8 +1886,8 @@ Document sync, echo suppression, minimal edits and undo stay in the modeler for 
   once.
 - **Placement helper** for palette keyboard creation: the 24px diagonal steps when the centre of the
   free rectangle is taken (§5.5), next to `Viewport.freeRectCenter()`.
-- `appearance` surface of the modeler-api contract 1.1 for embedded hosts and the
-  `miragon.<modeler>.colorTheme` setting UI (the bridge already honours `settingKey`).
+- the `appearance` surface of the modeler-api contract (a later 1.x minor) for embedded hosts and
+  the `miragon.<modeler>.colorTheme` setting UI (the bridge already honours `settingKey`).
 - **Kit**:
   - cases for reduced motion and forced colours (they need `page.emulateMedia`, which `PageLike`
     does not have yet); the shell's CSS covers both, the e2e suite checks VS Code's reduce motion;

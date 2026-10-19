@@ -902,8 +902,8 @@ function resolveAppearance(requested: Appearance, themes: readonly Theme[]): App
   the host reads when it renders the HTML, not from the running instance; the attributes must be
   right before the first paint.
 - `resolveAppearance` ships in `@miragon/modeler-shell/core`. The shell has no runtime dependencies,
-  so it does not import the rule from the contract; contract 1.1 of `@miragon/modeler-api` adds the
-  `appearance` surface for embedded hosts, which decide with the same rule
+  so it does not import the rule from the contract; a later 1.x minor of the `@miragon/modeler-api`
+  contract adds the `appearance` surface for embedded hosts, which decide with the same rule
   ([#4](https://github.com/Miragon/modeler-api/issues/4)).
 - Shell conformance requests dark from a light-only modeler and asserts that nothing turns dark.
 
@@ -911,7 +911,7 @@ function resolveAppearance(requested: Appearance, themes: readonly Theme[]): App
 
 **Guide [§13.3][guide-13.3].** Rule: an embedded modeler reports which modes it supports, the host never
 requests another one, and the mode is view state that never touches the document or exports; until
-contract 1.1 an embedded modeler stays light.
+the contract's `appearance` surface (a later 1.x minor) an embedded modeler stays light.
 
 - Until then the shell keeps an embedded modeler light by itself. The token CSS resolves the roles on
   the nearest `[data-cd-theme]` and they inherit, so a root without its own attribute would take the
@@ -923,8 +923,8 @@ contract 1.1 an embedded modeler stays light.
   document's `data-cd-theme` and `data-cd-kontrast` attributes (guide §13.3: a container with its
   own `data-cd-theme` takes `data-cd-kontrast` over from the host). Shell conformance puts the
   foreign page's `<html>` in the requested mode for the embedded host, so every suite proves this.
-- Contract 1.1 adds the optional surface `appearance` with `themes` (supported modes) and `set` (mode
-  and contrast); hosts feature-detect it (`if (modeler.appearance)`).
+- A later 1.x minor of the contract adds the optional surface `appearance` with `themes` (supported
+  modes) and `set` (mode and contrast); hosts feature-detect it (`if (modeler.appearance)`).
 - In a foreign page `set` writes `data-cd-theme` and `data-cd-kontrast` on the modeler's container
   (both on the same element, as the token CSS requires); in its own webview they stay on `<html>`.
 - Appearance is view state: `onContentChanged` never fires for it, and it has no effect on
@@ -1174,8 +1174,9 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   diagram-js style only through the CSSOM, which the CSP does not restrict, and run without it
   (`renderWebviewHtml({ inlineStyles: false })`).
 - CSP and eval: `script-src` admits only the nonce'd script, and that is right; never add
-  `'unsafe-eval'`. zod 4 probes for eval with `new Function` while it builds object schemas; it
-  catches the error, but the browser reports every probe as a `securitypolicyviolation`. A webview
+  `'unsafe-eval'`. zod 4 probes once for eval with `new Function` when it builds its first object
+  schema; it catches the error, but the browser reports that probe as a `securitypolicyviolation`
+  (under `jitless` zod skips it). A webview
   that bundles zod 4 runs `z.config({ jitless: true })` in a module of its own that it imports before
   any schema module (Event Storming's `zod-jitless.ts`, the first import of `main.ts`).
 - A test page served by Vite runs the webview from source without a CSP, so a loader or CSP mistake

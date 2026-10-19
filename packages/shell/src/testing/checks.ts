@@ -420,9 +420,9 @@ export interface AppearanceVerdict {
 }
 
 /**
- * What an embedded root must show (guide §13.3): until contract 1.1 there is no channel to ask
- * it for a mode, so it stays in its first one whatever the page shows, and takes the page's high
- * contrast over from the nearest mode carrier above it.
+ * What an embedded root must show (guide §13.3): until the contract's `appearance` surface there
+ * is no channel to ask it for a mode, so it stays in its first one whatever the page shows, and
+ * takes the page's high contrast over from the nearest mode carrier above it.
  */
 export function expectedEmbeddedAppearance(facts: AppearanceFacts, themes: readonly Theme[]): Appearance {
   const fallback = themes[0];

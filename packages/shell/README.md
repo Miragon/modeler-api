@@ -123,8 +123,9 @@ Bundle the fonts as files next to the webview bundle, not as data URLs: with esb
 fetches only the subsets a page's `unicode-range` needs (Geist Mono alone brings six; inlined they
 roughly double the webview CSS). The CSP of `renderWebviewHtml` allows fonts from `cspSource`, and
 `dist` is in `localResourceRoots`. A webview that bundles zod 4 runs `z.config({ jitless: true })` in
-a module it imports before any schema module: the CSP forbids eval, and zod's eval probe would report
-a violation on every schema even though zod catches the error.
+a module it imports before any schema module: the CSP forbids eval, zod probes once for eval when it
+builds its first object schema, and the browser reports that caught `new Function` as a
+`securitypolicyviolation`; under `jitless` zod skips the probe.
 
 Webview:
 
@@ -143,8 +144,8 @@ const stored = readShellState(vscode);
 
 // The diagram first: a modeler keyboard on document must run before the shell's key listener.
 // A renderer that builds its diagram lazily builds it now; width and height follow the shell's slot.
-// The renderer's own Cmd/Ctrl+Z binding goes off in the IDE host, because VS Code's document history
-// owns undo (Event Storming: undoRedoKeys: false).
+// A renderer with its own Cmd/Ctrl+Z binding turns it off here, because VS Code's document history
+// owns undo (Event Storming: createCollaborativeModeler({ undoRedoKeys: false }), see API.md).
 const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: [shellModule] });
 modeler.get("canvas");
 const shell = mountVsCodeShell(document.getElementById("app")!, {
@@ -163,11 +164,12 @@ const shell = mountVsCodeShell(document.getElementById("app")!, {
   problems: { onActivate: () => vscode.postMessage({ type: "showProblems" }) },
   emptyHint: { onInsertExample: () => vscode.postMessage({ type: "insertExample" }) },
 });
-const { viewport } = connectDiagramJs(shell, modeler, {
+const connection = connectDiagramJs(shell, modeler, {
   // the tight bounds of the content, no padding: the shell's fit insets are the only margin
   contentBounds: () => elementBounds(), // undefined while there is nothing to fit
   isEmpty: () => elementCount() === 0, // cheap: no export, no validation
 });
+const { viewport } = connection;
 persistView(vscode, viewport); // writes the view once it rested, not on every frame
 
 async function importText(text: string, first: boolean): Promise<void> {
@@ -190,6 +192,20 @@ async function importText(text: string, first: boolean): Promise<void> {
     );
   }
 }
+
+// Imports strictly one after another; `ready` resolves once the first one settled.
+let imports = Promise.resolve();
+let firstImportSettled = () => {};
+const ready = new Promise<void>((resolve) => (firstImportSettled = resolve));
+window.addEventListener("message", ({ data }) => {
+  if (data?.type === "init")
+    imports = imports.then(() => importText(data.text, true)).then(firstImportSettled);
+  if (data?.type === "update") imports = imports.then(() => importText(data.text, false));
+});
+vscode.postMessage({ type: "ready" });
+
+// For the e2e test page below; the bundle publishes nothing on window.
+export const webview = { shell, modeler, connection, ready };
 ```
 
 `mountVsCodeShell` stops every key the webview handles on `document`, before VS Code's listener on
@@ -240,10 +256,11 @@ part of 0.1.
 
 `mountShell(container, { host: "embedded", themes: ["light"], canvas })` on an explicitly sized
 container: the root carries the tool's `lang` itself, keys act only while the focus is inside the
-modeler, and the page's `<html>` stays untouched. Until contract 1.1 of `@miragon/modeler-api` an
-embedded modeler has no appearance channel, so the root carries its own `data-cd-theme` (the first
-of `themes`, light) and stays light inside a dark host page; it takes the page's
-`data-cd-kontrast="hoch"` over from the nearest mode carrier above it. The page's element styles
+modeler, and the page's `<html>` stays untouched. Until the `@miragon/modeler-api` contract gains
+its `appearance` surface (a later 1.x minor), an embedded modeler has no appearance channel, so the
+root carries its own `data-cd-theme` (the first of `themes`, light) and stays light inside a dark
+host page; it takes the page's `data-cd-kontrast="hoch"` over from the nearest mode carrier above
+it. The page's element styles
 (`button { text-transform: uppercase }`) do not reach the chrome.
 
 ## The conformance kit
@@ -293,7 +310,7 @@ test.describe("shell conformance", () => {
     {
       host: "ide",
       themes: ["light"],
-      absent: ["legend", "inspector"], // islands this modeler does not have: never visible, never skipped
+      absent: ["inspector"], // islands this modeler does not have: never visible, never skipped
       async open(page, { size, requested }) {
         await page.setViewportSize(size);
         await page.goto(`/webview-test.html?${vsCodeStubSearch(requested)}`);
@@ -308,6 +325,9 @@ test.describe("shell conformance", () => {
         });
       },
       show: {
+        async legend(page) {
+          await page.evaluate(() => window.shell.legend?.setOpen(true));
+        },
         async problems(page) {
           await page.evaluate(() => window.postMessage({ type: "problems", count: 2, errors: 1 }, "*"));
         },
