@@ -1,0 +1,269 @@
+/*
+ * Horizontal palette skin of @miragon/modeler-shell (owned by src/diagram-js), on
+ * .djs-palette[data-chrome="palette"] (specificity of at least 0,2,0): top-centre glass island,
+ * 32px entries, group separators, active-tool ring, second row, read-only entries.
+ */
+
+.djs-palette[data-chrome="palette"] {
+  --modeler-shell-palette-focus-width: 2px;
+  --modeler-shell-palette-focus-offset: 2px;
+  --modeler-shell-palette-focus-offset-pressed: 2px;
+
+  position: absolute;
+  top: var(--cd-shell-rand);
+  left: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: auto;
+  height: var(--cd-shell-zeile);
+  padding: 3px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--cd-shadow-1);
+  color: var(--cd-ui-text);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The vertical layout's two columns and its open/close toggle have no place in the horizontal island. */
+.djs-palette[data-chrome="palette"].two-column.open {
+  width: auto;
+}
+
+.djs-palette[data-chrome="palette"] .djs-palette-toggle,
+.djs-palette[data-chrome="palette"] .djs-palette-entries::after {
+  display: none;
+}
+
+.djs-palette[data-chrome="palette"] .djs-palette-entries,
+.djs-palette[data-chrome="palette"]:not(.open) .djs-palette-entries {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.djs-palette[data-chrome="palette"] .group {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 8px, the 1px line, 8px. */
+.djs-palette[data-chrome="palette"] .group + .group {
+  margin-left: 8px;
+  padding-left: 9px;
+}
+
+.djs-palette[data-chrome="palette"] .group + .group::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  background: var(--cd-ui-linie);
+}
+
+.djs-palette[data-chrome="palette"] .separator {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  height: auto;
+  margin: 4px 6px;
+  padding: 0;
+  border: 0;
+  background: var(--cd-ui-linie);
+}
+
+.djs-palette[data-chrome="palette"] .entry {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--cd-shell-ziel);
+  height: var(--cd-shell-ziel);
+  margin: 0;
+  padding: 0;
+  float: none;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  color: var(--cd-ui-text);
+  font-size: 24px;
+  line-height: 1;
+  text-align: center;
+  cursor: default;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease);
+}
+
+.djs-palette[data-chrome="palette"] .entry > img,
+.djs-palette[data-chrome="palette"] .entry > svg {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/*
+ * Tool icons take the entry's colour in every state, also against renderer or diagram-js rules on
+ * the icon itself. Notation previews keep their own colours (guide §5.5), so only tools inherit.
+ */
+.djs-palette[data-chrome="palette"] .group[data-group="tools"] .entry > svg,
+.djs-palette[data-chrome="palette"] .group[data-group="tools"] .entry::before,
+.djs-palette[data-chrome="palette"] .entry[data-action$="-tool"] > svg,
+.djs-palette[data-chrome="palette"] .entry[data-action$="-tool"]::before {
+  color: inherit;
+}
+
+.djs-palette[data-chrome="palette"] .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+
+/*
+ * diagram-js forces the colour of `highlighted-entry` with !important, and the class goes stale after
+ * a rebuild; the active tool is marked through aria-pressed instead.
+ */
+.djs-palette[data-chrome="palette"] .entry.highlighted-entry {
+  color: var(--cd-ui-text) !important;
+}
+
+.djs-palette[data-chrome="palette"] .entry.highlighted-entry:hover {
+  color: var(--cd-ui-interaktion) !important;
+}
+
+.djs-palette[data-chrome="palette"] .entry[aria-pressed="true"] {
+  background: var(--cd-ui-hover);
+  box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
+  color: var(--cd-ui-text);
+}
+
+.djs-palette[data-chrome="palette"] .entry[aria-pressed="true"]:hover {
+  color: var(--cd-ui-interaktion);
+}
+
+.djs-palette[data-chrome="palette"] .entry:focus {
+  outline: none;
+}
+
+.djs-palette[data-chrome="palette"] .entry:focus-visible {
+  outline: var(--modeler-shell-palette-focus-width) solid var(--cd-ui-fokus);
+  outline-offset: var(--modeler-shell-palette-focus-offset);
+}
+
+.djs-palette[data-chrome="palette"] .entry[aria-pressed="true"]:focus-visible {
+  outline-offset: var(--modeler-shell-palette-focus-offset-pressed);
+}
+
+/* Read-only canvas (guide §13.5): tool icons muted, notation previews grey, never by opacity. */
+.djs-palette[data-chrome="palette"] .entry[aria-disabled="true"],
+.djs-palette[data-chrome="palette"] .entry[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--cd-ui-text-leise);
+  cursor: not-allowed;
+}
+
+.djs-palette[data-chrome="palette"] .entry.highlighted-entry[aria-disabled="true"] {
+  color: var(--cd-ui-text-leise) !important;
+}
+
+.djs-palette[data-chrome="palette"] .entry[aria-disabled="true"] > *,
+.djs-palette[data-chrome="palette"] .entry[aria-disabled="true"]::before {
+  filter: grayscale(1);
+}
+
+[data-cd-kontrast="hoch"] .djs-palette[data-chrome="palette"] {
+  --modeler-shell-palette-focus-width: 3px;
+
+  box-shadow: none;
+}
+
+/*
+ * Second row (guide §5.15): set by the shell's measurement or by the container width. It scrolls, so
+ * the focus ring moves inside the entry; on the active tool 1px inside its 2px ring.
+ */
+.cd-shell[data-palette="second-row"] .djs-palette[data-chrome="palette"] {
+  --modeler-shell-palette-focus-offset: calc(-1 * var(--modeler-shell-palette-focus-width));
+  --modeler-shell-palette-focus-offset-pressed: calc(-3px - var(--modeler-shell-palette-focus-width));
+
+  top: var(--cd-shell-frei);
+  max-width: calc(100cqw - 2 * var(--cd-shell-rand));
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.cd-shell[data-palette="second-row"] .djs-palette[data-chrome="palette"]::-webkit-scrollbar {
+  display: none;
+}
+
+@container cd-shell (max-width: 760px) {
+  .djs-palette[data-chrome="palette"] {
+    --modeler-shell-palette-focus-offset: calc(-1 * var(--modeler-shell-palette-focus-width));
+    --modeler-shell-palette-focus-offset-pressed: calc(-3px - var(--modeler-shell-palette-focus-width));
+
+    top: var(--cd-shell-frei);
+    max-width: calc(100cqw - 2 * var(--cd-shell-rand));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .djs-palette[data-chrome="palette"]::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .djs-palette[data-chrome="palette"] {
+    border-color: CanvasText;
+  }
+
+  .djs-palette[data-chrome="palette"] .group + .group::before,
+  .djs-palette[data-chrome="palette"] .separator {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .djs-palette[data-chrome="palette"] .entry:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"],
+  .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"]:hover {
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: inset 0 0 0 2px Highlight;
+  }
+
+  .djs-palette[data-chrome="palette"] .entry[aria-disabled="true"] {
+    color: GrayText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .djs-palette[data-chrome="palette"] .entry {
+    transition: none;
+  }
+}
+
+html.cd-shell-reduce-motion .djs-palette[data-chrome="palette"] .entry {
+  transition: none;
+}

@@ -33,9 +33,10 @@ every package builds with the same versions. Each package under `packages/`
 owns its `src/`, `test/`, `tsconfig.json`, `tsup.config.ts`, `README.md` and
 `LICENSE` (npm packs only the package directory, so the license is copied in).
 
-| Path           | Package                |
-| -------------- | ---------------------- |
-| `packages/api` | `@miragon/modeler-api` |
+| Path             | Package                  |
+| ---------------- | ------------------------ |
+| `packages/api`   | `@miragon/modeler-api`   |
+| `packages/shell` | `@miragon/modeler-shell` |
 
 ## Releases
 
@@ -58,6 +59,19 @@ needs its own `packages` entry in `release-please-config.json` (`component`,
 release-please treats any other manifest version as the last release and
 bumps from it instead of using `initial-version`.
 
+The first release of a new package also needs one manual step on npm: trusted publishing (OIDC)
+can only be bound to a package that already exists, so the release job's `npm publish` fails with
+E404 for a name npm has never seen. This is how `@miragon/modeler-api@1.0.0` was bootstrapped:
+
+1. Merge the package's first release PR as usual. The tag is created, the publish job fails (expected).
+2. A maintainer with publish rights to the `@miragon` scope publishes that version once by hand from a
+   clean checkout of the tag: `npm ci && npm run build -w packages/<name> && npm publish -w packages/<name>`
+   (2FA in the browser; in a non-interactive shell npm aborts the web 2FA with EOTP, so run it in a
+   terminal). npm briefly lists a `0.0.0-stage` placeholder while it processes the first upload.
+3. Bind the trusted publisher: `npm trust github @miragon/<name> --repo Miragon/modeler-api --file release-please.yml --env npm --allow-publish`.
+4. Re-run the failed publish job. It skips with "already published"; from the next release on it
+   publishes without a token.
+
 ## Checks
 
 Run from the repository root; each script fans out to every workspace
@@ -69,6 +83,8 @@ npm run lint      # tsc in every package + prettier over the repo
 npm test          # the kit's own conformance suite (reference modeler + saboteurs)
 npm run build     # tsup: dual ESM/CJS + d.ts
 npm run publint   # the published package shape (exports, types, files)
+npm run test:e2e  # Playwright suites (the shell's conformance kit against its demo);
+                  # once: npx playwright install chromium
 ```
 
 Adding a case to the kit means adding a saboteur flaw to

@@ -1,0 +1,84 @@
+/** A point in pixels or diagram coordinates, as the context says. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
+/** A rectangle; content bounds and viewboxes are in diagram coordinates. */
+export interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A viewbox together with the scale diagram-js shows it at (`canvas.viewbox().scale`). */
+export interface ScaledViewbox extends Bounds {
+  scale: number;
+}
+
+/** Distances in pixels from the edges of the modeler's container. */
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * The host column of guide §5.2: `ide` is a VS Code webview (later IntelliJ), `web` a Miragon web
+ * app that owns its page, `embedded` a modeler inside a foreign page (designIQ, modeler-api hosts).
+ */
+export type ShellHost = "ide" | "web" | "embedded";
+
+/** The `data-chrome` names of the islands (guide §5.2, §13.4). `primary` is reserved for the web app. */
+export type ChromeIsland =
+  "menu" | "palette" | "primary" | "zoom" | "problems" | "legend" | "inspector" | "status";
+
+export const CHROME_ISLANDS: readonly ChromeIsland[] = [
+  "menu",
+  "palette",
+  "primary",
+  "zoom",
+  "problems",
+  "legend",
+  "inspector",
+  "status",
+];
+
+/** Where the palette sits: in the top row, or in the second row below it (guide §5.15). */
+export type PaletteRow = "top" | "second-row";
+
+/**
+ * What the zoom panel and the chrome keys act on. The diagram-js viewport implements it; the DOM
+ * shell only talks to this interface.
+ */
+export interface ZoomTarget {
+  /** The current zoom, 1 = 100 % (diagram-js `canvas.zoom()`, rounded to three decimals). */
+  zoom(): number;
+  /** One step on the zoom raster around the container centre (diagram-js `zoomScroll.stepZoom`). */
+  stepZoom(direction: 1 | -1): void;
+  /** 100 % around the container centre. Counts as a user move. */
+  zoomToActual(): void;
+  /** Explicit fit (button, Shift+1, command): animated unless reduced motion, makes the view automatic. */
+  fit(): void;
+  /** False while there is nothing to fit (the content bounds are empty). */
+  canFit(): boolean;
+  /**
+   * Calls `listener` after every viewbox change and whenever `canFit()` may have changed, possibly
+   * several times per frame. Returns the unsubscribe function.
+   */
+  onChange(listener: () => void): () => void;
+}
+
+/** The persisted view (VS Code `setState`): JSON-serializable. */
+export interface ViewportState {
+  viewbox: Bounds;
+  /** The user zoomed or panned since the last fit; a resize no longer refits. */
+  userMoved: boolean;
+}

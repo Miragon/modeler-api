@@ -1,0 +1,966 @@
+/*
+ * Chrome of @miragon/modeler-shell (owned by src/dom): shell root, canvas slot, islands, menu,
+ * tooltip, zoom panel, problems pill, status box, empty-file hint, legend, inspector, layers,
+ * focus, high contrast, forced colours, reduced motion and the own-document reset
+ * (html.cd-shell-document). Colours only from var(--cd-ui-*), sizes from var(--cd-shell-*).
+ *
+ * Breakpoints are container queries on the shell root with literal values: custom properties are
+ * not allowed in container conditions (760 = --cd-shell-schmal, 440 = --cd-shell-sehr-schmal).
+ * Private helper properties are named --modeler-shell-*, never --cd-*, so they cannot shadow a
+ * future design-system token.
+ */
+
+/* ---- Root and canvas slot (guide §5.1, §5.13) ----------------------------------------------- */
+
+.cd-shell,
+html.cd-shell-document {
+  --modeler-shell-font:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --modeler-shell-font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+}
+
+.cd-shell {
+  position: relative;
+  overflow: hidden;
+  container: cd-shell / size;
+  isolation: isolate;
+  color: var(--cd-ui-text);
+  font: 400 13px/1.5 var(--modeler-shell-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* An own document sizes the root from the page; a foreign page sizes it explicitly. */
+:where(html.cd-shell-document body > .cd-shell) {
+  height: 100%;
+}
+
+/*
+ * The slot's layout must win over a renderer's own container class (Event Storming's
+ * .event-storming-container sets position: relative); its paint must not, so the renderer's paper
+ * (a dot grid, a dark board) shows.
+ */
+.cd-shell > .cd-shell-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+:where(.cd-shell-canvas) {
+  background-color: var(--cd-ui-grund);
+}
+
+/* Buttons and fields show the chrome font, not the browser's control font (13.33px). */
+:where(.cd-shell) :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+/*
+ * The chrome's own islands, controls and texts take nothing from a foreign page's element rules
+ * (button { text-transform: uppercase }, p { font-size: 18px }, section { font-family: serif }):
+ * class specificity beats them, and every component rule below comes later and sets its own size
+ * and weight (guide §5.1, §5.14).
+ */
+:where(.cd-shell)
+  :is(
+    .cd-shell-layer,
+    .cd-shell-island,
+    .cd-shell-menu,
+    .cd-shell-menu-group,
+    .cd-shell-status,
+    .cd-shell-hint,
+    .cd-shell-inspector,
+    .cd-shell-legend-header,
+    .cd-shell-legend-body,
+    .cd-shell-tooltip,
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item,
+    .cd-shell-menu-item-label,
+    .cd-shell-menu-shortcut,
+    .cd-shell-menu-heading,
+    .cd-shell-problems,
+    .cd-shell-problems-text,
+    .cd-shell-legend-close,
+    .cd-shell-legend-title,
+    .cd-shell-hint-text,
+    .cd-shell-hint-action,
+    .cd-shell-status-text,
+    .cd-shell-tooltip-label,
+    .cd-shell-kbd
+  ) {
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-indent: 0;
+  text-shadow: none;
+}
+
+.cd-shell-layer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--cd-shell-ebene-aufklapper);
+  pointer-events: none;
+}
+
+.cd-shell
+  :is(
+    .cd-shell-island,
+    .cd-shell-status,
+    .cd-shell-hint,
+    .cd-shell-inspector,
+    .cd-shell-menu,
+    .cd-shell-tooltip,
+    .cd-shell-kbd
+  )[hidden] {
+  display: none;
+}
+
+/* ---- Glass islands (guide §5.3, §6) --------------------------------------------------------- */
+
+.cd-shell-island {
+  position: absolute;
+  z-index: var(--cd-shell-ebene-inseln);
+  box-sizing: border-box;
+  margin: 0;
+  color: var(--cd-ui-text);
+  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-shell
+  :is(
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item-icon,
+    .cd-shell-menu-item-end,
+    .cd-shell-problems-icon,
+    .cd-shell-status-icon,
+    .cd-shell-legend-close
+  )
+  svg {
+  display: block;
+  flex: none;
+}
+
+/* ---- Focus (guide §5.14, §8) ---------------------------------------------------------------- */
+
+.cd-shell
+  :is(
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item,
+    .cd-shell-problems,
+    .cd-shell-legend-close,
+    .cd-shell-hint-action
+  ):focus {
+  outline: none;
+}
+
+.cd-shell
+  :is(
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item,
+    .cd-shell-problems,
+    .cd-shell-legend-close,
+    .cd-shell-hint-action
+  ):focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+/* Dense containers: inside, or the container cuts the ring off and the neighbour covers it. */
+.cd-shell :is(.cd-shell-menu-item, .cd-shell-zoom .cd-shell-target):focus-visible {
+  outline-offset: -2px;
+}
+
+/*
+ * The canvas <svg> is a tab stop (guide §5.14) and fills the slot, which clips: its ring lies inside.
+ * diagram-js leaves it the browser's own ring.
+ */
+.cd-shell-canvas .djs-container > svg:focus {
+  outline: none;
+}
+
+.cd-shell-canvas .djs-container > svg:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
+}
+
+/* ---- Menu trigger and dropdown (guide §5.4) ------------------------------------------------- */
+
+.cd-shell-menu-trigger {
+  top: var(--cd-shell-rand);
+  left: var(--cd-shell-rand);
+  z-index: var(--cd-shell-ebene-reihe);
+  display: grid;
+  place-items: center;
+  width: var(--cd-shell-zeile);
+  height: var(--cd-shell-zeile);
+  padding: 0;
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-menu-trigger:hover,
+.cd-shell-menu-trigger:active,
+.cd-shell-menu-trigger[aria-expanded="true"] {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+
+.cd-shell-menu {
+  position: absolute;
+  top: calc(var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke));
+  left: var(--cd-shell-rand);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: min(var(--cd-shell-menue-breite), 100cqw - 2 * var(--cd-shell-rand));
+  max-width: min(320px, 100cqw - 2 * var(--cd-shell-rand));
+  max-height: calc(100cqh - 72px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 6px;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: cd-shell-drop-in var(--cd-motion-fast) var(--cd-ease-out);
+}
+
+.cd-shell-menu-item {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--cd-shell-eintrag);
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--cd-ui-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-menu-item:hover,
+.cd-shell-menu-item:focus-visible {
+  background: var(--cd-ui-hover);
+}
+
+/* The icon column keeps its 16px without an icon, so every label lines up. */
+.cd-shell-menu-item-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.cd-shell-menu-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cd-shell-menu-item-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+}
+
+.cd-shell-menu-shortcut {
+  color: var(--cd-ui-text-leise);
+  font-family: var(--modeler-shell-font-mono);
+  font-size: 13px;
+}
+
+.cd-shell-menu-check {
+  color: var(--cd-ui-text);
+}
+
+/* Unchecked keeps the mark's width, so the dropdown does not change size when it toggles. */
+.cd-shell-menu-item[aria-checked="false"] .cd-shell-menu-check {
+  visibility: hidden;
+}
+
+.cd-shell-menu-item[data-danger] .cd-shell-menu-item-icon {
+  color: var(--cd-ui-danger);
+}
+
+.cd-shell-menu-item[aria-disabled="true"] {
+  color: var(--cd-ui-text-leise);
+  cursor: not-allowed;
+}
+
+.cd-shell-menu-item[aria-disabled="true"]:hover,
+.cd-shell-menu-item[aria-disabled="true"]:focus-visible {
+  background: transparent;
+}
+
+.cd-shell-menu-item[aria-disabled="true"] :is(.cd-shell-menu-item-icon, .cd-shell-menu-check) {
+  color: inherit;
+}
+
+.cd-shell-menu-separator {
+  flex: none;
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--cd-ui-linie);
+}
+
+.cd-shell-menu-group {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.cd-shell-menu-heading {
+  padding: 8px 12px 4px;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ---- Tooltip and shortcut chip (guide §5.6) ------------------------------------------------- */
+
+.cd-shell-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(280px, 100cqw - 2 * var(--cd-shell-rand));
+  margin: 0;
+  padding: 3px 8px;
+  color: var(--cd-ui-text);
+  font: 400 13px/20px var(--modeler-shell-font);
+  white-space: normal;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: var(--cd-shadow-2);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-shell-tooltip .cd-shell-kbd {
+  margin-left: 6px;
+}
+
+/* Every property set, so no host style (VS Code colours kbd, adds a shadow) leaks through. */
+.cd-shell-kbd,
+html.cd-shell-document kbd {
+  display: inline;
+  margin: 0;
+  padding: 1px 6px;
+  color: var(--cd-ui-text-leise);
+  font: 400 13px/16px var(--modeler-shell-font-mono);
+  text-shadow: none;
+  vertical-align: baseline;
+  background: var(--cd-ui-grund);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+}
+
+/* ---- Zoom panel (guide §5.8) ---------------------------------------------------------------- */
+
+.cd-shell-zoom {
+  right: var(--cd-shell-rand);
+  bottom: var(--cd-shell-rand);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--cd-shell-zeile);
+  padding: 3px;
+}
+
+.cd-shell-target {
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--cd-shell-ziel);
+  height: var(--cd-shell-ziel);
+  margin: 0;
+  padding: 0;
+  color: var(--cd-ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-target:hover {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+
+.cd-shell-zoom-readout {
+  width: auto;
+  min-width: 56px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cd-shell-zoom-readout:hover {
+  color: var(--cd-ui-text);
+}
+
+/* Disabled is opaque and neutral, never through opacity (guide §8). */
+.cd-shell-target[aria-disabled="true"],
+.cd-shell-target[aria-disabled="true"]:hover {
+  color: var(--cd-ui-text-leise);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.cd-shell-zoom-separator {
+  flex: none;
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--cd-ui-linie);
+}
+
+/* ---- Problems pill (guide §5.10) ------------------------------------------------------------ */
+
+.cd-shell-problems {
+  left: var(--cd-shell-rand);
+  bottom: var(--cd-shell-rand);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cd-shell-luecke);
+  height: var(--cd-shell-zeile);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: nowrap;
+  border-radius: var(--cd-radius-pill);
+  cursor: pointer;
+  transition: background-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-problems:hover {
+  background: var(--cd-ui-hover);
+}
+
+.cd-shell-problems[data-severity="danger"] .cd-shell-problems-icon {
+  color: var(--cd-ui-danger);
+}
+
+.cd-shell-problems[data-severity="warning"] .cd-shell-problems-icon {
+  color: var(--cd-ui-warning);
+}
+
+/* The web app keeps its legal line (20px) below the pill. */
+.cd-shell[data-cd-shell-host="web"] .cd-shell-problems {
+  bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+}
+
+/* ---- Status box under the palette (guide §5.12) --------------------------------------------- */
+
+.cd-shell-status {
+  position: absolute;
+  top: var(--cd-shell-frei);
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--cd-shell-ebene-inseln);
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cd-shell-luecke);
+  width: max-content;
+  max-width: min(560px, 100cqw - 2 * var(--cd-shell-rand));
+  margin: 0;
+  padding: 12px 16px;
+  overflow: hidden;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--cd-ui-danger-flaeche);
+  border: 1px solid var(--cd-ui-danger);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: cd-shell-drop-in var(--cd-motion-base) var(--cd-ease-out);
+}
+
+/* Its own element: a border-left would follow the radius and bend into a crescent. */
+.cd-shell-status::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: var(--cd-ui-danger);
+}
+
+.cd-shell-status-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--cd-ui-danger);
+}
+
+.cd-shell-status-text {
+  margin: 0;
+}
+
+.cd-shell-status[data-severity="warning"] {
+  background: var(--cd-ui-warning-flaeche);
+  border-color: var(--cd-ui-warning);
+}
+
+.cd-shell-status[data-severity="warning"]::before {
+  background: var(--cd-ui-warning);
+}
+
+.cd-shell-status[data-severity="warning"] .cd-shell-status-icon {
+  color: var(--cd-ui-warning);
+}
+
+.cd-shell[data-palette="second-row"] .cd-shell-status {
+  top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+}
+
+/* With the side inspector open: centred in the strip to its left. */
+@container cd-shell (width > 760px) {
+  .cd-shell[data-inspector="open"] .cd-shell-status {
+    left: calc((100cqw - var(--cd-shell-inspector-breite) - var(--cd-shell-rand)) / 2);
+    max-width: min(560px, 100cqw - var(--cd-shell-inspector-breite) - 3 * var(--cd-shell-rand));
+  }
+}
+
+/* ---- Empty-file hint (guide §13.5) ---------------------------------------------------------- */
+
+/* Centred in the free rectangle of the fit; the script sets the exact insets of what is open. */
+.cd-shell-hint {
+  position: absolute;
+  inset: var(--cd-shell-einpassen-oben) var(--cd-shell-einpassen-seite) var(--cd-shell-einpassen-unten);
+  z-index: var(--cd-shell-ebene-inseln);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-shell[data-palette="second-row"] .cd-shell-hint {
+  top: var(--cd-shell-einpassen-oben-schmal);
+}
+
+.cd-shell-hint-text {
+  margin: 0;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cd-shell-hint-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--cd-shell-eintrag);
+  margin: 0;
+  padding: 0 16px;
+  color: var(--cd-ui-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--cd-radius-md);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-hint-action:hover {
+  background: var(--cd-ui-hover);
+}
+
+/* ---- Legend (guide §5.10) ------------------------------------------------------------------- */
+
+.cd-shell-legend {
+  --modeler-shell-legend-bottom: var(--cd-shell-rand);
+  --modeler-shell-legend-min-bottom: 0px;
+  --modeler-shell-legend-top: var(--cd-shell-frei);
+  left: var(--cd-shell-rand);
+  bottom: max(var(--modeler-shell-legend-bottom), var(--modeler-shell-legend-min-bottom));
+  min-width: 184px;
+  max-height: calc(
+    100cqh - var(--modeler-shell-legend-top) -
+      max(var(--modeler-shell-legend-bottom), var(--modeler-shell-legend-min-bottom)) - var(--cd-shell-rand)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 12px 12px 16px;
+  box-shadow: var(--cd-shadow-2);
+  animation: cd-shell-rise-in var(--cd-motion-base) var(--cd-ease-out);
+}
+
+.cd-shell[data-problems="shown"] .cd-shell-legend {
+  --modeler-shell-legend-bottom: calc(var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke));
+}
+
+.cd-shell[data-cd-shell-host="web"] .cd-shell-legend {
+  --modeler-shell-legend-bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+}
+
+.cd-shell[data-cd-shell-host="web"][data-problems="shown"] .cd-shell-legend {
+  --modeler-shell-legend-bottom: calc(
+    var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+  );
+}
+
+.cd-shell[data-palette="second-row"] .cd-shell-legend {
+  --modeler-shell-legend-top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+}
+
+/* Too narrow to sit beside the zoom panel: above the bottom row. */
+@container cd-shell (max-width: 440px) {
+  .cd-shell-legend {
+    --modeler-shell-legend-min-bottom: calc(
+      var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+    );
+  }
+}
+
+.cd-shell-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cd-shell-luecke);
+  margin: 0 -4px 4px 0;
+}
+
+.cd-shell-legend-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.cd-shell-legend-close {
+  box-sizing: border-box;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  color: var(--cd-ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-legend-close:hover {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+
+.cd-shell-legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cd-shell-legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cd-shell-luecke);
+  min-height: 24px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cd-shell-legend-preview {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* 4px margin plus the body's 4px gap: 8px before and after (guide §5.10). */
+.cd-shell-legend-separator {
+  flex: none;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--cd-ui-linie);
+  border: 0;
+}
+
+/* ---- Inspector (guide §5.11) ---------------------------------------------------------------- */
+
+.cd-shell-inspector {
+  position: absolute;
+  top: var(--cd-shell-frei);
+  right: var(--cd-shell-rand);
+  z-index: var(--cd-shell-ebene-inspector);
+  box-sizing: border-box;
+  width: var(--cd-shell-inspector-breite);
+  max-height: calc(100cqh - 2 * var(--cd-shell-frei));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 16px;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-lg);
+  box-shadow: var(--cd-shadow-2);
+  animation: cd-shell-drop-in var(--cd-motion-fast) var(--cd-ease-out);
+}
+
+/* Narrow: a bottom sheet; the islands it would half cover step aside meanwhile. */
+@container cd-shell (max-width: 760px) {
+  .cd-shell-inspector {
+    top: auto;
+    left: var(--cd-shell-rand);
+    bottom: var(--cd-shell-rand);
+    width: auto;
+    max-height: 45cqh;
+    animation: cd-shell-rise-in var(--cd-motion-base) var(--cd-ease-out);
+  }
+
+  .cd-shell[data-inspector="open"] :is(.cd-shell-zoom, .cd-shell-problems, .cd-shell-legend) {
+    visibility: hidden;
+  }
+
+  .cd-shell-status {
+    top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+  }
+
+  .cd-shell-hint {
+    top: var(--cd-shell-einpassen-oben-schmal);
+  }
+
+  .cd-shell-legend {
+    --modeler-shell-legend-top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+  }
+}
+
+/* ---- Motion (guide §5.14, §7) --------------------------------------------------------------- */
+
+@keyframes cd-shell-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cd-shell-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-shell,
+  .cd-shell *,
+  .cd-shell *::before,
+  .cd-shell *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* The host asks for it although the OS does not: VS Code's workbench.reduceMotion. */
+html.cd-shell-reduce-motion .cd-shell,
+html.cd-shell-reduce-motion .cd-shell *,
+html.cd-shell-reduce-motion .cd-shell *::before,
+html.cd-shell-reduce-motion .cd-shell *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* One frame of a mode switch: no colour fades (guide §7). */
+html.cd-shell-no-transition,
+html.cd-shell-no-transition *,
+html.cd-shell-no-transition *::before,
+html.cd-shell-no-transition *::after {
+  transition: none !important;
+}
+
+/* ---- High contrast (guide §5.3): no shadows, 3px focus -------------------------------------- */
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-island, .cd-shell-menu, .cd-shell-tooltip, .cd-shell-status, .cd-shell-inspector) {
+  box-shadow: none;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(
+    .cd-shell-menu-trigger,
+    .cd-shell-target,
+    .cd-shell-menu-item,
+    .cd-shell-problems,
+    .cd-shell-legend-close,
+    .cd-shell-hint-action
+  ):focus-visible {
+  outline-width: 3px;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-menu-item, .cd-shell-zoom .cd-shell-target):focus-visible {
+  outline-offset: -3px;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  .cd-shell-canvas
+  .djs-container
+  > svg:focus-visible {
+  outline-width: 3px;
+  outline-offset: -3px;
+}
+
+/* ---- Forced colours (guide §5.14): nothing disappears --------------------------------------- */
+
+@media (forced-colors: active) {
+  .cd-shell :is(.cd-shell-island, .cd-shell-menu, .cd-shell-tooltip, .cd-shell-status, .cd-shell-inspector) {
+    border-color: CanvasText;
+  }
+
+  .cd-shell-status::before,
+  .cd-shell :is(.cd-shell-menu-separator, .cd-shell-zoom-separator, .cd-shell-legend-separator) {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .cd-shell
+    :is(
+      .cd-shell-menu-trigger,
+      .cd-shell-target,
+      .cd-shell-menu-item,
+      .cd-shell-problems,
+      .cd-shell-legend-close,
+      .cd-shell-hint-action
+    ):focus-visible {
+    outline-color: Highlight;
+  }
+
+  .cd-shell :is(.cd-shell-menu-trigger, .cd-shell-target)[aria-pressed="true"] {
+    forced-color-adjust: none;
+    box-shadow: inset 0 0 0 2px Highlight;
+  }
+
+  .cd-shell .cd-shell-canvas .djs-container > svg:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .cd-shell :is(.cd-shell-target, .cd-shell-menu-item)[aria-disabled="true"] {
+    color: GrayText;
+  }
+}
+
+/* ---- Own document (ide, web): nothing of the host's webview styling shows (guide §13.5) ---- */
+
+/* Unlayered on purpose: VS Code's defaults sit in @layer vscode-default and lose to it. */
+html.cd-shell-document,
+html.cd-shell-document body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: var(--cd-ui-text);
+  font: 400 13px/1.5 var(--modeler-shell-font);
+  background: var(--cd-ui-grund);
+}
+
+html.cd-shell-document {
+  scrollbar-color: var(--cd-ui-kontur) transparent;
+}
+
+/* Zero specificity: the chrome's own rules (the readout's 600, a hint button's weight) must win. */
+:where(html.cd-shell-document) :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+html.cd-shell-document code {
+  padding: 0;
+  color: inherit;
+  font-family: var(--modeler-shell-font-mono);
+  font-size: inherit;
+  background: transparent;
+  border-radius: 0;
+}
+
+html.cd-shell-document a,
+html.cd-shell-document a:hover,
+html.cd-shell-document a:visited {
+  color: var(--cd-ui-link);
+}
+
+/* VS Code rings a:focus, input:focus … with its own colour, also for a mouse focus. */
+html.cd-shell-document :where(a, input, select, textarea):focus {
+  outline: none;
+}
+
+html.cd-shell-document :where(a, input, select, textarea, button, summary):focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+html.cd-shell-document[data-cd-kontrast="hoch"]
+  :where(a, input, select, textarea, button, summary):focus-visible {
+  outline-width: 3px;
+}

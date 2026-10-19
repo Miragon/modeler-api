@@ -1,0 +1,47 @@
+/* Demo page only: a foreign page around the embedded host, the demo shapes and their previews. */
+
+body:has(> .demo-foreign-page) {
+  margin: 0;
+}
+
+.demo-foreign-page {
+  box-sizing: border-box;
+  height: 100vh;
+  margin: 0;
+  padding: 40px;
+  background: var(--cd-ui-flaeche);
+}
+
+/* The modeler's container in the foreign page: 40px page padding around it, a 1px frame inside. */
+.demo-embedded-host {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--cd-ui-linie);
+}
+
+.djs-palette .entry.demo-entry-box::before,
+.djs-palette .entry.demo-entry-wide-box::before,
+.demo-legend-box {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 20px;
+  height: 14px;
+  border: 2px solid var(--cd-ui-kontur);
+  border-radius: 2px;
+}
+
+.djs-palette .entry.demo-entry-wide-box::before {
+  width: 24px;
+  height: 10px;
+}
+
+/*
+ * diagram-js's default renderer draws fuchsia placeholders as inline styles; the demo shapes take
+ * role colours instead.
+ */
+.djs-container .djs-element .djs-visual > rect {
+  fill: var(--cd-ui-flaeche-hoch) !important;
+  stroke: var(--cd-ui-kontur) !important;
+}

@@ -1,0 +1,147 @@
+{
+  "name": "@miragon/modeler-shell",
+  "version": "0.0.0",
+  "description": "The shared, framework-free chrome around Miragon diagram-js modelers: menu, palette skin, tooltip, zoom panel, keys, fit, problems pill, status box, legend and inspector slots, and the VS Code host plumbing.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/modeler-api.git",
+    "directory": "packages/shell"
+  },
+  "homepage": "https://github.com/Miragon/modeler-api/tree/main/packages/shell#readme",
+  "bugs": "https://github.com/Miragon/modeler-api/issues",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./core": {
+      "import": {
+        "types": "./dist/core.d.ts",
+        "default": "./dist/core.js"
+      },
+      "require": {
+        "types": "./dist/core.d.cts",
+        "default": "./dist/core.cjs"
+      }
+    },
+    "./diagram-js": {
+      "import": {
+        "types": "./dist/diagram-js.d.ts",
+        "default": "./dist/diagram-js.js"
+      },
+      "require": {
+        "types": "./dist/diagram-js.d.cts",
+        "default": "./dist/diagram-js.cjs"
+      }
+    },
+    "./vscode/extension": {
+      "import": {
+        "types": "./dist/vscode-extension.d.ts",
+        "default": "./dist/vscode-extension.js"
+      },
+      "require": {
+        "types": "./dist/vscode-extension.d.cts",
+        "default": "./dist/vscode-extension.cjs"
+      }
+    },
+    "./vscode/webview": {
+      "import": {
+        "types": "./dist/vscode-webview.d.ts",
+        "default": "./dist/vscode-webview.js"
+      },
+      "require": {
+        "types": "./dist/vscode-webview.d.cts",
+        "default": "./dist/vscode-webview.cjs"
+      }
+    },
+    "./testing": {
+      "import": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
+      },
+      "require": {
+        "types": "./dist/testing.d.cts",
+        "default": "./dist/testing.cjs"
+      }
+    },
+    "./testing/vscode-stub": {
+      "import": {
+        "types": "./dist/testing-vscode-stub.d.ts",
+        "default": "./dist/testing-vscode-stub.js"
+      },
+      "require": {
+        "types": "./dist/testing-vscode-stub.d.cts",
+        "default": "./dist/testing-vscode-stub.cjs"
+      }
+    },
+    "./shell.css": "./dist/shell.css",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "core": [
+        "./dist/core.d.ts"
+      ],
+      "diagram-js": [
+        "./dist/diagram-js.d.ts"
+      ],
+      "vscode/extension": [
+        "./dist/vscode-extension.d.ts"
+      ],
+      "vscode/webview": [
+        "./dist/vscode-webview.d.ts"
+      ],
+      "testing": [
+        "./dist/testing.d.ts"
+      ],
+      "testing/vscode-stub": [
+        "./dist/testing-vscode-stub.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "API.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "publint": "publint",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.core.json && tsc -p demo/tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "demo": "vite --config demo/vite.config.ts"
+  },
+  "devDependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
+    "@types/vscode": "1.96.0",
+    "diagram-js": "15.28.1",
+    "happy-dom": "21.0.3",
+    "vite": "8.2.2"
+  }
+}
