@@ -2,10 +2,20 @@ import { ariaKeyShortcutsFromLabel, matchChromeKey, type ShellMessages } from ".
 import { createElement, toggleAttribute } from "./element.js";
 import { iconElement, type ShellIconName } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
-import type { MenuCheckboxEntry, MenuEntry, MenuGroups, MenuHandle, MenuRadioGroup } from "./types.js";
+import type { MenuEntry, MenuGroups, MenuHandle, MenuRadioGroup } from "./types.js";
 
-type GroupName = keyof MenuGroups;
-const GROUP_ORDER: readonly GroupName[] = ["model", "export", "help"];
+/**
+ * The fixed groups of guide §5.4 in their order, written as `data-menu-group`. File and Appearance
+ * exist in the web host only and come from the shell (`ShellOptions.file`, the Appearance group of
+ * a dark-capable modeler); Model, Export and Help from `MenuGroups`.
+ */
+export type MenuGroupName = "file" | "model" | "export" | "appearance" | "help";
+const GROUP_ORDER: readonly MenuGroupName[] = ["file", "model", "export", "appearance", "help"];
+type GroupName = MenuGroupName;
+
+function isModelerGroup(name: MenuGroupName): name is keyof MenuGroups {
+  return name === "model" || name === "export" || name === "help";
+}
 
 interface Item {
   /** Stable across renders, so a re-render keeps the focus on the same entry. */
@@ -23,8 +33,11 @@ export interface MenuContext {
   messages: ShellMessages;
   tooltip: TooltipController;
   groups: MenuGroups;
-  /** Entries the shell appends to the Model group (the Legend checkbox). */
-  shellModelEntries(): readonly MenuCheckboxEntry[];
+  /**
+   * Entries the shell adds to a group, after the modeler's: the File group and the Appearance group
+   * (web host), the Legend checkbox at the end of Model.
+   */
+  shellEntries(group: MenuGroupName): readonly MenuEntry[];
   isReadOnly(): boolean;
 }
 
@@ -66,8 +79,9 @@ export function createMenu(context: MenuContext): MenuController {
   const isOpen = (): boolean => !dropdown.hidden;
 
   function entriesOf(name: GroupName): readonly MenuEntry[] {
-    const own = groups[name] ?? [];
-    return name === "model" ? [...own, ...context.shellModelEntries()] : own;
+    const own = isModelerGroup(name) ? (groups[name] ?? []) : [];
+    const added = context.shellEntries(name);
+    return added.length > 0 ? [...own, ...added] : own;
   }
 
   function hasEntries(): boolean {
@@ -138,18 +152,15 @@ export function createMenu(context: MenuContext): MenuController {
         },
       };
     }
-    const shortcut =
-      entry.kind === "action" && entry.shortcut
-        ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
-        : undefined;
+    const shortcut = entry.shortcut
+      ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
+      : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;
     element.dataset.menuGroup = group;
-    if (entry.kind === "action") {
-      const keyShortcuts =
-        entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
-      toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
-    }
+    const keyShortcuts =
+      entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
+    toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
     if (entry.kind === "dialog") element.setAttribute("aria-haspopup", "dialog");
     if (entry.kind === "action" && entry.danger) element.dataset.danger = "";
     return {

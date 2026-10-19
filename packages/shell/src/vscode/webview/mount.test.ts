@@ -18,6 +18,8 @@ function fakeShell(root: HTMLElement, options: ShellOptions): ShellHandle {
     tooltip: {} as ShellHandle["tooltip"],
     legend: undefined,
     inspector: undefined,
+    primary: undefined,
+    appearance: undefined,
     setZoomTarget: vi.fn(),
     fitInsets: vi.fn(() => ({ top: 64, right: 12, bottom: 64, left: 12 })),
     registerPalette: vi.fn(() => () => undefined),
@@ -26,6 +28,9 @@ function fakeShell(root: HTMLElement, options: ShellOptions): ShellHandle {
     setEmptyHint: vi.fn(),
     setReadOnly: vi.fn(),
     isReadOnly: vi.fn(() => true),
+    setEmptyState: vi.fn(),
+    isEmptyStateShown: vi.fn(() => false),
+    toast: vi.fn(() => ({ dismiss: () => undefined })),
     destroy: vi.fn(),
   };
 }

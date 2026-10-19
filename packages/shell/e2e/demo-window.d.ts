@@ -1,6 +1,6 @@
 // The demo's debug handle, as far as the e2e specs read it.
 import type { DiagramJsConnection } from "../src/diagram-js.js";
-import type { ShellHandle } from "../src/index.js";
+import type { ShellHandle, ToastStatus } from "../src/index.js";
 import type { VsCodeWebviewStub } from "../src/testing-vscode-stub.js";
 
 declare global {
@@ -29,6 +29,21 @@ declare global {
        * both with `INVALID_STATUS_DELAY_MS`; `false` clears both at once. `?invalid` uses it.
        */
       setInvalid(invalid: boolean): void;
+      destroy(): void;
+    };
+    /** The web demo's handle (`/web.html`, demo/web.ts). */
+    __webDemo?: {
+      ready: boolean;
+      calls: string[];
+      shell: ShellHandle;
+      connection: DiagramJsConnection;
+      flaws: NonNullable<Window["__demo"]>["flaws"];
+      /** The pill with two items: an error on the first box, a warning without an element. */
+      showProblems(): void;
+      /** A fresh visit without a document: an empty board behind the start screen. */
+      startScreen(): void;
+      setInvalid(invalid: boolean): void;
+      toast(request: { status: ToastStatus; text: string; actionLabel?: string | undefined }): void;
       destroy(): void;
     };
   }

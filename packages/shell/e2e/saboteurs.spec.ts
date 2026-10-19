@@ -1,7 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { shellConformanceCases, type ShellConformanceHarness } from "../src/testing.js";
+import {
+  shellConformanceCases,
+  type ShellConformanceCase,
+  type ShellConformanceHarness,
+} from "../src/testing.js";
+import { createWebCases } from "../src/testing/web-cases.js";
 import { demoHarness } from "./demo-harness.js";
+import { webDemoHarness, type WebDemoHarnessOptions } from "./web-harness.js";
 
 /*
  * The kit's own proof: each saboteur breaks the demo at runtime in one way the guide forbids, and
@@ -11,8 +17,15 @@ import { demoHarness } from "./demo-harness.js";
 
 const WIDE_ONLY = [{ width: 1280, height: 900 }] as const;
 
+/** Every case of the kit, the web column's included while it is not yet registered in createCases. */
+function allCases(): ShellConformanceCase[] {
+  const registered = shellConformanceCases();
+  const names = new Set(registered.map((conformanceCase) => conformanceCase.name));
+  return [...registered, ...createWebCases().filter((conformanceCase) => !names.has(conformanceCase.name))];
+}
+
 function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page>) {
-  const found = shellConformanceCases().find((conformanceCase) => conformanceCase.name === name);
+  const found = allCases().find((conformanceCase) => conformanceCase.name === name);
   if (!found) throw new Error(`no conformance case "${name}"`);
   return found.run(page, harness);
 }
@@ -20,7 +33,7 @@ function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page
 /** Runs every case; the failure (or skips) of each case that did not pass, by case name. */
 async function failures(page: Page, harness: ShellConformanceHarness<Page>): Promise<Map<string, string>> {
   const failed = new Map<string, string>();
-  for (const conformanceCase of shellConformanceCases()) {
+  for (const conformanceCase of allCases()) {
     try {
       const outcome = await conformanceCase.run(page, harness);
       const skipped = outcome?.skipped ?? [];
@@ -54,6 +67,22 @@ function sabotaged(
   host: "ide" | "web" | "embedded" = "ide",
 ): ShellConformanceHarness<Page> {
   const harness = demoHarness(host);
+  return {
+    ...harness,
+    sizes: WIDE_ONLY,
+    async open(page, context) {
+      await harness.open(page, context);
+      await page.evaluate(sabotage);
+    },
+  };
+}
+
+/** The web demo's harness (`/web.html`) with `sabotage` applied right after every open. */
+function webSabotaged(
+  sabotage: () => void,
+  options: WebDemoHarnessOptions = {},
+): ShellConformanceHarness<Page> {
+  const harness = webDemoHarness(options);
   return {
     ...harness,
     sizes: WIDE_ONLY,
@@ -109,6 +138,157 @@ test.describe("saboteurs", () => {
       });
       await expectOnlyCaseFails(page, harness, "appearance", [
         /\[requested dark\] canvas surround: div\.djs-container\S* paints rgb\(8, 10, 32\), but --cd-ui-grund resolves to rgb\(/,
+      ]);
+    });
+
+    test("webChrome fails when the primary action never collapses its label", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const root = document.querySelector(".cd-shell")!;
+        const expand = () => {
+          root.removeAttribute("data-primary");
+          const primary = root.querySelector('[data-chrome="primary"]');
+          primary?.removeAttribute("data-collapsed");
+          primary?.querySelector("[hidden]")?.removeAttribute("hidden");
+        };
+        new MutationObserver(expand).observe(root, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["data-primary", "data-collapsed", "hidden"],
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /\[\d+px wide\] primary: shows its label, but the 648px palette fits the top row only beside the icon; the label collapses first/,
+      ]);
+    });
+
+    test("webChrome fails when a narrow legal line scrolls instead of wrapping", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = ".cd-shell-legal { flex-wrap: nowrap !important; overflow-x: auto; }";
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /legal: \[320px wide\] "[^"]+" is cut off or scrolled out of the legal line; it wraps instead/,
+      ]);
+    });
+
+    test("emptyState fails when the start screen leaves the palette visible", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent =
+          '.cd-shell[data-empty-state="shown"] .djs-palette { visibility: visible !important; }';
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: palette is visible behind the start screen; it hides the work chrome/,
+      ]);
+    });
+
+    test("emptyState fails when the start screen swallows the browser's zoom keys", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        document.addEventListener("keydown", (event) => {
+          const shown = document.querySelector('.cd-shell[data-empty-state="shown"]') !== null;
+          if (shown && (event.ctrlKey || event.metaKey) && (event.key === "=" || event.key === "-"))
+            event.preventDefault();
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: Control\+Equal behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom/,
+      ]);
+    });
+
+    test("toasts fails when toasts never close by themselves", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const original = window.setTimeout.bind(window);
+        window.setTimeout = ((handler: TimerHandler, timeout?: number, ...rest: unknown[]) =>
+          timeout !== undefined && timeout >= 1400 && timeout <= 6000
+            ? 0
+            : original(handler, timeout, ...rest)) as typeof window.setTimeout;
+      });
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /toasts: "Conformance: a plain toast" is still there 3700ms after it appeared; it closes after its lifetime/,
+      ]);
+    });
+
+    test("toasts fails when the live regions come only with the toast", async ({ page }) => {
+      const harness = webSabotaged(() => document.querySelector(".cd-shell-live")?.remove());
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /toasts: no role="status" live region in the root before the first toast/,
+        /toasts: no role="alert" live region in the root before the first toast/,
+      ]);
+    });
+
+    test("problemsList fails when a text row cannot take the focus", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const unfocusable = () => {
+          for (const row of document.querySelectorAll("div.cd-shell-problem[tabindex]"))
+            row.removeAttribute("tabindex");
+        };
+        unfocusable();
+        new MutationObserver(unfocusable).observe(document.body, { childList: true, subtree: true });
+      });
+      await expectOnlyCaseFails(page, harness, "problemsList", [
+        /problems-popover: ArrowDown reaches row 1, expected row 2 of 2; the keyboard reads every row, text rows too/,
+      ]);
+    });
+
+    test("dropZone fails when the drop zone ignores a forbidden drag", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const root = document.querySelector(".cd-shell")!;
+        new MutationObserver(() => {
+          if (root.getAttribute("data-drop") === "forbidden") root.setAttribute("data-drop", "over");
+        }).observe(root, { attributes: true, attributeFilter: ["data-drop"] });
+      });
+      await expectOnlyCaseFails(page, harness, "dropZone", [
+        /drop-zone: a drag of two files sets data-drop="over", expected "forbidden"/,
+        /drop-zone: a file drag with a modal dialog open sets data-drop="over", expected "forbidden"/,
+      ]);
+    });
+
+    test("aria fails for Impressum and Datenschutz without lang", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        for (const link of document.querySelectorAll('[data-chrome="legal"] a[lang]'))
+          link.removeAttribute("lang");
+      });
+      await expectOnlyCaseFails(page, harness, "aria", [
+        /legal: "Impressum" has no lang, expected lang="de"/,
+        /legal: "Datenschutz" has no lang, expected lang="de"/,
+      ]);
+    });
+
+    test("problemsList fails for a problems list not labelled by its title", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        document.querySelector('[data-chrome="problems-popover"]')?.removeAttribute("aria-labelledby");
+      });
+      await expectOnlyCaseFails(page, harness, "problemsList", [
+        /problems-popover: not labelled by its title \(aria-labelledby\)/,
+      ]);
+    });
+
+    test("appearance fails when the web app does not store the chosen mode", async ({ page }) => {
+      const harness = webSabotaged(
+        () => {
+          const setItem = Storage.prototype.setItem;
+          Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+            if (key !== "miragon.darstellung") setItem.call(this, key, value);
+          };
+        },
+        { themes: ["light", "dark"] },
+      );
+      await expectOnlyCaseFails(page, harness, "appearance", [
+        /mode: with Dark localStorage holds miragon\.darstellung=\(none\), expected "dark"/,
+      ]);
+    });
+
+    test("geometry fails for a toast stack off its bottom", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = '[data-chrome="toasts"] { translate: 0 -10px; }';
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "geometry", [
+        // 10px above toastStackBottom, which depends on the legal line's measured width
+        /\[1280 × 900, with a toast\] toasts: bottom is (\d+)px, expected (\d+)px \(±1px\)/,
       ]);
     });
 

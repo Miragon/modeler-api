@@ -195,7 +195,10 @@ export class ShellDiagramService {
   private readonly onKeyboardKeydown = (context: KeyboardEventContext): boolean | undefined => {
     const event = context.keyEvent;
     if (!event) return undefined;
-    if (matchChromeKey(event)) return !isTextField(event.target);
+    // `false` keeps every other diagram-js listener off the key without preventing it: in a text
+    // field the field keeps it, behind the web app's start screen the browser zooms the page.
+    if (matchChromeKey(event))
+      return !isTextField(event.target) && this.shell?.isEmptyStateShown?.() !== true;
     if (this.shell?.host === "ide" && isUndoRedoKey(event)) return false;
     return undefined;
   };

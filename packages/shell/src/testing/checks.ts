@@ -15,9 +15,10 @@ import {
   type ZoomButton,
 } from "./facts.js";
 import { GEOMETRY_TOLERANCE_PX, type Rectangle } from "./geometry.js";
-import type { ShellConformanceHarness, ShowHook } from "./harness.js";
+import type { AbsentFeature, ShellConformanceHarness, ShowHook } from "./harness.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
 import type { PageLike } from "./page.js";
+import { legalAriaProblems, primaryAriaProblems } from "./web-checks.js";
 
 /*
  * The judgements of the cases, as pure functions of what the probes saw. Each returns readable
@@ -177,6 +178,7 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
   for (const element of facts.titled) {
     problems.push(`${element} has a native title; the chrome tooltip replaces it (guide §5.6)`);
   }
+  problems.push(...primaryAriaProblems(facts, host), ...legalAriaProblems(facts, host));
   return problems;
 }
 
@@ -245,13 +247,19 @@ export interface TabStop {
 /**
  * Tab from the menu trigger (guide §5.14): the primary action (web app), the palette's one tab
  * stop, then the canvas `<svg>`; nothing else in between (a renderer's own `tabindex` on
- * `.djs-container` would be an extra, unnamed stop).
+ * `.djs-container` would be an extra, unnamed stop). With `primary` the web app shows one, and
+ * Tab from the trigger lands on it first.
  */
-export function tabSequenceProblems(stops: readonly TabStop[]): string[] {
+export function tabSequenceProblems(stops: readonly TabStop[], primary = false): string[] {
   const [first, second, third] = stops;
   const sequence = first?.kind === "primary" ? [second, third] : [first, second];
   const [palette, canvas] = sequence;
   const problems: string[] = [];
+  if (primary && first?.kind !== "primary") {
+    problems.push(
+      `tab order: Tab from the menu trigger lands on ${first?.description ?? "nothing"}, expected the primary action (top left, top right, top centre, guide §5.14)`,
+    );
+  }
   if (palette?.kind !== "palette") {
     problems.push(
       `tab order: Tab from the menu trigger lands on ${palette?.description ?? "nothing"}, expected the palette's roving entry (guide §5.14)`,
@@ -431,21 +439,37 @@ export function expectedEmbeddedAppearance(facts: AppearanceFacts, themes: reado
   return host?.kontrast === "hoch" ? { theme: fallback, kontrast: "hoch" } : { theme: fallback };
 }
 
+/**
+ * The web app's own expectation (guide §13.3): `<html>` carries `carrier` (`system` for a
+ * dark-capable modeler without a stored choice) and the page shows `effective` under the emulated
+ * system preference.
+ */
+export interface WebModeExpectation {
+  carrier: string;
+  effective: Appearance;
+}
+
 /** No half-dark (guide §13.3, §13.5): one mode on `<html>` (own document) or the root (embedded). */
 export function appearanceProblems(
   facts: AppearanceFacts,
   host: ShellHost,
   requested: Appearance,
   themes: readonly Theme[],
+  web?: WebModeExpectation,
 ): AppearanceVerdict {
   const ownDocument = host !== "embedded";
-  const expected = ownDocument
-    ? expectedAppearance(requested, themes)
-    : expectedEmbeddedAppearance(facts, themes);
+  const expected =
+    web?.effective ??
+    (ownDocument ? expectedAppearance(requested, themes) : expectedEmbeddedAppearance(facts, themes));
+  const carrierTheme = web?.carrier ?? expected.theme;
   const problems: string[] = [];
+  const described =
+    carrierTheme === expected.theme
+      ? describeAppearance(expected)
+      : `${carrierTheme} showing ${describeAppearance(expected)}`;
   const label = ownDocument
-    ? `requested ${describeAppearance(requested)}, expected ${describeAppearance(expected)}`
-    : `host page ${describeAppearance(requested)}, expected ${describeAppearance(expected)}`;
+    ? `requested ${describeAppearance(requested)}, expected ${described}`
+    : `host page ${describeAppearance(requested)}, expected ${described}`;
 
   const carrier = ownDocument
     ? facts.themed.find((element) => element.isDocument && element.theme !== null)
@@ -457,7 +481,7 @@ export function appearanceProblems(
         : `the embedded root has no data-cd-theme (${label}): it takes the host page's mode instead of its own (guide §13.3)`,
     );
   } else {
-    if (carrier.theme !== expected.theme) {
+    if (carrier.theme !== carrierTheme) {
       problems.push(`${carrier.description} has data-cd-theme="${carrier.theme}" (${label})`);
     }
     if ((carrier.kontrast ?? undefined) !== expected.kontrast) {
@@ -534,7 +558,7 @@ export function appearanceProblems(
   return { problems };
 }
 
-/** The root attributes the shell writes (API.md, DOM). */
+/** The root attributes the shell writes (API.md, DOM; the web host's state attributes included). */
 const SHELL_ROOT_ATTRIBUTES = [
   "data-cd-shell-host",
   "data-palette",
@@ -542,6 +566,10 @@ const SHELL_ROOT_ATTRIBUTES = [
   "data-inspector",
   "data-problems",
   "data-readonly",
+  "data-primary",
+  "data-zoom-row",
+  "data-empty-state",
+  "data-drop",
 ];
 
 /** What an embedded root carries on top (its own mode). */
@@ -589,14 +617,14 @@ export type AbsentIsland = Extract<ShowHook, "legend" | "inspector" | "problems"
 const ABSENT_ISLANDS: readonly AbsentIsland[] = ["legend", "inspector", "problems", "status"];
 
 /** The islands of `absent` (its state `invalid` has no island). */
-export function absentIslands(absent: readonly ShowHook[] | undefined): AbsentIsland[] {
+export function absentIslands(absent: readonly AbsentFeature[] | undefined): AbsentIsland[] {
   return ABSENT_ISLANDS.filter((island) => absent?.includes(island));
 }
 
 /** An island the harness declares absent must never show. */
 export function absentIslandProblems(
   visible: ReadonlySet<string>,
-  absent: readonly ShowHook[] | undefined,
+  absent: readonly AbsentFeature[] | undefined,
 ): string[] {
   return absentIslands(absent)
     .filter((island) => visible.has(island))
@@ -606,11 +634,19 @@ export function absentIslandProblems(
 /** A hook the harness both gives and lists as absent is a contradiction in the harness itself. */
 export function harnessHookProblems<P extends PageLike>(
   harness: ShellConformanceHarness<P>,
-  hooks: readonly ShowHook[],
+  hooks: readonly AbsentFeature[],
 ): string[] {
   return hooks
-    .filter((hook) => harness.absent?.includes(hook) && harness.show?.[hook])
-    .map((hook) => `harness: absent lists "${hook}", but show.${hook} is given`);
+    .filter((hook) =>
+      hook === "drop"
+        ? harness.absent?.includes("drop") && harness.drop
+        : hook !== "problemSelection" && harness.absent?.includes(hook) && harness.show?.[hook],
+    )
+    .map((hook) =>
+      hook === "drop"
+        ? 'harness: absent lists "drop", but harness.drop is given'
+        : `harness: absent lists "${hook}", but show.${hook} is given`,
+    );
 }
 
 /** Guide §10.1: the surround of the canvas is a container painted in `--cd-ui-grund`, in both modes. */

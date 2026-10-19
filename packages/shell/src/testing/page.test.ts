@@ -31,6 +31,24 @@ import {
   removeInjectedProbe,
   settle,
 } from "./page-tools.js";
+import {
+  blurProbe,
+  clicksProbe,
+  countClicksProbe,
+  dragProbe,
+  emptyStateProbe,
+  focusOwnerProbe,
+  focusToastButtonProbe,
+  modeChangesProbe,
+  popoverProbe,
+  showModalProbe,
+  toastStackTogglesProbe,
+  toastsProbe,
+  topRowProbe,
+  watchModeProbe,
+  watchToastStackProbe,
+  webModeProbe,
+} from "./web-facts.js";
 
 /**
  * Evaluates like Playwright does: the function is rebuilt from its source text, so a probe that
@@ -157,7 +175,14 @@ describe("probes in a page", () => {
     await expect(measureChrome(page)).resolves.toEqual({
       container: { width: 720, height: 700 },
       paletteRow: "second-row",
-      open: { legend: true, inspector: false, problems: true },
+      open: {
+        legend: true,
+        inspector: false,
+        problems: true,
+        emptyState: false,
+        primaryCollapsed: false,
+        zoomRaised: false,
+      },
       islands: {
         menu: { left: 12, top: 12, width: 40, height: 40 },
         palette: { left: 280, top: 64, width: 160, height: 40 },
@@ -400,12 +425,523 @@ describe("probes in a page", () => {
       <button role="menuitem" data-menu-id="shortcuts" data-menu-group="help">Keyboard shortcuts…</button>
       <button role="menuitem">Foreign</button>`;
     for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
+    const rest = { value: null, checked: null, icon: false };
     await expect(inPage(page, menuEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
-      { name: "Big picture", role: "menuitemradio", menuId: "level", disabled: false, group: "model" },
-      { name: "Legend", role: "menuitemcheckbox", menuId: "legend", disabled: false, group: "model" },
-      { name: "Export as PNG", role: "menuitem", menuId: "export-png", disabled: true, group: "export" },
-      { name: "Keyboard shortcuts…", role: "menuitem", menuId: "shortcuts", disabled: false, group: "help" },
-      { name: "Foreign", role: "menuitem", menuId: null, disabled: false, group: null },
+      {
+        name: "Big picture",
+        role: "menuitemradio",
+        menuId: "level",
+        disabled: false,
+        group: "model",
+        ...rest,
+        checked: "true",
+      },
+      {
+        name: "Legend",
+        role: "menuitemcheckbox",
+        menuId: "legend",
+        disabled: false,
+        group: "model",
+        ...rest,
+        checked: "true",
+      },
+      {
+        name: "Export as PNG",
+        role: "menuitem",
+        menuId: "export-png",
+        disabled: true,
+        group: "export",
+        ...rest,
+      },
+      {
+        name: "Keyboard shortcuts…",
+        role: "menuitem",
+        menuId: "shortcuts",
+        disabled: false,
+        group: "help",
+        ...rest,
+      },
+      { name: "Foreign", role: "menuitem", menuId: null, disabled: false, group: null, ...rest },
     ]);
+  });
+});
+
+describe("probes of the web column (0.2)", () => {
+  let page: ReturnType<typeof serializingPage>;
+  const checkVisibility = Element.prototype.checkVisibility;
+
+  beforeEach(() => {
+    delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
+    Object.defineProperty(Element.prototype, "checkVisibility", { value: undefined, configurable: true });
+    page = serializingPage();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Element.prototype, "checkVisibility", {
+      value: checkVisibility,
+      configurable: true,
+    });
+    document.body.innerHTML = "";
+    document.head.innerHTML = "";
+    for (const name of ["data-cd-theme", "data-cd-kontrast", "class"]) {
+      document.documentElement.removeAttribute(name);
+    }
+    localStorage.clear();
+  });
+
+  /** A web shell at the page's origin: primary action, legal line, pill with its list, card, toasts. */
+  function buildWebShell(): HTMLElement {
+    document.documentElement.lang = "en";
+    document.body.innerHTML = `
+      <div class="cd-shell" data-cd-shell-host="web" data-palette="top" data-primary="collapsed" data-zoom-row="raised" data-empty-state="shown" data-problems="shown">
+        <button data-chrome="menu" aria-label="Menu" aria-haspopup="menu" aria-expanded="false" aria-controls="m1"></button>
+        <button data-chrome="primary" aria-label="Share" type="button"><svg></svg><span class="cd-shell-primary-label" hidden>Share</span></button>
+        <div class="cd-shell-canvas" inert><div class="djs-container">
+          <div class="djs-palette" data-chrome="palette"><div class="djs-palette-entries" role="toolbar" aria-label="Tools"></div></div>
+          <svg tabindex="0"></svg>
+        </div></div>
+        <div class="cd-shell-hint" style="visibility: hidden"></div>
+        <section data-chrome="empty-state" aria-labelledby="es1">
+          <img src="komet.svg" alt="" />
+          <h1 id="es1">Demo Modeler</h1>
+          <p>Start a new diagram.</p>
+          <div><button data-variant="primary">New diagram</button><button data-variant="ghost">Show example</button></div>
+          <p class="cd-shell-empty-state-hint">Or drop a file here</p>
+        </section>
+        <button data-chrome="problems" aria-label="2 problems, 1 error" aria-haspopup="dialog" aria-expanded="false" aria-controls="p1">2 problems</button>
+        <nav data-chrome="legal" aria-label="Legal">
+          <a href="https://www.miragon.io/" target="_blank" rel="noopener noreferrer">© 2026 Miragon GmbH</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://www.miragon.io/impressum/" lang="de" target="_blank" rel="noopener noreferrer">Impressum</a>
+        </nav>
+        <div data-chrome="zoom" role="group" aria-label="Zoom" style="visibility: hidden"><button data-zoom="actual">100%</button></div>
+        <div class="cd-shell-layer">
+          <div data-chrome="problems-popover" role="dialog" id="p1" aria-labelledby="pt1">
+            <div id="pt1">Problems</div>
+            <ul><li><button class="cd-shell-problem"><svg></svg>The box has no name. Box 1</button></li>
+            <li class="cd-shell-problem"><svg></svg>Two boxes overlap.</li></ul>
+          </div>
+          <div data-chrome="drop-zone" aria-hidden="true"><span class="cd-shell-drop-zone-chip">Drop file here</span></div>
+        </div>
+        <div class="cd-shell-live"><div role="status" aria-live="polite">Link copied</div><div role="alert" aria-live="assertive"></div></div>
+        <div data-chrome="toasts" popover="manual">
+          <div class="cd-shell-toast" data-status="success"><span class="cd-shell-toast-text">Link copied</span><button>Undo</button><button aria-label="Close"><svg></svg></button></div>
+          <div class="cd-shell-toast" role="alert" data-status="danger"><span class="cd-shell-toast-text">Couldn't open it.</span><button aria-label="Close"><svg></svg></button></div>
+        </div>
+      </div>
+      <div class="cd-shell-toast">A stray toast</div>`;
+    const root = document.querySelector<HTMLElement>(".cd-shell")!;
+    place(root, 0, 0, 1280, 900);
+    const at = (selector: string, left: number, top: number, width: number, height: number) =>
+      place(root.querySelector(selector)!, left, top, width, height);
+    at('[data-chrome="menu"]', 12, 12, 40, 40);
+    at('[data-chrome="primary"]', 1228, 12, 40, 40);
+    at('[data-chrome="palette"]', 316, 12, 648, 40);
+    at('[data-chrome="empty-state"]', 440, 300, 400, 300);
+    at('[data-chrome="empty-state"] img', 608, 332, 64, 64);
+    at('[data-variant="primary"]', 500, 500, 120, 36);
+    at('[data-variant="ghost"]', 628, 500, 120, 36);
+    at('[data-chrome="problems"]', 12, 820, 120, 40);
+    at('[data-chrome="legal"]', 12, 868, 380, 20);
+    at('[data-chrome="zoom"]', 1095, 848, 173, 40);
+    at('[data-chrome="problems-popover"]', 12, 692, 320, 120);
+    at("button.cd-shell-problem", 13, 700, 318, 56);
+    at("li.cd-shell-problem", 13, 760, 318, 36);
+    at('[data-chrome="drop-zone"]', 12, 12, 1256, 876);
+    at('[data-chrome="toasts"]', 400, 790, 480, 98);
+    const toasts = root.querySelectorAll('[data-chrome="toasts"] [data-status]');
+    place(toasts[0]!, 400, 790, 480, 42);
+    place(toasts[1]!, 400, 840, 480, 42);
+    for (const button of root.querySelectorAll('[data-chrome="toasts"] button'))
+      place(button, 840, 795, 32, 32);
+    place(document.querySelector("body > .cd-shell-toast")!, 0, 0, 100, 20);
+    for (const selector of [
+      ".djs-container",
+      "svg",
+      '[data-zoom="actual"]',
+      "a",
+      ".cd-shell-drop-zone-chip",
+    ]) {
+      for (const element of root.querySelectorAll(selector)) place(element, 0, 0, 10, 10);
+    }
+    return root;
+  }
+
+  it("measures the web app's state attributes", async () => {
+    buildWebShell();
+    const measured = await measureChrome(page);
+    expect(measured.open).toEqual({
+      legend: false,
+      inspector: false,
+      problems: true,
+      emptyState: true,
+      primaryCollapsed: true,
+      zoomRaised: true,
+    });
+    expect(Object.keys(measured.islands).sort()).toEqual(
+      [
+        "menu",
+        "palette",
+        "primary",
+        "problems",
+        "legal",
+        "toasts",
+        "empty-state",
+        "drop-zone",
+        "problems-popover",
+      ].sort(),
+    );
+  });
+
+  it("snapshots the primary action, the legal links, the pill's list and the web DOM order", async () => {
+    buildWebShell();
+    const facts = await inPage(page, ariaProbe, { root: ".cd-shell" });
+    expect(facts?.order).toEqual([
+      "menu",
+      "primary",
+      "palette",
+      "canvas",
+      "hint",
+      "empty-state",
+      "problems",
+      "legal",
+      "zoom",
+      "toasts",
+    ]);
+    expect(facts?.primary?.attributes["aria-label"]).toBe("Share");
+    expect(facts?.primaryCollapsed).toBe(true);
+    expect(facts?.legal?.tag).toBe("nav");
+    expect(facts?.legalLinks).toEqual([
+      {
+        text: "© 2026 Miragon GmbH",
+        href: "https://www.miragon.io/",
+        lang: null,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      },
+      {
+        text: "Impressum",
+        href: "https://www.miragon.io/impressum/",
+        lang: "de",
+        target: "_blank",
+        rel: "noopener noreferrer",
+      },
+    ]);
+    expect(facts?.problemsControlled?.attributes.role).toBe("dialog");
+  });
+
+  it("reads <html>'s mode, its metas and the stored choice, also from a blocked storage", async () => {
+    document.documentElement.setAttribute("data-cd-theme", "system");
+    document.documentElement.setAttribute("data-cd-kontrast", "hoch");
+    document.documentElement.classList.add("cd-shell-no-transition");
+    document.head.innerHTML = `
+      <meta name="color-scheme" content="light dark">
+      <meta name="theme-color" content="#335DE5" media="(prefers-color-scheme: light)">
+      <meta name="theme-color" content="#1D1D1D" media="(prefers-color-scheme: dark)">`;
+    localStorage.setItem("miragon.darstellung", "dark");
+    await expect(inPage(page, webModeProbe, { key: "miragon.darstellung" })).resolves.toEqual({
+      theme: "system",
+      kontrast: "hoch",
+      colorScheme: "light dark",
+      themeColors: [
+        { content: "#335DE5", media: "(prefers-color-scheme: light)" },
+        { content: "#1D1D1D", media: "(prefers-color-scheme: dark)" },
+      ],
+      stored: "dark",
+      storageBlocked: false,
+      noTransition: true,
+    });
+    // A browser that blocks storage throws on reading window.localStorage itself.
+    const descriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("blocked");
+      },
+    });
+    try {
+      await expect(inPage(page, webModeProbe, { key: "miragon.darstellung" })).resolves.toMatchObject({
+        stored: null,
+        storageBlocked: true,
+      });
+    } finally {
+      if (descriptor) Object.defineProperty(window, "localStorage", descriptor);
+      else delete (window as { localStorage?: unknown }).localStorage;
+    }
+  });
+
+  it("records a mode switch with its frames until the kit reads it", async () => {
+    document.head.innerHTML = `<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#335DE5" media="(prefers-color-scheme: light)">`;
+    await inPage(page, watchModeProbe, null);
+    const html = document.documentElement;
+    html.classList.add("cd-shell-no-transition");
+    html.setAttribute("data-cd-theme", "dark");
+    html.setAttribute("data-cd-kontrast", "hoch");
+    document.querySelector('meta[name="color-scheme"]')!.setAttribute("content", "dark");
+    document.querySelector('meta[name="theme-color"]')!.setAttribute("content", "#1D1D1D");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const changes = await inPage(page, modeChangesProbe, null);
+    expect(changes.map((change) => [change.part, change.value])).toEqual([
+      ["no-transition", "on"],
+      ["theme", "dark"],
+      ["kontrast", "hoch"],
+      ["color-scheme", "dark"],
+      ["theme-color", "#1D1D1D (prefers-color-scheme: light)"],
+    ]);
+    expect(new Set(changes.map((change) => change.frame)).size).toBe(1);
+    await expect(inPage(page, modeChangesProbe, null)).resolves.toEqual([]);
+  });
+
+  it("reads the top row: palette width, menu edge and the primary action", async () => {
+    const root = buildWebShell();
+    const palette = root.querySelector<HTMLElement>('[data-chrome="palette"]')!;
+    for (const [property, value] of [
+      ["offsetWidth", 648],
+      ["clientWidth", 646],
+      ["scrollWidth", 646],
+    ] as const) {
+      Object.defineProperty(palette, property, { value, configurable: true });
+    }
+    await expect(inPage(page, topRowProbe, { root: ".cd-shell" })).resolves.toEqual({
+      container: { width: 1280, height: 900 },
+      paletteRow: "top",
+      paletteWidth: 648,
+      menuRight: 52,
+      primary: {
+        box: { left: 1228, top: 12, width: 40, height: 40 },
+        client: { x: 1248, y: 32 },
+        collapsed: true,
+        ariaLabel: "Share",
+        describedBy: null,
+        label: null,
+      },
+    });
+    root.removeAttribute("data-primary");
+    const label = root.querySelector<HTMLElement>(".cd-shell-primary-label")!;
+    label.hidden = false;
+    place(label, 1252, 22, 38, 20);
+    await expect(inPage(page, topRowProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      primary: { collapsed: false, label: "Share" },
+    });
+    await expect(inPage(page, topRowProbe, { root: ".nothing" })).resolves.toBeNull();
+  });
+
+  it("counts clicks on the primary action until the stand-ins go", async () => {
+    const root = buildWebShell();
+    await expect(
+      inPage(page, countClicksProbe, { root: ".cd-shell", selector: '[data-chrome="primary"]' }),
+    ).resolves.toBe(true);
+    const primary = root.querySelector<HTMLElement>('[data-chrome="primary"]')!;
+    primary.click();
+    primary.click();
+    await expect(inPage(page, clicksProbe, null)).resolves.toBe(2);
+    await inPage(page, removeInjectedProbe, null);
+    primary.click();
+    await expect(inPage(page, clicksProbe, null)).resolves.toBe(2);
+    await expect(inPage(page, countClicksProbe, { root: ".cd-shell", selector: ".nothing" })).resolves.toBe(
+      false,
+    );
+  });
+
+  it("reads the start screen, the work chrome it hides and the inert canvas", async () => {
+    buildWebShell();
+    const facts = await inPage(page, emptyStateProbe, {
+      root: ".cd-shell",
+      work: ["menu", "zoom", "legend"],
+    });
+    expect(facts).toEqual({
+      shown: true,
+      card: {
+        visible: true,
+        box: { left: 440, top: 300, width: 400, height: 300 },
+        tag: "section",
+        labelledBy: "Demo Modeler",
+      },
+      komet: { tag: "img", alt: "", width: 64, height: 64 },
+      heading: { tag: "h1", text: "Demo Modeler" },
+      buttons: [
+        { variant: "primary", name: "New diagram", height: 36, client: { x: 560, y: 518 } },
+        { variant: "ghost", name: "Show example", height: 36, client: { x: 688, y: 518 } },
+      ],
+      hint: "Or drop a file here",
+      work: [
+        { name: "menu", visibility: expect.any(String), visible: true },
+        { name: "zoom", visibility: "hidden", visible: false },
+        { name: "hint", visibility: "hidden", visible: false },
+      ],
+      canvasInert: true,
+      legalVisible: true,
+    });
+  });
+
+  it("names the owner of the focus and blurs it", async () => {
+    const root = buildWebShell();
+    await expect(inPage(page, focusOwnerProbe, { root: ".cd-shell" })).resolves.toEqual({
+      owner: "body",
+      description: "<body>",
+    });
+    root.querySelector<HTMLElement>('[data-variant="primary"]')!.focus();
+    await expect(inPage(page, focusOwnerProbe, { root: ".cd-shell" })).resolves.toEqual({
+      owner: "empty-state",
+      description: "button",
+    });
+    root.querySelector(".cd-shell-canvas")!.removeAttribute("inert");
+    root.querySelector<SVGElement>(".djs-container > svg")!.focus();
+    await expect(inPage(page, focusOwnerProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      owner: "canvas",
+    });
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    await expect(inPage(page, focusOwnerProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      owner: "outside",
+    });
+    await inPage(page, blurProbe, null);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("reads the toast stack, its toasts and their buttons, and toasts outside it", async () => {
+    buildWebShell();
+    const facts = await inPage(page, toastsProbe, { root: ".cd-shell" });
+    expect(facts?.stack).toEqual({
+      visible: true,
+      box: { left: 400, top: 790, width: 480, height: 98 },
+      popover: "manual",
+      popoverOpen: false,
+    });
+    expect(
+      facts?.toasts.map((toast) => [
+        toast.text,
+        toast.role,
+        toast.status,
+        toast.buttons.map((button) => button.name),
+      ]),
+    ).toEqual([
+      ["Link copiedUndo", null, "success", ["Undo", "Close"]],
+      ["Couldn't open it.", "alert", "danger", ["Close"]],
+    ]);
+    expect(facts?.live).toEqual([
+      { role: "status", live: "polite", text: "Link copied" },
+      { role: "alert", live: "assertive", text: "" },
+    ]);
+    expect(facts?.toasts[0]?.buttons[0]?.text).toBe("Undo");
+    expect(facts?.strays).toEqual(["div.cd-shell-toast"]);
+    await expect(
+      inPage(page, focusToastButtonProbe, { root: ".cd-shell", text: "Link copied", name: "Close" }),
+    ).resolves.toBe(true);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Close");
+    await expect(
+      inPage(page, focusToastButtonProbe, { root: ".cd-shell", text: "Nothing", name: "Close" }),
+    ).resolves.toBe(false);
+    await expect(inPage(page, toastsProbe, { root: ".nothing" })).resolves.toBeNull();
+  });
+
+  it("records the stack's popover toggles and opens a modal stand-in", async () => {
+    const root = buildWebShell();
+    await expect(inPage(page, watchToastStackProbe, { root: ".cd-shell" })).resolves.toBe(true);
+    const stack = root.querySelector('[data-chrome="toasts"]')!;
+    for (const newState of ["closed", "open"]) {
+      const event = new Event("beforetoggle");
+      Object.defineProperty(event, "newState", { value: newState });
+      stack.dispatchEvent(event);
+    }
+    await expect(inPage(page, toastStackTogglesProbe, { root: ".cd-shell" })).resolves.toEqual({
+      toggles: ["closed", "open"],
+      open: false,
+    });
+    const modal = await inPage(page, showModalProbe, null);
+    const dialog = document.querySelector<HTMLDialogElement>(
+      'dialog[data-modeler-shell-conformance="show-modal"]',
+    );
+    expect(typeof modal).toBe("boolean");
+    expect(dialog?.open).toBe(true);
+    await inPage(page, removeInjectedProbe, null);
+    expect(document.querySelector("dialog")).toBeNull();
+    await expect(inPage(page, watchToastStackProbe, { root: ".nothing" })).resolves.toBe(false);
+  });
+
+  it("reads the pill, the list it controls, its rows and the focus", async () => {
+    const root = buildWebShell();
+    root.querySelector<HTMLElement>("button.cd-shell-problem")!.focus();
+    const facts = await inPage(page, popoverProbe, { root: ".cd-shell" });
+    expect(facts?.pill).toMatchObject({
+      attributes: { "aria-haspopup": "dialog", "aria-controls": "p1" },
+      box: { left: 12, top: 820, width: 120, height: 40 },
+      client: { x: 72, y: 840 },
+      visible: true,
+    });
+    expect(facts?.popover).toMatchObject({
+      visible: true,
+      title: "Problems",
+      attributes: { role: "dialog" },
+    });
+    expect(facts?.rows).toEqual([
+      {
+        button: true,
+        height: 56,
+        icon: true,
+        text: "The box has no name. Box 1",
+        client: { x: 172, y: 728 },
+      },
+      { button: false, height: 36, icon: true, text: "Two boxes overlap.", client: { x: 172, y: 778 } },
+    ]);
+    expect(facts?.focus).toBe("popover");
+    root.querySelector<HTMLElement>('[data-chrome="problems"]')!.focus();
+    await expect(inPage(page, popoverProbe, { root: ".cd-shell" })).resolves.toMatchObject({ focus: "pill" });
+  });
+
+  it("dispatches synthetic file drags and records the drop effect the page sets", async () => {
+    const root = buildWebShell();
+    const seen: Array<{ type: string; kinds: string[]; files: string[] }> = [];
+    const listener = (event: Event) => {
+      const transfer = (event as DragEvent).dataTransfer!;
+      seen.push({
+        type: event.type,
+        kinds: [...transfer.items].map((item) => `${item.kind}:${item.type}`),
+        files: [...transfer.files].map((file) => file.name),
+      });
+      event.preventDefault();
+      transfer.dropEffect = "copy";
+      root.setAttribute("data-drop", "over");
+    };
+    for (const type of ["dragenter", "dragover", "drop"]) window.addEventListener(type, listener);
+    document.elementFromPoint = () => root;
+    try {
+      const facts = await inPage(page, dragProbe, {
+        root: ".cd-shell",
+        files: [{ name: "board.json", type: "application/json", text: "{}" }],
+        strings: ["text"],
+        steps: ["dragenter", "dragover", "drop"],
+      });
+      expect(facts?.state).toBe("over");
+      expect(facts?.events).toEqual([
+        { type: "dragenter", defaultPrevented: true, dropEffect: "copy" },
+        { type: "dragover", defaultPrevented: true, dropEffect: "copy" },
+        { type: "drop", defaultPrevented: true, dropEffect: "copy" },
+      ]);
+      expect(seen[0]).toEqual({
+        type: "dragenter",
+        kinds: ["file:application/json", "string:text/plain"],
+        files: ["board.json"],
+      });
+      expect(facts?.zone).toMatchObject({
+        visible: true,
+        box: { left: 12, top: 12, width: 1256, height: 876 },
+        ariaHidden: "true",
+      });
+      expect(facts?.chip?.text).toBe("Drop file here");
+      expect(Object.keys(facts?.roles ?? {})).toEqual([
+        "hover",
+        "interaktion",
+        "dangerFlaeche",
+        "danger",
+        "flaecheHoch",
+      ]);
+      expect(root.querySelector('[data-modeler-shell-conformance="role-probe"]')).toBeNull();
+    } finally {
+      for (const type of ["dragenter", "dragover", "drop"]) window.removeEventListener(type, listener);
+      delete (document as { elementFromPoint?: unknown }).elementFromPoint;
+    }
+    await expect(inPage(page, dragProbe, { root: ".nothing", files: [], steps: [] })).resolves.toBeNull();
   });
 });

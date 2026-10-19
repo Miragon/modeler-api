@@ -1,8 +1,11 @@
 import { mountShell, type ShellHandle, type ShellOptions } from "../../dom/index.js";
 import { connectAppearance, connectReducedMotion, type AppearanceListenerOptions } from "./appearance.js";
 
+/** The web column's options (0.2): a VS Code webview has none of them (guide §5.2, §13.5). */
+type WebHostOptionKey = "primary" | "legal" | "file" | "appearance" | "emptyState" | "dropZone";
+
 export interface VsCodeShellOptions
-  extends Omit<ShellOptions, "host" | "keyScope" | "themes">, AppearanceListenerOptions {}
+  extends Omit<ShellOptions, "host" | "keyScope" | "themes" | WebHostOptionKey>, AppearanceListenerOptions {}
 
 /** The shell's handle with a `destroy` that runs `beforeDestroy` first; every other member delegates. */
 function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHandle {
@@ -37,6 +40,12 @@ function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHa
     get inspector() {
       return shell.inspector;
     },
+    get primary() {
+      return shell.primary;
+    },
+    get appearance() {
+      return shell.appearance;
+    },
     setZoomTarget: (target) => shell.setZoomTarget(target),
     fitInsets: () => shell.fitInsets(),
     registerPalette: (palette) => shell.registerPalette(palette),
@@ -45,6 +54,9 @@ function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHa
     setEmptyHint: (visible) => shell.setEmptyHint(visible),
     setReadOnly: (readOnly, options) => shell.setReadOnly(readOnly, options),
     isReadOnly: () => shell.isReadOnly(),
+    setEmptyState: (shown) => shell.setEmptyState(shown),
+    isEmptyStateShown: () => shell.isEmptyStateShown(),
+    toast: (request) => shell.toast(request),
     destroy() {
       beforeDestroy();
       shell.destroy();

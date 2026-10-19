@@ -1,3 +1,6 @@
+import type { ProblemSeverity } from "./feedback/problems.js";
+import type { DropForbiddenReason } from "./web-chrome/drop.js";
+
 /**
  * Every text the shell shows or announces, in one table (guide §2, shared terms). English by
  * default; a localized modeler overrides the whole table in its language, numbers arrive already
@@ -35,6 +38,49 @@ export interface ShellMessages {
   invalidFile(diagram: string): string;
   /** Key names in shortcut chips outside macOS (German: Strg, Umschalt, Plus, Minus). */
   keyNames: { ctrl: string; shift: string; plus: string; minus: string };
+
+  // ---- Web host (0.2): guide §2 shared terms, §5.4, §5.7, §5.10, §8, §9 ----
+
+  /** Default label and `aria-label` of the primary action (web app, top right). */
+  share: string;
+  /** `aria-label` of the legal line's `<nav>`. "Impressum" and "Datenschutz" are never translated (guide §2). */
+  legal: string;
+  /** First entry of the legal line, linking the Miragon home page: "© 2026 Miragon GmbH". */
+  copyright(year: number): string;
+  /** The description of every legal link for screen readers: they open in a new tab. */
+  opensInNewTab: string;
+  /** File group (web app) and the empty state's primary button. */
+  newDiagram: string;
+  /** File group: "Open…" (U+2026, it opens the browser's file dialog). */
+  openFile: string;
+  /** File group and the empty state's ghost button. */
+  showExample: string;
+  /** File group: "Import…". */
+  importFile: string;
+  /** Heading and `aria-label` of the Appearance radio group (web app with dark only, guide §13.3). */
+  appearance: string;
+  appearanceSystem: string;
+  appearanceLight: string;
+  appearanceDark: string;
+  /** Title of the problems popover (web app). */
+  problemsTitle: string;
+  /** A row's severity for screen readers, the `aria-label` of its icon: "Error", "Warning". */
+  problemSeverity(severity: ProblemSeverity): string;
+  /** `aria-label` of a Close button (toasts). */
+  close: string;
+  /** Chip of the drop zone while a drag can be dropped (guide §9 Drag-over). */
+  dropFile: string;
+  /** Chip of the drop zone while the drag cannot be dropped (guide §9 Drop forbidden). */
+  dropForbidden(reason: DropForbiddenReason): string;
+  /** The empty state's drag-and-drop hint when the modeler has a drop zone. */
+  dropHint: string;
+  /** The text link after the empty state's hint that runs the File group's "Open…". */
+  openFileLink: string;
+  /**
+   * Danger toast for a dropped file outside `DropZoneOptions.accept`; `accepted` is the accept list
+   * joined by `Intl.ListFormat` (disjunction) in `lang`: ".storm, .json, or .txt".
+   */
+  cannotOpenFile(name: string, accepted: string): string;
 }
 
 /** Every key optional; an `undefined` value keeps the default (a conditional override). */
@@ -67,6 +113,31 @@ export const defaultMessages: ShellMessages = {
   invalidFile: (diagram) =>
     `This file isn't a valid ${diagram} right now. The diagram shows the last valid version and is read-only until you fix the text.`,
   keyNames: { ctrl: "Ctrl", shift: "Shift", plus: "Plus", minus: "Minus" },
+  share: "Share",
+  legal: "Legal",
+  copyright: (year) => `© ${year} Miragon GmbH`,
+  opensInNewTab: "Opens in a new tab",
+  newDiagram: "New diagram",
+  openFile: "Open…",
+  showExample: "Show example",
+  importFile: "Import…",
+  appearance: "Appearance",
+  appearanceSystem: "System",
+  appearanceLight: "Light",
+  appearanceDark: "Dark",
+  problemsTitle: "Problems",
+  problemSeverity: (severity) => (severity === "error" ? "Error" : "Warning"),
+  close: "Close",
+  dropFile: "Drop file here",
+  dropForbidden: (reason) =>
+    reason === "multiple"
+      ? "Drop one file at a time"
+      : reason === "dialog"
+        ? "Close the dialog to drop a file"
+        : "This modeler can't open this file type",
+  dropHint: "Or drop a file here",
+  openFileLink: "Open a file…",
+  cannotOpenFile: (name, accepted) => `Couldn't open “${name}”. Drop a ${accepted} file.`,
 };
 
 /** `defaultMessages` with `overrides` applied (`keyNames` merged key by key). */

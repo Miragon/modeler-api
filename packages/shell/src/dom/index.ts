@@ -1,5 +1,17 @@
 export type {
+  AppearanceHandle,
+  DropZoneOptions,
   EmptyHintOptions,
+  EmptyStateOptions,
+  FileMenuAction,
+  FileMenuOptions,
+  LegalLineOptions,
+  LegalLink,
+  PrimaryActionHandle,
+  PrimaryActionOptions,
+  StorageLike,
+  ToastHandle,
+  WebAppearanceOptions,
   InspectorHandle,
   InspectorOptions,
   LegendHandle,
@@ -23,6 +35,7 @@ export type {
   TooltipContent,
   TooltipHandle,
 } from "./types.js";
+export type { MenuGroupName } from "./menu.js";
 export { mountShell } from "./mount.js";
 
 export type { IconNode, IconOptions, ShellIconName } from "./icons.js";

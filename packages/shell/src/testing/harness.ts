@@ -1,4 +1,4 @@
-import type { Appearance, ColorThemeSetting, ShellHost, Size, Theme } from "../core/index.js";
+import type { Appearance, ColorThemeSetting, ShellHost, Size, Theme, ToastStatus } from "../core/index.js";
 import { createCases } from "./cases.js";
 import type { PageLike } from "./page.js";
 
@@ -8,7 +8,10 @@ export interface OpenContext {
   /**
    * What the host requests before the modeler resolves it: in an IDE host the VS Code color theme
    * (`vsCodeStubSearch` hands it to a page with the VS Code stub). For an embedded host the kit
-   * itself puts the foreign page's `<html>` in this mode once `open` resolved.
+   * itself puts the foreign page's `<html>` in this mode once `open` resolved. In the web host the
+   * system's preference without a stored choice: the kit emulates `prefers-color-scheme` and
+   * `prefers-contrast` (`PageLike.emulateMedia`) before `open`, and `open` loads the page with an
+   * empty `localStorage` entry `miragon.darstellung`.
    */
   requested: Appearance;
 }
@@ -27,10 +30,52 @@ export interface ShowHooks<P extends PageLike = PageLike> {
    * read-only canvas and the status box. The kit waits `INVALID_STATUS_DELAY_MS` afterwards.
    */
   invalid?: ((page: P) => Promise<void>) | undefined;
+  /**
+   * Web host: puts the page on its start screen, the way a fresh visit without a document shows
+   * it (`shell.setEmptyState(true)`); `open` itself loads a document.
+   */
+  emptyState?: ((page: P) => Promise<void>) | undefined;
+  /**
+   * Web and embedded hosts: shows `toast` through the modeler's `shell.toast`, with
+   * `{ label: toast.actionLabel, onSelect() {} }` as its action when `actionLabel` is given.
+   */
+  toast?: ((page: P, toast: ToastFixture) => Promise<void>) | undefined;
 }
 
-/** A show hook by name: the islands `legend`, `inspector`, `problems`, `status` and the state `invalid`. */
+/** A toast the kit asks the `toast` hook to show (cases `toasts`, `geometry`). */
+export interface ToastFixture {
+  status: ToastStatus;
+  text: string;
+  actionLabel?: string | undefined;
+}
+
+/** A file the kit drops on the page (case `dropZone`), built in the page as `new File([text], name, { type })`. */
+export interface DropFixture {
+  name: string;
+  type: string;
+  text: string;
+}
+
+export interface DropFixtures {
+  /** A file `DropZoneOptions.accept` takes; dropping it on the start screen opens it (the card goes). */
+  accepted: DropFixture;
+  /** A file outside `accept`; dropping it opens nothing and shows a danger toast (or the modeler's `onReject`). */
+  rejected?: DropFixture | undefined;
+  /** `DropZoneOptions.multiple` of the modeler; default `false`, so a drag of two files is forbidden. */
+  multiple?: boolean | undefined;
+}
+
+/**
+ * A show hook by name: the islands `legend`, `inspector`, `problems`, `status`, the state
+ * `invalid`, and in the web column `emptyState` and `toast`.
+ */
 export type ShowHook = keyof ShowHooks;
+
+/**
+ * What a harness can lack: a show hook, the web app's drop zone (`drop`), or problems that point at
+ * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects).
+ */
+export type AbsentFeature = ShowHook | "drop" | "problemSelection";
 
 export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
@@ -44,12 +89,14 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   root?: string | undefined;
   /** Hooks for the islands and states the modeler has; one that is neither given nor `absent` is reported as skipped. */
   show?: ShowHooks<P> | undefined;
+  /** Web host: the files the `dropZone` case drops; without them (and not `absent`) it is skipped with `hook: "drop"`. */
+  drop?: DropFixtures | undefined;
   /**
    * The islands and states the modeler does not have. An absent hook is not reported as skipped,
    * and `geometry` and `aria` assert that its island is never visible. Listing a hook that `show`
    * also gives fails every case that uses it.
    */
-  absent?: readonly ShowHook[] | undefined;
+  absent?: readonly AbsentFeature[] | undefined;
   /** Container sizes of the geometry case; default wide 1280 × 900, narrow 720 × 700, very narrow 420 × 700. */
   sizes?: readonly Size[] | undefined;
 }
@@ -60,7 +107,7 @@ export interface ShellSkip {
    * The harness field that would feed it: a show hook, `destroy`, or `open` when the document it
    * opens lacks what the case needs (a shape on the canvas).
    */
-  hook: ShowHook | "destroy" | "open";
+  hook: ShowHook | "drop" | "destroy" | "open";
   reason: string;
 }
 
@@ -82,8 +129,10 @@ export interface ShellConformanceCase {
  * canvas only), `create` (Enter on the first creating palette entry places one selected element in
  * the free rectangle and focuses the canvas), `readOnly` (the invalid-file lock of guide §13.5),
  * `appearance` (dark requested from a light-only modeler: nothing turns dark, `color-scheme` light
- * everywhere, the canvas surround and the palette's tool colours from the roles) and `cleanup` (after
- * `destroy` no shell element, class, attribute or key handling remains).
+ * everywhere, the canvas surround and the palette's tool colours from the roles; the web app's mode
+ * and its Appearance group) and `cleanup` (after `destroy` no shell element, class, attribute or
+ * key handling remains); then the web column's `webChrome`, `emptyState`, `toasts`,
+ * `problemsList` and `dropZone`, which assert in the other hosts that nothing of them shows.
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
   return createCases();

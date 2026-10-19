@@ -41,7 +41,52 @@ import type {
   PaletteEntryState,
   ShapeFacts,
 } from "./facts.js";
-import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
+import type { ElementFacts, LeftoverFacts, ModeChange, RecordedKey } from "./page-tools.js";
+import {
+  MIRAGON_DATENSCHUTZ,
+  MIRAGON_HOME,
+  MIRAGON_IMPRESSUM,
+  afterStartProblems,
+  appearanceChoiceProblems,
+  closedPopoverProblems,
+  dropStateProblems,
+  emptyStateKeyProblems,
+  emptyStateProblems,
+  emptyStateTabProblems,
+  expectedWebMode,
+  labelledWidth,
+  legalAriaProblems,
+  legalContentProblems,
+  legalReachProblems,
+  lightOnlyMenuProblems,
+  menuGroupProblems,
+  modeSwitchProblems,
+  openPopoverProblems,
+  popoverKeyboardProblems,
+  pillPopupAriaProblems,
+  primaryActivationProblems,
+  primaryAriaProblems,
+  primaryTooltipProblems,
+  repeatedToastProblems,
+  shownToasts,
+  speaksEnglish,
+  toastAnatomyProblems,
+  toastLiveRegion,
+  toastStackProblems,
+  toastTimingProblems,
+  topRowProblems,
+  webModeProblems,
+  zoomRowBottomProblems,
+  type ToastTiming,
+} from "./web-checks.js";
+import type {
+  DropZoneFacts,
+  EmptyStateFacts,
+  PopoverFacts,
+  ToastFacts,
+  TopRowFacts,
+  WebModeFacts,
+} from "./web-facts.js";
 
 function element(tag: string, attributes: Record<string, string> = {}, text = ""): ElementFacts {
   return { tag, description: tag, attributes, text, visible: true, disabled: false };
@@ -115,6 +160,11 @@ function conformingAria(): AriaFacts {
     legendTitle: null,
     legendClose: null,
     inspector: null,
+    primary: null,
+    primaryCollapsed: false,
+    legal: null,
+    legalLinks: [],
+    problemsControlled: null,
   };
 }
 
@@ -983,6 +1033,9 @@ describe("read-only checks", () => {
     menuId,
     disabled,
     group,
+    value: null,
+    checked: menuId === "legend" ? "true" : null,
+    icon: false,
   });
 
   it("keeps the Legend toggle, export and help usable; Model entries may lock", () => {
@@ -1054,6 +1107,1080 @@ describe("read-only checks", () => {
     ]);
     expect(lockedShapeProblems(locked({ dragged: { before: shape("a"), after: undefined } }))).toEqual([
       'read-only: a 40px drag removed "a" from the canvas (guide §13.5)',
+    ]);
+  });
+});
+
+// ---- the web column (0.2) ----
+
+describe("ARIA of the web column", () => {
+  const legalLinks = (): AriaFacts["legalLinks"] => [
+    {
+      text: "© 2026 Miragon GmbH",
+      href: MIRAGON_HOME,
+      lang: null,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
+    { text: "Impressum", href: MIRAGON_IMPRESSUM, lang: "de", target: "_blank", rel: "noopener noreferrer" },
+    {
+      text: "Datenschutz",
+      href: MIRAGON_DATENSCHUTZ,
+      lang: "de",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
+    {
+      text: "GitHub",
+      href: "https://github.com/Miragon",
+      lang: null,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
+  ];
+  const webAria = (): AriaFacts => ({
+    ...conformingAria(),
+    order: ["menu", "primary", "palette", "canvas", "legal", "zoom", "toasts"],
+    primary: element("button", { "data-chrome": "primary", "aria-label": "Share" }, "Share"),
+    legal: element("nav", { "data-chrome": "legal", "aria-label": "Legal" }),
+    legalLinks: legalLinks(),
+  });
+
+  it("accepts the web app's primary action and legal line", () => {
+    expect(ariaProblems(webAria(), "web")).toEqual([]);
+  });
+
+  it("names the primary action with its visible label, also collapsed", () => {
+    const facts = webAria();
+    facts.primary = element("div", { "aria-label": "Copy" }, "Share");
+    expect(primaryAriaProblems(facts, "web")).toEqual([
+      "primary: a <div>, expected a <button>",
+      'primary: the aria-label "Copy" does not contain the visible label "Share" (WCAG 2.5.3)',
+    ]);
+    facts.primary = element("button", {}, "");
+    expect(primaryAriaProblems(facts, "web")).toEqual([
+      "primary: no aria-label; it names the action also while the label is collapsed (guide §5.15)",
+    ]);
+    facts.primary = { ...element("button", { "aria-label": "Share" }, "Share"), disabled: true };
+    expect(primaryAriaProblems(facts, "web")).toEqual([
+      "primary: natively disabled; a disabled primary action keeps the focus with aria-disabled (guide §8)",
+    ]);
+    expect(
+      primaryAriaProblems(
+        {
+          ...webAria(),
+          primaryCollapsed: true,
+          primary: element("button", { "aria-label": "Share" }, "Teilen"),
+        },
+        "web",
+      ),
+    ).toEqual([]);
+    expect(primaryAriaProblems(facts, "ide")).toEqual([]);
+  });
+
+  it("wants a labelled <nav>, Impressum and Datenschutz in German and safe new tabs", () => {
+    const facts = webAria();
+    facts.legal = element("div", {});
+    facts.legalLinks = legalLinks().map((link) =>
+      link.text === "Impressum"
+        ? { ...link, lang: null }
+        : link.text === "GitHub"
+          ? { ...link, rel: "noopener" }
+          : link,
+    );
+    facts.legalLinks = facts.legalLinks.filter((link) => link.text !== "Datenschutz");
+    expect(legalAriaProblems(facts, "web")).toEqual([
+      "legal: the legal line is a <div>, expected a <nav>",
+      "legal: the <nav> has no aria-label",
+      'legal: "Impressum" has no lang, expected lang="de" (guide §2: Impressum and Datenschutz stay German)',
+      'legal: no "Datenschutz" link (guide §5.10)',
+      'legal: the link "GitHub" opens a new tab without rel="noopener noreferrer"',
+    ]);
+    facts.legalLinks = legalLinks().map((link) =>
+      link.text === "Datenschutz" ? { ...link, lang: "en" } : link,
+    );
+    expect(legalAriaProblems({ ...facts, legal: element("nav", { "aria-label": "Legal" }) }, "web")).toEqual([
+      'legal: "Datenschutz" has lang="en", expected lang="de" (guide §2: Impressum and Datenschutz stay German)',
+    ]);
+    expect(legalAriaProblems({ ...webAria(), legal: null }, "web")).toEqual([
+      'legal: no [data-chrome="legal"] in the web app (guide §5.10)',
+    ]);
+    expect(legalAriaProblems({ ...webAria(), legal: null }, "embedded")).toEqual([]);
+  });
+
+  it("wants the pill to control a non-modal dialog in the web app", () => {
+    const pill = (attributes: Record<string, string>) =>
+      element("button", { "aria-label": "2 problems, 1 error", ...attributes }, "2 problems");
+    const list = element("div", { role: "dialog", id: "cd-shell-problems-1" });
+    const ok: AriaFacts = {
+      ...webAria(),
+      problems: pill({
+        "aria-haspopup": "dialog",
+        "aria-expanded": "false",
+        "aria-controls": "cd-shell-problems-1",
+      }),
+      problemsControlled: list,
+    };
+    expect(pillPopupAriaProblems(ok, "web")).toEqual([]);
+    expect(pillPopupAriaProblems({ ...ok, problems: pill({}), problemsControlled: null }, "web")).toEqual([
+      'problems: the pill has aria-haspopup "", expected "dialog" (it opens the problems list)',
+      'problems: the pill has aria-expanded "" while the list is closed, expected "false"',
+      "problems: the pill has no aria-controls",
+    ]);
+    expect(
+      pillPopupAriaProblems(
+        { ...ok, problemsControlled: element("div", { role: "region", "aria-modal": "true" }) },
+        "web",
+      ),
+    ).toEqual([
+      'problems: aria-controls names a div with role "region", expected "dialog"',
+      'problems: the problems list is aria-modal="true"; it is a non-modal popover (guide §5.10)',
+    ]);
+    expect(pillPopupAriaProblems({ ...ok, problemsControlled: null }, "web")).toEqual([
+      'problems: aria-controls="cd-shell-problems-1" names no element',
+    ]);
+    // embedded: only when the pill opens a list of the shell's own; the IDE pill opens the Problems view
+    expect(pillPopupAriaProblems({ ...ok, problems: pill({}) }, "embedded")).toEqual([]);
+    expect(pillPopupAriaProblems({ ...ok, problems: pill({}) }, "ide")).toEqual([]);
+  });
+
+  it("puts Tab from the menu trigger on the primary action first", () => {
+    const palette = { description: "div.entry", kind: "palette" } as const;
+    const canvas = { description: "svg", kind: "canvas" } as const;
+    expect(tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas], true)).toEqual(
+      [],
+    );
+    expect(tabSequenceProblems([palette, canvas, { description: "button", kind: "primary" }], true)).toEqual([
+      "tab order: Tab from the menu trigger lands on div.entry, expected the primary action (top left, top right, top centre, guide §5.14)",
+    ]);
+  });
+});
+
+describe("menu groups of the web app", () => {
+  const entry = (
+    group: string,
+    menuId: string,
+    name: string,
+    extra: Partial<MenuEntryFacts> = {},
+  ): MenuEntryFacts => ({
+    name,
+    role: "menuitem",
+    menuId,
+    disabled: false,
+    group,
+    value: null,
+    checked: null,
+    icon: false,
+    ...extra,
+  });
+  const radio = (value: string, checked: boolean) =>
+    entry("appearance", "appearance", value, { role: "menuitemradio", value, checked: String(checked) });
+  const file = [
+    entry("file", "new-diagram", "New diagram", { icon: true }),
+    entry("file", "open", "Open…", { icon: true }),
+    entry("file", "show-example", "Show example"),
+    entry("file", "import", "Import…", { icon: true }),
+  ];
+  const model = entry("model", "level", "Big picture", { role: "menuitemradio", checked: "true" });
+  const exported = entry("export", "export-png", "Export as PNG", { icon: true });
+  const help = entry("help", "shortcuts", "Keyboard shortcuts…", { icon: true });
+  const appearance = [radio("system", true), radio("light", false), radio("dark", false)];
+
+  it("accepts File, Model, Export, Appearance and Help in this order", () => {
+    expect(menuGroupProblems([...file, model, exported, help], "web", ["light"])).toEqual([]);
+    expect(
+      menuGroupProblems([...file, model, exported, ...appearance, help], "web", ["light", "dark"]),
+    ).toEqual([]);
+    expect(menuGroupProblems([file[0]!, file[2]!], "web", ["light"])).toEqual([]);
+  });
+
+  it("reports groups out of order, unknown File ids, the File order and icons", () => {
+    expect(menuGroupProblems([model, ...file, exported], "web", ["light"])).toEqual([
+      "menu: the groups stand in the order model, file, export; expected File, Model, Export, Appearance, Help (guide §5.4)",
+    ]);
+    expect(
+      menuGroupProblems(
+        [
+          entry("file", "open", "Open…"),
+          entry("file", "new-diagram", "New diagram", { icon: true }),
+          entry("file", "show-example", "Show example", { icon: true }),
+          entry("file", "save", "Save", { role: "menuitemcheckbox" }),
+        ],
+        "web",
+        ["light"],
+      ),
+    ).toEqual([
+      'menu: File entry "Open…" has no icon (guide §5.4)',
+      'menu: File entry "Show example" carries an icon; the guide gives show-example none (guide §5.14)',
+      'menu: File entry "Save" has data-menu-id "save"; the shell builds the File group from new-diagram, open, show-example, import',
+    ]);
+    expect(menuGroupProblems([file[1]!, file[0]!], "web", ["light"])).toEqual([
+      "menu: the File group reads open, new-diagram; expected the order new-diagram, open (guide §5.4)",
+    ]);
+    expect(
+      menuGroupProblems([entry("file", "open", "Open…", { icon: true, role: "menuitemradio" })], "web", [
+        "light",
+      ]),
+    ).toEqual(['menu: File entry "Open…" is a menuitemradio, expected a menuitem']);
+  });
+
+  it("wants the Appearance group of a dark-capable modeler with System, Light and Dark", () => {
+    expect(menuGroupProblems([...file, help], "web", ["light", "dark"])).toEqual([
+      "menu: a dark-capable modeler shows no Appearance group (guide §5.4, §13.3)",
+    ]);
+    expect(
+      menuGroupProblems(
+        [
+          radio("light", true),
+          radio("dark", false),
+          entry("appearance", "mode", "System", { value: "system" }),
+        ],
+        "web",
+        ["light", "dark"],
+      ),
+    ).toEqual([
+      "menu: the Appearance options are light, dark, system; expected system, light, dark (guide §13.3)",
+      'menu: Appearance option "System" is a menuitem in "mode"; expected a menuitemradio of the radio group "appearance"',
+      'menu: the Appearance group checks light; expected "system" (aria-checked, guide §12)',
+    ]);
+    expect(appearanceChoiceProblems(appearance, "dark")).toEqual([
+      'menu: the Appearance group checks system; expected "dark" (aria-checked, guide §12)',
+    ]);
+    expect(appearanceChoiceProblems([radio("system", false), radio("dark", false)], "system")).toEqual([
+      'menu: the Appearance group checks nothing; expected "system" (aria-checked, guide §12)',
+    ]);
+  });
+
+  it("keeps File and Appearance out of the IDE and embedded hosts, Appearance out of a light-only modeler", () => {
+    expect(menuGroupProblems([...file, model, ...appearance], "ide", ["light", "dark"])).toEqual([
+      "menu: the ide host shows a File group; its file actions are native (guide §13.5)",
+      "menu: the ide host shows an Appearance group; its file actions are native (guide §13.5)",
+    ]);
+    expect(menuGroupProblems([file[0]!], "embedded", ["light"])).toEqual([
+      "menu: the embedded host shows a File group; the host owns file and mode (guide §5.2)",
+    ]);
+    expect(lightOnlyMenuProblems([...file, ...appearance], ["light"])).toEqual([
+      "menu: a light-only modeler shows the Appearance group; it comes with dark (guide §13.3)",
+    ]);
+    expect(lightOnlyMenuProblems([...file, ...appearance], ["light", "dark"])).toEqual([]);
+    expect(lightOnlyMenuProblems(file, ["light"])).toEqual([]);
+  });
+});
+
+describe("the web app's top row (guide §5.15)", () => {
+  /** The web demo's top row: menu right edge 52, a 648px palette, a 94px labelled Share action. */
+  const sample = (
+    width: number,
+    state: {
+      collapsed?: boolean;
+      row?: "top" | "second-row";
+      label?: string | null;
+      primaryWidth?: number;
+    } = {},
+  ): TopRowFacts => {
+    const collapsed = state.collapsed ?? false;
+    const primaryWidth = state.primaryWidth ?? (collapsed ? 40 : 94);
+    return {
+      container: { width, height: 900 },
+      paletteRow: state.row ?? "top",
+      paletteWidth: 648,
+      menuRight: 52,
+      primary: {
+        box: { left: width - 12 - primaryWidth, top: 12, width: primaryWidth, height: 40 },
+        client: { x: width - 12 - primaryWidth / 2, y: 32 },
+        collapsed,
+        ariaLabel: "Share",
+        describedBy: null,
+        label: state.label !== undefined ? state.label : collapsed ? null : "Share",
+      },
+    };
+  };
+
+  it("takes the labelled width from the widest labelled measurement", () => {
+    expect(labelledWidth([sample(1280), sample(880, { collapsed: true })])).toBe(94);
+    expect(labelledWidth([sample(880, { collapsed: true })])).toBeUndefined();
+  });
+
+  it("accepts label, then icon only, then the second row with the label back", () => {
+    expect(
+      topRowProblems(
+        [
+          sample(1280),
+          sample(904),
+          sample(880, { collapsed: true }),
+          sample(808, { collapsed: true }),
+          sample(760, { row: "second-row" }),
+        ],
+        94,
+        "Share",
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports a label that should have collapsed, and a collapse that came too early", () => {
+    expect(topRowProblems([sample(856)], 94, "Share")).toEqual([
+      "[856px wide] primary: shows its label, but the 648px palette fits the top row only beside the icon; the label collapses first (guide §5.15)",
+    ]);
+    expect(topRowProblems([sample(1280, { collapsed: true })], 94, "Share")).toEqual([
+      "[1280px wide] primary: collapsed although its 94px label fits (guide §5.15)",
+    ]);
+  });
+
+  it("reports a palette that moved before the label collapsed, or stayed when even the icon is too close", () => {
+    expect(topRowProblems([sample(856, { collapsed: true, row: "second-row" })], 94, "Share")).toEqual([
+      "[856px wide] palette: in the second row although it fits the top row beside the collapsed primary action; the label collapses first (guide §5.15)",
+    ]);
+    expect(topRowProblems([sample(776, { row: "top", collapsed: true })], 94, "Share")).toEqual([
+      "[776px wide] primary: collapsed although its 94px label fits (guide §5.15)",
+      "[776px wide] palette: in the top row although it keeps less than 16px to the primary action even icon only (guide §5.15)",
+    ]);
+  });
+
+  it("leaves a width alone where 1px flips the decision", () => {
+    // 892px: the labelled action keeps exactly 16px to the palette
+    expect(topRowProblems([sample(892, { collapsed: true }), sample(892)], 94, "Share")).toEqual([]);
+  });
+
+  it("wants a collapsed action 40 wide, without its label, with its name and no description", () => {
+    const broken = sample(856, { collapsed: true, primaryWidth: 60, label: "Share" });
+    broken.primary!.ariaLabel = "";
+    broken.primary!.describedBy = "cd-shell-tooltip-1";
+    expect(topRowProblems([broken], 94, "Share")).toEqual([
+      "[856px wide] primary: 60px wide while collapsed, expected 40px",
+      '[856px wide] primary: collapsed, but its label "Share" still shows',
+      '[856px wide] primary: the aria-label is "" while collapsed; it keeps "Share" (guide §5.15)',
+      '[856px wide] primary: aria-describedby="cd-shell-tooltip-1"; its tooltip repeats the name (API.md, Primary action)',
+    ]);
+    expect(topRowProblems([sample(1280, { label: null })], 94, "Share")).toEqual([
+      '[1280px wide] primary: shows no label although the root lacks data-primary="collapsed"',
+    ]);
+  });
+
+  it("shows the chrome tooltip only while collapsed, with the label", () => {
+    expect(primaryTooltipProblems(true, "Share", "Share", 856)).toEqual([]);
+    expect(primaryTooltipProblems(false, null, "Share", 1280)).toEqual([]);
+    expect(primaryTooltipProblems(true, null, "Share", 856)).toEqual([
+      '[856px wide] primary: no chrome tooltip while collapsed; it shows the label "Share" (guide §5.15)',
+    ]);
+    expect(primaryTooltipProblems(true, "Menu", "Share", 856)).toEqual([
+      '[856px wide] primary: the tooltip while collapsed reads "Menu", expected "Share"',
+    ]);
+    expect(primaryTooltipProblems(false, "Share", "Share", 1280)).toEqual([
+      '[1280px wide] primary: a tooltip "Share" while the label shows; only the collapsed action has one',
+    ]);
+  });
+
+  it("wants one click from the pointer and one from Enter", () => {
+    expect(primaryActivationProblems({ pointer: 1, enter: 1 })).toEqual([]);
+    expect(primaryActivationProblems({ pointer: 2, enter: 0 })).toEqual([
+      "primary: a pointer click reached it 2 times, expected once",
+      "primary: Enter on the focused primary action clicked it 0 times, expected once (keyboard activation)",
+    ]);
+  });
+});
+
+describe("legal line content and the zoom row", () => {
+  const links = (): AriaFacts["legalLinks"] => [
+    {
+      text: "© 2026 Miragon GmbH",
+      href: MIRAGON_HOME,
+      lang: null,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
+    { text: "Impressum", href: MIRAGON_IMPRESSUM, lang: "de", target: "_blank", rel: "noopener noreferrer" },
+    {
+      text: "Datenschutz",
+      href: MIRAGON_DATENSCHUTZ,
+      lang: "de",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
+  ];
+
+  it("starts with the copyright, then Impressum and Datenschutz with the kit's URLs", () => {
+    expect(legalContentProblems(links())).toEqual([]);
+    const wrong = links();
+    wrong[0] = { ...wrong[0]!, href: "https://miragon.io" };
+    wrong[2] = { ...wrong[2]!, href: "https://www.miragon.io/privacy/" };
+    expect(legalContentProblems(wrong)).toEqual([
+      'legal: the copyright links "https://miragon.io", expected https://www.miragon.io/',
+      'legal: "Datenschutz" links "https://www.miragon.io/privacy/", expected https://www.miragon.io/datenschutz/',
+    ]);
+    expect(legalContentProblems([links()[1]!, links()[0]!])).toEqual([
+      'legal: the line starts with "Impressum", expected the copyright "© <year> Miragon GmbH" (guide §5.10)',
+      'legal: the links read "Impressum", "© 2026 Miragon GmbH"; expected the copyright, "Impressum", "Datenschutz", then the modeler\'s links (guide §5.10)',
+    ]);
+  });
+
+  it("stands the zoom panel at 12px, at 40px while raised", () => {
+    const container = { width: 420, height: 700 };
+    const low = { left: 235, top: 648, width: 173, height: 40 };
+    expect(zoomRowBottomProblems(low, false, container)).toEqual([]);
+    expect(zoomRowBottomProblems(low, true, container)).toEqual([
+      "[420px wide, raised] zoom: bottom is 12px, expected 40px (±1px)",
+    ]);
+    expect(zoomRowBottomProblems(undefined, true, container)).toEqual([]);
+  });
+});
+
+describe("the start screen (guide §8)", () => {
+  const container = { width: 1280, height: 900 };
+  const conforming = (): EmptyStateFacts => ({
+    shown: true,
+    card: {
+      visible: true,
+      box: { left: 440, top: 300, width: 400, height: 300 },
+      tag: "section",
+      labelledBy: "Demo Modeler",
+    },
+    komet: { tag: "img", alt: "", width: 64, height: 64 },
+    heading: { tag: "h1", text: "Demo Modeler" },
+    buttons: [
+      { variant: "primary", name: "New diagram", height: 36, client: { x: 600, y: 520 } },
+      { variant: "ghost", name: "Show example", height: 36, client: { x: 700, y: 520 } },
+    ],
+    hint: "Or drop a file here",
+    work: [
+      { name: "menu", visibility: "hidden", visible: false },
+      { name: "palette", visibility: "hidden", visible: false },
+    ],
+    canvasInert: true,
+    legalVisible: true,
+  });
+
+  it("accepts the card of the guide", () => {
+    expect(emptyStateProblems(conforming(), container, "en")).toEqual([]);
+  });
+
+  it("reports the card's attribute, centre, label, Komet, title, buttons and the work chrome", () => {
+    const facts = conforming();
+    facts.shown = false;
+    facts.card = { ...facts.card!, box: { left: 430, top: 300, width: 400, height: 300 }, labelledBy: null };
+    facts.komet = { tag: "img", alt: "Miragon", width: 48, height: 48 };
+    facts.heading = { tag: "h3", text: "Demo Modeler" };
+    facts.buttons = [
+      { variant: "ghost", name: "Show example", height: 32, client: { x: 0, y: 0 } },
+      { variant: "primary", name: "New diagram", height: 36, client: { x: 0, y: 0 } },
+      { variant: null, name: "More", height: 36, client: { x: 0, y: 0 } },
+    ];
+    facts.work = [{ name: "palette", visibility: "visible", visible: true }];
+    facts.canvasInert = false;
+    facts.legalVisible = false;
+    expect(emptyStateProblems(facts, container, "en")).toEqual([
+      'empty-state: the root lacks data-empty-state="shown" after show.emptyState',
+      "empty-state: centerX is 630px, expected 640px (±1px)",
+      "empty-state: the card is not labelled by its title (aria-labelledby)",
+      'empty-state: the Komet has alt="Miragon"; it is decorative, alt="" (guide §8)',
+      "empty-state: the Komet is 48 × 48px, expected 64 × 64 (guide §8)",
+      "empty-state: the title is a <h3>, expected an <h1>",
+      'empty-state: the first button "Show example" is ghost variant, expected the blue primary "New diagram" first (guide §8)',
+      'empty-state: the second button "New diagram" is primary variant, expected the ghost "Show example" (guide §8)',
+      "empty-state: 3 buttons on the card; exactly two actions (guide §8)",
+      'empty-state: "Show example" is 32px high, expected 36px (guide §8)',
+      'empty-state: the primary button reads "Show example", expected "New diagram" (guide §2)',
+      'empty-state: the ghost button reads "New diagram", expected "Show example" (guide §2)',
+      "empty-state: palette is visible behind the start screen; it hides the work chrome (guide §8)",
+      "empty-state: the canvas slot is not inert behind the start screen; nothing else takes a click or the Tab (guide §8)",
+      "empty-state: the legal line is not visible; a public page always shows it (guide §8)",
+    ]);
+  });
+
+  it("compares the button names only in an English tool and reports a missing card or Komet", () => {
+    const german = conforming();
+    german.buttons = german.buttons.map((button) => ({ ...button, name: `${button.name} (de)` }));
+    expect(emptyStateProblems(german, container, "de")).toEqual([]);
+    expect(emptyStateProblems({ ...conforming(), card: null }, container, "en")).toEqual([
+      "empty-state: the card is not visible after show.emptyState",
+    ]);
+    expect(
+      emptyStateProblems({ ...conforming(), komet: null, heading: null, buttons: [] }, container, "en"),
+    ).toEqual([
+      "empty-state: no Komet <img> on the card (guide §2, §8)",
+      "empty-state: the title is missing, expected an <h1>",
+      'empty-state: no "New diagram" button on the card (guide §8)',
+    ]);
+  });
+
+  it("lets Tab reach only the card and the legal links", () => {
+    const stop = (owner: string, description = owner) => ({ owner, description });
+    expect(
+      emptyStateTabProblems([stop("empty-state"), stop("empty-state"), stop("legal"), stop("body")]),
+    ).toEqual([]);
+    expect(
+      emptyStateTabProblems([stop("menu", "button.cd-shell-menu-trigger"), stop("canvas", "svg")]),
+    ).toEqual([
+      "empty-state: Tab reaches button.cd-shell-menu-trigger (menu) behind the start screen; only the card and the legal links take the focus (guide §8)",
+      "empty-state: Tab reaches svg (canvas) behind the start screen; only the card and the legal links take the focus (guide §8)",
+      "empty-state: Tab never reaches the card's buttons",
+      "empty-state: Tab never reaches the legal links",
+    ]);
+  });
+
+  it("leaves the chrome keys to the browser and without effect behind the card", () => {
+    const key = (defaultPrevented: boolean): RecordedKey => ({
+      key: "=",
+      code: "Equal",
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      altKey: false,
+      defaultPrevented,
+    });
+    expect(emptyStateKeyProblems("Control+Equal", 100, 100, [key(false)])).toEqual([]);
+    expect(emptyStateKeyProblems("Control+Equal", 100, 100, [])).toEqual([]);
+    expect(emptyStateKeyProblems("Control+Equal", 100, 135, [key(true)])).toEqual([
+      "empty-state: Control+Equal behind the start screen changed the zoom from 100% to 135%; the chrome keys zoom no diagram there",
+      "empty-state: Control+Equal behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom (WCAG 1.4.4)",
+    ]);
+  });
+
+  it("brings the chrome back after New diagram, with the focus on the canvas", () => {
+    const after: EmptyStateFacts = {
+      ...conforming(),
+      shown: false,
+      card: { ...conforming().card!, visible: false },
+      work: [
+        { name: "menu", visibility: "visible", visible: true },
+        { name: "palette", visibility: "visible", visible: true },
+        { name: "zoom", visibility: "visible", visible: true },
+      ],
+      canvasInert: false,
+    };
+    expect(afterStartProblems(after, { owner: "canvas", description: "svg" })).toEqual([]);
+    expect(
+      afterStartProblems(
+        { ...conforming(), work: [{ name: "zoom", visibility: "hidden", visible: false }] },
+        { owner: "body", description: "<body>" },
+      ),
+    ).toEqual([
+      'empty-state: after "New diagram" the root still carries data-empty-state="shown"',
+      'empty-state: after "New diagram" the card still shows',
+      'empty-state: after "New diagram" the zoom is still hidden',
+      'empty-state: after "New diagram" the canvas slot is still inert',
+      'empty-state: after "New diagram" the focus is on <body>, expected the canvas <svg> (API.md, Empty state)',
+    ]);
+  });
+});
+
+describe("toasts (guide §8)", () => {
+  const toast = (text: string, extra: Partial<ToastFacts> = {}): ToastFacts => ({
+    text,
+    role: null,
+    status: "success",
+    box: { left: 400, top: 800, width: 480, height: 42 },
+    client: { x: 640, y: 821 },
+    buttons: [{ name: "Close", text: "", client: { x: 860, y: 821 } }],
+    topmost: true,
+    focused: false,
+    ...extra,
+  });
+
+  const heard = { persistent: true, announced: true };
+
+  it("wants the text in a persistent alert region for errors and status otherwise, and a Close icon button", () => {
+    expect(toastAnatomyProblems(toast("Saved"), "success", "en", heard)).toEqual([]);
+    expect(toastAnatomyProblems(toast("Failed"), "danger", "en", heard)).toEqual([]);
+    expect(
+      toastAnatomyProblems(
+        toast("Failed", {
+          role: "status",
+          buttons: [{ name: "Dismiss", text: "", client: { x: 0, y: 0 } }],
+          box: { left: 0, top: 0, width: 480, height: 30 },
+        }),
+        "danger",
+        "en",
+        { persistent: true, announced: false },
+      ),
+    ).toEqual([
+      'toasts: the danger toast\'s text never reaches the role="alert" live region (guide §8, §12)',
+      'toasts: the danger toast\'s card carries role="status"; the live region announces it, so a live card is read twice',
+      'toasts: the Close button is named "Dismiss", expected "Close" (guide §8)',
+      "toasts: the danger toast is 30px high, at least 40px (guide §8)",
+    ]);
+    expect(
+      toastAnatomyProblems(toast("Saved"), "info", "en", { persistent: false, announced: false }),
+    ).toEqual([
+      'toasts: no role="status" live region in the root before the first toast; a live region created together with its text is often not announced (guide §8, §12)',
+    ]);
+    expect(
+      toastAnatomyProblems(
+        toast("Saved", { buttons: [{ name: "Undo", text: "Undo", client: { x: 0, y: 0 } }] }),
+        "info",
+        "de",
+        heard,
+      ),
+    ).toEqual(["toasts: the info toast has no Close icon button at its end (guide §8)"]);
+    expect(
+      toastAnatomyProblems(
+        toast("Saved", { buttons: [{ name: "", text: "", client: { x: 0, y: 0 } }] }),
+        "success",
+        "de",
+        heard,
+      ),
+    ).toEqual(["toasts: the success toast's Close button has no accessible name"]);
+  });
+
+  it("finds the live region of a toast's status", () => {
+    const regions = [
+      { role: "status", live: "polite", text: "Saved" },
+      { role: "alert", live: "assertive", text: "" },
+    ];
+    expect(toastLiveRegion(regions, "success")?.text).toBe("Saved");
+    expect(toastLiveRegion(regions, "warning")?.role).toBe("status");
+    expect(toastLiveRegion(regions, "danger")?.role).toBe("alert");
+    expect(toastLiveRegion([], "danger")).toBeUndefined();
+  });
+
+  it("keeps at most three, evicts the oldest without an action and puts the newest at the bottom", () => {
+    const shown = ["A", "B", "C", "D"];
+    const stack = [
+      toast("A Undo"),
+      toast("C", { box: { left: 400, top: 750, width: 480, height: 42 } }),
+      toast("D", { box: { left: 400, top: 800, width: 480, height: 42 } }),
+    ];
+    stack[0]!.box = { left: 400, top: 700, width: 480, height: 42 };
+    expect(toastStackProblems(stack, shown, ["A", "C", "D"])).toEqual([]);
+    const wrong = [toast("A"), toast("B"), toast("C"), toast("D")];
+    wrong.forEach((entry, index) => (entry.box = { ...entry.box, top: 800 - index * 50 }));
+    expect(toastStackProblems(wrong, shown, ["A", "C", "D"])).toEqual([
+      "toasts: 4 toasts at once, at most 3 (guide §8)",
+      'toasts: after 4 toasts the stack shows "A", "B", "C", "D"; expected "A", "C", "D" (at most 3, the oldest without an action leaves, guide §8)',
+      "toasts: the newest toast is not at the bottom of the stack (guide §8)",
+    ]);
+    expect(shownToasts([toast("Conformance: B"), toast("other")], ["A", "B"])).toEqual(["B"]);
+  });
+
+  it("restarts a repeated toast instead of stacking it", () => {
+    expect(repeatedToastProblems([toast("C"), toast("D")], "C")).toEqual([]);
+    expect(repeatedToastProblems([toast("C"), toast("C")], "C")).toEqual([
+      'toasts: a repeated "C" stacks 2 toasts; it restarts the shown one (API.md, Toasts)',
+    ]);
+  });
+
+  it("reports toasts that close too early or too late", () => {
+    const timing = (
+      text: string,
+      expectation: ToastTiming["expectation"],
+      present: boolean,
+      condition: ToastTiming["condition"],
+    ): ToastTiming => ({ text, expectation, after: 3700, present, condition });
+    expect(
+      toastTimingProblems([
+        timing("plain", "gone", false, "plain"),
+        timing("hovered", "present", true, "hovered"),
+      ]),
+    ).toEqual([]);
+    expect(
+      toastTimingProblems([
+        timing("plain", "gone", true, "plain"),
+        timing("plain", "present", false, "plain"),
+        timing("hovered", "present", false, "hovered"),
+        timing("focused", "present", false, "focused"),
+        timing("left", "present", false, "resumed"),
+        timing("left", "gone", true, "resumed"),
+        timing("undo", "present", false, "action"),
+      ]),
+    ).toEqual([
+      'toasts: "plain" is still there 3700ms after it appeared; it closes after its lifetime (guide §8)',
+      'toasts: "plain" closed within 3700ms after it appeared; it stays for its lifetime (guide §8)',
+      'toasts: "hovered" closed within 3700ms after it appeared; hover pauses its time (guide §8)',
+      'toasts: "focused" closed within 3700ms after it appeared; focus pauses its time (guide §8)',
+      'toasts: "left" closed within 3700ms after the pointer and the focus left it; it resumes with at least 1.5s left (guide §8)',
+      'toasts: "left" is still there 3700ms after the pointer and the focus left it; it closes after its lifetime (guide §8)',
+      'toasts: "undo" closed within 3700ms after it appeared; a toast with an action never closes by itself (guide §8)',
+    ]);
+  });
+});
+
+describe("the problems list (guide §5.10)", () => {
+  const container = { width: 1280, height: 900 };
+  const open = (): PopoverFacts => ({
+    pill: {
+      attributes: { "aria-expanded": "true", "aria-haspopup": "dialog" },
+      box: { left: 12, top: 820, width: 120, height: 40 },
+      client: { x: 72, y: 840 },
+      visible: true,
+    },
+    popover: {
+      attributes: { role: "dialog", "aria-labelledby": "t" },
+      box: { left: 12, top: 692, width: 320, height: 120 },
+      visible: true,
+      title: "Problems",
+    },
+    rows: [
+      { button: true, height: 56, icon: true, text: "The box has no name. Box 1", client: { x: 0, y: 0 } },
+      { button: false, height: 36, icon: true, text: "Two boxes overlap.", client: { x: 0, y: 0 } },
+    ],
+    focus: "popover",
+    focused: "button.cd-shell-problem",
+    focusedRow: { index: 0, inView: true },
+  });
+
+  it("accepts the list above the pill with labelled rows and the focus inside", () => {
+    expect(openPopoverProblems(open(), container, "en")).toEqual([]);
+  });
+
+  it("wants every legal link inside the legal line and the container (WCAG 1.4.10)", () => {
+    const facts = {
+      container: { width: 320, height: 700 },
+      legal: { left: 12, top: 648, width: 296, height: 40 },
+      links: [
+        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 } },
+        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 } },
+      ],
+    };
+    expect(legalReachProblems(facts)).toEqual([]);
+    const scrolled = {
+      ...facts,
+      legal: { left: 12, top: 668, width: 296, height: 20 },
+      links: [
+        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 } },
+        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 } },
+      ],
+    };
+    expect(legalReachProblems(scrolled)).toEqual([
+      'legal: [320px wide] "Datenschutz" is cut off or scrolled out of the legal line; it wraps instead (guide §5.10, WCAG 1.4.10)',
+    ]);
+    expect(legalReachProblems({ ...facts, legal: null })).toEqual([]);
+  });
+
+  it("wants every row reached by the keyboard and scrolled into the list", () => {
+    const at = (index: number, inView = true) => ({ index, inView });
+    expect(
+      popoverKeyboardProblems(
+        [
+          { key: "Enter on the pill", expected: 0, focused: at(0) },
+          { key: "ArrowDown", expected: 1, focused: at(1) },
+          { key: "Home", expected: 0, focused: at(0) },
+          { key: "End", expected: 1, focused: at(1) },
+        ],
+        2,
+      ),
+    ).toEqual([]);
+    expect(
+      popoverKeyboardProblems(
+        [
+          { key: "Enter on the pill", expected: 0, focused: null },
+          { key: "ArrowDown", expected: 1, focused: at(0) },
+          { key: "End", expected: 2, focused: at(2, false) },
+        ],
+        3,
+      ),
+    ).toEqual([
+      "problems-popover: Enter on the pill reaches no row, expected row 1 of 3; the keyboard reads every row, text rows too (guide §5.10, WCAG 2.1.1)",
+      "problems-popover: ArrowDown reaches row 1, expected row 2 of 3; the keyboard reads every row, text rows too (guide §5.10, WCAG 2.1.1)",
+      "problems-popover: row 3 takes the focus on End but stays scrolled out of the list",
+    ]);
+  });
+
+  it("reports role, modality, title, state, rows, focus and geometry", () => {
+    const facts = open();
+    facts.popover = {
+      attributes: { role: "region", "aria-modal": "true" },
+      box: { left: 14, top: 400, width: 340, height: 400 },
+      visible: true,
+      title: "Issues",
+    };
+    facts.pill!.attributes["aria-expanded"] = "false";
+    facts.rows = [{ button: true, height: 30, icon: false, text: "Row", client: { x: 0, y: 0 } }];
+    facts.focus = "pill";
+    facts.focused = "button.cd-shell-problems";
+    expect(openPopoverProblems(facts, container, "en")).toEqual([
+      'problems-popover: role "region", expected "dialog"',
+      'problems-popover: aria-modal="true"; it is not modal',
+      'problems-popover: titled "Issues", expected "Problems" (guide §5.10)',
+      'problems: aria-expanded is "false" while the list is open, expected "true"',
+      'problems-popover: the row "Row" is 30px high, at least 36px (guide §5.10)',
+      'problems-popover: the row "Row" has no severity icon (guide §5.10)',
+      "problems-popover: opening it leaves the focus on button.cd-shell-problems; it moves to the first row (API.md, Problems popover)",
+      "problems-popover: left is 14px, expected 12px (±1px)",
+      "problems-popover: bottom is 100px, expected 88px (±1px)",
+      "problems-popover: width is 340px, at most 320px expected",
+      "problems-popover: height is 400px, at most 320px expected",
+    ]);
+    expect(
+      openPopoverProblems({ ...open(), popover: { ...open().popover!, title: null } }, container, "de"),
+    ).toEqual(["problems-popover: not labelled by its title (aria-labelledby)"]);
+    expect(openPopoverProblems({ ...open(), rows: [] }, container, "en")).toEqual([
+      "problems-popover: the list has no rows; show.problems passes items in the web host",
+    ]);
+    expect(openPopoverProblems({ ...open(), popover: null }, container, "en")).toEqual([
+      "problems-popover: a click on the pill shows no problems list (guide §5.10)",
+    ]);
+  });
+
+  it("closes on Escape with the focus on the pill, on an outside click without, on a row to the canvas", () => {
+    const closed = (focus: PopoverFacts["focus"]): PopoverFacts => ({
+      ...open(),
+      pill: { ...open().pill!, attributes: { "aria-expanded": "false" } },
+      popover: { ...open().popover!, visible: false },
+      focus,
+      focused: focus,
+    });
+    expect(closedPopoverProblems(closed("pill"), "Escape")).toEqual([]);
+    expect(closedPopoverProblems(closed("canvas"), "an outside click")).toEqual([]);
+    expect(closedPopoverProblems(closed("canvas"), "a row with an element")).toEqual([]);
+    expect(closedPopoverProblems(open(), "Escape")).toEqual([
+      "problems-popover: Escape does not close the list",
+      'problems: aria-expanded is "true" after Escape, expected "false"',
+      "problems-popover: Escape leaves the focus on button.cd-shell-problem, expected the pill",
+    ]);
+    expect(closedPopoverProblems(closed("pill"), "an outside click")).toEqual([
+      "problems-popover: an outside click moved the focus to the pill; it closes without moving the focus",
+    ]);
+    expect(closedPopoverProblems(closed("other"), "a row with an element")).toEqual([
+      "problems-popover: a row with an element leaves the focus on other, expected the canvas",
+    ]);
+  });
+});
+
+describe("the drop zone (guide §9)", () => {
+  const container = { width: 1280, height: 900 };
+  const roles = {
+    hover: "rgb(238, 241, 253)",
+    interaktion: "rgb(51, 93, 229)",
+    dangerFlaeche: "rgb(251, 238, 240)",
+    danger: "rgb(205, 24, 57)",
+    flaecheHoch: "rgb(255, 255, 255)",
+  };
+  const facts = (state: "over" | "forbidden", extra: Partial<DropZoneFacts> = {}): DropZoneFacts => ({
+    state,
+    events: [
+      { type: "dragenter", defaultPrevented: true, dropEffect: state === "over" ? "copy" : "none" },
+      { type: "dragover", defaultPrevented: true, dropEffect: state === "over" ? "copy" : "none" },
+    ],
+    zone: {
+      visible: true,
+      box: { left: 12, top: 12, width: 1256, height: 876 },
+      ariaHidden: "true",
+      background: state === "over" ? roles.hover : roles.dangerFlaeche,
+      borderStyle: "dashed",
+      borderWidth: "2px",
+      borderColor: state === "over" ? roles.interaktion : roles.danger,
+      radius: "16px",
+      cursor: "auto",
+    },
+    chip: { text: "Drop file here", background: roles.flaecheHoch },
+    roles,
+    ...extra,
+  });
+
+  it("accepts drag-over and forbidden in the colours of guide §9", () => {
+    expect(dropStateProblems(facts("over"), "over", "a drag", container)).toEqual([]);
+    expect(dropStateProblems(facts("forbidden"), "forbidden", "two files", container)).toEqual([]);
+  });
+
+  it("reports the wrong state, an unprevented drag, the drop effect, the inset, the colours and the chip", () => {
+    const broken = facts("over", {
+      events: [{ type: "dragover", defaultPrevented: false, dropEffect: "copy" }],
+      chip: { text: "", background: roles.hover },
+    });
+    broken.zone = { ...broken.zone!, box: { left: 0, top: 12, width: 1268, height: 876 }, ariaHidden: null };
+    expect(dropStateProblems(broken, "forbidden", "two files", container)).toEqual([
+      'drop-zone: two files sets data-drop="over", expected "forbidden" (guide §9)',
+      "drop-zone: two files is not prevented, so the browser would open the file",
+      'drop-zone: two files has dropEffect "copy", expected "none"',
+      "drop-zone: left is 0px, expected 12px (±1px) (two files)",
+      'drop-zone: the overlay lacks aria-hidden="true"',
+      `drop-zone: two files fills ${roles.hover}, expected --cd-ui-danger-flaeche (${roles.dangerFlaeche}) (guide §9)`,
+      `drop-zone: two files has a 2px dashed ${roles.interaktion} border, expected 2px dashed --cd-ui-danger (${roles.danger}) (guide §9)`,
+      "drop-zone: two files shows no chip text (guide §9)",
+    ]);
+    const chip = facts("over", { chip: { text: "Drop file here", background: roles.hover } });
+    expect(dropStateProblems(chip, "over", "a drag", container)).toEqual([
+      `drop-zone: the chip fills ${roles.hover}, expected --cd-ui-flaeche-hoch (${roles.flaecheHoch})`,
+    ]);
+    expect(dropStateProblems(facts("over", { zone: null }), "over", "a drag", container)).toEqual([
+      "drop-zone: a drag shows no drop zone (guide §9)",
+    ]);
+  });
+
+  it("leaves drags without files alone", () => {
+    const none: DropZoneFacts = {
+      ...facts("over"),
+      state: null,
+      zone: { ...facts("over").zone!, visible: false },
+    };
+    none.events = [{ type: "dragover", defaultPrevented: false, dropEffect: "none" }];
+    expect(dropStateProblems(none, "none", "a text drag", container)).toEqual([]);
+    expect(dropStateProblems(facts("over"), "none", "a text drag", container)).toEqual([
+      'drop-zone: a text drag sets data-drop="over"; it is no file drag',
+      "drop-zone: a text drag shows the drop zone",
+      "drop-zone: a text drag is prevented; the drop zone leaves non-file drags alone",
+    ]);
+  });
+});
+
+describe("the web app's mode (guide §13.3)", () => {
+  const colors = { light: "#335DE5", dark: "#1D1D1D" };
+  const system = (): WebModeFacts => ({
+    theme: "system",
+    kontrast: null,
+    colorScheme: "light dark",
+    themeColors: [
+      { content: "#335DE5", media: "(prefers-color-scheme: light)" },
+      { content: "#1D1D1D", media: "(prefers-color-scheme: dark)" },
+    ],
+    stored: null,
+    storageBlocked: false,
+    noTransition: false,
+  });
+
+  it("expects light for a light-only modeler, the system or the choice for a dark-capable one", () => {
+    expect(expectedWebMode({ theme: "dark", kontrast: "hoch" }, ["light"], "dark")).toEqual({
+      carrier: "light",
+      effective: { theme: "light", kontrast: "hoch" },
+    });
+    expect(expectedWebMode({ theme: "dark" }, ["light", "dark"], "system")).toEqual({
+      carrier: "system",
+      effective: { theme: "dark" },
+    });
+    expect(expectedWebMode({ theme: "dark" }, ["light", "dark"], "light")).toEqual({
+      carrier: "light",
+      effective: { theme: "light" },
+    });
+  });
+
+  it("wants one theme-color without media in a light-only app", () => {
+    const light: WebModeFacts = {
+      ...system(),
+      theme: "light",
+      colorScheme: null,
+      themeColors: [{ content: "#335DE5", media: null }],
+    };
+    expect(webModeProblems(light, ["light"], "system", undefined)).toEqual([]);
+    expect(
+      webModeProblems({ ...system(), colorScheme: "light dark" }, ["light"], "system", undefined),
+    ).toEqual([
+      "mode: a light-only web app carries one theme-color without media (guide §13.3); found #335DE5 ((prefers-color-scheme: light)), #1D1D1D ((prefers-color-scheme: dark))",
+      'mode: a light-only web app declares color-scheme "light dark"',
+    ]);
+  });
+
+  it("checks color-scheme, the stored choice and both theme-colors of a dark-capable app", () => {
+    expect(webModeProblems(system(), ["light", "dark"], "system", colors)).toEqual([]);
+    const dark: WebModeFacts = {
+      ...system(),
+      theme: "dark",
+      colorScheme: "dark",
+      themeColors: system().themeColors.map((meta) => ({ ...meta, content: "#1D1D1D" })),
+      stored: "dark",
+    };
+    expect(webModeProblems(dark, ["light", "dark"], "dark", colors)).toEqual([]);
+    expect(webModeProblems(system(), ["light", "dark"], "dark", colors)).toEqual([
+      'mode: with Dark <meta name="color-scheme"> reads "light dark", expected "dark" (guide §13.3)',
+      'mode: with Dark localStorage holds miragon.darstellung=(none), expected "dark" (guide §13.3)',
+      "mode: with Dark the theme-color metas read #335DE5 (light) and #1D1D1D (dark), expected #1D1D1D and #1D1D1D (guide §13.3)",
+    ]);
+    expect(webModeProblems(dark, ["light", "dark"], "system", colors)).toEqual([
+      'mode: with System <meta name="color-scheme"> reads "dark", expected "light dark" (guide §13.3)',
+      'mode: with System localStorage keeps miragon.darstellung="dark"; System removes the entry (guide §13.3)',
+      "mode: with System the theme-color metas read #1D1D1D (light) and #1D1D1D (dark), expected #335DE5 and #1D1D1D (guide §13.3)",
+    ]);
+    expect(
+      webModeProblems(
+        { ...system(), storageBlocked: true, stored: null, themeColors: [] },
+        ["light", "dark"],
+        "light",
+        colors,
+      ),
+    ).toEqual([
+      'mode: with Light <meta name="color-scheme"> reads "light dark", expected "light" (guide §13.3)',
+      "mode: a dark-capable web app carries two theme-color metas, one per prefers-color-scheme (guide §13.3)",
+    ]);
+  });
+
+  it("switches everything in one frame with transitions off", () => {
+    const change = (part: ModeChange["part"], frame: number, value: string | null = "x"): ModeChange => ({
+      part,
+      value,
+      frame,
+    });
+    expect(
+      modeSwitchProblems(
+        [
+          change("no-transition", 3, "on"),
+          change("theme", 3),
+          change("color-scheme", 3),
+          change("theme-color", 3),
+          change("no-transition", 5, "off"),
+        ],
+        "Dark",
+      ),
+    ).toEqual([]);
+    expect(modeSwitchProblems([change("theme", 3), change("theme-color", 5)], "Dark")).toEqual([
+      "mode: choosing Dark changed theme in frame 3, theme-color in frame 5; one frame for all of them (guide §13.3)",
+      "mode: choosing Dark switched without cd-shell-no-transition on <html> in that frame (guide §7: no colour fades)",
+    ]);
+    expect(modeSwitchProblems([change("no-transition", 1, "on")], "Light")).toEqual([
+      "mode: choosing Light changed nothing on <html> or its meta tags",
+    ]);
+  });
+
+  it("judges the carrier of a dark-capable app on system by the page's effective mode", () => {
+    const facts = appearance({
+      themed: [
+        { description: "html", isDocument: true, relation: "ancestor", theme: "system", kontrast: null },
+      ],
+      parts: ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map((name) =>
+        part(name, "dark"),
+      ),
+    });
+    const web = expectedWebMode({ theme: "dark" }, ["light", "dark"], "system");
+    expect(appearanceProblems(facts, "web", { theme: "dark" }, ["light", "dark"], web).problems).toEqual([]);
+    const light = appearance({
+      themed: [
+        { description: "html", isDocument: true, relation: "ancestor", theme: "system", kontrast: null },
+      ],
+    });
+    expect(appearanceProblems(light, "web", { theme: "dark" }, ["light", "dark"], web).problems).toEqual(
+      ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map(
+        (name) => `${name}: color-scheme is "light" (requested dark, expected system showing dark)`,
+      ),
+    );
+  });
+
+  it("speaks English for en and its regions only", () => {
+    expect([speaksEnglish("en"), speaksEnglish("en-GB"), speaksEnglish("de"), speaksEnglish("")]).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+});
+
+describe("web-column bookkeeping", () => {
+  it("names a drop fixture the harness both gives and declares absent", () => {
+    const harness = {
+      host: "web" as const,
+      themes: ["light"] as const,
+      async open() {},
+      drop: { accepted: { name: "a.json", type: "application/json", text: "{}" } },
+      absent: ["drop", "toast"] as const,
+      show: { async toast() {} },
+    };
+    expect(harnessHookProblems(harness, ["drop", "toast", "emptyState"])).toEqual([
+      'harness: absent lists "drop", but harness.drop is given',
+      'harness: absent lists "toast", but show.toast is given',
+    ]);
+  });
+
+  it("finds the web app's root state attributes after destroy", () => {
+    const facts: LeftoverFacts = {
+      classedElements: [],
+      documentClasses: [],
+      chromeElements: [],
+      rootClasses: [],
+      rootAttributes: ["id", "data-primary", "data-zoom-row", "data-empty-state", "data-drop"],
+      errors: [],
+    };
+    expect(leftoverProblems(facts, "web")).toEqual([
+      "the root keeps data-primary after destroy",
+      "the root keeps data-zoom-row after destroy",
+      "the root keeps data-empty-state after destroy",
+      "the root keeps data-drop after destroy",
     ]);
   });
 });

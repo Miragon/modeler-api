@@ -1,38 +1,56 @@
 import {
+  LEGAL_LINE_HEIGHT,
   SHELL,
-  decidePaletteRow,
+  decideTopRow,
   detectPlatform,
   fitInsets,
+  legalLineHeight,
   legendStartsOpen,
   resolveMessages,
+  toastStackBottom,
+  zoomRowRaised,
+  type BottomObstacle,
   type FitLayout,
   type Insets,
   type PaletteRow,
   type Size,
   type Theme,
+  type ToastRequest,
   type ZoomTarget,
 } from "../core/index.js";
 import { boxRelativeTo, createElement } from "./element.js";
+import { connectWebAppearance } from "./feedback/appearance.js";
+import { createProblemsPopover, type ProblemsPopover } from "./feedback/problems-popover.js";
+import { createToaster } from "./feedback/toasts.js";
 import { createEmptyHint } from "./hint.js";
 import { createInspector } from "./inspector.js";
-import { createKeyListener } from "./keys.js";
+import { createKeyListener, isModalOpen } from "./keys.js";
 import { Ledger } from "./ledger.js";
 import { createLegend } from "./legend.js";
-import { createMenu } from "./menu.js";
+import { createMenu, type MenuGroupName } from "./menu.js";
 import { createProblemsPill } from "./problems.js";
 import { createStatusBox } from "./status.js";
 import { createTooltip } from "./tooltip.js";
 import type {
+  AppearanceHandle,
   InspectorHandle,
   LegendHandle,
   MenuCheckboxEntry,
+  MenuEntry,
   MenuHandle,
   PaletteReadOnlyState,
   PaletteRegistration,
+  PrimaryActionHandle,
   ShellHandle,
   ShellOptions,
+  ToastHandle,
   TooltipHandle,
 } from "./types.js";
+import { createDropZone } from "./web/drop-zone.js";
+import { createEmptyState } from "./web/empty-state.js";
+import { createLegalLine } from "./web/legal.js";
+import { appearanceMenuEntries, fileMenuEntries } from "./web/menu-groups.js";
+import { createPrimaryAction } from "./web/primary.js";
 import { createZoomPanel } from "./zoom-panel.js";
 
 // Page-global: every modeler bundles its own copy of the shell (and the CJS entries inline one each),
@@ -47,6 +65,21 @@ function nextMountIndex(): number {
 }
 
 const DEFAULT_THEMES: readonly Theme[] = ["light"];
+
+/** The legal line's height on the root, which the stack above it (pill, legend, zoom row) adds. */
+const LEGAL_HEIGHT_PROPERTY = "--modeler-shell-legal-height";
+
+/** What `toast()` returns where no toast shows (the IDE host, after `destroy`). */
+const INERT_TOAST: ToastHandle = Object.freeze({ dismiss() {} });
+
+/** The element's box relative to the root while it is rendered and visible, else `undefined`. */
+function visibleBoxIn(element: HTMLElement | undefined, root: HTMLElement) {
+  if (!element || element.hidden || !element.isConnected) return undefined;
+  if (typeof element.checkVisibility === "function" && !element.checkVisibility({ visibilityProperty: true }))
+    return undefined;
+  const box = boxRelativeTo(element, root);
+  return box.width > 0 && box.height > 0 ? box : undefined;
+}
 
 // In a foreign page the closest [lang] is the page's language, not the tool's (guide §2).
 function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: string | undefined): string {
@@ -64,9 +97,11 @@ function hostKontrast(root: HTMLElement): "hoch" | null {
 
 /**
  * Turns `root` into the shell (`.cd-shell`, container `cd-shell`) and renders the chrome in the
- * DOM order of guide §5.14: menu trigger, canvas slot, status box, empty-file hint, inspector,
- * problems pill, legend, zoom panel, then the layer for dropdown and tooltip. Installs the one
- * `keydown` listener (see `ShellOptions.keyScope`) and the root `ResizeObserver`.
+ * DOM order of guide §5.14: menu trigger, primary action (web), canvas slot, status box,
+ * empty-file hint, empty state (web), inspector, problems pill, legend, legal line (web), zoom
+ * panel, then the layer for dropdown, tooltip, problems popover and drop zone, and last the toast
+ * stack (web, embedded). Installs the one `keydown` listener (see `ShellOptions.keyScope`) and the
+ * root `ResizeObserver`.
  *
  * `root` must get its size from outside (`container-type: size`): `height: 100%` in an own
  * document, an explicitly sized element in a foreign page. When rendering throws (a modeler's
@@ -97,6 +132,7 @@ function renderShell(
   const platform = options.platform ?? detectPlatform(globalThis.navigator);
   const lang = languageOf(root, host, options.lang);
   const keyScope = options.keyScope ?? (host === "embedded" ? "root" : "document");
+  const web = host === "web";
 
   ledger.addClass(root, "cd-shell");
   ledger.attribute(root, "data-cd-shell-host", host);
@@ -111,6 +147,13 @@ function renderShell(
   const setState = (name: string, value: string | null): void => {
     if (!ledger.isClosed) ledger.attribute(root, name, value);
   };
+
+  // The head script set the mode before the first paint; this follows contrast and the menu choice.
+  const appearance = web
+    ? connectWebAppearance({ ownerDocument, themes, options: options.appearance })
+    : undefined;
+  if (appearance) ledger.defer(() => appearance.destroy());
+  const darkCapable = themes.includes("dark");
 
   const layer = createElement(ownerDocument, "div", { class: "cd-shell-layer" });
   ledger.defer(() => layer.remove());
@@ -152,6 +195,16 @@ function renderShell(
         }
       : undefined;
   const shellModelEntries: readonly MenuCheckboxEntry[] = legendEntry ? [legendEntry] : [];
+  const fileEntries: readonly MenuEntry[] =
+    web && options.file ? fileMenuEntries(options.file, messages) : [];
+  const appearanceEntries: readonly MenuEntry[] =
+    appearance && darkCapable ? appearanceMenuEntries(appearance, messages) : [];
+  const shellEntries = (group: MenuGroupName): readonly MenuEntry[] => {
+    if (group === "file") return fileEntries;
+    if (group === "model") return shellModelEntries;
+    if (group === "appearance") return appearanceEntries;
+    return [];
+  };
 
   const menu = createMenu({
     root,
@@ -160,65 +213,171 @@ function renderShell(
     messages,
     tooltip,
     groups: options.menu ?? {},
-    shellModelEntries: () => shellModelEntries,
+    shellEntries,
     isReadOnly: () => readOnly,
   });
   ledger.defer(() => menu.destroy());
   ledger.defer(tooltip.attach(menu.trigger, () => (menu.isOpen() ? null : { label: messages.menu })));
 
+  const primary =
+    web && options.primary
+      ? createPrimaryAction({ ownerDocument, messages, tooltip, options: options.primary })
+      : undefined;
+  if (primary) ledger.defer(() => primary.destroy());
+
   const canvas = options.canvas ?? createElement(ownerDocument, "div");
   ledger.addClass(canvas, "cd-shell-canvas");
+  // An own page needs a main landmark; the diagram is its content. A foreign page has its own.
+  if (web && !canvas.hasAttribute("role")) ledger.attribute(canvas, "role", "main");
   if (!options.canvas) ledger.defer(() => canvas.remove());
 
-  /** Where the focus goes when the island holding it hides: the canvas, else the menu trigger. */
+  /**
+   * The focus target when the element holding it goes away: on the start screen its "New
+   * diagram", else the canvas, else the menu trigger. A target that cannot take the focus (inert,
+   * hidden behind the start screen) is passed over, so the focus never falls to `<body>` unseen.
+   */
+  function focusCanvasOrTrigger(): void {
+    const took = (target: HTMLElement | SVGElement | null | undefined): boolean => {
+      target?.focus({ preventScroll: true });
+      return target !== null && target !== undefined && ownerDocument.activeElement === target;
+    };
+    if (emptyState?.isShown()) {
+      emptyState.focus();
+      if (emptyState.element.contains(ownerDocument.activeElement)) return;
+    }
+    if (took(canvas.querySelector<HTMLElement | SVGElement>("svg[tabindex]"))) return;
+    if (!menu.trigger.hidden) took(menu.trigger);
+  }
+
+  /** Where the focus goes when the island holding it hides. */
   function moveFocusOutOf(island: HTMLElement): void {
-    if (!island.contains(ownerDocument.activeElement)) return;
-    const canvasTarget = canvas.querySelector<HTMLElement | SVGElement>("svg[tabindex]");
-    canvasTarget?.focus({ preventScroll: true });
-    if (canvasTarget && ownerDocument.activeElement === canvasTarget) return;
-    if (!menu.trigger.hidden) menu.trigger.focus({ preventScroll: true });
+    if (island.contains(ownerDocument.activeElement)) focusCanvasOrTrigger();
   }
 
   const status = createStatusBox(ownerDocument);
   ledger.defer(() => status.destroy());
   const hint = options.emptyHint ? createEmptyHint(ownerDocument, messages, options.emptyHint) : undefined;
   if (hint) ledger.defer(() => hint.destroy());
+  const emptyState =
+    web && options.emptyState
+      ? createEmptyState({
+          ownerDocument,
+          messages,
+          options: options.emptyState,
+          dropHint: options.dropZone ? (options.emptyState.dropHint ?? messages.dropHint) : undefined,
+          open: options.file?.open,
+          titleId: `cd-shell-empty-state-title-${index}`,
+          onLeave: () => setEmptyStateShown(false),
+        })
+      : undefined;
+  if (emptyState) ledger.defer(() => emptyState.destroy());
   const inspector = options.inspector
     ? createInspector(ownerDocument, options.inspector, (open) => {
         setState("data-inspector", open ? "open" : null);
+        // Up to 760px the sheet hides zoom panel and pill, so the toasts' bottom row changes.
+        updateBottomRow();
         placeHint();
       })
     : undefined;
   if (inspector) ledger.defer(() => inspector.destroy());
-  const pill = options.problems
+  const problemsOptions = options.problems;
+  let popover: ProblemsPopover | undefined;
+  const pill = problemsOptions
     ? createProblemsPill({
         ownerDocument,
         messages,
         lang,
         tooltip,
         showTooltip: host === "ide",
-        options: options.problems,
+        onActivate() {
+          if (popover) popover.toggle();
+          else problemsOptions.onActivate?.();
+        },
       })
     : undefined;
   if (pill) ledger.defer(() => pill.destroy());
+  // The web app lists its problems itself; an embedding host only when it has no list of its own.
+  if (pill && (web || (host === "embedded" && !problemsOptions?.onActivate))) {
+    const created = createProblemsPopover({
+      ownerDocument,
+      root,
+      layer,
+      pill: pill.element,
+      id: `cd-shell-problems-${index}`,
+      titleId: `cd-shell-problems-title-${index}`,
+      messages,
+      onSelectItem: problemsOptions?.onSelectItem,
+    });
+    popover = created;
+    ledger.defer(() => created.destroy());
+  }
+  const legal = web
+    ? createLegalLine({
+        ownerDocument,
+        messages,
+        options: options.legal ?? {},
+        idPrefix: `cd-shell-legal-${index}`,
+      })
+    : undefined;
+  if (legal) ledger.defer(() => legal.destroy());
   const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip });
   ledger.defer(() => zoomPanel.destroy());
+  const toaster =
+    host === "ide"
+      ? undefined
+      : createToaster({
+          ownerDocument,
+          host,
+          messages,
+          idPrefix: `cd-shell-toast-${index}`,
+          focusFallback: focusCanvasOrTrigger,
+          onChange: () => updateBottomRow(),
+        });
+  if (toaster) ledger.defer(() => toaster.destroy());
 
-  root.prepend(menu.trigger, canvas);
+  const defined = (element: HTMLElement | undefined): element is HTMLElement => element !== undefined;
+  root.prepend(...[menu.trigger, primary?.element, canvas].filter(defined));
   root.append(
     ...[
       status.element,
       hint?.element,
+      emptyState?.element,
       inspector?.element,
       pill?.element,
       legend?.element,
+      legal?.element,
       zoomPanel.element,
-    ].filter((element): element is HTMLElement => element !== undefined),
+    ].filter(defined),
     layer,
+    ...[toaster?.announcer, toaster?.element].filter(defined),
   );
+
+  function showToast(request: ToastRequest): ToastHandle {
+    return ledger.isClosed || !toaster ? INERT_TOAST : toaster.show(request);
+  }
+
+  const dropZone =
+    web && options.dropZone
+      ? createDropZone({
+          ownerDocument,
+          layer,
+          messages,
+          lang,
+          options: options.dropZone,
+          modalOpen: () => isModalOpen(ownerDocument),
+          toast: showToast,
+          setState: (state) => setState("data-drop", state),
+        })
+      : undefined;
+  if (dropZone) ledger.defer(() => dropZone.destroy());
 
   let palette: { registration: PaletteRegistration; detachTooltip: () => void } | undefined;
   let paletteRow: PaletteRow = "top";
+  /** Web: the zoom panel stands above the legal line (`data-zoom-row="raised"`). */
+  let zoomRaised = false;
+  /** Web: the legal line's measured height, more than one line where a narrow container wraps it. */
+  let legalHeight = LEGAL_LINE_HEIGHT;
+  if (legal) ledger.defer(() => root.style.removeProperty(LEGAL_HEIGHT_PROPERTY));
 
   function containerSize(): Size {
     return { width: root.clientWidth, height: root.clientHeight };
@@ -243,6 +402,10 @@ function renderShell(
       paletteRow,
       problemsVisible: pill?.isShown() ?? false,
     };
+    if (web) {
+      layout.zoomRaised = zoomRaised;
+      layout.legalHeight = legalHeight;
+    }
     if (legend?.isOpen()) layout.legendWidth = legend.element.getBoundingClientRect().width;
     if (inspector?.isOpen()) {
       layout.inspector =
@@ -260,19 +423,89 @@ function renderShell(
     const size = containerSize();
     // A hidden tab reports 0 × 0; it neither measures nor decides anything (guide §5.9).
     if (size.width === 0 || size.height === 0) return;
-    paletteRow = decidePaletteRow({
+    const topRow = decideTopRow({
       containerWidth: size.width,
       paletteWidth: paletteWidth(),
       menuRight: menuRight(),
+      primary: primary?.widths(),
     });
+    paletteRow = topRow.paletteRow;
     setState("data-palette", paletteRow);
+    if (primary) {
+      const collapsed = topRow.primaryLabel === "collapsed";
+      primary.setCollapsed(collapsed);
+      setState("data-primary", collapsed ? "collapsed" : null);
+    }
     if (legend && !legend.isStarted()) legend.start(options.legend?.open ?? legendStartsOpen(size.height));
+    updateBottomRow();
     placeHint();
+  }
+
+  /** Web and embedded: the raised zoom row (legal line) and the toast stack's bottom, from what is visible. */
+  function updateBottomRow(): void {
+    if (ledger.isClosed) return;
+    const size = containerSize();
+    if (size.width === 0 || size.height === 0) return;
+    if (legal) {
+      const legalBox = visibleBoxIn(legal.element, root);
+      const height = legalLineHeight(legalBox?.height);
+      if (height !== legalHeight || !root.style.getPropertyValue(LEGAL_HEIGHT_PROPERTY)) {
+        legalHeight = height;
+        root.style.setProperty(LEGAL_HEIGHT_PROPERTY, `${height}px`);
+      }
+      zoomRaised = zoomRowRaised({
+        containerWidth: size.width,
+        legalRight: legalBox && legalBox.x + legalBox.width,
+        zoomWidth: visibleBoxIn(zoomPanel.element, root)?.width,
+      });
+      setState("data-zoom-row", zoomRaised ? "raised" : null);
+    }
+    if (toaster) {
+      const obstacles = [zoomPanel.element, legal?.element, pill?.element].flatMap(
+        (element): BottomObstacle[] => {
+          const box = visibleBoxIn(element, root);
+          return box ? [{ left: box.x, right: box.x + box.width, top: size.height - box.y }] : [];
+        },
+      );
+      toaster.setBottom(
+        toastStackBottom({ containerWidth: size.width, obstacles, cardWidth: toaster.widestCard() }),
+      );
+    }
+  }
+
+  function setEmptyStateShown(shown: boolean): void {
+    if (ledger.isClosed || !emptyState || emptyState.isShown() === shown) return;
+    const active = ownerDocument.activeElement;
+    const hadFocus = emptyState.element.contains(active);
+    // The work chrome and the canvas are about to hide: a focus there would fall to <body>. The
+    // legal line and the toasts stay.
+    const workHadFocus =
+      shown &&
+      active !== null &&
+      root.contains(active) &&
+      ![emptyState.element, legal?.element, toaster?.element].some((kept) => kept?.contains(active));
+    emptyState.setShown(shown);
+    setState("data-empty-state", shown ? "shown" : null);
+    // Nothing behind the card takes a click or the Tab (guide §8: nothing else competes).
+    ledger.attribute(canvas, "inert", shown ? "" : null);
+    if (shown) {
+      menu.close();
+      popover?.close();
+      tooltip.hide();
+      if (workHadFocus) emptyState.focus();
+    } else if (hadFocus) {
+      focusCanvasOrTrigger();
+    }
+    updateLayout();
   }
 
   const ResizeObserverClass = globalThis.ResizeObserver;
   const resizeObserver = ResizeObserverClass ? new ResizeObserverClass(() => updateLayout()) : undefined;
   resizeObserver?.observe(root);
+  // The label widens once the web font has loaded; the top row decides again then. The legal line
+  // may wrap onto a second line then, which lifts everything stacked above it.
+  if (primary) resizeObserver?.observe(primary.element);
+  if (legal) resizeObserver?.observe(legal.element);
   ledger.defer(() => resizeObserver?.disconnect());
 
   if (legend && options.legend?.open !== undefined) legend.start(options.legend.open);
@@ -283,12 +516,16 @@ function renderShell(
     host,
     dialogScope: keyTarget,
     menuOpen: () => menu.isOpen(),
+    startScreen: () => emptyState?.isShown() ?? false,
     closeMenu() {
       const active = ownerDocument.activeElement;
       menu.close({ restoreFocus: active === menu.trigger || menu.dropdown.contains(active) });
     },
     hideTooltip: () => tooltip.hide(),
-    run: (key) => zoomPanel.run(key),
+    // Behind the start screen the keys reach the browser instead: there is no diagram to zoom.
+    run: (key) => {
+      if (!emptyState?.isShown()) zoomPanel.run(key);
+    },
   });
   keyTarget.addEventListener("keydown", onKeydown as EventListener);
   ledger.defer(() => keyTarget.removeEventListener("keydown", onKeydown as EventListener));
@@ -347,6 +584,26 @@ function renderShell(
     },
   };
 
+  const primaryHandle: PrimaryActionHandle | undefined = primary && {
+    element: primary.element,
+    isCollapsed: () => primary.isCollapsed(),
+    refresh: () => {
+      if (!ledger.isClosed) primary.refresh();
+    },
+  };
+
+  const appearanceHandle: AppearanceHandle | undefined =
+    appearance && darkCapable
+      ? {
+          choice: () => appearance.choice(),
+          setChoice: (choice) => {
+            if (ledger.isClosed) return;
+            appearance.setChoice(choice);
+            menu.refresh();
+          },
+        }
+      : undefined;
+
   const inspectorHandle: InspectorHandle | undefined = inspector && {
     element: inspector.element,
     isOpen: () => inspector.isOpen(),
@@ -371,6 +628,8 @@ function renderShell(
     tooltip: tooltipHandle,
     legend: legendHandle,
     inspector: inspectorHandle,
+    primary: primaryHandle,
+    appearance: appearanceHandle,
     setZoomTarget(target: ZoomTarget | null) {
       if (!ledger.isClosed) zoomPanel.setTarget(target);
     },
@@ -396,8 +655,16 @@ function renderShell(
     },
     setProblems(summary) {
       if (ledger.isClosed || !pill) return;
+      const listHadFocus = popover?.element.contains(ownerDocument.activeElement) ?? false;
       pill.set(summary);
       setState("data-problems", pill.isShown() ? "shown" : null);
+      popover?.setItems(summary.items ?? []);
+      if (!pill.isShown() && popover?.isOpen()) {
+        popover.close();
+        // The pill went with the list, so the focus cannot return to it.
+        if (listHadFocus) focusCanvasOrTrigger();
+      }
+      updateBottomRow();
       placeHint();
     },
     setStatus(next, statusOptions) {
@@ -428,6 +695,9 @@ function renderShell(
       applyReadOnly();
     },
     isReadOnly: () => readOnly,
+    setEmptyState: setEmptyStateShown,
+    isEmptyStateShown: () => emptyState?.isShown() ?? false,
+    toast: showToast,
     destroy() {
       ledger.close();
     },

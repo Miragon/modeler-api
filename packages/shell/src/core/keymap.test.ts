@@ -3,6 +3,7 @@ import {
   TEXT_FIELD_SELECTOR,
   ariaKeyShortcuts,
   ariaKeyShortcutsFromLabel,
+  commandKeyLabel,
   decideKey,
   detectPlatform,
   isUndoRedoKey,
@@ -456,6 +457,40 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       stopPropagation: host === "ide" && row.stopInIde,
     };
     expect(decideKey(row.event, { ...nothingOpen, ...row.context, host })).toStrictEqual(expected);
+  });
+
+  it("leaves the zoom keys and Shift + 1 to the browser behind the web app's start screen", () => {
+    const startScreen: KeyContext = { ...nothingOpen, host: "web", startScreen: true };
+    for (const event of [zoomIn, press("-", "Minus", meta), press("0", "Digit0", meta), fit]) {
+      expect(decideKey(event, startScreen)).toEqual({ preventDefault: false, stopPropagation: false });
+    }
+    expect(decideKey(escape, { ...startScreen, menuOpen: true })).toEqual({
+      action: "closeMenu",
+      preventDefault: true,
+      stopPropagation: false,
+    });
+    expect(decideKey(zoomIn, { ...startScreen, startScreen: false })).toEqual({
+      action: "zoomIn",
+      preventDefault: true,
+      stopPropagation: false,
+    });
+    // The IDE host has no start screen; its zoom keys never reach VS Code.
+    expect(decideKey(zoomIn, { ...nothingOpen, startScreen: true })).toMatchObject({ stopPropagation: true });
+  });
+});
+
+describe("commandKeyLabel", () => {
+  it("writes ⌘ on macOS and the localized Ctrl elsewhere", () => {
+    expect(commandKeyLabel("O", "mac", defaultMessages.keyNames)).toBe("⌘O");
+    expect(commandKeyLabel("S", "other", defaultMessages.keyNames)).toBe("Ctrl+S");
+    expect(commandKeyLabel("O", "other", { ctrl: "Strg" })).toBe("Strg+O");
+  });
+
+  it("gives labels that name the same keys for aria-keyshortcuts", () => {
+    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("O", "mac", defaultMessages.keyNames))).toBe("Meta+O");
+    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("S", "other", defaultMessages.keyNames))).toBe(
+      "Control+S",
+    );
   });
 });
 

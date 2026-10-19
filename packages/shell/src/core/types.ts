@@ -36,9 +36,26 @@ export interface Insets {
  */
 export type ShellHost = "ide" | "web" | "embedded";
 
-/** The `data-chrome` names of the islands (guide §5.2, §13.4). `primary` is reserved for the web app. */
+/**
+ * The `data-chrome` names of the chrome (guide §5.2, §13.4). The web column adds `primary`, `legal`,
+ * `toasts`, `empty-state`, `drop-zone` and `problems-popover` (0.2); IDE and embedded hosts never
+ * show `primary`, `legal`, `empty-state` and `drop-zone`, the IDE host never `toasts` and
+ * `problems-popover`.
+ */
 export type ChromeIsland =
-  "menu" | "palette" | "primary" | "zoom" | "problems" | "legend" | "inspector" | "status";
+  | "menu"
+  | "palette"
+  | "primary"
+  | "zoom"
+  | "problems"
+  | "legend"
+  | "inspector"
+  | "status"
+  | "legal"
+  | "toasts"
+  | "empty-state"
+  | "drop-zone"
+  | "problems-popover";
 
 export const CHROME_ISLANDS: readonly ChromeIsland[] = [
   "menu",
@@ -49,6 +66,11 @@ export const CHROME_ISLANDS: readonly ChromeIsland[] = [
   "legend",
   "inspector",
   "status",
+  "legal",
+  "toasts",
+  "empty-state",
+  "drop-zone",
+  "problems-popover",
 ];
 
 /** Where the palette sits: in the top row, or in the second row below it (guide §5.15). */

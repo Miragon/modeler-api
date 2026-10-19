@@ -7,7 +7,11 @@ import type { ElementFacts, RelativeBox, ToolWindow } from "./page-tools.js";
 
 export type ZoomButton = "out" | "actual" | "in" | "fit";
 
-/** The chrome parts in the DOM (and tab) order of guide §5.14. */
+/**
+ * The chrome parts in the DOM (and tab) order of guide §5.14; the web app adds the primary action
+ * after the menu trigger, the start screen card after the hint, the legal line before the zoom
+ * panel and the toast stack last (API.md, Web host).
+ */
 export const DOM_ORDER = [
   "menu",
   "primary",
@@ -15,16 +19,28 @@ export const DOM_ORDER = [
   "canvas",
   "status",
   "hint",
+  "empty-state",
   "inspector",
   "problems",
   "legend",
+  "legal",
   "zoom",
+  "toasts",
 ] as const;
 
 export type OrderedPart = (typeof DOM_ORDER)[number];
 
 export interface PaletteEntryFacts extends ElementFacts {
   group: string | null;
+}
+
+/** A link of the web app's legal line. */
+export interface LinkFacts {
+  text: string;
+  href: string;
+  lang: string | null;
+  target: string | null;
+  rel: string | null;
 }
 
 export interface AriaFacts {
@@ -54,6 +70,15 @@ export interface AriaFacts {
   legendTitle: string | null;
   legendClose: ElementFacts | null;
   inspector: ElementFacts | null;
+  /** The web app's primary action (`[data-chrome="primary"]`). */
+  primary: ElementFacts | null;
+  /** The root's `data-primary="collapsed"`. */
+  primaryCollapsed: boolean;
+  /** The web app's legal line and its links, in order. */
+  legal: ElementFacts | null;
+  legalLinks: LinkFacts[];
+  /** The element the pill's `aria-controls` names (the web app's problems list). */
+  problemsControlled: ElementFacts | null;
 }
 
 export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
@@ -76,6 +101,8 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
   }
   const legend = find('[data-chrome="legend"]');
   const labelledBy = legend?.getAttribute("aria-labelledby");
+  const legal = find('[data-chrome="legal"]');
+  const pillControls = find('[data-chrome="problems"]')?.getAttribute("aria-controls");
   const parts: Array<[string, Element | null]> = [
     ["menu", trigger],
     ["primary", find('[data-chrome="primary"]')],
@@ -85,13 +112,17 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
     ["hint", find(".cd-shell-hint")],
     ["inspector", find('[data-chrome="inspector"]')],
     ["problems", find('[data-chrome="problems"]')],
+    ["empty-state", find('[data-chrome="empty-state"]')],
     ["legend", legend],
+    ["legal", find('[data-chrome="legal"]')],
     ["zoom", zoom],
+    ["toasts", find('[data-chrome="toasts"]')],
   ];
   const present = parts.filter((part): part is [string, Element] => part[1] !== null);
   present.sort(([, a], [, b]) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
   const titledSelector = [
     '[data-chrome="menu"][title]',
+    '[data-chrome="primary"][title]',
     '[data-chrome="palette"] [data-action][title]',
     '[data-chrome="zoom"] [title]',
     '[data-chrome="problems"][title]',
@@ -130,6 +161,17 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
       : null,
     legendClose: factsOf(legend?.querySelector("button")),
     inspector: factsOf(find('[data-chrome="inspector"]')),
+    primary: factsOf(find('[data-chrome="primary"]')),
+    primaryCollapsed: rootElement.getAttribute("data-primary") === "collapsed",
+    legal: factsOf(legal),
+    legalLinks: [...(legal?.querySelectorAll("a") ?? [])].map((link) => ({
+      text: (link.textContent ?? "").replace(/\s+/g, " ").trim(),
+      href: link.getAttribute("href") ?? "",
+      lang: link.getAttribute("lang"),
+      target: link.getAttribute("target"),
+      rel: link.getAttribute("rel"),
+    })),
+    problemsControlled: factsOf(pillControls ? document.getElementById(pillControls) : null),
   };
 };
 
@@ -559,8 +601,17 @@ export interface MenuEntryFacts {
   /** `data-menu-id` of the item or its radio group. */
   menuId: string | null;
   disabled: boolean;
-  /** `data-menu-group` of the item or its radio group: the shell's `model`, `export` or `help`. */
+  /**
+   * `data-menu-group` of the item or its radio group: the shell's `model`, `export` and `help`,
+   * in the web app also `file` and `appearance`.
+   */
   group: string | null;
+  /** `data-menu-value` of a radio option. */
+  value: string | null;
+  /** `aria-checked` of a checkbox or radio entry. */
+  checked: string | null;
+  /** Whether the entry's icon column holds an icon (guide §5.4, only the common set of §5.14). */
+  icon: boolean;
 }
 
 export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] | null => {
@@ -581,6 +632,9 @@ export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] |
       menuId: element.closest("[data-menu-id]")?.getAttribute("data-menu-id") ?? null,
       disabled: element.getAttribute("aria-disabled") === "true",
       group: element.closest("[data-menu-group]")?.getAttribute("data-menu-group") ?? null,
+      value: element.getAttribute("data-menu-value"),
+      checked: element.getAttribute("aria-checked"),
+      icon: element.querySelector(".cd-shell-menu-item-icon svg") !== null,
     });
   }
   return entries;

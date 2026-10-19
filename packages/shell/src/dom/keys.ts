@@ -5,6 +5,8 @@ export interface KeyListenerContext {
   /** Where dialogs and popovers count: the document in an own document, else the shell root. */
   dialogScope: ParentNode;
   menuOpen(): boolean;
+  /** The web app's start screen shows: the zoom keys belong to the browser (`KeyContext.startScreen`). */
+  startScreen?: (() => boolean) | undefined;
   closeMenu(): void;
   hideTooltip(): void;
   run(key: ChromeKey): void;
@@ -38,6 +40,11 @@ function openDialogs(scope: ParentNode): Element[] {
   return [...scope.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog')].filter(isShown);
 }
 
+/** A shown modal dialog in `scope`, by the keys' own test (the drop zone forbids drops meanwhile). */
+export function isModalOpen(scope: ParentNode): boolean {
+  return openDialogs(scope).some(isModal);
+}
+
 /** The shell's one `keydown` listener (bubble phase): applies `decideKey` (guide §5.8, §13.5). */
 export function createKeyListener(context: KeyListenerContext): (event: KeyboardEvent) => void {
   return (event) => {
@@ -50,6 +57,7 @@ export function createKeyListener(context: KeyListenerContext): (event: Keyboard
       dialogOpen: dialogs.length > 0,
       modalOpen: dialogs.some(isModal),
       defaultPrevented: event.defaultPrevented,
+      startScreen: context.startScreen?.() ?? false,
     });
     if (decision.preventDefault) event.preventDefault();
     if (decision.stopPropagation) event.stopPropagation();

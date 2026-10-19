@@ -74,6 +74,11 @@ export interface KeyContext {
   modalOpen: boolean;
   /** `event.defaultPrevented` when the listener ran: the canvas (or the modeler) handled the key. */
   defaultPrevented: boolean;
+  /**
+   * The web app's start screen shows (`setEmptyState(true)`): there is no diagram to zoom, so the
+   * zoom keys and Shift+1 are left to the browser, which zooms the page.
+   */
+  startScreen?: boolean | undefined;
 }
 
 export type KeyAction = ChromeKey | "closeMenu";
@@ -91,6 +96,7 @@ export interface KeyDecision {
  *    or a dialog/popover is open. During IME composition Escape belongs to the IME: no `closeMenu`.
  * 2. Zoom keys: executed and prevented unless composing, in a text field or with a modal dialog;
  *    in the IDE host always stopped, also when not executed (VS Code must never zoom the window).
+ *    Behind the web app's start screen untouched: the browser zooms the page (WCAG 1.4.4).
  * 3. Shift+1: `fit` under the same conditions; otherwise untouched (it types "!").
  * 4. IDE host, text field, undo/redo key: stopped only (the field keeps its native undo).
  * 5. IDE host, `defaultPrevented`: stopped (the canvas handled it; VS Code must not run it again).
@@ -109,6 +115,7 @@ export function decideKey(event: KeyLike, context: KeyContext): KeyDecision {
 
   const chromeKey = matchChromeKey(event);
   if (chromeKey !== undefined) {
+    if (context.startScreen === true && !stop) return { preventDefault: false, stopPropagation: false };
     const blocked = composing || context.inTextField || context.modalOpen;
     if (!blocked) return { action: chromeKey, preventDefault: true, stopPropagation: stop };
     // Blocked zoom keys are still kept from VS Code (it would zoom the window); a blocked Shift+1
@@ -160,6 +167,19 @@ export function shortcutLabel(
     case "fit":
       return `${keyNames.shift}+1`;
   }
+}
+
+/**
+ * The chip of a Cmd/Ctrl key a modeler binds itself (the web app's File entries, guide §5.4): macOS
+ * `⌘O`, elsewhere `Ctrl+O` with the key name of the messages table (`Strg+O`). `key` as printed on
+ * the key cap; pass the result to `FileMenuAction.shortcut` or `MenuActionEntry.shortcut`.
+ */
+export function commandKeyLabel(
+  key: string,
+  platform: Platform,
+  keyNames: Pick<ShellMessages["keyNames"], "ctrl">,
+): string {
+  return platform === "mac" ? `⌘${key}` : `${keyNames.ctrl}+${key}`;
 }
 
 const MAC_SHORTCUT_LABELS: Readonly<Record<ChromeKey, string>> = {

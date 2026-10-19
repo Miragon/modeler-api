@@ -512,6 +512,32 @@ describe("keyboard", () => {
     expect(native.defaultPrevented).toBe(false);
   });
 
+  it("behind the web app's start screen leaves a chrome key to the browser: no zoom, not prevented", () => {
+    const diagram = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule, shellModule]);
+    const shell = fakeShell("Tools", "web");
+    let startScreen = true;
+    Object.assign(shell.handle, { isEmptyStateShown: () => startScreen });
+    connect(diagram, shell);
+    const stepZoom = vi
+      .spyOn(diagram.get<{ stepZoom(delta: number): void }>("zoomScroll"), "stepZoom")
+      .mockImplementation(() => {});
+    const press = () => {
+      const event = new KeyboardEvent("keydown", {
+        key: "+",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      svgOf(diagram).dispatchEvent(event);
+      return event;
+    };
+    expect(press().defaultPrevented).toBe(false);
+    expect(stepZoom).not.toHaveBeenCalled();
+    startScreen = false;
+    expect(press().defaultPrevented).toBe(true);
+    expect(stepZoom).not.toHaveBeenCalled();
+  });
+
   it("in the IDE host leaves undo and redo to VS Code: no commandStack, not prevented (guide §13.5)", () => {
     const modules = [CommandModule, KeyboardModule, EditorActionsModule, shellModule];
     const undo = (diagram: Diagram) =>

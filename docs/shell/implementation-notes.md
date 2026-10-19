@@ -3,9 +3,10 @@
 `@miragon/modeler-shell` is the shared, framework-free implementation of everything around a
 Miragon diagram-js modeler: menu button, tool palette, tooltips, zoom panel, keys, fit, problems pill,
 legend, status box and the plumbing to its host (a VS Code webview, a web app, or an embedding host
-such as designIQ). **Status: 0.1** in [`packages/shell`](../../packages/shell), Phase 4 of
-[#4](https://github.com/Miragon/modeler-api/issues/4); its public API is documented in
-[`packages/shell/API.md`](../../packages/shell/API.md). Where building 0.1 showed a note to be wrong or
+such as designIQ). **Status: 0.2** in [`packages/shell`](../../packages/shell), Phase 4 of
+[#4](https://github.com/Miragon/modeler-api/issues/4): 0.1 brought the IDE host, 0.2 the web app's
+chrome (see [Web app host](#web-app-host)); its public API is documented in
+[`packages/shell/API.md`](../../packages/shell/API.md). Where building it showed a note to be wrong or
 incomplete, the note was corrected here.
 
 The source of truth for look and behaviour is the Miragon design system: the Claude skill
@@ -94,14 +95,14 @@ content.
 | legend content                                                            | legend (§5.10)                              |
 | entries of the Model menu group                                           | menu (§5.4)                                 |
 | palette entries with name and shortcut (`title`, `shortcut`)              | palette and its tooltip (§5.5, §5.6)        |
-| the list of keyboard shortcuts                                            | "Keyboard shortcuts…" dialog (§5.4, 0.2)    |
+| the list of keyboard shortcuts                                            | "Keyboard shortcuts…" dialog (§5.4, later)  |
 | the inspector                                                             | inspector (§5.11)                           |
 
 What stays with the modeler, because only it knows its elements: keyboard creation from the palette
 at `viewport.freeRectCenter()` (see [Palette](#palette)), the canvas lock of a read-only file
 (context pad, move, resize, delete, paste, label editor; see [Status box](#status-box)), select all
-on the canvas (see [VS Code: key interception](#vs-code-key-interception)) and, in 0.1, the
-"Keyboard shortcuts…" dialog itself (see [Modeler dialogs](#modeler-dialogs)).
+on the canvas (see [VS Code: key interception](#vs-code-key-interception)) and, until the shell has
+a dialog component, the "Keyboard shortcuts…" dialog itself (see [Modeler dialogs](#modeler-dialogs)).
 
 The shell talks to diagram-js only through public services and events (`canvas`, `zoomScroll`,
 `keyboard`, `palette`, `eventBus`). It never reads private fields such as `palette._container`, which
@@ -306,8 +307,8 @@ tab order.
   of the container minus the fit insets, in diagram coordinates, as fit computes it), creates the
   shape there with `modeling.createShape`, selects it, calls `canvas.focus()` and opens its label
   editor. The provider is built before `connectDiagramJs`, so it receives a function and reads the
-  viewport when the entry fires. The 24px step is the provider's in 0.1; a shared placement helper is
-  a 0.2 candidate. Shell conformance (`create`) presses Enter on the first creating entry and expects
+  viewport when the entry fires. The 24px step is the provider's; a shared placement helper is a
+  later candidate. Shell conformance (`create`) presses Enter on the first creating entry and expects
   exactly one new, selected shape whose centre lies in the free rectangle.
 - **Read-only** (guide §13.5). Only Lasso and Hand stay active; every other entry changes the diagram
   and is vetoed, also tools of group `tools` such as draw, space or connect. `palette.trigger`
@@ -490,7 +491,8 @@ the modeler know the same key.
 **Guide [§5.8][guide-5.8].** Rule: in its own document the keys work wherever the focus is, except in
 text fields and while a dialog is open; embedded in a foreign page only while the focus is inside the
 modeler. In the web app Cmd/Ctrl + `+`, `-` and `0` zoom the diagram, not the page, except in text
-fields and dialogs.
+fields and dialogs. The shell reads "dialogs" as modal dialogs: a non-modal popover (the problems
+list) does not block the keys; whether §5.8 means that too is an open question for the guide.
 
 - Own document (VS Code webview, web app, iframe): one `keydown` listener on `document`, bubble
   phase. The diagram-js keyboard on the `<svg>` has run by then, so `defaultPrevented` tells the
@@ -504,8 +506,10 @@ fields and dialogs.
 - Foreign page (embedded without iframe): the listener sits on the shell root. `keydown` is
   dispatched to the focused element, so it only reaches the root while the focus is inside it.
 - Web app: call `preventDefault()` on Cmd/Ctrl + `+`, `-` and `0` unless the focus is in a text field
-  or a dialog, so the browser does not zoom the page. In text fields and dialogs do nothing: the
-  browser zooms the page. Zooming via the browser menu always stays possible.
+  or a modal dialog is open, so the browser does not zoom the page. In text fields and modal dialogs
+  do nothing: the browser zooms the page. Behind the start screen do nothing either: there is no
+  diagram to zoom, so Ctrl+ is the browser's (WCAG 1.4.4), and the diagram-js guard returns `false`
+  so diagram-js zooms nothing. Zooming via the browser menu always stays possible.
 - What the listener additionally stops in an IDE host: see
   [VS Code: key interception](#vs-code-key-interception).
 
@@ -605,8 +609,8 @@ fit does nothing.
   centre of the free rectangle. That write is the viewport's own, not a user move, so the first
   content still fits; later re-imports and `restore`s of the empty file keep the view. At 0 × 0 (a
   tab hidden at the first import) the 100 % waits for the first real size. A kit check that an empty
-  document opens at 100 % with the hint is a 0.2 candidate (it needs a harness that opens more than
-  one document).
+  document opens at 100 % with the hint is a later candidate (it needs a harness that opens more
+  than one document).
 
 ### Resize
 
@@ -749,7 +753,7 @@ it the palette lies above context pad and label editor.
   palette while they are open, as diagram-js's own popup menu does. Everything stays inside
   `.djs-container`, and so below every island. This is the rule of guide §5.13 since design system
   1.13.0. Event Storming shipped its note toolbar and colour picker at 300,
-  above the palette, and nothing flagged it; a kit check for it is a 0.2 candidate. A flat "100 at
+  above the palette, and nothing flagged it; a kit check for it is a later candidate. A flat "100 at
   most" would flag diagram-js's popup menu itself, hence the split into persistent and transient.
 
 ## Modeler dialogs
@@ -759,8 +763,8 @@ it the palette lies above context pad and label editor.
 header with Close; it holds the focus and returns it; Escape and the backdrop close it. The Help
 group's "Keyboard shortcuts…" is such a dialog, with one table per group (View, Edit, Tools).
 
-0.1 has no dialog component, so a modeler's dialog meets these rules on its own (a shared
-`cd-shell-dialog` class and `showShortcutsDialog` are 0.2 candidates):
+0.2 has no dialog component, so a modeler's dialog meets these rules on its own (a shared
+`cd-shell-dialog` class and `showShortcutsDialog` are later candidates):
 
 - Open it with `showModal()`: the top layer puts it above every island without a layer token, the
   browser makes the rest of the page inert, and `:modal` tells the shell's key listener that a modal
@@ -817,7 +821,8 @@ The resulting DOM order of the shell root:
 ```
 
 The palette comes before the `<svg>` because the shell moves it there (see [Palette](#palette)); the
-primary action exists only in the web app. Dropdowns, popovers and the tooltip live in the layer
+primary action exists only in the web app, which also puts the empty-state card after the hint and
+the legal line before the zoom panel (see [Web app host](#web-app-host)). Dropdowns, popovers and the tooltip live in the layer
 element described under [Tooltip](#tooltip) and are reached through their triggers, not by Tab.
 
 ### The canvas as a tab stop
@@ -927,6 +932,192 @@ the contract's `appearance` surface (a later 1.x minor) an embedded modeler stay
   (both on the same element, as the token CSS requires); in its own webview they stay on `<html>`.
 - Appearance is view state: `onContentChanged` never fires for it, and it has no effect on
   `exportText` or image exports.
+
+## Web app host
+
+The web column of guide §5.2 (0.2): what a Miragon web app shows around the canvas that the IDE and
+embedded hosts leave to their host. `mountShell({ host: "web" })` renders it; the API is in
+[`API.md`](../../packages/shell/API.md), "Web host (0.2)". The Wardley Maps web app was the
+reference implementation for this chrome; these notes record where the shell had to settle a case
+the guide leaves open.
+
+### Primary action and the label collapse
+
+**Guide [§5.7][guide-5.7], [§5.15][guide-5.15].** Rule: the primary action is a blue primary button at
+`top: 12px; right: 12px`, 40px high; when the top row gets tight, it loses its label first (the
+`aria-label` stays), only then does the palette move.
+
+- `decideTopRow` (`./core`) tries the labelled width, then the icon-only width (40), then moves the
+  palette to the second row, where the label comes back if it keeps 16px to the menu trigger. The
+  layout pass runs it on every resize of the root, the palette and the primary action itself: the
+  label widens once Geist has loaded, so a decision made with the fallback font would stay wrong.
+- While the label shows, its width is measured afresh each pass. While collapsed, the label shows
+  for one synchronous layout (`offsetWidth` with the label, then hidden again before the browser
+  paints), so the decision can bring it back; the result is cached until `primary.refresh()`.
+- The 40 × 40 style keys on an internal `data-collapsed` on the button, not on the root's
+  `data-primary`, so measuring never touches root state (and never fires a root mutation).
+- Collapsed, the chrome tooltip shows the label without `aria-describedby`: the tooltip repeats the
+  accessible name. Expanded, it has no tooltip at all.
+
+### Legal line and the bottom row
+
+**Guide [§5.10][guide-5.10], [§2][guide-2].** Rule: the web app's bottom left stacks the legal line at
+`bottom: 12px`, then the pill at 40, then the legend at 40 or 88; the line is 13px/20px on glass
+without border and shadow, its links in `--cd-ui-link`; "Impressum" and "Datenschutz" stay German
+with `lang="de"`.
+
+- Copyright, URLs and labels are the docs-site kit's (`miragon/legal.ts` in corporate-identity):
+  `https://www.miragon.io/`, `/impressum/`, `/datenschutz/`, each `target="_blank"` with
+  `rel="noopener noreferrer"`, separated by `aria-hidden` middle dots, in a `<nav aria-label>`.
+  Every link has `aria-describedby` on one hidden "Opens in a new tab" (technique G201). The kit
+  renders the copyright as plain text; the shell links it to the home page as the Wardley web app
+  does, which the product owner may still settle either way.
+- The guide places the zoom panel at `bottom: 12px` and the legal line at `bottom: 12px` and does
+  not say what happens where they meet. With a GitHub link the line is about 391px wide, so they
+  meet below about 600px. `zoomRowRaised` decides with the measured boxes (less than 8px between
+  them) and the zoom panel then stands at `bottom: 40px` like the pill; the fit keeps 92px at the
+  bottom, and up to 440px the legend's lowest position is 88px. The bottom-row tooltip moves with
+  it (8px above the raised panel, 88px).
+- Where the line is wider than the container allows (`100cqw − 24px`; with a GitHub link below
+  about 415px), it wraps between its entries instead of scrolling: a scrolled line cut Datenschutz
+  mid-word at 320px and hid GitHub, with no visible way to scroll (WCAG 1.4.10; Datenschutz must be
+  reachable anyway). Each separator travels with the link after it. The line grows upwards from
+  `bottom: 12px`; the shell measures its height in whole lines (`legalLineHeight`) into
+  `--modeler-shell-legal-height` on the root, and the pill, the problems popover, the legend, the
+  raised zoom panel and the fit's bottom (`FitLayout.legalHeight`) stand on it. The kit checks at
+  320px that every link lies whole inside the line.
+
+### Toasts
+
+**Guide [§8][guide-8], [§9][guide-9].** Rule: toasts sit bottom centre at `bottom: 12px`, at most three,
+the newest at the bottom; about 2.8s, errors about 5s, paused while hovered or focused; one with an
+action never closes by itself; layer 60.
+
+- Layer 60 loses against a `showModal()` dialog, which lives in the top layer. The stack is
+  therefore a `popover="manual"` in the web host, hidden and shown again with a toast that arrives
+  while a modal dialog is open: a popover shown later stacks above a modal opened earlier. Without a
+  modal it is not re-shown, which would take every shown toast out of the accessibility tree and put
+  it back. Re-showing drops the focus of a toast that held it, so the toaster puts it back. Everything outside a modal dialog is inert, the top layer
+  included: a toast above a dialog is visible, but its buttons react only after the dialog closed.
+  The kit therefore checks the stacking (the stack's `toggle` after the dialog opened and
+  `:popover-open`), not a click.
+- In the embedded host the stack is absolute inside the root (a foreign page's top layer is not the
+  modeler's to use).
+- `toastStackBottom` keeps the centred column of the widest card 8px above a zoom panel, legal
+  line or pill it would come closer than 8px to horizontally, and 12px otherwise (guide §8 does not
+  settle the collision). The column is the card's, not the stack's 480px: at 1280px with a GitHub
+  link the legal line ends 7.5px before the stack, and testing the stack lifted every toast to 40
+  although "Link copied" (146px) stands far from the line. It is recomputed in the layout pass,
+  whenever a toast comes or goes, and whenever the pill, the inspector (a bottom sheet hides zoom
+  panel and pill) or the start screen changes.
+- Screen readers hear toasts through two live regions in the root, rendered from mount on and
+  visually hidden: `role="status"` (polite) and `role="alert"`. A live region inserted together
+  with its text is often not announced (NVDA with Chrome, VoiceOver with Safari), and the stack is
+  `display: none` and a closed popover while empty, so the cards cannot be the live regions. The
+  text arrives 100ms after the region was emptied, which also announces a repeated toast; the cards
+  carry no live role, so nothing is read twice. Each Close button is described by its toast's text.
+- A repeated request (same status and text) restarts the shown toast and takes the new request's
+  action and lifetime, so a second "Board replaced · Undo" undoes the latest replacement, not the
+  first one.
+- A timer paused by hover or focus resumes with at least 1.5s, so a toast does not vanish the moment
+  the pointer leaves. The leave animation ends on `animationend`, with a 400ms fallback timer
+  (an animation that never runs, in a hidden stack or under a page's `animation: none`, never fires
+  it); under reduced motion the toast goes at once.
+- Cards are as wide as their content, at most the stack's `min(480px, 100cqw − 24px)`, as in the
+  Wardley and Team Topologies web apps.
+
+### Problems popover
+
+**Guide [§5.10][guide-5.10].** Rule: in the web app a click on the pill opens the list as a popover above
+it, `role="dialog"` without `aria-modal`, titled "Problems"; a click on a row selects its element.
+
+- It is a non-modal dialog in the shell's layer, so the zoom keys keep working; like the menu it
+  stops Enter, Space, Delete, Backspace and printable keys, so a modeler's document keyboard
+  (Event Storming deletes the selection on Delete) never acts on them, and ↑/↓/Home/End move
+  between the rows.
+- Rows without an element are text, but they take the focus (`tabindex="-1"`): with only buttons
+  focusable, a list of line findings (Event Storming's parser names lines, not elements) left the
+  focus on the popover, whose keys were consumed, so a keyboard could not read past the visible
+  rows (WCAG 2.1.1). The focused row scrolls into the list by adjusting the list's `scrollTop` only:
+  `focus()` and `scrollIntoView()` would also scroll the `overflow: hidden` shell root.
+- Tab from the last row closes the popover onto the pill without preventing the browser's Tab,
+  which then moves on from the pill; Shift+Tab from the first row is prevented and lands on the
+  pill.
+- The severity shows as the pill's icon (shape and colour); for screen readers the icon is
+  `role="img"` with `messages.problemSeverity` ("Error", "Warning"), so colour and shape are not the
+  only signal (guide §12).
+- When `setProblems` drops to 0 or the start screen shows while the list holds the focus, the focus
+  moves to the canvas (else the menu trigger) instead of falling to `<body>`.
+
+### Start screen
+
+**Guide [§8][guide-8].** Rule: on a fresh start the web app shows the empty-state card and hides the
+work chrome; only the card and the legal line are visible; once someone starts, the chrome appears.
+
+- The work chrome (menu trigger, primary action, palette, zoom panel, pill, legend, status box, hint,
+  inspector) gets `visibility: hidden`, which also removes it from the tab order and the
+  accessibility tree; the canvas slot gets `inert`, so neither a click nor Tab reaches the diagram.
+  The chrome keys go to the browser: with no diagram to zoom, a swallowed Ctrl+ would leave a
+  low-vision user without page zoom and without a way to reset a stored one with Ctrl+0.
+- The menu is hidden and a drop needs a pointer, so the hint ends in a text link to the File
+  group's "Open…" (with its shortcut chip and `aria-keyshortcuts`): the keyboard's way to a file on
+  the start screen. It is part of the hint, not a third action beside the two buttons of §8, and it
+  leaves the card up until the modeler's import ends the start screen (a cancelled file picker
+  changes nothing).
+- A closing toast that held the focus on the start screen hands it to "New diagram": the canvas is
+  inert and the menu trigger `visibility: hidden`, so both `focus()` calls failed silently and the
+  focus fell to `<body>`. The fallback now checks that a target really took the focus.
+- When the card hides through one of its buttons, the focus goes to the canvas `<svg>` before the
+  handler runs. When the card shows while the focus is in the work chrome or the canvas, the focus
+  goes to "New diagram"; a focus on the legal line or a toast stays where it is.
+- The Komet is `draggable="false"`: in Chromium an image drag can carry a file and would open the
+  drop zone over the card.
+
+### Drop zone
+
+**Guide [§9][guide-9].** Rule: a file dragged over the page shows a 12px inset overlay with a dashed
+border and the chip "Drop file here"; a drop the modeler cannot take shows the forbidden state with
+the cursor `not-allowed`.
+
+- The listeners are on `window`: the page is the drop target, not the canvas. `dragenter` and
+  `dragleave` fire for every element the pointer crosses, so only the outermost pair counts (a depth
+  counter); `dragover` also shows a drag that entered before the listener existed.
+- Only drags with items of kind `"file"` count, so diagram-js's palette drags and text dragged into
+  the label editor stay alone. Every file drag is `preventDefault`-ed: unprevented, the browser
+  opens the file in place of the app.
+- Before the drop the browser hides the file names and offers only MIME types, which may be empty
+  (often empty for an extension the system does not know, such as `.storm`). `dragVerdict` therefore
+  forbids by type only when every file has a MIME type that none of `accept`'s MIME entries
+  matches; an empty type never forbids. At the drop `acceptsFile` decides by extension and type.
+- `dropEffect = "none"` on the last `dragover` shows the `not-allowed` cursor, and the browser then
+  fires no `drop`. A synthetic `drop` (a test) is split by `acceptsFile` like any other; one
+  forbidden for `multiple` or an open dialog opens nothing.
+- A constructed `DataTransfer` ignores writes to `dropEffect` in Chromium, so the kit hands the
+  handlers a proxy that records them.
+- The overlay paints a 12px `--cd-ui-grund` rim around itself (`box-shadow` spread), so the corners
+  of the islands under it do not show beside its rounded frame.
+
+### Mode before the first paint
+
+**Guide [§13.3][guide-13.3].** Rule: a light-only modeler writes `data-cd-theme="light"`, one
+`theme-color` without `media` and of the script only the contrast line; a dark-capable one writes
+`system`, the whole script and both `theme-color`s; the choice lives in
+`localStorage["miragon.darstellung"]`, "System" removes it; switching sets one frame of
+`transition: none`.
+
+- `webHeadMarkup` returns the metas and the inline script for the page's `<head>` (a Vite
+  `transformIndexHtml` hook, before the first stylesheet). The script is ES5 in an immediately
+  invoked function, reads the storage inside `try`/`catch` (it throws when storage is blocked),
+  tolerates a missing `color-scheme` meta, and JSON-escapes every literal with `<`, U+2028 and
+  U+2029 escaped as well, so a colour value can never end the `<script>` element.
+- At runtime `shell.appearance` keeps the choice in memory: read once at mount, then set by
+  `setChoice` and by `storage` events of other tabs (a cleared storage is `system`). A choice a
+  blocked storage refused still holds for the page. Mounting does not apply the mode again; the head
+  script owns the first paint.
+- `cd-shell-no-transition` stays on `<html>` until the second animation frame (one frame is not
+  always a painted frame), and a new switch or `destroy` cancels the pending removal.
+- `(prefers-contrast: more)` is mirrored on `<html>` (`data-cd-kontrast="hoch"`) at mount and on
+  every change, for light-only modelers as well.
 
 ## VS Code host
 
@@ -1182,7 +1373,7 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   serves it through Playwright's `page.route` behind `renderWebviewHtml` (a fixed nonce, the VS Code
   stub as a nonce'd script in `body` that also records `securitypolicyviolation`), and fails on any
   violation, page error or missing font (recipe in [`API.md`](../../packages/shell/API.md),
-  `./vscode/extension`). A kit helper for it is a 0.2 candidate.
+  `./vscode/extension`). A kit helper for it is a later candidate.
 - Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on` holds
   without it) and hands the result to the webview only as the body class `vscode-reduce-motion`;
   `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole session as a class of
@@ -1219,8 +1410,9 @@ These topics stay in the design guide because they are not part of the shell:
   Phase 7 of [#4](https://github.com/Miragon/modeler-api/issues/4) own them);
 - light-only export (guide §10.7);
 - the token files and the token module (guide §13.1, §13.2);
-- the mode recipes for IntelliJ, Electron, Tauri and Theia and the web-app bootstrap script with its
-  `localStorage` key (guide §13.3);
+- the mode recipes for IntelliJ, Electron, Tauri and Theia (guide §13.3); the web app's head script
+  and its `localStorage` key are the shell's since 0.2 (`webModeScript`, `webHeadMarkup` and
+  `shell.appearance`, see `packages/shell/API.md`, "Web host (0.2)");
 - the IntelliJ white-flash fix (guide §13.5).
 
 ## Open verification points
@@ -1293,6 +1485,7 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 [guide-5.4]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#54-men%C3%BC-oben-links
 [guide-5.5]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#55-werkzeugpalette-oben-mitte
 [guide-5.6]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#56-tooltip
+[guide-5.7]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#57-oben-rechts
 [guide-5.8]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#58-zoom-panel-unten-rechts
 [guide-5.9]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#59-einpassen
 [guide-5.10]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#510-unten-links-problem-pill-und-legende
