@@ -598,8 +598,7 @@ fit does nothing.
 - `afterImport()` after every successful import carries this: it jump-fits once the bounds are not
   empty, and only the first time (see [Detecting a user move](#detecting-a-user-move) for what
   ends the wait).
-- An empty file shows 100 %. Product decision, guide update pending in Miragon/corporate-identity
-  (§5.9 and §13.5 do not say which zoom an empty file shows). Without it the zoom is whatever the
+- An empty file shows 100 % (guide §5.9 and §13.5 since design system 1.13.0). Without it the zoom is whatever the
   renderer's import left: Event Storming's importer sets a viewbox of its own on every import, and
   an empty board showed 118 %. So on the first import with empty bounds, when no stored view was
   applied (`setState`) and the user has not moved the view, `afterImport()` zooms to 1 around the
@@ -711,8 +710,8 @@ state and the shortcuts dialog stay.
   stay usable: the shell's Legend checkbox (`keepEnabledWhenReadOnly`) and the legend's close button,
   and a modeler's own view state such as Event Storming's "Type captions", which sets
   `keepEnabledWhenReadOnly` itself. A view toggle never touches the document, so a read-only file
-  gives no reason to lock it. Product decision, guide update pending in Miragon/corporate-identity:
-  §13.5 still lists every Model entry as `aria-disabled`.
+  gives no reason to lock it (guide §13.5 since design system 1.13.0: only entries that change the
+  document are `aria-disabled`).
 - The canvas is the modeler's to lock, at the same moment as `setReadOnly(true)`. Event Storming's
   `eventStormingReadOnly` is a `RuleProvider` at priority 5000 that answers `false` for every edit
   rule (`elements.move`, `shape.move`, `shape.resize`, `shape.create`, `elements.create`,
@@ -748,9 +747,8 @@ it the palette lies above context pad and label editor.
   context pad, the label editor) stay at `z-index` 100 or below, under the palette at 110; transient
   popups the user opens from them (diagram-js's popup menu at 200, a colour picker) may cover the
   palette while they are open, as diagram-js's own popup menu does. Everything stays inside
-  `.djs-container`, and so below every island. This is the shell's reading of guide §5.13, which
-  orders only the palette above context pad and label editor (product decision, guide update pending
-  in Miragon/corporate-identity). Event Storming shipped its note toolbar and colour picker at 300,
+  `.djs-container`, and so below every island. This is the rule of guide §5.13 since design system
+  1.13.0. Event Storming shipped its note toolbar and colour picker at 300,
   above the palette, and nothing flagged it; a kit check for it is a 0.2 candidate. A flat "100 at
   most" would flag diagram-js's popup menu itself, hence the split into persistent and transient.
 

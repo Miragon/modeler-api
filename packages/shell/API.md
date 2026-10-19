@@ -554,8 +554,7 @@ interface MenuRadioOption {
   usable on a read-only canvas: the shell's Legend checkbox carries `keepEnabledWhenReadOnly` itself,
   and a modeler sets it on its own pure view state (Event Storming's "Type captions"), never on an
   entry that changes the document (Level, "Map size…"). Export and Help entries are never locked.
-  Product decision, guide update pending in Miragon/corporate-identity: §13.5 still lists every Model
-  entry as `aria-disabled`.
+  Guide §13.5 (design system 1.13.0): only Model entries that change the document are `aria-disabled`.
 - The trigger is `hidden` while no group has an entry (no menu groups and no Legend entry).
 - Keys: Enter, Space and ↓ on the trigger open on the first entry, ↑ on the last; ↑/↓ wrap, Home/End
   jump, a letter jumps to the next entry starting with it; Escape and Tab close (Escape returns focus
@@ -712,7 +711,7 @@ interface StatusMessage {
   the status box): `data-readonly` on the root and the palette entries `aria-disabled`, muted,
   previews in `grayscale(1)`. Repeated calls keep the first timer; `setReadOnly(false)` unlocks and
   hides at once. The legend is a view toggle: its Legend checkbox and its close button keep working
-  under the lock (product decision, guide update pending in Miragon/corporate-identity).
+  under the lock (guide §13.5, design system 1.13.0).
 - The canvas is the modeler's to lock, from the same invalid import on (§13.5, what the read-only
   state blocks): no context pad, no move, resize, delete or paste, and no label editor (also not on
   a double-click). Selection, zoom, pan, the export of the last valid state and the "Keyboard
@@ -889,7 +888,7 @@ Inside the canvas slot, persistent overlays a modeler adds (element toolbars, it
 the label editor) stay at `z-index` 100 or below, under the palette at 110. Transient popups the user
 opens from them (diagram-js's popup menu at 200, a colour picker) may cover the palette while they are
 open. All of them stay inside `.djs-container`, so they never cover an island. This is the shell's
-reading of §5.13 (product decision, guide update pending in Miragon/corporate-identity).
+rule of guide §5.13 (design system 1.13.0).
 
 ## `./diagram-js`
 
@@ -1054,8 +1053,7 @@ insets are the only margin (§5.9), and a padding would add to them.
   empty bounds, without a stored view (`setState`) and without a user move, `afterImport()` zooms to
   1 around the centre of the free rectangle (at 0 × 0 once the container has a size). That write is
   the viewport's own, not a user move, so the first content still fits; later re-imports and
-  `restore`s of the empty file keep the view. Product decision, guide update pending in
-  Miragon/corporate-identity (§5.9, §13.5).
+  `restore`s of the empty file keep the view (guide §5.9 and §13.5, design system 1.13.0).
 - `freeRectCenter()` is the centre of the free rectangle (the container minus `insets()`, as fit
   uses them) in diagram coordinates, for the current viewbox; `undefined` while the container is
   0 × 0 and after `destroy`. It is where keyboard creation places an element.

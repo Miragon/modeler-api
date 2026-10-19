@@ -220,8 +220,7 @@ puts no `tabindex` on it.
 
 `shell.setReadOnly(true)` locks the palette (all but Lasso and Hand) and the Model entries of the
 menu. View toggles stay usable: the shell's Legend checkbox and the legend's close button, and every
-entry with `keepEnabledWhenReadOnly` (product decision, guide update pending in
-Miragon/corporate-identity). The canvas itself is the modeler's to lock: no context pad, move,
+entry with `keepEnabledWhenReadOnly` (guide §13.5 since design system 1.13.0). The canvas itself is the modeler's to lock: no context pad, move,
 resize, delete, paste or label editor. Content the modeler adds to `shell.root` (a "Keyboard
 shortcuts…" dialog) is the modeler's too: it removes it in its own teardown, for example on
 `diagram.destroy`, since `shell.destroy()` removes only what the shell added. The complete Event
