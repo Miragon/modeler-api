@@ -29,7 +29,9 @@ import {
   writeShellState,
   type ShellWebviewState,
 } from "../src/vscode-webview.js";
-import { addSampleShapes, createDemoDiagram, demoContentBounds } from "./demo-diagram.js";
+import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+
+import { addSampleShapes, createDemoDiagram, demoContentBounds, type DemoFlaws } from "./demo-diagram.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
@@ -42,7 +44,10 @@ import { addSampleShapes, createDemoDiagram, demoContentBounds } from "./demo-di
  * - `empty`: start without content; `legend` (`legend=open`: open at start), `inspector`: mount
  *   those slots;
  * - `problems=<count>:<errors>`, `status=danger|warning`: show pill and status box at start;
- * - `invalid`: the invalid-file state (read-only canvas and status box after 800ms).
+ * - `invalid`: the invalid-file state (`__demo.setInvalid(true)`: read-only canvas at once, its
+ *   marks and the status box after 800ms).
+ *
+ * `window.__demo.flaws` switches on one fault each for the kit's saboteur specs, at any time.
  */
 const params = new URLSearchParams(location.search);
 const host = (params.get("host") ?? "ide") as ShellHost;
@@ -136,9 +141,15 @@ if (host === "web") {
   }
 }
 
+const flaws: DemoFlaws = { noKeyboardCreate: false, canvasUnlocked: false, noSelectAll: false };
+
 // the diagram first, so document keydown listeners of a modeler would precede the shell's
 const canvasElement = document.createElement("div");
-const diagram = createDemoDiagram(canvasElement);
+const diagram = createDemoDiagram(canvasElement, {
+  flaws,
+  isReadOnly: () => shell.isReadOnly(),
+  freeRectCenter: () => connection.viewport.freeRectCenter(),
+});
 
 const options = {
   canvas: canvasElement,
@@ -179,13 +190,28 @@ function insertExample(): void {
   connection.viewport.afterImport();
 }
 
+/** The invalid-file state of guide §13.5, as a host shows it after an import that failed to parse. */
+function setInvalid(invalid: boolean): void {
+  if (!invalid) {
+    shell.setReadOnly(false);
+    shell.setStatus(null);
+    return;
+  }
+  shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
+  shell.setStatus(
+    { severity: "danger", text: shell.messages.invalidFile("demo diagram") },
+    { delayMs: INVALID_STATUS_DELAY_MS },
+  );
+  if (!flaws.canvasUnlocked) diagram.get<ContextPad>("contextPad").close();
+}
+
 if (params.has("empty")) {
   shell.setEmptyHint(true);
 } else {
   addSampleShapes(diagram);
-  if (stored.view) connection.viewport.setState(stored.view);
-  connection.viewport.afterImport();
 }
+if (stored.view) connection.viewport.setState(stored.view);
+connection.viewport.afterImport();
 
 const problems = params.get("problems");
 if (problems) {
@@ -196,13 +222,7 @@ const status = params.get("status");
 if (status === "danger" || status === "warning") {
   shell.setStatus({ severity: status, text: shell.messages.invalidFile("demo diagram") });
 }
-if (params.has("invalid")) {
-  shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
-  shell.setStatus(
-    { severity: "danger", text: shell.messages.invalidFile("demo diagram") },
-    { delayMs: INVALID_STATUS_DELAY_MS },
-  );
-}
+if (params.has("invalid")) setInvalid(true);
 
 let destroyed = false;
 
@@ -216,6 +236,8 @@ const demo = {
   connection,
   diagram,
   vscode: vscodeHost,
+  flaws,
+  setInvalid,
   destroy(): void {
     if (destroyed) return;
     destroyed = true;
