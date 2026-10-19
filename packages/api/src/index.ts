@@ -19,7 +19,7 @@
  *  release (release-please-config.json `extra-files`), and the kit's own
  *  test pins it to package.json exactly. Modelers pin the npm package; the
  *  constant is what travels in `meta`. */
-export const MODELER_API_VERSION = "1.0.0"; // x-release-please-version
+export const MODELER_API_VERSION = "1.1.0"; // x-release-please-version
 
 export interface ModelerMeta {
   /** stable notation id, e.g. "wardley", "team-topology", "event-storming" */
