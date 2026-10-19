@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TOOLTIP_DELAY_MS } from "../core/index.js";
 import {
+  FakeResizeObserver,
   chrome,
   cleanup,
   fakePalette,
@@ -147,6 +148,22 @@ describe("chrome tooltip (guide §5.6)", () => {
     zoomIn.focus();
     expect(tooltip.style.left).toBe("877px");
     expect(tooltip.style.top).toBe(`${748 - 8 - 28}px`);
+  });
+
+  it("is placed again when it grows after showing, for example once a web font arrives", () => {
+    const { root } = mount({}, { width: 1000, height: 800 });
+    const zoom = chrome(root, "zoom");
+    setBox(zoom, { left: 815, top: 748, width: 173, height: 40 });
+    const zoomIn = zoomButton(root, "in");
+    setBox(zoomIn, { left: 950, top: 752, width: 32, height: 32 });
+    const tooltip = tooltipOf(root);
+    Object.defineProperty(tooltip, "offsetWidth", { configurable: true, value: 80 });
+    Object.defineProperty(tooltip, "offsetHeight", { configurable: true, value: 28 });
+    zoomIn.focus();
+    expect(tooltip.style.left).toBe(`${1000 - 12 - 80}px`);
+    Object.defineProperty(tooltip, "offsetWidth", { configurable: true, value: 82 });
+    FakeResizeObserver.resize(tooltip);
+    expect(tooltip.style.left).toBe(`${1000 - 12 - 82}px`);
   });
 
   it("describes a control only when it says more than the control's name", () => {

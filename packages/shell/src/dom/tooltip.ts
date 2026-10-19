@@ -43,6 +43,15 @@ export function createTooltip({ root, layer, id }: TooltipContext): TooltipContr
   // A clicked control keeps its tooltip hidden until the pointer leaves it.
   let pressed: HTMLElement | undefined;
   const detachers = new Set<() => void>();
+  // The tooltip grows when a web font arrives after it was placed; place it again so it keeps
+  // its edge distance instead of running past the container.
+  const resizeObserver =
+    typeof ResizeObserver === "function"
+      ? new ResizeObserver(() => {
+          if (shown) place(shown.control);
+        })
+      : undefined;
+  resizeObserver?.observe(element);
 
   function cancelPending(): void {
     if (pending) clearTimeout(pending.timer);
@@ -231,6 +240,7 @@ export function createTooltip({ root, layer, id }: TooltipContext): TooltipContr
     destroy() {
       hide();
       for (const detach of [...detachers]) detach();
+      resizeObserver?.disconnect();
       element.remove();
     },
   };

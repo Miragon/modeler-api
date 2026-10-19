@@ -341,7 +341,10 @@ describe("palette registration", () => {
     const second = fakePalette();
     const unregisterFirst = shell.registerPalette(first);
     shell.registerPalette(second);
-    const observer = FakeResizeObserver.instances[0]!;
+    const observer = FakeResizeObserver.instances.find((candidate) =>
+      candidate.observed.has(second.element),
+    )!;
+    expect(observer).toBeDefined();
     expect(observer.observed.has(first.element)).toBe(false);
     expect(observer.observed.has(second.element)).toBe(true);
     unregisterFirst();
