@@ -70,6 +70,13 @@ The design system names its tokens and attributes in German. The names used in t
   `packages/renderer/src/theme/cd-tokens.generated.css` in
   [Miragon/wardley-maps-modeler](https://github.com/Miragon/wardley-maps-modeler). A vendored copy is
   never edited by hand; it is re-copied from the source.
+- The shell's scripts compute with their own copy of the sizes (`SHELL`), its stylesheet reads the
+  vendored `--cd-shell-*` tokens. A modeler pins the two together in a unit test (Vitest or
+  `node:test`), not in its e2e suite, because the check is pure data:
+  `expect(SHELL).toEqual(shellSizesFromTokens(json.shell))`, and every name of `SHELL_TOKENS` present
+  in `json.shell`.
+- Load the token CSS exactly once: first in the stylesheet order, unless the renderer's stylesheet
+  already imports it (Event Storming's `event-storming.css` does, in a layer).
 - `cd-canvas.css` (the mapping of the diagram-js variables and the `cd-c-*` role classes) ships only
   with the design system skill so far and is not public yet.
 
@@ -78,17 +85,23 @@ The design system names its tokens and attributes in German. The names used in t
 **Guide [§5][guide-5].** Rule: the chrome is the same for every modeler; only the modeler knows its
 content.
 
-| The modeler supplies                                               | The shell uses it for                       |
-| ------------------------------------------------------------------ | ------------------------------------------- |
-| content bounds in diagram coordinates (empty means nothing to fit) | fit (§5.9)                                  |
-| whether the file is empty, whether an example exists               | empty-file hint (§13.5)                     |
-| diagnostics with count and highest severity                        | problems pill (§5.10)                       |
-| whether the file is invalid                                        | status box, read-only canvas (§5.12, §13.5) |
-| legend content                                                     | legend (§5.10)                              |
-| entries of the Model menu group                                    | menu (§5.4)                                 |
-| palette entries with name and shortcut (`title`, `shortcut`)       | palette and its tooltip (§5.5, §5.6)        |
-| the list of keyboard shortcuts                                     | "Keyboard shortcuts…" dialog (§5.4)         |
-| the inspector                                                      | inspector (§5.11)                           |
+| The modeler supplies                                                      | The shell uses it for                       |
+| ------------------------------------------------------------------------- | ------------------------------------------- |
+| content bounds in diagram coordinates, tight (empty means nothing to fit) | fit (§5.9)                                  |
+| whether the file is empty, whether an example exists                      | empty-file hint (§13.5)                     |
+| diagnostics with count and highest severity                               | problems pill (§5.10)                       |
+| whether the file is invalid                                               | status box, read-only canvas (§5.12, §13.5) |
+| legend content                                                            | legend (§5.10)                              |
+| entries of the Model menu group                                           | menu (§5.4)                                 |
+| palette entries with name and shortcut (`title`, `shortcut`)              | palette and its tooltip (§5.5, §5.6)        |
+| the list of keyboard shortcuts                                            | "Keyboard shortcuts…" dialog (§5.4, 0.2)    |
+| the inspector                                                             | inspector (§5.11)                           |
+
+What stays with the modeler, because only it knows its elements: keyboard creation from the palette
+at `viewport.freeRectCenter()` (see [Palette](#palette)), the canvas lock of a read-only file
+(context pad, move, resize, delete, paste, label editor; see [Status box](#status-box)), select all
+on the canvas (see [VS Code: key interception](#vs-code-key-interception)) and, in 0.1, the
+"Keyboard shortcuts…" dialog itself (see [Modeler dialogs](#modeler-dialogs)).
 
 The shell talks to diagram-js only through public services and events (`canvas`, `zoomScroll`,
 `keyboard`, `palette`, `eventBus`). It never reads private fields such as `palette._container`, which
@@ -132,7 +145,12 @@ webview.
   layout (`position: absolute; inset: 0`, layer 0, `isolation: isolate`) at a higher specificity
   (`.cd-shell > .cd-shell-canvas`), so it does not depend on stylesheet order; the paint at zero
   specificity (`:where(.cd-shell-canvas) { background-color: var(--cd-ui-grund) }`, never the
-  `background` shorthand), so the renderer's paper, also a dark board's, shows.
+  `background` shorthand), so the renderer's paper shows. That paper keeps `--cd-ui-grund` as its
+  colour in every mode, its dot grid a background image in `--cd-ui-linie` (guide
+  [§10.1][guide-10.1]): a renderer that paints its own surround (Event Storming's `style dark` board
+  in navy under a light theme) is half-dark. Shell conformance compares the painted colour, the
+  first non-transparent `background-color` from `.djs-container` out through the slot to the root,
+  with `--cd-ui-grund`; comparing the custom properties alone would miss it.
 - In a foreign page the page's element rules (`button { text-transform: uppercase }`,
   `p { font-size: 18px }`, `section { font-family: serif }`, specificity 0,0,1) beat inheritance and
   any zero-specificity reset. Re-establish font, colour, letter and word spacing, text transform,
@@ -233,7 +251,8 @@ tab order.
   not depend on stylesheet order.
 - **Layer.** The palette stays inside the diagram-js canvas container (layer 0, see
   [Layers](#layers)) with `z-index: 110`. The context pad has 100 (set by diagram-js), the label
-  editor 100 (set by the modeler).
+  editor 100 (set by the modeler), and every other persistent overlay a modeler adds stays at 100 or
+  below (see [Layers](#layers)).
 - **DOM order.** `Palette#_init` appends the palette to `canvas.getContainer()` after the `<svg>` and
   then fires `palette.create` with `{ container }`. On that event the shell moves it in front of the
   canvas `<svg>` (the `svg` of the `canvas.init` event, which diagram-js fires on `diagram.init`,
@@ -261,12 +280,35 @@ tab order.
   the first rebuild the class still sits on a live entry, and `diagram-js.css` colours
   `.djs-palette .highlighted-entry` with `!important`: the skin overrides that colour with
   `!important` at a higher specificity (plus a hover variant).
+- **Colours in every state.** Set `color` explicitly on a skinned tool entry in each state, never
+  rely on inheritance: rest and `[aria-pressed="true"]` `--cd-ui-text`, hover (also while pressed)
+  `--cd-ui-interaktion`, `[aria-disabled="true"]` `--cd-ui-text-leise` (also over a stale
+  `highlighted-entry`), and give the icon (`.entry > svg`, `.entry::before`) `color: inherit`. A
+  state the skin leaves open takes whatever a renderer or diagram-js rule sets on the entry or its
+  icon: Event Storming's armed lasso computed to `rgb(29, 30, 33)` instead of `--cd-ui-text`. Only
+  tool entries (group `tools` or `data-action` ending in `-tool`) inherit; notation previews keep
+  their own colours (guide §5.5). Shell conformance compares the computed colours of every visible
+  tool entry and its icon with the roles: at rest, pressed and hovered in `appearance` (after the
+  150ms colour transition), `aria-disabled` in `readOnly`.
 - **Keyboard.** Roving tabindex: ← and → move and wrap, Home and End jump, all without
   modifiers and stopped there (a modeler's document listener and VS Code never see them; chrome keys
-  still bubble to the shell). Enter and Space dispatch a synthetic `click` at the entry's centre: it
-  goes through diagram-js's click delegate and `palette.trigger`, so the read-only veto applies
-  without calling private palette methods. Placing a created element in the centre of the free
-  rectangle (guide §5.5) is a 0.2 candidate.
+  still bubble to the shell). Enter and Space dispatch a synthetic `click` on the entry: it goes
+  through diagram-js's click delegate and `palette.trigger`, so the read-only veto applies without
+  calling private palette methods. The click is a contract for palette providers: `detail === 0`
+  (every pointer click has 1 or more), `clientX`/`clientY` at the entry's centre, bubbling and
+  cancelable.
+- **Keyboard creation** (guide §5.5: the element goes to the centre of the free rectangle, 24px
+  diagonally further while that spot is taken, selected, with the label editor open where the
+  notation has labels, and the focus on the canvas). diagram-js's create tool (`create.start`) makes
+  the shape follow the pointer and never ends without one, so a creating entry that receives the
+  synthetic click (`detail === 0`) must not start it: Event Storming's entries did nothing on Enter
+  until they branched. The provider asks for the point with `viewport.freeRectCenter()` (the centre
+  of the container minus the fit insets, in diagram coordinates, as fit computes it), creates the
+  shape there with `modeling.createShape`, selects it, calls `canvas.focus()` and opens its label
+  editor. The provider is built before `connectDiagramJs`, so it receives a function and reads the
+  viewport when the entry fires. The 24px step is the provider's in 0.1; a shared placement helper is
+  a 0.2 candidate. Shell conformance (`create`) presses Enter on the first creating entry and expects
+  exactly one new, selected shape whose centre lies in the free rectangle.
 - **Read-only** (guide §13.5). Only Lasso and Hand stay active; every other entry changes the diagram
   and is vetoed, also tools of group `tools` such as draw, space or connect. `palette.trigger`
   carries the entry definition without its id, so the veto finds the entry element through the
@@ -521,7 +563,10 @@ container minus the fit insets and whatever is open), never above 100 %.
   no-op), and an axis whose insets leave no room (a container lower than 88 + 64 or narrower than 48)
   centres in the whole container instead of producing a zero or negative scale.
 
-- `bounds` are the content bounds the modeler supplies. The insets (guide §5.9):
+- `bounds` are the content bounds the modeler supplies: the tight bounds of the content, without a
+  padding of its own. The insets below are the only margin; a padding (Event Storming's
+  `BoardBounds.contentBounds()` adds 120px by default, so the webview passes `contentBounds(0)`)
+  would add to them and fit the content smaller than the guide's rectangle. The insets (guide §5.9):
   - top `--cd-shell-einpassen-oben` (88px), with the palette in the second row
     `--cd-shell-einpassen-oben-schmal` (140px);
   - left and right `--cd-shell-einpassen-seite` (24px);
@@ -542,6 +587,27 @@ container minus the fit insets and whatever is open), never above 100 %.
   intermediate view); a cancelled animation leaves its last written frame as the reference. Stop
   the frames when the container drops to 0 × 0 (diagram-js's setter would set a scale of 0) and fit
   again once it has a size.
+
+### First fit and the empty file
+
+**Guide [§5.9][guide-5.9].** Rule: the first import whose content bounds are not empty fits
+automatically (after an empty file: the first import with content, such as "Insert example"), unless
+the user moved the view; every later change from outside keeps viewbox and selection; without content
+fit does nothing.
+
+- `afterImport()` after every successful import carries this: it jump-fits once the bounds are not
+  empty, and only the first time (see [Detecting a user move](#detecting-a-user-move) for what
+  ends the wait).
+- An empty file shows 100 %. Product decision, guide update pending in Miragon/corporate-identity
+  (§5.9 and §13.5 do not say which zoom an empty file shows). Without it the zoom is whatever the
+  renderer's import left: Event Storming's importer sets a viewbox of its own on every import, and
+  an empty board showed 118 %. So on the first import with empty bounds, when no stored view was
+  applied (`setState`) and the user has not moved the view, `afterImport()` zooms to 1 around the
+  centre of the free rectangle. That write is the viewport's own, not a user move, so the first
+  content still fits; later re-imports and `restore`s of the empty file keep the view. At 0 × 0 (a
+  tab hidden at the first import) the 100 % waits for the first real size. A kit check that an empty
+  document opens at 100 % with the hint is a 0.2 candidate (it needs a harness that opens more than
+  one document).
 
 ### Resize
 
@@ -636,6 +702,29 @@ one; the read-only lock itself applies at once.
   invalid import, so nothing can overwrite the text in the meantime.
 - An unchanged text is not written again, so `role="alert"` does not announce it again.
 
+**Guide [§13.5][guide-13.5].** Rule: a read-only canvas keeps the palette visible with every entry
+that changes something `aria-disabled` (Lasso and Hand stay active), and has no context pad, no
+move, resize, delete or paste and no label editor; selection, zoom, pan, the export of the last valid
+state and the shortcuts dialog stay.
+
+- The shell locks what it owns: the palette veto and the Model entries of the menu. View toggles
+  stay usable: the shell's Legend checkbox (`keepEnabledWhenReadOnly`) and the legend's close button,
+  and a modeler's own view state such as Event Storming's "Type captions", which sets
+  `keepEnabledWhenReadOnly` itself. A view toggle never touches the document, so a read-only file
+  gives no reason to lock it. Product decision, guide update pending in Miragon/corporate-identity:
+  §13.5 still lists every Model entry as `aria-disabled`.
+- The canvas is the modeler's to lock, at the same moment as `setReadOnly(true)`. Event Storming's
+  `eventStormingReadOnly` is a `RuleProvider` at priority 5000 that answers `false` for every edit
+  rule (`elements.move`, `shape.move`, `shape.resize`, `shape.create`, `elements.create`,
+  `shape.append`, `connection.create`, `elements.delete` and the other connection rules), and its
+  keyboard, context pad, label editor and drawing handles ask it as well: rules alone do not stop a
+  context pad from opening or a double-click from opening the label editor. Until it covered all of
+  them, its lock held only the palette.
+- Shell conformance (`readOnly`) makes the file invalid through the harness's `show.invalid` hook and
+  checks, after the delay, the marks, the palette, that Export, Help and the Legend checkbox stay
+  enabled, and on a shape: no context-pad entry after a click, Delete and Backspace keep it, a 40px
+  drag changes neither its position nor its size, a double-click opens no text field.
+
 ## Layers
 
 **Guide [§5.13][guide-5.13].** Rule: everything diagram-js shows on the canvas (search, context pad,
@@ -651,6 +740,46 @@ it the palette lies above context pad and label editor.
   popovers and the chrome tooltip 40, dialog 50, toast 60.
 - The shell root gets `isolation: isolate` as well, so these values stay local when the shell is
   embedded in a foreign page.
+- The dialog layer (50) applies only to a dialog that is not in the browser's top layer. A
+  `<dialog>` opened with `showModal()` and an element of the popover API are rendered in the top
+  layer, above every stacking context of the page, and `z-index` does nothing for them; they need no
+  layer token.
+- Overlays a modeler adds inside the canvas container: persistent ones (an element toolbar, its own
+  context pad, the label editor) stay at `z-index` 100 or below, under the palette at 110; transient
+  popups the user opens from them (diagram-js's popup menu at 200, a colour picker) may cover the
+  palette while they are open, as diagram-js's own popup menu does. Everything stays inside
+  `.djs-container`, and so below every island. This is the shell's reading of guide §5.13, which
+  orders only the palette above context pad and label editor (product decision, guide update pending
+  in Miragon/corporate-identity). Event Storming shipped its note toolbar and colour picker at 300,
+  above the palette, and nothing flagged it; a kit check for it is a 0.2 candidate. A flat "100 at
+  most" would flag diagram-js's popup menu itself, hence the split into persistent and transient.
+
+## Modeler dialogs
+
+**Guide [§8][guide-8], [§5.4][guide-5.4].** Rule: a dialog has a backdrop in `--cd-ui-backdrop` with
+`blur(3px) grayscale(1)` in both modes, an opaque panel with border, `md` radius and `shadow-3`, a
+header with Close; it holds the focus and returns it; Escape and the backdrop close it. The Help
+group's "Keyboard shortcuts…" is such a dialog, with one table per group (View, Edit, Tools).
+
+0.1 has no dialog component, so a modeler's dialog meets these rules on its own (a shared
+`cd-shell-dialog` class and `showShortcutsDialog` are 0.2 candidates):
+
+- Open it with `showModal()`: the top layer puts it above every island without a layer token, the
+  browser makes the rest of the page inert, and `:modal` tells the shell's key listener that a modal
+  is open, so the zoom keys stop acting. `::backdrop` inherits custom properties from its dialog
+  since Chromium 122 (VS Code 1.90 ships it), so `var(--cd-ui-backdrop)` resolves there.
+- The shell's high-contrast and forced-colours rules match only `cd-shell-*` classes and do not reach
+  the modeler's dialog. It sets them itself: under `[data-cd-kontrast="hoch"]` no shadow, border
+  `--cd-ui-kontur` and a 3px focus ring (guide [§6][guide-6], [§5.14][guide-5.14]); under
+  `@media (forced-colors: active)` the border in `CanvasText` and the focus ring in `Highlight`.
+- Focus: into the dialog on open, held inside while it is open (Tab cycles), back to the control
+  that opened it on close (the menu trigger after a menu entry, which takes the focus before
+  `onSelect` runs).
+- The dialog stays usable on a read-only canvas (guide §13.5).
+- The dialog is modeler content in the shell root. `shell.destroy()` removes only what the shell
+  added, so the modeler removes the dialog in its own teardown, for example on `diagram.destroy`
+  (Event Storming does). The shell offers no `onDestroy` hook for it: the modeler already owns the
+  teardown path that destroys diagram and shell.
 
 ## Focus order, fonts and forced colours
 
@@ -842,10 +971,11 @@ selection; in text fields the field's own undo applies.
   are registered. In the IDE host the shell's keyboard listener (priority 2000) returns `false` for
   them: that stops `KeyboardBindings` without `preventDefault()`, so the keys propagate to `window`,
   where VS Code's webview host forwards them and VS Code undoes the document edit.
-- A modeler's own DOM binding must go in the webview as well: Event Storming's document keyboard
-  calls `preventDefault()` and `commandStack.undo()` on Cmd+Z (also with an empty stack). The shell
-  then stops the key as one the canvas handled, VS Code never undoes, and since Event Storming
-  clears its stack on every import, Cmd+Z on the canvas does nothing at all after an external edit.
+- A modeler's own DOM binding must go in the webview as well. Event Storming's document keyboard
+  calls `preventDefault()` and `commandStack.undo()` on Cmd+Z (also with an empty stack) unless the
+  webview creates it with `undoRedoKeys: false`. With the binding on, the shell stops the key as one
+  the canvas handled, VS Code never undoes, and since Event Storming clears its stack on every
+  import, Cmd+Z on the canvas does nothing at all after an external edit.
   Shell conformance presses Cmd/Ctrl+Z, Shift+Z and Ctrl+Y on the canvas in the IDE host and expects
   each on `window`, once and unprevented.
 - Each canvas change is written as one `WorkspaceEdit` with minimal line changes, applied with
@@ -895,11 +1025,18 @@ sees it and never runs it again (for example as a window zoom); every other key 
   [Open verification points](#open-verification-points)).
 - Keys the open menu consumes are stopped at the menu (see [Menu](#menu)), so VS Code does not see
   them either.
-- A key the canvas has already handled (`event.defaultPrevented`, for example Cmd+A, Cmd+C, Cmd+V from
-  diagram-js) is stopped as well. Otherwise VS Code runs it a second time on the webview: on desktop
-  (Electron) its host page prevents copy, cut and paste and the workbench dispatches them back to the
-  webview (in VS Code for the Web the browser handles them, see above), and select all would select
-  the chrome's text. Every other key propagates to VS Code (Cmd+S, Cmd+P, Cmd+W, F1).
+- A key the canvas has already handled (`event.defaultPrevented`, for example Cmd+C and Cmd+V from
+  diagram-js, Cmd+A from a modeler's select all) is stopped as well. Otherwise VS Code runs it a
+  second time on the webview: on desktop (Electron) its host page prevents copy, cut and paste and
+  the workbench dispatches them back to the webview (in VS Code for the Web the browser handles them,
+  see above), and select all would select the chrome's text. Every other key propagates to VS Code
+  (Cmd+S, Cmd+P, Cmd+W, F1).
+- The shell can stop only what the canvas prevented, so Cmd/Ctrl+A on the focused canvas is the
+  modeler's to handle (guide §13.5: keys the canvas uses act only on the canvas). diagram-js 15's
+  `KeyboardBindings` binds no select all; a modeler binds it (select every element) or at least
+  prevents the key. Event Storming had none, so VS Code ran its own Select All on the webview. Shell
+  conformance presses Control+A and Meta+A on the canvas and expects them prevented, and in the IDE
+  host never on `window`.
 - Test: a `keydown` listener on `window` (where VS Code's host page picks keys up) must not see any
   handled key. A window listener cannot see whether a stopped key was prevented, so add a `keydown`
   listener on `document`, registered after the shell's and the modeler's: handled keys must arrive
@@ -907,8 +1044,8 @@ sees it and never runs it again (for example as a window zoom); every other key 
   unprevented, so the field keeps its native undo, and unhandled keys such as F1 and Cmd/Ctrl+Z on
   the canvas must still reach `window` unprevented. That is what catches a modeler's own document
   undo binding taking Cmd+Z from the label editor (an input, a textarea or editable text) or from the
-  document's history on the canvas. Acceptance runs in real VS Code with Light, Dark and both High Contrast themes,
-  plus Cmd+Shift+- and Cmd+A on the canvas.
+  document's history on the canvas. Acceptance runs in real VS Code with Light, Dark and both High
+  Contrast themes, plus Cmd+Shift+- and Cmd+A on the canvas.
 
 ## VS Code: theme bridge
 
@@ -1025,11 +1162,28 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   `html { scrollbar-color: … }` from `--vscode-scrollbarSlider-background` and
   `--vscode-editor-background`, plus `::-webkit-scrollbar*` colours. `scrollbar-color` is inherited,
   and once it is set Chromium (121 and later) ignores the `::-webkit-scrollbar` pseudo-elements.
-- CSP: if the fonts are bundled as data URLs (as an esbuild `dataurl` loader does), the webview CSP
-  needs `font-src ${webview.cspSource} data:`; otherwise Geist does not load and the fallback font
-  shows. `style-src` keeps `'unsafe-inline'` for the renderers, which write `style` attributes into
-  markup (palette entries, SVG strings); the shell and diagram-js style only through the CSSOM, which
-  the CSP does not restrict, and run without it (`renderWebviewHtml({ inlineStyles: false })`).
+- CSP and fonts: bundle the fonts as files next to the webview bundle, not as data URLs. With
+  esbuild's usual `dataurl` loader, `@fontsource-variable/geist-mono/wght.css` inlines all six Geist
+  Mono subsets (Event Storming's webview CSS grew from 137 KB to 267 KB for the key chips alone);
+  with `loader: { ".woff2": "file", ".woff": "file" }` and `assetNames: "fonts/[name]-[hash]"` it
+  was 69 KB, and the browser fetches only the subsets a page's `unicode-range` needs.
+  `renderWebviewHtml` writes `font-src ${webview.cspSource} data:`, so the files load once `dist` is
+  in the panel's `localResourceRoots`; `data:` stays for renderers that inline fonts. Without either
+  Geist does not load and the fallback font shows. `style-src` keeps `'unsafe-inline'` for the
+  renderers, which write `style` attributes into markup (palette entries, SVG strings); the shell and
+  diagram-js style only through the CSSOM, which the CSP does not restrict, and run without it
+  (`renderWebviewHtml({ inlineStyles: false })`).
+- CSP and eval: `script-src` admits only the nonce'd script, and that is right; never add
+  `'unsafe-eval'`. zod 4 probes for eval with `new Function` while it builds object schemas; it
+  catches the error, but the browser reports every probe as a `securitypolicyviolation`. A webview
+  that bundles zod 4 runs `z.config({ jitless: true })` in a module of its own that it imports before
+  any schema module (Event Storming's `zod-jitless.ts`, the first import of `main.ts`).
+- A test page served by Vite runs the webview from source without a CSP, so a loader or CSP mistake
+  of the shipped bundle shows only behind the real HTML: a smoke test builds the production bundle,
+  serves it through Playwright's `page.route` behind `renderWebviewHtml` (a fixed nonce, the VS Code
+  stub as a nonce'd script in `body` that also records `securitypolicyviolation`), and fails on any
+  violation, page error or missing font (recipe in [`API.md`](../../packages/shell/API.md),
+  `./vscode/extension`). A kit helper for it is a 0.2 candidate.
 - Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on` holds
   without it) and hands the result to the webview only as the body class `vscode-reduce-motion`;
   `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole session as a class of
@@ -1077,7 +1231,8 @@ the notes rely on that the sources alone do not settle.
 
 - [ ] No handled key reaches a `keydown` listener on `window`: zoom keys including Cmd/Ctrl+Shift+-
       and the numpad, Shift+1, Escape with an open menu, undo and redo in text fields, Cmd/Ctrl+A, C
-      and V after the canvas handled them. VS Code never zooms the window.
+      and V after the canvas handled them. VS Code never zooms the window, and Cmd/Ctrl+A on the
+      canvas selects the elements, never the chrome's text.
 - [ ] Cmd/Ctrl+0 with focus in the webview sets 100 % and does not focus the side bar.
 - [ ] VS Code for the Web: Cmd/Ctrl + C, X and V on the canvas copy, cut and paste exactly once (the
       host page leaves them to the browser and does not forward them).
@@ -1103,7 +1258,8 @@ the notes rely on that the sources alone do not settle.
       extension supports (`engines.vscode`); on older versions the reset must win by order. Body
       padding, fonts (no Times, no Arial 13.33px), `kbd`, `code`, links, focus rings and scrollbars
       checked in all four themes.
-- [ ] Geist loads from data URLs without a CSP violation (webview developer tools).
+- [ ] Geist and Geist Mono load from the font files in `dist/fonts/` without a CSP violation, and a
+      webview with zod 4 reports no violation either (webview developer tools).
 - [ ] `workbench.reduceMotion` `on` sets the body class `vscode-reduce-motion` in the webview (and
       `off` removes it), at start and when the setting changes.
 - [ ] A click into the side bar or another editor while the webview menu is open fires `blur` on the
@@ -1145,7 +1301,10 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 [guide-5.13]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#513-ebenen
 [guide-5.14]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#514-icons-schrift-fokus-und-bewegung-im-chrome
 [guide-5.15]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#515-schmale-und-niedrige-fenster
+[guide-6]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#6-form-und-elevation
+[guide-8]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#8-komponenten
 [guide-9]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#9-feedback-und-zust%C3%A4nde
+[guide-10.1]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#101-aufbau-in-beiden-modi
 [guide-12]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#12-checkliste-barrierefreiheit
 [guide-13.3]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#133-moduswahl
 [guide-13.4]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#134-checkliste
