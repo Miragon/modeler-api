@@ -47,6 +47,45 @@ describe("package.json", () => {
     );
     expect(ranged).toEqual([]);
   });
+
+  // The sourcemaps in dist point at ../src, so the sources ship with them (tests excluded).
+  it("publishes dist, the sources the sourcemaps name, API.md and the notices", () => {
+    expect(manifest.files).toEqual(["dist", "src", "!src/**/*.test.ts", "API.md", "THIRD_PARTY_NOTICES.md"]);
+  });
+});
+
+describe("third-party notices", () => {
+  const icons = readFileSync(join(sourceDir, "dom", "icons.ts"), "utf8");
+  const legalComment = /^\/\*![\s\S]*?\*\//.exec(icons)?.[0] ?? "";
+
+  it("open icons.ts with a legal comment, so bundlers keep the Lucide and Feather attribution", () => {
+    expect(legalComment).not.toBe("");
+    for (const notice of [
+      "lucide-static 1.59.0",
+      "@license ISC",
+      "Copyright (c) 2026 Lucide Icons and Contributors",
+      "check, maximize, minus, plus and x",
+      "Feather @license MIT",
+      "Copyright (c) 2013-present Cole Bemis",
+      "THIRD_PARTY_NOTICES.md",
+    ]) {
+      expect(legalComment).toContain(notice);
+    }
+  });
+
+  it("name the same licences and holders in THIRD_PARTY_NOTICES.md", () => {
+    const notices = readFileSync(join(packageDir, "THIRD_PARTY_NOTICES.md"), "utf8");
+    for (const notice of [
+      "lucide-static",
+      "1.59.0",
+      "ISC License",
+      "Copyright (c) 2026 Lucide Icons and Contributors",
+      "The MIT License (MIT)",
+      "Copyright (c) 2013-present Cole Bemis",
+    ]) {
+      expect(notices).toContain(notice);
+    }
+  });
 });
 
 describe("sources", () => {

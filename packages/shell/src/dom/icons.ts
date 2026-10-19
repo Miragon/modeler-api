@@ -1,7 +1,14 @@
-/**
+/*! @miragon/modeler-shell icon geometry
+ * Lucide (lucide-static 1.59.0) @license ISC
+ * Copyright (c) 2026 Lucide Icons and Contributors
+ * The icons check, maximize, minus, plus and x are derived from Feather @license MIT
+ * Copyright (c) 2013-present Cole Bemis
+ * Full notices: THIRD_PARTY_NOTICES.md of @miragon/modeler-shell */
+
+/*
  * The common Lucide set of the chrome (guide §5.14), inlined so the package has no icon runtime
- * dependency. Copied unchanged from lucide-static 1.59.0 (`icon-nodes.json`; ISC, © Lucide Icons
- * and Contributors; see THIRD_PARTY_NOTICES.md).
+ * dependency, copied unchanged from `icon-nodes.json`. The comment above is a legal comment, so
+ * esbuild keeps it in the bundle chunk that carries this geometry.
  */
 
 /** One Lucide icon: its SVG child elements on the 24 × 24 grid. */

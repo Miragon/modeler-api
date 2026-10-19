@@ -1,7 +1,10 @@
 # Third-party notices
 
 `@miragon/modeler-shell` inlines icon geometry from [Lucide](https://lucide.dev)
-(`lucide-static` 1.59.0) in `src/dom/icons.ts` and its builds.
+(`lucide-static` 1.59.0) in `src/dom/icons.ts` and its builds. That file opens with a legal comment
+(`/*! … @license … */`) naming both notices below, which esbuild and most minifiers keep in the
+output chunk that carries the geometry. A bundle built with legal comments dropped or moved to a
+separate file must ship these notices itself.
 
 ## Lucide
 

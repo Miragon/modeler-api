@@ -115,6 +115,8 @@
   },
   "files": [
     "dist",
+    "src",
+    "!src/**/*.test.ts",
     "API.md",
     "THIRD_PARTY_NOTICES.md"
   ],
