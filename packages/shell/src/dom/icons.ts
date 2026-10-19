@@ -1,7 +1,8 @@
 /*! @miragon/modeler-shell icon geometry
  * Lucide (lucide-static 1.59.0) @license ISC
  * Copyright (c) 2026 Lucide Icons and Contributors
- * The icons check, maximize, minus, plus and x are derived from Feather @license MIT
+ * Derived from Feather, as Lucide's LICENSE lists them: check, circle-x (x-circle), maximize,
+ * minus, plus, triangle-alert (alert-triangle) and x. Feather @license MIT
  * Copyright (c) 2013-present Cole Bemis
  * Full notices: THIRD_PARTY_NOTICES.md of @miragon/modeler-shell */
 

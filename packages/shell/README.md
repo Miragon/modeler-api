@@ -405,11 +405,12 @@ files (`dist`, `src` without its tests, `API.md` and the notices).
 
 ## License
 
-MIT. The inlined Lucide icons are ISC (© Lucide Icons and Contributors), and `check`, `maximize`,
-`minus`, `plus` and `x` derive from Feather, MIT (© Cole Bemis); see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). `dist` keeps that notice as a legal comment in the
-chunk with the icons, but a bundler's `legalComments` setting may drop it: a VSIX or a web bundle that
-contains the shell carries the Lucide and Feather notices of THIRD_PARTY_NOTICES.md itself.
+MIT. The inlined Lucide icons are ISC (© Lucide Icons and Contributors), and `check`, `circle-x`,
+`maximize`, `minus`, `plus`, `triangle-alert` and `x` derive from Feather, MIT (© Cole Bemis), as
+Lucide's LICENSE lists them; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). `dist` keeps that
+notice as a legal comment in the chunk with the icons, but a bundler's `legalComments` setting may
+drop it: a VSIX or a web bundle that contains the shell carries the Lucide and Feather notices of
+THIRD_PARTY_NOTICES.md itself.
 
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
 [notes]: https://github.com/Miragon/modeler-api/blob/main/docs/shell/implementation-notes.md

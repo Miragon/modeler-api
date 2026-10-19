@@ -24,8 +24,10 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-The icons `check`, `maximize`, `minus`, `plus` and `x` are derived from the
-Feather project:
+Lucide's LICENSE (`lucide-static` 1.59.0) lists the icons derived from the
+Feather project, by their Feather names. Of those the shell inlines `check`,
+`circle-x` (Feather's `x-circle`), `maximize`, `minus`, `plus`,
+`triangle-alert` (Feather's `alert-triangle`) and `x`:
 
 The MIT License (MIT)
 

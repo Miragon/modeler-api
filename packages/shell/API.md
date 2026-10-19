@@ -782,12 +782,13 @@ function iconElement(icon: ShellIconName | IconNode, options?: IconOptions): SVG
 `stroke="currentColor"`, round caps and joins) and lets only Lucide's elements and geometry
 attributes pass, so palette providers can put it into an entry's `html`.
 
-The geometry is Lucide's (ISC, © Lucide Icons and Contributors); `check`, `maximize`, `minus`, `plus`
-and `x` derive from Feather (MIT, © Cole Bemis). `src/dom/icons.ts` opens with a legal comment
-(`/*! … @license … */`) naming both, which esbuild keeps in the `dist` chunk that carries the icons
-(ESM and CJS). A consumer's bundler may drop or move legal comments (its `legalComments` setting), so
-a VSIX or a web bundle that contains the shell carries the Lucide and Feather notices of
-`THIRD_PARTY_NOTICES.md` itself.
+The geometry is Lucide's (ISC, © Lucide Icons and Contributors); `check`, `circle-x`, `maximize`,
+`minus`, `plus`, `triangle-alert` and `x` derive from Feather (MIT, © Cole Bemis), as Lucide's
+LICENSE lists them (two by their Feather names, `x-circle` and `alert-triangle`). `src/dom/icons.ts`
+opens with a legal comment (`/*! … @license … */`) naming both, which esbuild keeps in the `dist`
+chunk that carries the icons (ESM and CJS). A consumer's bundler may drop or move legal comments (its
+`legalComments` setting), so a VSIX or a web bundle that contains the shell carries the Lucide and
+Feather notices of `THIRD_PARTY_NOTICES.md` itself.
 
 ### DOM, `data-chrome` and classes
 

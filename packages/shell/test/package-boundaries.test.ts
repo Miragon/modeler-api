@@ -64,7 +64,7 @@ describe("third-party notices", () => {
       "lucide-static 1.59.0",
       "@license ISC",
       "Copyright (c) 2026 Lucide Icons and Contributors",
-      "check, maximize, minus, plus and x",
+      "check, circle-x (x-circle), maximize,\n * minus, plus, triangle-alert (alert-triangle) and x",
       "Feather @license MIT",
       "Copyright (c) 2013-present Cole Bemis",
       "THIRD_PARTY_NOTICES.md",
