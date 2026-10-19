@@ -190,7 +190,7 @@ describe("destroy", () => {
     shell.inspector?.open();
     shell.setStatus({ severity: "danger", text: "Invalid" }, { delayMs: 800 });
     shell.menu.open();
-    const observer = FakeResizeObserver.instances[0];
+    const observers = [...FakeResizeObserver.instances];
 
     shell.destroy();
     shell.destroy();
@@ -200,7 +200,8 @@ describe("destroy", () => {
     expect(root.getAttributeNames()).toEqual(["id"]);
     expect(root.className).toBe("");
     expect(document.documentElement.className).toBe("");
-    expect(observer?.disconnected).toBe(true);
+    expect(observers.length).toBeGreaterThan(1);
+    expect(observers.every((observer) => observer.disconnected)).toBe(true);
     expect(target.listeners.size).toBe(0);
 
     vi.advanceTimersByTime(2000);
