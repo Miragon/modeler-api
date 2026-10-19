@@ -6,6 +6,7 @@ import {
   easeStandard,
   fitInsets,
   fitViewbox,
+  freeRectCenter,
   interpolateViewbox,
   sameView,
   type FitLayout,
@@ -124,6 +125,34 @@ describe("fitViewbox", () => {
     const box = fitted({ x: 0, y: 0, width: 100, height: 280 }, { width: 600, height: 140 });
     expect(box.scale).toBeCloseTo(0.5);
     expect(toScreen({ x: 50, y: 140 }, box)).toEqual({ x: expect.closeTo(300), y: expect.closeTo(70) });
+  });
+});
+
+describe("freeRectCenter", () => {
+  it("is the centre of the container minus the insets, in container pixels", () => {
+    expect(freeRectCenter(CONTAINER, IDE_INSETS)).toEqual({ x: 24 + 952 / 2, y: 88 + 648 / 2 });
+    expect(freeRectCenter(CONTAINER, { top: 140, right: 324, bottom: 64, left: 24 })).toEqual({
+      x: 24 + 652 / 2,
+      y: 140 + 596 / 2,
+    });
+  });
+
+  it("is where fitViewbox puts the centre of the content", () => {
+    const bounds = { x: 100, y: 50, width: 200, height: 100 };
+    const insets: Insets = { top: 88, right: 324, bottom: 92, left: 220 };
+    const centre = toScreen({ x: 200, y: 100 }, fitted(bounds, CONTAINER, insets));
+    const free = freeRectCenter(CONTAINER, insets);
+    expect(centre.x).toBeCloseTo(free?.x ?? Number.NaN);
+    expect(centre.y).toBeCloseTo(free?.y ?? Number.NaN);
+  });
+
+  it("centres in the whole container on an axis the insets leave no room on", () => {
+    expect(freeRectCenter({ width: 600, height: 140 }, IDE_INSETS)).toEqual({ x: 300, y: 70 });
+  });
+
+  it("returns undefined for a 0 × 0 container (a hidden tab)", () => {
+    expect(freeRectCenter({ width: 0, height: 0 }, IDE_INSETS)).toBeUndefined();
+    expect(freeRectCenter({ width: 500, height: 0 }, IDE_INSETS)).toBeUndefined();
   });
 });
 

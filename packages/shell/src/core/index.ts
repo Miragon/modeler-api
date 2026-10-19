@@ -23,6 +23,7 @@ export {
   easeStandard,
   fitInsets,
   fitViewbox,
+  freeRectCenter,
   interpolateViewbox,
   sameView,
 } from "./fit.js";

@@ -249,8 +249,11 @@ function groupOf(entry: Element): string | undefined {
   return entry.closest(".group")?.getAttribute("data-group") ?? undefined;
 }
 
-// diagram-js handles entry clicks through a delegate on the palette container, so a synthetic
-// click goes through `palette.trigger` (and its read-only veto) exactly like a pointer click.
+// Enter and Space activate an entry with a synthetic click: `detail` 0, clientX/Y at the entry's
+// centre. A creating entry tells it from a pointer click (`detail` ≥ 1) by that and places its
+// element at `viewport.freeRectCenter()` (guide §5.5). diagram-js handles entry clicks through a
+// delegate on the palette container, so it goes through `palette.trigger` and its read-only veto
+// exactly like a pointer click.
 function activate(entry: HTMLElement): void {
   const bounds = entry.getBoundingClientRect();
   entry.dispatchEvent(

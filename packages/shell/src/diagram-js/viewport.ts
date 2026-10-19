@@ -1,17 +1,20 @@
 import {
   FIT_ANIMATION_MS,
   REDUCED_MOTION_CLASS,
+  VIEW_TOLERANCE,
   ZOOM_MAX,
   ZOOM_MIN,
   canZoomIn,
   canZoomOut,
   easeStandard,
   fitViewbox,
+  freeRectCenter,
   interpolateViewbox,
   matchChromeKey,
   sameView,
   type Bounds,
   type Insets,
+  type Point,
   type ScaledViewbox,
   type Size,
   type ViewportState,
@@ -27,7 +30,10 @@ import type {
 } from "./types.js";
 
 export interface ViewportOptions {
-  /** Content bounds in diagram coordinates; `undefined` = nothing to fit (empty file). */
+  /**
+   * Content bounds in diagram coordinates, tight around the content: the fit insets are the only
+   * margin (guide §5.9). `undefined` = nothing to fit (empty file).
+   */
   contentBounds(): Bounds | undefined;
   /** Fit insets at the moment of a fit (`shell.fitInsets()`). */
   insets(): Insets;
@@ -48,8 +54,11 @@ export interface Viewport extends ZoomTarget {
   fit(options?: { animate?: boolean }): void;
   /**
    * Call after every successful import: fits (jump) the first time the content bounds are
-   * non-empty, unless a persisted view was set (`setState`) or the user moved it. Otherwise a
-   * no-op. A `restore` keeps the view of an empty file, so its first content still fits; content
+   * non-empty, unless a persisted view was set (`setState`) or the user moved it. When the first
+   * import is empty, under the same conditions, it shows 100 % around the centre of the free
+   * rectangle instead, whatever zoom the renderer's import left (an empty file opens at 100 %);
+   * that view is the viewport's own, not a user move, so the first content still fits. Otherwise
+   * a no-op. A `restore` keeps the view of an empty file, so its first content still fits; content
    * the user created on the canvas does not (guide §5.9), so the next import keeps the view.
    */
   afterImport(): void;
@@ -57,6 +66,12 @@ export interface Viewport extends ZoomTarget {
   restore(viewbox: Bounds): void;
   /** The current viewbox (x, y, width, height), `undefined` before the canvas has a size. */
   getViewbox(): Bounds | undefined;
+  /**
+   * The centre of the free rectangle (the container minus `insets()`, guide §5.9) in diagram
+   * coordinates, where keyboard creation from the palette places an element (guide §5.5).
+   * `undefined` while the container is 0 × 0 and after `destroy`.
+   */
+  freeRectCenter(): Point | undefined;
   /** True until the user zoomed or panned; a resize then refits. */
   isAutomatic(): boolean;
   /** For VS Code `setState`; `undefined` before the first import. */
@@ -115,6 +130,10 @@ export class DiagramViewport implements Viewport {
   private importing = false;
   private imported = false;
   private firstFitPending = true;
+  /** Nothing has decided the view yet, so an empty first import shows 100 %. */
+  private emptyViewPending = true;
+  /** The 100 % of an empty first import waits for the container to get a size (hidden tab). */
+  private emptyViewDue = false;
   /** `canFit()` of the current content; the zoom panel asks every frame, `contentBounds` may be costly. */
   private fittable: boolean | undefined;
   private lastZoom = 1;
@@ -200,7 +219,12 @@ export class DiagramViewport implements Viewport {
     this.fittable = undefined;
     if (this.firstFitPending && this.canFit()) {
       this.firstFitPending = false;
+      this.emptyViewPending = false;
+      this.emptyViewDue = false;
       if (!this.userMoved && !this.fitTo(false)) this.autoFitDue = true;
+    } else if (this.firstFitPending && this.emptyViewPending) {
+      this.emptyViewPending = false;
+      if (!this.userMoved && !this.showActualSize()) this.emptyViewDue = true;
     }
     this.notify();
   }
@@ -210,9 +234,19 @@ export class DiagramViewport implements Viewport {
     this.importing = false;
     this.imported = true;
     this.fittable = undefined;
+    this.emptyViewPending = false;
+    this.emptyViewDue = false;
     this.cancelAnimation();
     this.show(viewbox);
     this.notify();
+  }
+
+  freeRectCenter(): Point | undefined {
+    if (this.destroyed) return undefined;
+    const centre = freeRectCenter(this.canvas.getSize(), this.options.insets());
+    const view = this.currentView();
+    if (!centre || !view) return undefined;
+    return { x: view.x + centre.x / view.scale, y: view.y + centre.y / view.scale };
   }
 
   getViewbox(): Bounds | undefined {
@@ -243,6 +277,8 @@ export class DiagramViewport implements Viewport {
     this.cancelAnimation();
     this.userMoved = state.userMoved;
     this.autoFitDue = false;
+    this.emptyViewPending = false;
+    this.emptyViewDue = false;
     if (this.canFit()) this.firstFitPending = false;
     this.show(state.viewbox);
     this.notify();
@@ -283,6 +319,8 @@ export class DiagramViewport implements Viewport {
     this.userMoved = false;
     this.firstFitPending = false;
     this.autoFitDue = false;
+    this.emptyViewPending = false;
+    this.emptyViewDue = false;
     this.pendingView = undefined;
     const from = this.currentView();
     if (animate && from && !sameView(from, target) && typeof requestAnimationFrame === "function") {
@@ -324,6 +362,26 @@ export class DiagramViewport implements Viewport {
     this.animation = undefined;
     cancelAnimationFrame(animation.frame);
     if (this.lastWritten) this.reference = this.lastWritten;
+  }
+
+  /**
+   * 100 % around the centre of the free rectangle, written as the viewport's own view; true when
+   * the view is at 100 % afterwards, false while the container has no size.
+   */
+  private showActualSize(): boolean {
+    const size = this.canvas.getSize();
+    const centre = freeRectCenter(size, this.options.insets());
+    const view = this.currentView();
+    if (!centre || !view) return false;
+    if (Math.abs(view.scale - 1) <= VIEW_TOLERANCE) return true;
+    this.cancelAnimation();
+    this.write({
+      x: view.x + centre.x / view.scale - centre.x,
+      y: view.y + centre.y / view.scale - centre.y,
+      width: size.width,
+      height: size.height,
+    });
+    return true;
   }
 
   /** Shows a restored view now, or once the container has a size. */
@@ -401,6 +459,7 @@ export class DiagramViewport implements Viewport {
         this.cancelAnimation();
         this.userMoved = true;
         this.autoFitDue = false;
+        this.emptyViewDue = false;
       }
     }
     this.notify();
@@ -458,7 +517,7 @@ export class DiagramViewport implements Viewport {
     const size = this.canvas.getSize();
     if (!hasSize(size)) return;
     const changed = this.lastSize?.width !== size.width || this.lastSize.height !== size.height;
-    if (!changed && !this.pendingView && !this.autoFitDue) return;
+    if (!changed && !this.pendingView && !this.autoFitDue && !this.emptyViewDue) return;
     this.lastSize = { width: size.width, height: size.height };
     this.resized();
     const restored = this.pendingView;
@@ -467,6 +526,11 @@ export class DiagramViewport implements Viewport {
       this.write(restored);
     }
     if (this.userMoved) return;
+    if (this.emptyViewDue) {
+      this.emptyViewDue = false;
+      this.showActualSize();
+      return;
+    }
     // A view restored for this very moment is not refitted; a fit that was due still runs.
     if (this.autoFitDue || (!restored && !this.firstFitPending)) this.fitTo(false);
   }

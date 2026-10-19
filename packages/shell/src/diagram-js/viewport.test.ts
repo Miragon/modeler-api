@@ -427,6 +427,149 @@ describe("afterImport", () => {
   });
 });
 
+describe("afterImport: an empty file opens at 100 %", () => {
+  /** What a renderer does while it imports an empty file: frames its board at its own zoom. */
+  function importEmptyAt(setupResult: Setup, zoom: number): void {
+    setupResult.bus.fire("import.parse.start");
+    setupResult.canvas.zoom(zoom);
+    setupResult.bus.fire("import.done");
+  }
+
+  it("zooms 118 % to 100 % around the centre of the free rectangle, as its own view", () => {
+    const setupResult = setup({ content: undefined, deferUpdate: true });
+    const { viewport, canvas } = setupResult;
+    importEmptyAt(setupResult, 1.18);
+    const centre = viewport.freeRectCenter();
+    viewport.afterImport();
+    // with deferUpdate the import's own viewbox event arrives after afterImport, carrying its view
+    canvas.flushDeferred();
+    expect(viewport.zoom()).toBe(1);
+    expect(viewport.freeRectCenter()?.x).toBeCloseTo(centre?.x ?? Number.NaN, 2);
+    expect(viewport.freeRectCenter()?.y).toBeCloseTo(centre?.y ?? Number.NaN, 2);
+    expect(viewport.isAutomatic()).toBe(true);
+    expect(frames.pending).toBe(0);
+  });
+
+  it("writes nothing when the import already left 100 %", () => {
+    const { viewport, canvas } = setup({ content: undefined });
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toEqual([]);
+    expect(viewport.zoom()).toBe(1);
+  });
+
+  it("keeps a stored view (setState)", () => {
+    const { viewport, canvas } = setup({ content: undefined });
+    const stored = { x: -50, y: -40, width: 1000 / 1.18, height: 800 / 1.18 };
+    viewport.setState({ viewbox: stored, userMoved: false });
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toEqual([stored]);
+    expect(viewport.zoom()).toBeCloseTo(1.18, 3);
+  });
+
+  it("keeps the view the user moved", () => {
+    const { viewport, canvas } = setup({ content: undefined });
+    canvas.zoom(1.18);
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toEqual([]);
+    expect(viewport.zoom()).toBeCloseTo(1.18, 3);
+    expect(viewport.isAutomatic()).toBe(false);
+  });
+
+  it("still fits the first content afterwards", () => {
+    const setupResult = setup({ content: undefined });
+    const { viewport, canvas, setContent } = setupResult;
+    importEmptyAt(setupResult, 1.18);
+    viewport.afterImport();
+    expect(viewport.zoom()).toBe(1);
+    setContent(CONTENT);
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+  });
+
+  it("only acts on the first import: later imports and restores of the empty file keep the view", () => {
+    const setupResult = setup({ content: undefined });
+    const { viewport, canvas } = setupResult;
+    importEmptyAt(setupResult, 1.18);
+    viewport.afterImport();
+    const keep = viewport.getViewbox();
+    if (!keep) throw new Error("no viewbox");
+    const writes = canvas.viewboxWrites.length;
+
+    importEmptyAt(setupResult, 1.5);
+    viewport.restore(keep);
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toHaveLength(writes + 1);
+    expect(viewport.zoom()).toBe(1);
+
+    importEmptyAt(setupResult, 1.5);
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toHaveLength(writes + 1);
+    expect(viewport.zoom()).toBe(1.5);
+  });
+
+  it("waits for a container size (hidden tab)", () => {
+    const setupResult = setup({ content: undefined });
+    const { viewport, canvas } = setupResult;
+    importEmptyAt(setupResult, 1.18);
+    canvas.size = { width: 0, height: 0 };
+    viewport.afterImport();
+    expect(canvas.viewboxWrites).toEqual([]);
+    resize(setupResult, 900, 700);
+    expect(viewport.zoom()).toBe(1);
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("fits instead when the first content arrives while the tab is still hidden", () => {
+    const setupResult = setup({ content: undefined });
+    const { viewport, canvas, setContent } = setupResult;
+    canvas.size = { width: 0, height: 0 };
+    importEmptyAt(setupResult, 1.18);
+    viewport.afterImport();
+    setContent(CONTENT);
+    viewport.afterImport();
+    resize(setupResult, 900, 700);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+  });
+});
+
+describe("freeRectCenter", () => {
+  it("is the centre of the container minus the insets, in diagram coordinates", () => {
+    const { viewport, canvas } = setup();
+    expect(viewport.freeRectCenter()).toEqual({ x: 24 + 952 / 2, y: 88 + 648 / 2 });
+    canvas.viewbox({ x: 200, y: -100, width: 2000, height: 1600 });
+    const centre = viewport.freeRectCenter();
+    expect(centre?.x).toBeCloseTo(200 + (24 + 952 / 2) * 2, 6);
+    expect(centre?.y).toBeCloseTo(-100 + (88 + 648 / 2) * 2, 6);
+  });
+
+  it("reads the insets of the moment", () => {
+    let insets: Insets = INSETS;
+    const { viewport } = setup({ insets: () => insets });
+    insets = { top: 140, right: 324, bottom: 64, left: 24 };
+    expect(viewport.freeRectCenter()).toEqual({ x: 24 + 652 / 2, y: 140 + 596 / 2 });
+  });
+
+  it("is where a fit puts the centre of the content", () => {
+    const { viewport, canvas } = setup();
+    viewport.fit({ animate: false });
+    canvas.flushDeferred();
+    const centre = viewport.freeRectCenter();
+    // diagram-js rounds the scale to three decimals
+    expect(centre?.x).toBeCloseTo(CONTENT.x + CONTENT.width / 2, 0);
+    expect(centre?.y).toBeCloseTo(CONTENT.y + CONTENT.height / 2, 0);
+  });
+
+  it("is undefined at 0 × 0 and after destroy", () => {
+    const { viewport, canvas } = setup();
+    canvas.size = { width: 0, height: 0 };
+    expect(viewport.freeRectCenter()).toBeUndefined();
+    canvas.size = { width: 1000, height: 800 };
+    expect(viewport.freeRectCenter()).toBeDefined();
+    viewport.destroy();
+    expect(viewport.freeRectCenter()).toBeUndefined();
+  });
+});
+
 describe("user moves", () => {
   it("recognises the own change in a delayed changed event (deferUpdate)", () => {
     const { viewport, canvas } = setup({ deferUpdate: true });

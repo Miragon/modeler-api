@@ -1,5 +1,5 @@
 import { SHELL } from "./sizes.js";
-import type { Bounds, Insets, PaletteRow, ScaledViewbox, ShellHost, Size } from "./types.js";
+import type { Bounds, Insets, PaletteRow, Point, ScaledViewbox, ShellHost, Size } from "./types.js";
 
 /** Fit never zooms above 100 % (guide §5.9). */
 export const MAX_FIT_ZOOM = 1;
@@ -48,6 +48,22 @@ export function fitViewbox(
 function freeExtent(total: number, before: number, after: number): { start: number; extent: number } {
   const extent = total - before - after;
   return extent > 0 ? { start: before, extent } : { start: 0, extent: total };
+}
+
+/**
+ * The centre of the free rectangle (`container` minus `insets`) in pixels from the container's top
+ * left, where `fitViewbox` centres the content and keyboard creation places an element (guide
+ * §5.5). An axis the insets leave no room on centres in the whole container, as in `fitViewbox`.
+ * Returns `undefined` when the container is 0 × 0.
+ */
+export function freeRectCenter(container: Size, insets: Insets): Point | undefined {
+  if (!(container.width > 0 && container.height > 0)) return undefined;
+  const horizontal = freeExtent(container.width, insets.left, insets.right);
+  const vertical = freeExtent(container.height, insets.top, insets.bottom);
+  return {
+    x: horizontal.start + horizontal.extent / 2,
+    y: vertical.start + vertical.extent / 2,
+  };
 }
 
 /** What is open or shown when a fit runs (guide §5.9: every fit counts what is open right now). */

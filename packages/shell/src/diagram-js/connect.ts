@@ -5,7 +5,10 @@ import type { DiagramEventListener, EventBusLike, InjectorLike } from "./types.j
 import { DiagramViewport, type Viewport } from "./viewport.js";
 
 export interface ConnectOptions {
-  /** Content bounds in diagram coordinates; `undefined` = nothing to fit (empty file). */
+  /**
+   * Content bounds in diagram coordinates, tight around the content: the fit insets are the only
+   * margin (guide §5.9). `undefined` = nothing to fit (empty file).
+   */
   contentBounds(): Bounds | undefined;
   /**
    * An empty file (guide §13.5: no element, only whitespace, comments or a title), which shows the

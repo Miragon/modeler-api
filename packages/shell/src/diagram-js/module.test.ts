@@ -270,6 +270,32 @@ describe("palette skin", () => {
     expect(clicks).toEqual(["click:box", "click:box"]);
   });
 
+  it("activates with a synthetic click: detail 0, at the centre of the entry (guide §5.5)", () => {
+    const received: MouseEvent[] = [];
+    const diagram = createDiagram([
+      PaletteModule,
+      providerModule({
+        "create.box": {
+          group: "shapes",
+          title: "Box",
+          action: { click: (event) => received.push(event as MouseEvent) },
+        },
+      }),
+      shellModule,
+    ]);
+    const box = entry(diagram, "create.box");
+    vi.spyOn(box, "getBoundingClientRect").mockReturnValue(
+      DOMRect.fromRect({ x: 600, y: 12, width: 32, height: 32 }),
+    );
+    box.focus();
+    press(box, "Enter");
+    box.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+    expect(received.map((event) => [event.detail, event.clientX, event.clientY])).toEqual([
+      [0, 616, 28],
+      [1, 0, 0],
+    ]);
+  });
+
   it("keeps a stopped key from reaching document listeners", () => {
     const diagram = createDiagram();
     const listener = vi.fn();
