@@ -5,8 +5,360 @@
  * var(--cd-shell-*); the primary fill comes from ../buttons.css. Every rule is scoped to
  * .cd-shell[data-cd-shell-host="web"] or to classes only the web host renders.
  *
- * TODO(web-chrome): .cd-shell-primary (top 12, right 12, 40 high, layer 30, collapsed 40 × 40),
- * .cd-shell-legal, .cd-shell-empty-state, .cd-shell-drop-zone[data-state], [hidden] rules,
- * .cd-shell[data-empty-state="shown"] hiding the work chrome, .cd-shell[data-zoom-row="raised"],
- * high contrast and forced colours for each.
+ * 20px is the legal line's height (13px text on a 20px line, guide §5.10); it has no token.
  */
+
+/* The app's own element rules (h1 { font-size: 2em }, a { text-transform … }) stay out. */
+:where(.cd-shell)
+  :is(
+    .cd-shell-primary,
+    .cd-shell-primary-label,
+    .cd-shell-legal,
+    .cd-shell-legal a,
+    .cd-shell-empty-state,
+    .cd-shell-empty-state-title,
+    .cd-shell-empty-state-text,
+    .cd-shell-empty-state-hint,
+    .cd-shell-empty-state .cd-shell-button,
+    .cd-shell-drop-zone-chip
+  ) {
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-indent: 0;
+  text-shadow: none;
+}
+
+/* ---- Primary action, top right (guide §5.7, §5.15) ------------------------------------------ */
+
+.cd-shell .cd-shell-primary {
+  position: absolute;
+  top: var(--cd-shell-rand);
+  right: var(--cd-shell-rand);
+  z-index: var(--cd-shell-ebene-reihe);
+  height: var(--cd-shell-zeile);
+  padding: 0 16px;
+}
+
+/* Icon only: 40 × 40, the label gone, the aria-label unchanged. */
+.cd-shell .cd-shell-primary[data-collapsed] {
+  width: var(--cd-shell-zeile);
+  padding: 0;
+}
+
+.cd-shell-primary-label[hidden] {
+  display: none;
+}
+
+/* ---- Legal line, bottom left (guide §5.10, §2) ---------------------------------------------- */
+
+.cd-shell-legal {
+  position: absolute;
+  left: var(--cd-shell-rand);
+  bottom: var(--cd-shell-rand);
+  z-index: var(--cd-shell-ebene-inseln);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  margin: 0;
+  padding: 0 8px;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-shell-legal[hidden] {
+  display: none;
+}
+
+.cd-shell-legal > * {
+  flex: none;
+}
+
+.cd-shell .cd-shell-legal a,
+.cd-shell .cd-shell-legal a:visited {
+  color: var(--cd-ui-link);
+  font: inherit;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.cd-shell .cd-shell-legal a:hover {
+  color: var(--cd-ui-link);
+  text-decoration: underline;
+}
+
+.cd-shell .cd-shell-legal a:focus {
+  outline: none;
+}
+
+.cd-shell .cd-shell-legal a:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.cd-shell-legal::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Narrow: the one line may be wider than the container (with a GitHub link below about 415px).
+ * It scrolls sideways instead of wrapping under the pill, and like any scrolling container keeps
+ * the focus ring inside (guide §5.14).
+ */
+@container cd-shell (max-width: 440px) {
+  .cd-shell-legal {
+    max-width: calc(100cqw - 2 * var(--cd-shell-rand));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .cd-shell .cd-shell-legal a {
+    padding: 0 2px;
+  }
+
+  .cd-shell .cd-shell-legal a:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+/* ---- Empty state, centre (guide §8) --------------------------------------------------------- */
+
+.cd-shell-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: var(--cd-shell-ebene-inseln);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(400px, 100cqw - 2 * var(--cd-shell-rand));
+  max-height: calc(100cqh - 2 * var(--cd-shell-rand));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 32px 40px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-lg);
+  box-shadow: var(--cd-shadow-2);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: cd-shell-rise-in var(--cd-motion-base) var(--cd-ease-out);
+}
+
+.cd-shell-empty-state[hidden] {
+  display: none;
+}
+
+.cd-shell-empty-state-mark {
+  display: block;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  margin: 0;
+}
+
+.cd-shell .cd-shell-empty-state-title {
+  margin: 0;
+  color: var(--cd-ui-text);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cd-shell .cd-shell-empty-state-text {
+  margin: 0;
+  color: var(--cd-ui-text-leise);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.cd-shell-empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--cd-shell-luecke);
+}
+
+.cd-shell .cd-shell-empty-state-hint {
+  margin: 0;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ---- Start screen: only the card and the legal line compete (guide §8) ---------------------- */
+
+.cd-shell[data-cd-shell-host="web"][data-empty-state="shown"]
+  :is(
+    .cd-shell-menu-trigger,
+    .cd-shell-primary,
+    .djs-palette,
+    .cd-shell-zoom,
+    .cd-shell-problems,
+    .cd-shell-legend,
+    .cd-shell-status,
+    .cd-shell-hint,
+    .cd-shell-inspector
+  ) {
+  visibility: hidden;
+}
+
+/* ---- Bottom row: the zoom panel above the legal line where they meet (shell rule) ----------- */
+
+.cd-shell[data-cd-shell-host="web"][data-zoom-row="raised"] .cd-shell-zoom {
+  bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+}
+
+/* Up to 440px the legend stands above the raised zoom panel too: 40 + 40 + 8 = 88. */
+@container cd-shell (max-width: 440px) {
+  .cd-shell[data-cd-shell-host="web"][data-zoom-row="raised"] .cd-shell-legend {
+    --modeler-shell-legend-min-bottom: calc(
+      var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+    );
+  }
+}
+
+/* ---- Drop zone, whole page (guide §9 Drag-over, Drop forbidden) ----------------------------- */
+
+.cd-shell-drop-zone {
+  position: absolute;
+  inset: var(--cd-shell-rand);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--cd-shell-rand);
+  background: var(--cd-ui-hover);
+  border: 2px dashed var(--cd-ui-interaktion);
+  border-radius: var(--cd-radius-lg);
+  /* Fills the 12px around it, so no island corner shows beside the rounded frame. */
+  box-shadow: 0 0 0 var(--cd-shell-rand) var(--cd-ui-grund);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cd-shell-drop-zone[hidden] {
+  display: none;
+}
+
+.cd-shell-drop-zone[data-state="forbidden"] {
+  background: var(--cd-ui-danger-flaeche);
+  border-color: var(--cd-ui-danger);
+}
+
+.cd-shell-drop-zone-chip {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 7px 16px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+}
+
+/* ---- Motion (guide §5.14, §7): no rise under reduced motion (the buttons' lift: ../buttons.css) */
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-shell .cd-shell-empty-state {
+    animation: none;
+  }
+}
+
+html.cd-shell-reduce-motion .cd-shell .cd-shell-empty-state {
+  animation: none;
+}
+
+/* ---- High contrast (guide §5.3): opaque glass through the role, no shadows, 3px focus -------- */
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-empty-state, .cd-shell-drop-zone-chip) {
+  box-shadow: none;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-empty-state {
+  border-color: var(--cd-ui-kontur);
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a {
+  text-decoration: underline;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a:focus-visible {
+  outline-width: 3px;
+}
+
+@container cd-shell (max-width: 440px) {
+  .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a:focus-visible {
+    outline-offset: -3px;
+  }
+}
+
+/* ---- Forced colours (guide §5.14, §12): nothing disappears ---------------------------------- */
+
+@media (forced-colors: active) {
+  .cd-shell .cd-shell-empty-state,
+  .cd-shell .cd-shell-drop-zone-chip {
+    border-color: CanvasText;
+  }
+
+  .cd-shell .cd-shell-legal a {
+    text-decoration: underline;
+  }
+
+  .cd-shell .cd-shell-legal a:focus-visible {
+    outline-color: Highlight;
+  }
+
+  /* Over and forbidden keep their own dashed frame; the chip's words name the state as well. */
+  .cd-shell .cd-shell-drop-zone {
+    forced-color-adjust: none;
+    background: Canvas;
+    border-color: Highlight;
+    box-shadow: 0 0 0 var(--cd-shell-rand) Canvas;
+  }
+
+  .cd-shell .cd-shell-drop-zone[data-state="forbidden"] {
+    border-color: CanvasText;
+    border-style: dotted;
+  }
+
+  .cd-shell .cd-shell-drop-zone-chip {
+    color: CanvasText;
+    background: Canvas;
+    box-shadow: none;
+  }
+}

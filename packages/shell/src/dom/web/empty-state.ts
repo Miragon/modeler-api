@@ -19,8 +19,13 @@ export interface EmptyStateController {
   readonly element: HTMLElement;
   isShown(): boolean;
   setShown(shown: boolean): void;
+  /** Focuses "New diagram", the card's first button. */
+  focus(): void;
   destroy(): void;
 }
+
+/** The Komet's size on the card (guide §8). */
+const KOMET_SIZE = "64";
 
 /**
  * `<section class="cd-shell-empty-state" data-chrome="empty-state" aria-labelledby>` (guide §8):
@@ -31,19 +36,60 @@ export interface EmptyStateController {
  * example", then the drop hint 13px `--cd-ui-text-leise`. Layer 20, `hidden` until `setShown(true)`.
  */
 export function createEmptyState(context: EmptyStateContext): EmptyStateController {
-  // TODO(web-chrome): the card above; each button calls context.onLeave() first.
-  const { ownerDocument, titleId } = context;
-  const element = createElement(ownerDocument, "section", {
-    class: "cd-shell-empty-state",
-    "data-chrome": "empty-state",
-    "aria-labelledby": titleId,
-  });
+  const { ownerDocument, messages, options, dropHint, titleId, onLeave } = context;
+
+  const button = (variant: "primary" | "ghost", label: string, run: () => void): HTMLButtonElement => {
+    const element = createElement(
+      ownerDocument,
+      "button",
+      { type: "button", class: "cd-shell-button", "data-variant": variant },
+      label,
+    );
+    element.addEventListener("click", () => {
+      onLeave();
+      run();
+    });
+    return element;
+  };
+
+  const onShowExample = options.onShowExample;
+  const newDiagram = button("primary", messages.newDiagram, () => options.onNewDiagram());
+  const element = createElement(
+    ownerDocument,
+    "section",
+    { class: "cd-shell-empty-state", "data-chrome": "empty-state", "aria-labelledby": titleId },
+    // Dragging the mark would start an image drag that some browsers carry as a file.
+    createElement(ownerDocument, "img", {
+      class: "cd-shell-empty-state-mark",
+      src: options.komet,
+      width: KOMET_SIZE,
+      height: KOMET_SIZE,
+      alt: "",
+      draggable: "false",
+    }),
+    createElement(ownerDocument, "h1", { class: "cd-shell-empty-state-title", id: titleId }, options.title),
+    createElement(ownerDocument, "p", { class: "cd-shell-empty-state-text" }, options.text),
+    createElement(
+      ownerDocument,
+      "div",
+      { class: "cd-shell-empty-state-actions" },
+      newDiagram,
+      onShowExample && button("ghost", messages.showExample, () => onShowExample()),
+    ),
+    dropHint !== undefined &&
+      dropHint !== "" &&
+      createElement(ownerDocument, "p", { class: "cd-shell-empty-state-hint" }, dropHint),
+  );
   element.hidden = true;
+
   return {
     element,
     isShown: () => !element.hidden,
     setShown(shown) {
       element.hidden = !shown;
+    },
+    focus() {
+      newDiagram.focus({ preventScroll: true });
     },
     destroy() {
       element.remove();

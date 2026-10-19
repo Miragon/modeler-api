@@ -509,4 +509,17 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     expect(of("json")?.getAttribute("aria-keyshortcuts")).toBe("Meta+J");
     expect(of("png")?.hasAttribute("aria-keyshortcuts")).toBe(false);
   });
+
+  it("shows a dialog entry's shortcut chip and names it in aria-keyshortcuts", () => {
+    const base = groups();
+    const help = (base.help ?? []).map((entry) =>
+      entry.kind === "dialog" ? { ...entry, shortcut: "?" } : entry,
+    );
+    const { shell } = mount({ menu: { ...base, help } });
+    shell.menu.open();
+    const entry = shell.menu.dropdown.querySelector('[data-menu-id="shortcuts"]');
+    expect(entry?.querySelector(".cd-shell-menu-shortcut")?.textContent).toBe("?");
+    expect(entry?.getAttribute("aria-keyshortcuts")).toBe("?");
+    expect(entry?.getAttribute("aria-haspopup")).toBe("dialog");
+  });
 });

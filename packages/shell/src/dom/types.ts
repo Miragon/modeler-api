@@ -119,6 +119,10 @@ export interface MenuActionEntry extends MenuItemBase {
  */
 export interface MenuDialogEntry extends MenuItemBase {
   kind: "dialog";
+  /** Shortcut chip text shown on the right, verbatim ("?" for "Keyboard shortcuts…"). */
+  shortcut?: string | undefined;
+  /** As for `MenuActionEntry`: default `ariaKeyShortcutsFromLabel(shortcut)`, `""` sets none. */
+  ariaKeyShortcuts?: string | undefined;
   onSelect(): void;
 }
 

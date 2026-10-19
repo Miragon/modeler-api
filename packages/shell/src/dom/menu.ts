@@ -152,18 +152,15 @@ export function createMenu(context: MenuContext): MenuController {
         },
       };
     }
-    const shortcut =
-      entry.kind === "action" && entry.shortcut
-        ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
-        : undefined;
+    const shortcut = entry.shortcut
+      ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
+      : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;
     element.dataset.menuGroup = group;
-    if (entry.kind === "action") {
-      const keyShortcuts =
-        entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
-      toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
-    }
+    const keyShortcuts =
+      entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
+    toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
     if (entry.kind === "dialog") element.setAttribute("aria-haspopup", "dialog");
     if (entry.kind === "action" && entry.danger) element.dataset.danger = "";
     return {

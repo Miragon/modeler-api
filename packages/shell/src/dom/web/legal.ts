@@ -28,13 +28,28 @@ export interface LegalLineController {
  * → `MIRAGON_DATENSCHUTZ` (both `lang="de"`, never translated), then `options.links`.
  */
 export function createLegalLine(context: LegalLineContext): LegalLineController {
-  // TODO(web-chrome): links, separators, lang="de", year.
-  const { ownerDocument, messages } = context;
+  const { ownerDocument, messages, options } = context;
+  const year = options.year ?? new Date().getFullYear();
+
+  const link = (label: string, href: string, lang?: string): HTMLAnchorElement =>
+    createElement(ownerDocument, "a", { href, lang, target: "_blank", rel: "noopener noreferrer" }, label);
+  const separator = (): HTMLElement => createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·");
+
+  // The legal pages are German whatever the tool's language (guide §2), so their names are too.
+  const links = [
+    link(messages.copyright(year), MIRAGON_HOME),
+    link("Impressum", MIRAGON_IMPRESSUM, "de"),
+    link("Datenschutz", MIRAGON_DATENSCHUTZ, "de"),
+    ...(options.links ?? []).map((extra) => link(extra.label, extra.href, extra.lang)),
+  ];
+
   const element = createElement(ownerDocument, "nav", {
     class: "cd-shell-legal",
     "data-chrome": "legal",
     "aria-label": messages.legal,
   });
+  element.append(...links.flatMap((anchor, index) => (index === 0 ? [anchor] : [separator(), anchor])));
+
   return {
     element,
     destroy() {

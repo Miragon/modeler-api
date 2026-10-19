@@ -88,6 +88,18 @@
   outline-offset: 2px;
 }
 
+/* No lift under reduced motion (guide §7): the hover shows in fill and shadow alone. */
+@media (prefers-reduced-motion: reduce) {
+  .cd-shell .cd-shell-button[data-variant]:is(:hover, :active) {
+    transform: none;
+  }
+}
+
+/* The host asks for it although the OS does not: VS Code's workbench.reduceMotion. */
+html.cd-shell-reduce-motion .cd-shell .cd-shell-button[data-variant]:is(:hover, :active) {
+  transform: none;
+}
+
 .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-button {
   box-shadow: none;
 }
