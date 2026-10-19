@@ -118,6 +118,17 @@
   max-height: 100%;
 }
 
+/*
+ * Tool icons take the entry's colour in every state, also against renderer or diagram-js rules on
+ * the icon itself. Notation previews keep their own colours (guide §5.5), so only tools inherit.
+ */
+.djs-palette[data-chrome="palette"] .group[data-group="tools"] .entry > svg,
+.djs-palette[data-chrome="palette"] .group[data-group="tools"] .entry::before,
+.djs-palette[data-chrome="palette"] .entry[data-action$="-tool"] > svg,
+.djs-palette[data-chrome="palette"] .entry[data-action$="-tool"]::before {
+  color: inherit;
+}
+
 .djs-palette[data-chrome="palette"] .entry:hover {
   background: var(--cd-ui-hover);
   color: var(--cd-ui-interaktion);
@@ -138,6 +149,11 @@
 .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"] {
   background: var(--cd-ui-hover);
   box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
+  color: var(--cd-ui-text);
+}
+
+.djs-palette[data-chrome="palette"] .entry[aria-pressed="true"]:hover {
+  color: var(--cd-ui-interaktion);
 }
 
 .djs-palette[data-chrome="palette"] .entry:focus {
@@ -159,6 +175,10 @@
   background: transparent;
   color: var(--cd-ui-text-leise);
   cursor: not-allowed;
+}
+
+.djs-palette[data-chrome="palette"] .entry.highlighted-entry[aria-disabled="true"] {
+  color: var(--cd-ui-text-leise) !important;
 }
 
 .djs-palette[data-chrome="palette"] .entry[aria-disabled="true"] > *,
@@ -225,7 +245,8 @@
     outline-color: Highlight;
   }
 
-  .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"] {
+  .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"],
+  .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"]:hover {
     forced-color-adjust: none;
     background: Canvas;
     color: CanvasText;
