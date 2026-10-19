@@ -31,18 +31,22 @@ modeler's build — not a downstream integration review.
 import type { CollaborativeModeler } from "@miragon/modeler-api";
 ```
 
-| Law | Requirement                                                                                                                                                                                             |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| L1  | `importText` is **silent**: no change events, undo history erased without emitting — also over existing history and foreign content                                                                     |
-| L2  | `exportText` is **canonical**: deterministic, a byte fixpoint on canonical input, idempotent otherwise                                                                                                  |
-| L3  | `onContentChanged` fires for **every** user-visible change — element commands, config/axis/title edits, undo/redo — and nothing else; inside a listener `exportText()` already returns the new document |
-| L4  | undo directly after an import is a defined **no-op** — never a stale-history mutation                                                                                                                   |
-| L5  | view state survives a re-import; an import leaves the view **fitted** to the content; the readback may be a normalised form of what was set                                                             |
-| L6  | `exportText` is total after a successful import; foreign content is **preserved** through import → export, never dropped, never a throw                                                                 |
-| L7  | a REJECTED import leaves no trace — previous document still rendered and exported, no events, undo history untouched — and the modeler **stays usable**                                                 |
+| Law | Requirement                                                                                                                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1  | `importText` is **silent**: no change events, undo history erased without emitting — also over existing history and foreign content; an interaction open during an import (a label editor with typed input) never commits |
+| L2  | `exportText` is **canonical**: deterministic, a byte fixpoint on canonical input, idempotent otherwise                                                                                                                    |
+| L3  | `onContentChanged` fires for **every** user-visible change — element commands, config/axis/title edits, undo/redo — and nothing else; inside a listener `exportText()` already returns the new document                   |
+| L4  | undo directly after an import is a defined **no-op** — never a stale-history mutation                                                                                                                                     |
+| L5  | view state survives a re-import; an import leaves the view **fitted** to the content; the readback may be a normalised form of what was set                                                                               |
+| L6  | `exportText` is total after a successful import; foreign content is **preserved** through import → export, never dropped, never a throw                                                                                   |
+| L7  | EVERY rejected import leaves no trace — previous document still rendered and exported, no events, undo history untouched — and the modeler **stays usable**                                                               |
 
 View state is never part of the document: `setViewState` fires no change
 events and `exportText` is independent of it.
+
+Calls made before the first import (`exportText()`, a user command) may
+return or throw whatever the modeler defines, but never wedge the instance:
+the first `importText` still renders and resolves as specified.
 
 `meta.editable` tells a viewer mount from an editor: a package that ships a
 `NavigatedViewer`/`Viewer` exposes it under the same contract with
@@ -57,7 +61,22 @@ and selection events) powers host features like anchored todos, `?element=`
 deep links and the selection half of live presence. Ids are ELEMENT ids
 (a label shape resolves to its target) and survive edits to other elements —
 positional ids that renumber when a line is inserted above break every anchor
-below.
+below. The id a session reports is the element's id in the DOCUMENT: after
+`exportText()` → `importText()`, in this instance or any other (a peer, the
+viewer, the next session), the element carries the same id — an element
+created in the session gets an id the serializer writes back, never one that
+lives only in memory. RECOMMENDED: when two peers create different elements
+at the same time, their ids do not collide — random or peer-scoped ids, not a
+per-instance counter such as `event_1`. An id derived from the content (OWM's
+`component_<slug>`) collides only when both users create the same content,
+which the merge has to reconcile anyway.
+
+An interaction in progress during an import (an open label editor, a popup
+with typed input) never commits during or because of it (L1): no change
+event, nothing in the imported document or on its undo history, nothing
+applied to an element the import removed. RECOMMENDED: keep the typed input
+and reopen the interaction on the element with the same id when it is still
+there — hosts re-import remote states while the user is typing.
 
 ## The conformance kit
 
@@ -79,10 +98,14 @@ registerConformance(
     configMutations: [{ name: "axis labels", run: (m) => renameEvolutionAxis(m) }], // [] if the notation has none
     undo: (m) => triggerUndo(m),
     redo: (m) => triggerRedo(m),
+    probeTexts: [CUT_OFF_SAMPLE], // optional: damaged forms your parser meets, on top of the derived probes
+    openInteraction: (m) => typeIntoLabelEditor(m, "typed, not committed"), // open an editor, type, do NOT commit
+    interactionState: (m) => readOpenLabelEditor(m), // { elementId, text } | undefined
     // engines that debounce change delivery: make this outlast the debounce
     settle: () => new Promise((r) => setTimeout(r, 50)),
   },
   test,
+  { onSkip: reportSkip, onAdvisory: reportAdvisory }, // optional: both default to console.warn
 );
 ```
 
@@ -101,7 +124,50 @@ proves only that it agrees with itself.
 a SKIP (`console.warn` by default, `registerConformance(h, test, { onSkip })`
 to route it) instead of passing. An explicit `[]` (`invalidTexts`,
 `foreignTexts`, `configMutations`, `looseTexts`) is a statement that the
-notation has no such form and skips nothing.
+notation has no such form and skips nothing. Without `openInteraction` the
+L1 interaction case reports a skip; with `openInteraction` but without
+`interactionState` only its keep-and-reopen half does.
+
+**Every rejection is probed.** `invalidTexts` lists what MUST reject; the kit
+does not take `[]` on trust. The L7 probe case derives damaged forms from
+every canonical text — its first half, its first third, the text without its
+last character, the text followed by a NUL character — plus your optional
+`probeTexts`, and imports each over a document with undo history. A probe may
+import or reject: one that imports must be silent (L1) with `exportText`
+total (L6); one that rejects must leave the document, its element ids, the
+change events and the undo history untouched (L7). After every probe the next
+valid import must render and the next user command must apply. The case runs
+for every harness and never skips.
+
+**Calls before the first import.** A fresh instance gets `exportText()` and
+one `mutate` before any document (throws tolerated — what they return is
+unspecified — and a `mutate` that never settles too: the kit waits 2 s for
+it, so a harness that waits for its command's change event still runs); then
+importing the first two canonical texts must render each exactly like a
+fresh instance does, and the next `mutate` must emit and apply.
+
+**Interactions open during an import.** `openInteraction` opens an editor on
+an element of `canonicalTexts[0]` and types without committing. The kit then
+imports over it twice — a different document (`canonicalTexts[1]`, the edited
+element is usually gone; a harness with one canonical text reports that leg
+as skipped) and the same document again (the element is still there) — and
+requires no change event, the imported document as the export and an undo
+that changes nothing (L1, L4). `interactionState` lets it check the
+recommended keep-and-reopen on the same-document import.
+
+**Recommendations are advisories.** Where the contract only RECOMMENDS
+(collision-free ids across peers, keep-and-reopen of an open interaction), the
+kit reports what it finds as an ADVISORY through `onAdvisory`
+(`console.warn` by default) and never fails: a recommendation becomes a law,
+with a failing case, only in a major release. The collision check imports the
+same canonical text into two fresh instances, runs `mutate` once on each and
+advises when both allocate the same id — unless both new elements carry the
+same name and the id spells it out (its letters and digits contain the
+name's, as `component_new_component` does for "New Component"). Such an id is
+derived from the content and collides for identical content by design, so
+the check reports a skip instead: let `mutate`'s elements differ in content
+(a counter the harness shares across instances, as the reference harness
+does).
 
 **View state is compared by readback.** The kit never compares
 `getViewState()` with your `viewState` literal: it sets it, reads the
@@ -109,18 +175,20 @@ modeler's own (possibly normalised) state back, and requires that readback
 to survive a re-import — a diagram-js viewbox that comes back rounded with
 `scale`/`inner`/`outer` is fine.
 
-**Element identity is verified through names.** After an unrelated edit every
-id must still exist and, where the notation has names, still name the same
-element; a notation whose elements carry no names is verified for id
-existence only.
+**Element identity is verified through names.** After an unrelated edit, and
+after an export → import into the same instance, a fresh instance and the
+viewer, every id the session reported must still exist and, where the
+notation has names, still name the same element; a notation whose elements
+carry no names is verified for id existence only.
 
 The kit throws plain `Error`s — no assertion-library or runner dependency.
 Its own CI proves it bites: a conforming reference modeler
 ([`test/reference-modeler.ts`](test/reference-modeler.ts) — also the model
-for a harness) passes every case, and one deliberately broken variant per
-historical drift AND per kit case fails exactly the case set that encodes
-the violated law (not every individual assertion has a saboteur; every case
-does).
+for a harness) passes every case and advises nothing, one deliberately broken
+variant per historical drift AND per kit case fails exactly the case set that
+encodes the violated law (not every individual assertion has a saboteur;
+every case does), and one variant per recommendation fails nothing and
+advises exactly once.
 
 ## Versioning
 
@@ -135,7 +203,29 @@ The contract is first published as 1.0.0, never 0.x: under 0.x,
 additive surface into a lockstep release across all modelers and their
 hosts. A new optional surface (a structured snapshot lane alongside the text
 lane, richer element info) is a minor, and hosts feature-detect it. A new
-required member or a stricter law is a major.
+required member or a stricter law is a major. A minor may still add a case
+that enforces what the contract text already states; a requirement the text
+does not state yet ships as a RECOMMENDATION with an advisory, so no
+conforming modeler turns red in a minor. A case that needs a new optional
+harness field (`openInteraction`) reports a skip until the harness provides
+it, and a check the harness cannot feed conclusively (the collision check
+when both peers' new elements share a name their id spells out) reports a
+skip too; a suite whose `onSkip` throws, to keep every law verified, turns red on
+that upgrade by its own choice, and the skip names what to add or change.
+
+### Candidates for 2.0
+
+Recommendations today, proposed as hard laws for the next major:
+
+- **Collision-free element ids across peers** — two instances that import the
+  same document and each create a different element never allocate the same
+  id for them; ids derived from the content (OWM's `component_<slug>`) meet
+  this by construction and collide only for identical content (today:
+  `ElementInfo.id` RECOMMENDED, advisory in the elements collision case).
+- **Keep and reopen an interaction across an import** — an interaction open
+  during an import is reopened, with its typed input, on the element with the
+  same id when that element is still there (today: L1 RECOMMENDED, advisory in
+  the L1 interaction case).
 
 ## License
 

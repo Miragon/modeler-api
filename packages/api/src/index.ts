@@ -51,6 +51,20 @@ export interface ElementInfo {
    * `?element=` deep links to it, so an id that renumbers when a line is
    * inserted above (positional edge ids) breaks every anchor below it. An
    * element without an id in the text gets one the serializer WRITES BACK.
+   *
+   * The id a session reports IS the element's id in the document: after
+   * `exportText()` → `importText()` — in this instance or in any other one
+   * (a peer, the viewer, the next session) — the element carries the same
+   * id. An id that lives only in memory anchors nothing: the todo or deep
+   * link a host stored against it points nowhere once the text travels.
+   *
+   * RECOMMENDED: when two peers create different elements at the same time,
+   * their ids do not collide. An id allocated regardless of the content —
+   * a per-instance counter (`event_1` on both peers) — does: once both edits
+   * merge into one document, two elements share one id; random or
+   * peer-scoped ids do not. An id derived from the content (OWM's
+   * `component_<slug>`) collides only when both users create the same
+   * content, which the merge has to reconcile anyway.
    */
   id: string;
   /** human label, when the notation has one */
@@ -86,6 +100,14 @@ export interface ElementsSurface {
  *     the undo history without emitting — also when history exists. Hosts
  *     re-import remote states on every sync; an import echo would re-export
  *     the canonical serialization over half-typed peer text.
+ *     An interaction in progress when an import runs (an open label editor,
+ *     a popup with typed input) never commits during or because of the
+ *     import: no change event comes from it, its input lands neither in the
+ *     imported document nor on its fresh undo history, and nothing is
+ *     applied to an element the import removed. RECOMMENDED: keep the typed
+ *     input and reopen the interaction on the element with the same id when
+ *     that element is still there after the import — a remote re-import
+ *     should not cost the user what they were typing.
  *  L2 CANONICAL FIXPOINT — `exportText` is deterministic, and for any text t:
  *     with c = exportText() after importText(t), importText(c) followed by
  *     exportText() returns c byte-for-byte. Canonicalization is idempotent;
@@ -117,9 +139,11 @@ export interface ElementsSurface {
  *     rest), never dropped and never a reason to throw.
  *  L7 REJECTED IMPORTS LEAVE NO TRACE — `importText` on non-importable text
  *     REJECTS (resolve-with-warnings means "imported, with notes"; rejection
- *     means "nothing imported"): afterwards the previously imported document
- *     is still rendered with its elements, `exportText` still returns it, no
- *     change event has fired and the undo history is untouched.
+ *     means "nothing imported"). This holds for EVERY rejection, whatever
+ *     the input (a truncated or half-typed text included): afterwards the
+ *     previously imported document is still rendered with its elements,
+ *     `exportText` still returns it, no change event has fired and the undo
+ *     history is untouched.
  *     The modeler stays USABLE: the next valid import renders, the next user
  *     command applies. Hosts re-import half-typed peer text on every sync —
  *     "blank (or wedged) until healed" is not an acceptable failure mode.
@@ -132,11 +156,17 @@ export interface CollaborativeModeler {
 
   /** mount the canvas into a host element (once, before the first import).
    *  The host must be attached to the document with a non-zero size — a
-   *  detached or 0×0 element gives diagram-js engines NaN viewboxes */
+   *  detached or 0×0 element gives diagram-js engines NaN viewboxes.
+   *  Calls made between mounting and the first import (`exportText()`, a
+   *  user command) return whatever the modeler defines, or throw (only
+   *  `getViewState` never does, L5), but they never wedge the instance:
+   *  the first `importText` still behaves exactly as specified */
   attachTo(host: Element): void;
 
   /** parse + render `text` — SILENT per L1, the view fitted to the content
-   *  per L5; resolves when rendered, REJECTS when nothing was imported (L7) */
+   *  per L5; resolves when rendered, REJECTS when nothing was imported (L7).
+   *  This holds for the first import too, whatever was called before it — a
+   *  host may export or route a command before its first document arrives */
   importText(text: string): Promise<ImportResult>;
 
   /** the canonical serialization of the current document (L2, L6) */
