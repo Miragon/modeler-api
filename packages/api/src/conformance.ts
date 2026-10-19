@@ -11,7 +11,9 @@
  * assertion-library dependency. A case that CANNOT (fully) run because the
  * harness left an optional field undefined resolves with `{ skipped }` and
  * registerConformance reports it (console.warn by default) — a law the kit
- * did not verify is never a silent green.
+ * did not verify is never a silent green. A RECOMMENDATION the modeler does
+ * not follow resolves with `{ advisories }`, reported the same way and never
+ * a failure: a recommendation becomes a law only in a major release.
  */
 import { type CollaborativeModeler, MODELER_API_VERSION } from "./index.js";
 
@@ -51,10 +53,23 @@ export interface ConformanceHarness {
    * NON-importable inputs (half-typed peer text, wrong notation) — the kit
    * verifies importText REJECTS, leaves no trace and stays usable (L7).
    * `undefined` = not provided (the L7 cases report a SKIP); `[]` = the
-   * deliberate statement that this notation has no non-importable text
-   * (the lenient line DSLs keep every line, so nothing rejects)
+   * deliberate statement that this notation has no LISTED non-importable
+   * text (the lenient line DSLs keep every line, so nothing rejects). The
+   * probes below run either way, so a parser that does reject some input
+   * is held to L7 on it
    */
   invalidTexts?: string[];
+  /**
+   * extra inputs for the L7 probe case, on top of the probes the kit derives
+   * from every canonical text: its first half, its first third, the text
+   * without its last character and the text followed by a NUL character.
+   * Unlike `invalidTexts`, a probe need not reject: one that imports must
+   * be silent (L1) with `exportText` total (L6), one that rejects must leave
+   * no trace (L7). Add the damaged forms your parser is likely to meet (a
+   * cut-off JSON object, an unclosed block). `undefined` and `[]` both mean
+   * "the derived probes only" — the probe case never skips
+   */
+  probeTexts?: string[];
   /**
    * importable documents carrying content the modeler does NOT understand
    * (vendor extensions, unknown lines, unknown JSON keys), each with the
@@ -77,8 +92,11 @@ export interface ConformanceHarness {
   /**
    * perform ONE user-visible atomic ELEMENT command through the modeler's
    * own commands: ADD an element — never rename or delete one (the elements
-   * case treats it as an edit unrelated to the existing elements, and L4
-   * builds undo history from it, so it must be undoable)
+   * cases treat it as an edit unrelated to the existing elements and compare
+   * the ids two instances allocate for it, and L4 builds undo history from
+   * it, so it must be undoable). The kit also runs it once on a fresh
+   * instance BEFORE the first import; a throw there is tolerated (what a
+   * command does without a document is the modeler's choice)
    */
   mutate(modeler: CollaborativeModeler): Promise<void> | void;
   /**
@@ -96,6 +114,30 @@ export interface ConformanceHarness {
   /** trigger the modeler's redo; `undefined` with `undo` defined = the redo
    *  half of the undo/redo case is reported as skipped */
   redo?(modeler: CollaborativeModeler): Promise<void> | void;
+  /**
+   * open an INTERACTION on an element of `canonicalTexts[0]` (already
+   * imported) the way a user does — its label editor, or a popup with an
+   * input — and type input WITHOUT committing it (no Enter, no blur). The
+   * kit then imports over it, which must never commit it (L1). `undefined`
+   * = the L1 interaction case is reported as skipped
+   */
+  openInteraction?(modeler: CollaborativeModeler): Promise<void> | void;
+  /**
+   * the interaction open right now — the element it edits and its
+   * uncommitted input — or `undefined` when none is open. The kit reads it
+   * before and after a re-import of the same text to check the RECOMMENDED
+   * keep-and-reopen (an advisory, never a failure). `undefined` = that half
+   * of the L1 interaction case is reported as skipped
+   */
+  interactionState?(modeler: CollaborativeModeler): InteractionState | undefined;
+}
+
+/** an interaction in progress, as `ConformanceHarness.interactionState` reports it */
+export interface InteractionState {
+  /** the stable id of the element the interaction edits (ElementInfo.id) */
+  elementId: string;
+  /** the uncommitted input, when the interaction has one */
+  text?: string;
 }
 
 export interface CaseOutcome {
@@ -103,6 +145,13 @@ export interface CaseOutcome {
    *  it needs undefined, or the modeler has no such optional surface; the
    *  reason names which */
   skipped?: string;
+  /**
+   * RECOMMENDED behaviour the modeler does not show. The case passed — the
+   * contract only recommends what is missing (a candidate for a law in the
+   * next major) — and registerConformance reports each advice through
+   * `onAdvisory`, never as a failure
+   */
+  advisories?: string[];
 }
 
 export interface ConformanceCase {
@@ -202,6 +251,54 @@ const mutationsOf = (h: ConformanceHarness): UserMutation[] => [
 const sortedIds = (m: CollaborativeModeler): string[] | undefined =>
   m.elements ? [...m.elements.list().map((e) => e.id)].sort() : undefined;
 
+/** element id → name; `undefined` without an elements surface */
+const namesById = (m: CollaborativeModeler): Map<string, string | undefined> | undefined =>
+  m.elements ? new Map(m.elements.list().map((e) => [e.id, e.name])) : undefined;
+
+async function importOrFail(m: CollaborativeModeler, text: string, failure: string): Promise<void> {
+  await m.importText(text).catch((e: unknown) => fail(`${failure}: ${String(e)}`));
+}
+
+interface Probe {
+  /** where the probe comes from, for the failure message */
+  label: string;
+  text: string;
+}
+
+const describeProbe = (probe: Probe): string => {
+  const excerpt = probe.text.length > 40 ? `${probe.text.slice(0, 40)}…` : probe.text;
+  return `${probe.label} (${JSON.stringify(excerpt)})`;
+};
+
+/**
+ * damaged forms of every canonical text — what a host re-imports while a
+ * peer is still typing (cut mid-way, the last character missing) or after a
+ * transport glitch (a trailing NUL) — plus the harness's own probeTexts.
+ * Cuts fall on code points, never inside a surrogate pair; duplicates are
+ * dropped so each input runs once
+ */
+function probesOf(h: ConformanceHarness): Probe[] {
+  const probes: Probe[] = [];
+  h.canonicalTexts.forEach((text, index) => {
+    const source = `canonicalTexts[${index}]`;
+    const codePoints = Array.from(text);
+    const cut = (length: number): string => codePoints.slice(0, length).join("");
+    probes.push(
+      { label: `the first half of ${source}`, text: cut(Math.floor(codePoints.length / 2)) },
+      { label: `the first third of ${source}`, text: cut(Math.floor(codePoints.length / 3)) },
+      { label: `${source} without its last character`, text: cut(codePoints.length - 1) },
+      { label: `${source} followed by a NUL character`, text: `${text}\u0000` },
+    );
+  });
+  (h.probeTexts ?? []).forEach((text, index) => probes.push({ label: `probeTexts[${index}]`, text }));
+  const seen = new Set<string>();
+  return probes.filter((probe) => {
+    if (seen.has(probe.text)) return false;
+    seen.add(probe.text);
+    return true;
+  });
+}
+
 /**
  * import the first canonical text that renders at least one element (an
  * empty document has no fitted view — renderers leave the viewport alone),
@@ -230,6 +327,60 @@ export function conformanceCases(): ConformanceCase[] {
           }
         } finally {
           m.destroy();
+        }
+      },
+    },
+    {
+      name: "calls before the first import never wedge the instance",
+      async run(h) {
+        const m = await h.create();
+        let control: CollaborativeModeler | undefined;
+        try {
+          // what these return without a document is the modeler's choice —
+          // only the instance has to survive them
+          try {
+            m.exportText();
+          } catch {
+            // a throw before the first import is allowed
+          }
+          await Promise.resolve()
+            .then(() => h.mutate(m))
+            .catch(() => undefined);
+          await (h.settle ?? defaultSettle)();
+          control = await h.create();
+          const texts = h.canonicalTexts.length > 0 ? h.canonicalTexts.slice(0, 2) : [""];
+          let last = "";
+          for (const [index, text] of texts.entries()) {
+            const source = `canonicalTexts[${index}]`;
+            // the oracle is a fresh instance's export of the same text: this
+            // case isolates the pre-import calls — a non-canonical serializer
+            // fails L2, not here
+            await control.importText(text);
+            const expected = exportOrFail(control, `after importing ${source} into a fresh instance`);
+            await importOrFail(
+              m,
+              text,
+              `importText(${source}) rejected on an instance that ran exportText() and a user command before its first import (wedged)`,
+            );
+            last = exportOrFail(m, `after importing ${source} into an instance used before its first import`);
+            if (last !== expected) {
+              fail(
+                `importText(${source}) on an instance that ran exportText() and a user command before its first import did not render that document:\n--- expected (a fresh instance's export)\n${expected}\n--- got\n${last}`,
+              );
+            }
+          }
+          const { calls } = await changeEvents(h, m, () => h.mutate(m));
+          if (calls === 0) {
+            fail(
+              "a user mutation fired no onContentChanged on an instance used before its first import (wedged)",
+            );
+          }
+          if (exportOrFail(m, "after a user mutation on an instance used before its first import") === last) {
+            fail("a user mutation did not apply on an instance used before its first import (wedged)");
+          }
+        } finally {
+          m.destroy();
+          control?.destroy();
         }
       },
     },
@@ -265,6 +416,81 @@ export function conformanceCases(): ConformanceCase[] {
           await (h.settle ?? defaultSettle)();
           const { calls } = await changeEvents(h, m, () => m.importText(secondText(h)).then(() => undefined));
           if (calls > 0) fail(`importText over a non-empty undo history fired onContentChanged ${calls}x`);
+        } finally {
+          m.destroy();
+        }
+      },
+    },
+    {
+      name: "L1: an interaction open during importText never commits",
+      async run(h) {
+        if (!h.openInteraction) {
+          return skip(
+            "openInteraction is undefined — an interaction open during an import (a label editor with typed input) was not verified",
+          );
+        }
+        const openInteraction = h.openInteraction;
+        const first = h.canonicalTexts[0] ?? "";
+        const second = secondText(h);
+        const m = await h.create();
+        try {
+          // the oracles come from the modeler's OWN serializer: this case
+          // isolates the interaction — a non-canonical serializer fails L2
+          await m.importText(second);
+          const secondExport = exportOrFail(m, "after importing canonicalTexts[1]");
+          await m.importText(first);
+          const firstExport = exportOrFail(m, "after importing canonicalTexts[0]");
+          // a DIFFERENT document usually removes the edited element (a commit
+          // would land on a removed element); the SAME document keeps it (a
+          // commit would write the typed input into the re-imported document)
+          const legs = [
+            { text: second, expected: secondExport, what: "a different document (canonicalTexts[1])" },
+            { text: first, expected: firstExport, what: "the same document again (canonicalTexts[0])" },
+          ];
+          let advice: string | undefined;
+          for (const [index, leg] of legs.entries()) {
+            await m.importText(first);
+            await openInteraction(m);
+            await (h.settle ?? defaultSettle)();
+            const opened = h.interactionState?.(m);
+            if (h.interactionState && opened === undefined) {
+              fail("interactionState reports no interaction after openInteraction — the case proves nothing");
+            }
+            const { calls } = await changeEvents(h, m, () => m.importText(leg.text).then(() => undefined));
+            if (calls > 0) {
+              fail(
+                `importing ${leg.what} over an open interaction fired onContentChanged ${calls}x — the interaction committed during or because of the import (if every import emits, see the L1 cases first)`,
+              );
+            }
+            const reopened = h.interactionState?.(m);
+            if (exportOrFail(m, `after importing ${leg.what} over an open interaction`) !== leg.expected) {
+              fail(
+                `importing ${leg.what} over an open interaction did not leave that document — the interaction's input was applied to it`,
+              );
+            }
+            if (h.undo) {
+              await h.undo(m);
+              await (h.settle ?? defaultSettle)();
+              if (exportOrFail(m, `after an undo that followed importing ${leg.what}`) !== leg.expected) {
+                fail(
+                  `undo after importing ${leg.what} over an open interaction changed the document — the interaction was committed onto the fresh undo history (L4)`,
+                );
+              }
+            }
+            const sameDocument = index === legs.length - 1;
+            const kept = reopened?.elementId === opened?.elementId && reopened?.text === opened?.text;
+            if (sameDocument && opened !== undefined && !kept) {
+              const input = opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
+              const after = reopened === undefined ? "closed it" : `left ${JSON.stringify(reopened)} open`;
+              advice = `an interaction on '${opened.elementId}'${input} did not survive a re-import of the same document (the import ${after}) — RECOMMENDED: keep the typed input and reopen the interaction on the element with the same id, so a remote re-import does not cost the user what they were typing`;
+            }
+          }
+          if (!h.interactionState) {
+            return skip(
+              "interactionState is undefined — the RECOMMENDED keep-and-reopen of an interaction across an import was not checked (pass interactionState to check it)",
+            );
+          }
+          return advice === undefined ? undefined : { advisories: [advice] };
         } finally {
           m.destroy();
         }
@@ -608,6 +834,99 @@ export function conformanceCases(): ConformanceCase[] {
       },
     },
     {
+      name: "elements (when present): ids and names survive export → import, in this and in a fresh instance",
+      async run(h) {
+        const m = await h.create();
+        const others: CollaborativeModeler[] = [];
+        try {
+          await m.importText(h.canonicalTexts[0] ?? "");
+          const elements = m.elements;
+          if (!elements)
+            return skip("the modeler exposes no elements surface (optional) — nothing to verify");
+          // the element the session just created is the one an in-memory id
+          // scheme gives away: its id was never read back from a text
+          await h.mutate(m);
+          await (h.settle ?? defaultSettle)();
+          const session = new Map(elements.list().map((e) => [e.id, e.name]));
+          const exported = exportOrFail(m, "after a user mutation");
+          const expectSessionIds = (target: CollaborativeModeler, where: string): void => {
+            const after = namesById(target);
+            if (!after) fail(`${where} exposes no elements surface — the editor does`);
+            for (const [id, name] of session) {
+              if (!after.has(id)) {
+                fail(
+                  `element id '${id}' is gone after export → import ${where} — the id a session reports must be the element's id in the document (write it back)`,
+                );
+              }
+              if (name !== undefined && after.get(id) !== name) {
+                fail(
+                  `element id '${id}' names a different element after export → import ${where} ('${name}' → '${String(after.get(id))}')`,
+                );
+              }
+            }
+          };
+          await importOrFail(m, exported, "importText rejected the modeler's own export");
+          expectSessionIds(m, "into the same instance");
+          const fresh = await h.create();
+          others.push(fresh);
+          await importOrFail(fresh, exported, "a fresh instance rejected the modeler's own export");
+          expectSessionIds(fresh, "into a fresh instance");
+          if (h.createReadonly) {
+            const viewer = await h.createReadonly();
+            others.push(viewer);
+            await importOrFail(viewer, exported, "the viewer rejected the editor's export");
+            if (viewer.elements) expectSessionIds(viewer, "into the viewer");
+          }
+        } finally {
+          m.destroy();
+          for (const other of others) other.destroy();
+        }
+      },
+    },
+    {
+      name: "elements (when present, recommended): ids created on two peers at the same time do not collide",
+      async run(h) {
+        const text = h.canonicalTexts[0] ?? "";
+        const peers: CollaborativeModeler[] = [];
+        try {
+          // two peers start from the same document and each creates one
+          // element — what happens when two users add an element at once
+          const created: string[][] = [];
+          for (let count = 0; count < 2; count += 1) {
+            const peer = await h.create();
+            peers.push(peer);
+            await peer.importText(text);
+            if (!peer.elements)
+              return skip("the modeler exposes no elements surface (optional) — nothing to verify");
+            const before = new Set(peer.elements.list().map((e) => e.id));
+            await h.mutate(peer);
+            await (h.settle ?? defaultSettle)();
+            const added = peer.elements
+              .list()
+              .map((e) => e.id)
+              .filter((id) => !before.has(id));
+            if (added.length === 0) {
+              fail(
+                "the harness mutate must ADD an element (the elements cases compare the ids two instances allocate)",
+              );
+            }
+            created.push(added);
+          }
+          const [onFirst = [], onSecond = []] = created;
+          const shared = onFirst.filter((id) => onSecond.includes(id));
+          if (shared.length > 0) {
+            return {
+              advisories: [
+                `two instances that imported the same document and each created one element allocated the same id (${shared.map((id) => `'${id}'`).join(", ")}) — RECOMMENDED: allocate ids that do not collide across peers (random or peer-scoped, not a per-instance counter); once both edits merge, two elements share one id`,
+              ],
+            };
+          }
+        } finally {
+          for (const peer of peers) peer.destroy();
+        }
+      },
+    },
+    {
       name: "L6: export is total after imports, user mutations and undo",
       async run(h) {
         const m = await h.create();
@@ -731,6 +1050,87 @@ export function conformanceCases(): ConformanceCase[] {
       },
     },
     {
+      name: "L7: every rejection of a derived probe leaves no trace",
+      async run(h) {
+        const base = h.canonicalTexts[0] ?? "";
+        const m = await h.create();
+        try {
+          await m.importText(base);
+          // the baseline comes from the modeler's OWN serializer: this case
+          // isolates the rejection path — a non-canonical serializer fails L2
+          const baseline = exportOrFail(m, "after importing canonicalTexts[0]");
+          const baseIds = sortedIds(m);
+          let previous: Probe | undefined;
+          const reimportBase = async (): Promise<void> => {
+            if (previous === undefined) return;
+            const after = `after importing ${describeProbe(previous)}`;
+            await importOrFail(m, base, `the next valid import ${after} did not render`);
+            const doc = exportOrFail(m, `on the next valid import ${after}`);
+            if (doc !== baseline || (baseIds && !same(baseIds, sortedIds(m)))) {
+              fail(`the next valid import ${after} did not replace the document (wedged)`);
+            }
+          };
+          const mutateAndExpectApplied = async (): Promise<string> => {
+            await h.mutate(m);
+            await (h.settle ?? defaultSettle)();
+            const doc = exportOrFail(m, "after a user mutation");
+            if (doc === baseline) {
+              fail(
+                previous === undefined
+                  ? "the harness mutation did not change the export — the case proves nothing"
+                  : `a user mutation after importing ${describeProbe(previous)} did not apply (wedged)`,
+              );
+            }
+            return doc;
+          };
+          for (const probe of probesOf(h)) {
+            await reimportBase();
+            // a document WITH undo history: a rejection must keep both
+            const doc = await mutateAndExpectApplied();
+            const ids = sortedIds(m);
+            const what = `importText(${describeProbe(probe)})`;
+            let rejected = false;
+            const { calls } = await changeEvents(h, m, () =>
+              m.importText(probe.text).then(
+                () => undefined,
+                () => {
+                  rejected = true;
+                },
+              ),
+            );
+            if (rejected) {
+              if (calls > 0) fail(`a rejected ${what} fired onContentChanged ${calls}x (L7)`);
+              if (exportOrFail(m, `after a rejected ${what}`) !== doc) {
+                fail(`a rejected ${what} changed the document — the previous state must stay intact (L7)`);
+              }
+              if (ids && !same(ids, sortedIds(m))) {
+                fail(
+                  `a rejected ${what} changed the rendered elements — the canvas must keep the previous document (L7)`,
+                );
+              }
+              if (h.undo) {
+                await h.undo(m);
+                if (exportOrFail(m, `after an undo that followed a rejected ${what}`) !== baseline) {
+                  fail(
+                    `a rejected ${what} erased the undo history — the previous document's history must stay intact (L7)`,
+                  );
+                }
+              }
+            } else {
+              if (calls > 0)
+                fail(`${what} resolved and fired onContentChanged ${calls}x — an import is silent (L1)`);
+              exportOrFail(m, `after ${what} resolved (L6)`);
+            }
+            previous = probe;
+          }
+          await reimportBase();
+          await mutateAndExpectApplied();
+        } finally {
+          m.destroy();
+        }
+      },
+    },
+    {
       name: "viewer (when shipped): read-only, silent, canonical, fits, reveals, keeps foreign content, unshaken by a rejected import",
       async run(h) {
         if (!h.createReadonly) return skip("createReadonly is undefined — the package ships no viewer mount");
@@ -842,6 +1242,10 @@ export interface RegisterOptions {
   /** how a SKIPPED case is reported — a law the kit could not (fully) verify
    *  because the harness left its field undefined. Default: console.warn */
   onSkip?: (caseName: string, reason: string) => void;
+  /** how an ADVISORY is reported — a RECOMMENDED behaviour the modeler does
+   *  not show; the case still passes. Called once per advice. Default:
+   *  console.warn */
+  onAdvisory?: (caseName: string, advice: string) => void;
 }
 
 /** bind every case to a (name, fn) test runner — node:test, vitest, jest */
@@ -855,10 +1259,16 @@ export function registerConformance(
     ((name: string, reason: string) => {
       console.warn(`modeler-api conformance: SKIPPED "${name}" — ${reason}`);
     });
+  const onAdvisory =
+    options.onAdvisory ??
+    ((name: string, advice: string) => {
+      console.warn(`modeler-api conformance: ADVISORY "${name}" — ${advice}`);
+    });
   for (const conformanceCase of conformanceCases()) {
     test(`conformance: ${conformanceCase.name}`, async () => {
       const outcome = await conformanceCase.run(harness);
       if (outcome?.skipped) onSkip(conformanceCase.name, outcome.skipped);
+      for (const advice of outcome?.advisories ?? []) onAdvisory(conformanceCase.name, advice);
     });
   }
 }
