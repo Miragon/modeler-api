@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import type { ChromeIsland, PaletteRow, Size } from "../core/index.js";
+import {
+  toastStackBottom,
+  toastStackWidth,
+  zoomRowRaised,
+  type ChromeIsland,
+  type PaletteRow,
+  type Size,
+} from "../core/index.js";
 import {
   GEOMETRY_TOLERANCE_PX,
   ZOOM_PANEL_WIDTH,
+  bottomObstacle,
   boxMismatches,
   chromeExpectations,
   dropdownProblems,
@@ -13,6 +21,7 @@ import {
   geometryProblems,
   limitViolations,
   tooltipProblems,
+  webRowProblems,
   type ChromeMeasurement,
   type IslandBox,
 } from "./geometry.js";
@@ -440,5 +449,286 @@ describe("expectedFitInsets and freeRectangle", () => {
   it("span the whole container on an axis the insets leave no room on", () => {
     const low = measurement({ container: { width: 1280, height: 120 } });
     expect(freeRectangle(low, "ide")).toEqual({ left: 24, top: 0, right: 1256, bottom: 120 });
+  });
+});
+
+describe("the web column (0.2)", () => {
+  /** The legal line as the web demo renders it: about 380px of text at left 12, bottom 12. */
+  const legal = (container: Size) =>
+    anchored(container, { width: 380, height: 20 }, { left: 12, bottom: 12 });
+  const primary = (container: Size, width = 94) =>
+    anchored(container, { width, height: 40 }, { top: 12, right: 12 });
+  /** A conforming web app: menu, palette, zoom panel, primary action and legal line at their anchors. */
+  const web = (layout: Layout = {}): ChromeMeasurement => {
+    const container = layout.container ?? WIDE;
+    return measurement({
+      ...layout,
+      islands: { legal: legal(container), primary: primary(container), ...layout.islands },
+    });
+  };
+  const raisedZoom = (container: Size) =>
+    anchored(container, { width: 173, height: 40 }, { right: 12, bottom: 40 });
+
+  it("passes a conforming web app in every breakpoint, the raised zoom row included", () => {
+    expect(geometryProblems(web(), "web")).toEqual([]);
+    expect(geometryProblems(web({ container: NARROW }), "web")).toEqual([]);
+    const narrowest = web({
+      container: VERY_NARROW,
+      open: { zoomRaised: true },
+      islands: { zoom: raisedZoom(VERY_NARROW) },
+    });
+    expect(geometryProblems(narrowest, "web")).toEqual([]);
+  });
+
+  it("anchors the primary action top right, 40 wide while collapsed", () => {
+    const collapsed = web({ open: { primaryCollapsed: true }, islands: { primary: primary(WIDE, 40) } });
+    expect(expectedChromeBoxes(collapsed, "web").primary).toEqual({
+      top: 12,
+      right: 12,
+      height: 40,
+      width: 40,
+    });
+    expect(geometryProblems(collapsed, "web")).toEqual([]);
+    const labelled = web({ open: { primaryCollapsed: true } });
+    expect(geometryProblems(labelled, "web")).toEqual(["primary: width is 94px, expected 40px (±1px)"]);
+  });
+
+  it("keeps a top-row palette 16px from the primary action (guide §5.15)", () => {
+    const container = { width: 1000, height: 900 };
+    const wide = web({
+      container,
+      islands: { palette: anchored(container, { width: 800, height: 40 }, { top: 12 }) },
+    });
+    expect(chromeExpectations(wide, "web").limits.palette).toEqual({ minLeft: 68, minRight: 122 });
+    expect(geometryProblems(wide, "web")).toEqual(["palette: right is 100px, at least 122px expected"]);
+  });
+
+  it("accepts the second row above 760px only once even the icon keeps less than 16px", () => {
+    const container = { width: 900, height: 900 };
+    const fits = web({
+      container,
+      paletteRow: "second-row",
+      islands: { palette: { left: 100, top: 64, width: 700, height: 40 } },
+    });
+    expect(geometryProblems(fits, "web")).toEqual([
+      "palette: in the second row although the top row keeps 48px to the menu trigger and 48px to the primary action's icon (at least 16px suffice, guide §5.15)",
+    ]);
+    const tight = web({
+      container,
+      paletteRow: "second-row",
+      islands: { palette: { left: 55, top: 64, width: 790, height: 40 } },
+    });
+    expect(geometryProblems(tight, "web")).toEqual([]);
+  });
+
+  it("stands the legal line at left 12, bottom 12, 20 high, required in the web app", () => {
+    const off = web({ islands: { legal: { left: 12, top: 862, width: 380, height: 24 } } });
+    expect(geometryProblems(off, "web")).toEqual([
+      "legal: bottom is 14px, expected 12px (±1px)",
+      "legal: height is 24px, expected 20px (±1px)",
+    ]);
+    const missing = web();
+    delete missing.islands.legal;
+    expect(geometryProblems(missing, "web")).toEqual([
+      'legal: [data-chrome="legal"] is missing or not visible',
+    ]);
+  });
+
+  it("raises the zoom panel to 40 and, up to 440px, the legend to 88 with data-zoom-row", () => {
+    const legend = anchored(VERY_NARROW, { width: 200, height: 120 }, { left: 12, bottom: 88 });
+    const state = web({
+      container: VERY_NARROW,
+      open: { zoomRaised: true, legend: true },
+      islands: { zoom: raisedZoom(VERY_NARROW), legend },
+    });
+    const boxes = expectedChromeBoxes(state, "web");
+    expect(boxes.zoom).toEqual({ right: 12, bottom: 40, width: ZOOM_PANEL_WIDTH, height: 40 });
+    expect(boxes.legend).toEqual({ left: 12, bottom: 88 });
+    expect(geometryProblems(state, "web")).toEqual([]);
+  });
+
+  it("reports a zoom row that does not follow zoomRowRaised (the shell's rule)", () => {
+    const raisedWithRoom = web({ open: { zoomRaised: true }, islands: { zoom: raisedZoom(WIDE) } });
+    expect(webRowProblems(raisedWithRoom, "web")).toEqual([
+      'zoom: the root carries data-zoom-row="raised" although the zoom panel keeps 703px to the legal line (at least 8px)',
+    ]);
+    const meeting = web({ container: VERY_NARROW });
+    const legalBox = meeting.islands.legal!;
+    const zoomBox = meeting.islands.zoom!;
+    const raised = zoomRowRaised({
+      containerWidth: VERY_NARROW.width,
+      legalRight: legalBox.left + legalBox.width,
+      zoomWidth: zoomBox.width,
+    });
+    expect(webRowProblems(meeting, "web")).toEqual(
+      raised
+        ? [
+            'zoom: -157px between the legal line and the zoom panel, but the root lacks data-zoom-row="raised" (below 8px the zoom panel stands above the legal line)',
+          ]
+        : [],
+    );
+  });
+
+  it("leaves a gap within the tolerance of 8px to either decision", () => {
+    const container = { width: 1280, height: 900 };
+    const borderline = web({
+      container,
+      islands: { legal: { left: 12, top: 868, width: 1080 - 12 - 8.5, height: 20 } },
+    });
+    expect(webRowProblems(borderline, "web")).toEqual([]);
+  });
+
+  it("checks data-primary and data-zoom-row against what is visible", () => {
+    const hidden = web({ open: { primaryCollapsed: true } });
+    delete hidden.islands.primary;
+    expect(webRowProblems(hidden, "web")).toEqual([
+      'primary: the root carries data-primary="collapsed", but no primary action is visible',
+    ]);
+    expect(
+      webRowProblems(measurement({ open: { primaryCollapsed: true, zoomRaised: true } }), "ide"),
+    ).toEqual([
+      'primary: the root carries data-primary="collapsed" outside the web app',
+      'zoom: the root carries data-zoom-row="raised" outside the web app',
+    ]);
+  });
+
+  it("opens the problems list 8px above the pill, at most min(320px, 100% − 24px) × 320", () => {
+    const pill = anchored(WIDE, { width: 120, height: 40 }, { left: 12, bottom: 40 });
+    const list = anchored(WIDE, { width: 320, height: 200 }, { left: 12, bottom: 88 });
+    const state = web({ open: { problems: true }, islands: { problems: pill, "problems-popover": list } });
+    expect(expectedChromeBoxes(state, "web")["problems-popover"]).toEqual({ left: 12, bottom: 88 });
+    expect(geometryProblems(state, "web")).toEqual([]);
+    const tooBig = web({
+      open: { problems: true },
+      islands: {
+        problems: pill,
+        "problems-popover": { ...list, width: 330, top: list.top - 140, height: 340 },
+      },
+    });
+    expect(geometryProblems(tooBig, "web")).toEqual([
+      "problems-popover: width is 330px, at most 320px expected",
+      "problems-popover: height is 340px, at most 320px expected",
+    ]);
+    expect(
+      chromeExpectations(
+        web({ container: VERY_NARROW, open: { problems: true }, islands: { problems: pill } }),
+        "web",
+      ).limits["problems-popover"],
+    ).toEqual({ maxWidth: 320, maxHeight: 320 });
+    const alone = web({ islands: { "problems-popover": list } });
+    expect(geometryProblems(alone, "web")).toEqual([
+      "problems-popover: visible, but the problems list opens only above a visible pill (guide §5.10)",
+    ]);
+    expect(geometryProblems(measurement({ islands: { "problems-popover": list } }), "ide")).toEqual([
+      "problems-popover: visible, but the IDE host opens its Problems view, never a list of its own (guide §5.10)",
+    ]);
+  });
+
+  it("centres the toast stack at toastStackBottom of the measured bottom row", () => {
+    const state = web();
+    const obstacles = [bottomObstacle(state.islands.zoom!, WIDE), bottomObstacle(state.islands.legal!, WIDE)];
+    const bottom = toastStackBottom({ containerWidth: WIDE.width, obstacles });
+    const toasts = anchored(WIDE, { width: toastStackWidth(WIDE.width), height: 42 }, { bottom });
+    state.islands.toasts = toasts;
+    expect(expectedChromeBoxes(state, "web").toasts).toEqual({
+      centerX: 640,
+      width: toastStackWidth(WIDE.width),
+      bottom,
+    });
+    expect(geometryProblems(state, "web")).toEqual([]);
+    state.islands.toasts = { ...toasts, top: toasts.top - 10 };
+    expect(geometryProblems(state, "web")).toEqual([
+      `toasts: bottom is ${bottom + 10}px, expected ${bottom}px (±1px)`,
+    ]);
+    expect(geometryProblems(measurement({ islands: { toasts } }), "ide")).toEqual([
+      "toasts: visible, but the IDE host shows no toasts; the extension shows the host's notification (guide §13.5)",
+    ]);
+  });
+
+  it("reads an obstacle's top from the container's bottom", () => {
+    expect(bottomObstacle({ left: 1095, top: 848, width: 173, height: 40 }, WIDE)).toEqual({
+      left: 1095,
+      right: 1268,
+      top: 52,
+    });
+  });
+
+  it("centres the start screen card both ways, the work chrome no longer required", () => {
+    const card = { left: 440, top: 300, width: 400, height: 300 };
+    const state = measurement({
+      open: { emptyState: true },
+      islands: { legal: legal(WIDE), "empty-state": card },
+    });
+    for (const name of ["menu", "palette", "zoom"] as const) delete state.islands[name];
+    expect(chromeExpectations(state, "web").required).toEqual(["empty-state", "legal"]);
+    expect(expectedChromeBoxes(state, "web")["empty-state"]).toEqual({
+      centerX: 640,
+      centerY: 450,
+      width: 400,
+    });
+    expect(geometryProblems(state, "web")).toEqual([]);
+    state.islands["empty-state"] = { ...card, left: 450, top: 302, width: 380 };
+    expect(geometryProblems(state, "web")).toEqual([
+      "empty-state: centerY is 452px, expected 450px (±1px)",
+      "empty-state: width is 380px, expected 400px (±1px)",
+    ]);
+    const narrow = measurement({ container: VERY_NARROW, open: { emptyState: true } });
+    expect(
+      chromeExpectations({ ...narrow, islands: { "empty-state": card } }, "web").boxes["empty-state"],
+    ).toEqual({
+      centerX: 210,
+      centerY: 350,
+      width: 396,
+    });
+  });
+
+  it("checks data-empty-state against the card", () => {
+    const card = { left: 440, top: 300, width: 400, height: 300 };
+    expect(geometryProblems(web({ islands: { "empty-state": card } }), "web")).toEqual([
+      'empty-state: visible, but the root lacks data-empty-state="shown"',
+    ]);
+    const missing = measurement({ open: { emptyState: true }, islands: { legal: legal(WIDE) } });
+    expect(geometryProblems(missing, "web")).toEqual([
+      'empty-state: [data-chrome="empty-state"] is missing or not visible',
+      'empty-state: the root carries data-empty-state="shown", but the island is not visible',
+    ]);
+  });
+
+  it("insets the drop zone 12px on every side", () => {
+    const zone = { left: 12, top: 12, width: 1256, height: 876 };
+    expect(geometryProblems(web({ islands: { "drop-zone": zone } }), "web")).toEqual([]);
+    expect(geometryProblems(web({ islands: { "drop-zone": { ...zone, width: 1260 } } }), "web")).toEqual([
+      "drop-zone: right is 8px, expected 12px (±1px)",
+    ]);
+  });
+
+  it("never shows the web column in the IDE and embedded hosts", () => {
+    const islands = {
+      legal: legal(WIDE),
+      "empty-state": { left: 440, top: 300, width: 400, height: 300 },
+      "drop-zone": { left: 12, top: 12, width: 1256, height: 876 },
+    };
+    expect(geometryProblems(measurement({ islands }), "embedded")).toEqual([
+      "legal: visible, but the legal line belongs to the web app; an IDE or an embedding host carries its own (guide §5.2)",
+      "empty-state: visible, but IDE and embedded hosts have no start screen; they show the empty-file hint (guide §13.5)",
+      "drop-zone: visible, but IDE and embedded hosts have no drop zone; their files belong to the host (guide §5.2)",
+      'empty-state: visible, but the root lacks data-empty-state="shown"',
+    ]);
+  });
+
+  it("keeps 92px at the bottom of the fit with the zoom panel raised", () => {
+    expect(expectedFitInsets(web({ container: VERY_NARROW, open: { zoomRaised: true } }), "web").bottom).toBe(
+      92,
+    );
+    expect(expectedFitInsets(web({ container: VERY_NARROW }), "web").bottom).toBe(64);
+  });
+
+  it("stands the bottom-row tooltip 8px above a raised zoom row", () => {
+    const zoomIn = { left: 330, top: 624, width: 32, height: 32 };
+    const tooltip = { left: 298, top: 584, width: 96, height: 28 };
+    expect(tooltipProblems(tooltip, zoomIn, "bottom", VERY_NARROW, undefined, 40)).toEqual([]);
+    expect(tooltipProblems(tooltip, zoomIn, "bottom", VERY_NARROW)).toEqual([
+      "tooltip: bottom is 88px, expected 60px (±1px)",
+    ]);
   });
 });

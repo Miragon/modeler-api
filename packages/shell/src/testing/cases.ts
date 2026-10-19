@@ -1,9 +1,10 @@
 import {
+  APPEARANCE_STORAGE_KEY,
   INVALID_STATUS_DELAY_MS,
+  SHELL,
   TOOLTIP_DELAY_MS,
   type Appearance,
-  type ShellHost,
-  type Size,
+  type AppearanceChoice,
 } from "../core/index.js";
 import {
   absentIslandProblems,
@@ -11,7 +12,6 @@ import {
   appearanceProblems,
   ariaProblems,
   createProblems,
-  harnessHookProblems,
   isToolEntry,
   keyReachProblem,
   leftoverProblems,
@@ -44,18 +44,17 @@ import {
   paletteFocusProbe,
   paletteShortcutProbe,
   readOnlyStateProbe,
-  shapesProbe,
   surroundProbe,
   zoomButtonsProbe,
   type AppearanceFacts,
   type AriaFacts,
-  type MenuEntryFacts,
   type MenuFacts,
   type PaletteEntryState,
   type ShapeFacts,
 } from "./facts.js";
 import {
   DEFAULT_ROOT,
+  LEGAL_LINE,
   dropdownProblems,
   freeRectangle,
   geometryProblems,
@@ -64,14 +63,7 @@ import {
   type ChromeMeasurement,
   type TooltipRow,
 } from "./geometry.js";
-import type {
-  ShellCaseOutcome,
-  ShellConformanceCase,
-  ShellConformanceHarness,
-  ShellSkip,
-  ShowHook,
-  ShowHooks,
-} from "./harness.js";
+import type { ShellConformanceCase, ShellConformanceHarness, ShellSkip, ToastFixture } from "./harness.js";
 import type { PageLike } from "./page.js";
 import {
   afterPressProbe,
@@ -87,24 +79,43 @@ import {
   leftoverProbe,
   removeInjectedProbe,
   settle,
+  targetProbe,
   type ChromeTarget,
   type InjectedKind,
-  type TargetFacts,
 } from "./page-tools.js";
+import {
+  appearanceChoiceProblems,
+  expectedWebMode,
+  lightOnlyMenuProblems,
+  menuGroupProblems,
+  modeSwitchProblems,
+  pillPopupAriaProblems,
+  webModeProblems,
+} from "./web-checks.js";
+import { createWebCases } from "./web-cases.js";
+import {
+  DEFAULT_SIZES,
+  HOVER_MARGIN_MS,
+  LIGHT,
+  PARK,
+  SHOWN_ISLANDS,
+  assertHooksConsistent,
+  closeByEscape,
+  fail,
+  finish,
+  hover,
+  menuEntries,
+  openHarness,
+  openMenuByClick,
+  pollUntil,
+  shapes,
+  sizeLabel,
+  unfed,
+  webHookSkips,
+} from "./case-tools.js";
 
-/** Wide, narrow and very narrow (guide §5.15); 900 is above, 700 below the low breakpoint. */
-export const DEFAULT_SIZES: readonly Size[] = [
-  { width: 1280, height: 900 },
-  { width: 720, height: 700 },
-  { width: 420, height: 700 },
-];
-
-const LIGHT: Appearance = { theme: "light" };
-
-/** Shown in this order, so the legend is measured without and then with the pill. */
-const SHOWN_ISLANDS = ["legend", "problems", "status", "inspector"] as const satisfies ReadonlyArray<
-  keyof ShowHooks
->;
+export { DEFAULT_SIZES } from "./case-tools.js";
+import { modeChangesProbe, watchModeProbe, webModeProbe, type WebModeFacts } from "./web-facts.js";
 
 /** How far the read-only case drags a shape (guide §13.5: no move). */
 const LOCKED_DRAG_PX = 40;
@@ -118,20 +129,12 @@ const READ_ONLY_WAIT_MS = 1000;
 /** Room for the palette's 150ms colour transition (`--cd-motion-fast`) and a frame on either side. */
 const COLOR_WAIT_MS = 600;
 
-const POLL_MS = 50;
-
 /** Requested from the modeler by the appearance case (VS Code Dark, High Contrast, High Contrast Light). */
 const REQUESTED_APPEARANCES: readonly Appearance[] = [
   { theme: "dark" },
   { theme: "dark", kontrast: "hoch" },
   { theme: "light", kontrast: "hoch" },
 ];
-
-/** Room for the chrome tooltip's own fade after its 300ms hover delay. */
-const HOVER_MARGIN_MS = 200;
-
-/** A spot without chrome: the root's top-left corner lies outside every island (12px edge). */
-const PARK = { x: 1, y: 1 } as const;
 
 /** Every kind of text field a modeler renders: inspector and dialog fields, the label editor. */
 const TEXT_FIELDS: ReadonlyArray<readonly [InjectedKind, string]> = [
@@ -153,46 +156,8 @@ const TWO_STEPS_UP = 182;
 const ZOOM_LIMIT_MAX = 400;
 const ZOOM_LIMIT_MIN = 20;
 
-function sizeLabel(size: Size): string {
-  return `${size.width} × ${size.height}`;
-}
-
 function appearanceLabel(appearance: Appearance): string {
   return appearance.kontrast ? `${appearance.theme} + ${appearance.kontrast}` : appearance.theme;
-}
-
-function fail(caseName: string, host: ShellHost, problems: readonly string[]): never {
-  const unique = [...new Set(problems)];
-  throw new Error(
-    `@miragon/modeler-shell conformance: ${caseName} (${host} host)\n${unique.map((problem) => `- ${problem}`).join("\n")}`,
-  );
-}
-
-function finish(
-  caseName: string,
-  host: ShellHost,
-  problems: readonly string[],
-  skipped: Iterable<ShellSkip>,
-): ShellCaseOutcome | void {
-  if (problems.length > 0) fail(caseName, host, problems);
-  const seen = new Set<string>();
-  const unique = [...skipped].filter((skip) => !seen.has(skip.reason) && seen.add(skip.reason));
-  return unique.length > 0 ? { skipped: unique } : undefined;
-}
-
-/** A harness that gives a hook it also declares absent contradicts itself: fail before opening anything. */
-function assertHooksConsistent<P extends PageLike>(
-  caseName: string,
-  harness: ShellConformanceHarness<P>,
-  hooks: readonly ShowHook[],
-): void {
-  const problems = harnessHookProblems(harness, hooks);
-  if (problems.length > 0) fail(caseName, harness.host, problems);
-}
-
-/** A hook that is neither given nor declared absent. */
-function unfed<P extends PageLike>(harness: ShellConformanceHarness<P>, hook: ShowHook): boolean {
-  return !harness.show?.[hook] && !harness.absent?.includes(hook);
 }
 
 function missingHooks<P extends PageLike>(harness: ShellConformanceHarness<P>, what: string): ShellSkip[] {
@@ -202,50 +167,11 @@ function missingHooks<P extends PageLike>(harness: ShellConformanceHarness<P>, w
   }));
 }
 
-/** Reads until `done` holds or `timeoutMs` passed; the last value either way. */
-async function pollUntil<T>(
-  page: PageLike,
-  read: () => Promise<T>,
-  done: (value: T) => boolean,
-  timeoutMs: number,
-): Promise<T> {
-  let value = await read();
-  for (let waited = 0; !done(value) && waited < timeoutMs; waited += POLL_MS) {
-    await page.waitForTimeout(POLL_MS);
-    value = await read();
-  }
-  return value;
-}
-
 /** The visible islands of an ARIA snapshot that a harness may declare absent. */
 function visibleIslands(facts: AriaFacts): Set<string> {
   const islands = new Set<string>();
   for (const island of SHOWN_ISLANDS) if (facts[island]?.visible) islands.add(island);
   return islands;
-}
-
-/** Hovers `target` long enough for its chrome tooltip; the hovered control, `null` when there is none. */
-async function hover(page: PageLike, root: string, target: ChromeTarget): Promise<TargetFacts | null> {
-  const anchor = await findTarget(page, root, target);
-  if (!anchor) return null;
-  await page.mouse.move(PARK.x, PARK.y);
-  await page.mouse.move(anchor.client.x, anchor.client.y);
-  await page.waitForTimeout(TOOLTIP_DELAY_MS + HOVER_MARGIN_MS);
-  await settle(page);
-  return anchor;
-}
-
-async function openMenuByClick(page: PageLike, root: string): Promise<boolean> {
-  const trigger = await findTarget(page, root, "menu");
-  if (!trigger) return false;
-  await page.mouse.click(trigger.client.x, trigger.client.y);
-  await settle(page);
-  return true;
-}
-
-async function closeByEscape(page: PageLike): Promise<void> {
-  await page.keyboard.press("Escape");
-  await settle(page);
 }
 
 /** Dropdown and tooltips of one measured state (guide §5.4, §5.6). */
@@ -281,8 +207,10 @@ async function popupGeometry(
     if (anchor.label && !tooltip.text.startsWith(anchor.label)) {
       problems.push(`tooltip: hovering ${target} ("${anchor.label}") shows "${tooltip.text}"`);
     }
+    // The web app's raised zoom row stands above the legal line (`data-zoom-row="raised"`).
+    const bottomRow = measurement.open.zoomRaised ? SHELL.edge + LEGAL_LINE + SHELL.gap : SHELL.edge;
     problems.push(
-      ...tooltipProblems(tooltip.box, anchor.box, row, measurement.container).map(
+      ...tooltipProblems(tooltip.box, anchor.box, row, measurement.container, undefined, bottomRow).map(
         (problem) => `${problem} (on ${target})`,
       ),
     );
@@ -291,15 +219,36 @@ async function popupGeometry(
   return problems;
 }
 
+/** Shown by the geometry case after "as opened"; its action keeps it on screen through every state. */
+const GEOMETRY_TOAST: ToastFixture = {
+  status: "info",
+  text: "Conformance: the toast stack's geometry",
+  actionLabel: "Undo",
+};
+
+/** The pill's list in the web app (and an embedded one that opens it), measured after a click (guide §5.10). */
+async function withProblemsListOpen(
+  page: PageLike,
+  root: string,
+  check: () => Promise<unknown>,
+): Promise<void> {
+  const pill = await findTarget(page, root, "pill");
+  if (!pill) return;
+  await page.mouse.click(pill.client.x, pill.client.y);
+  await settle(page);
+  await check();
+  await closeByEscape(page);
+}
+
 const geometryCase: ShellConformanceCase = {
   name: "geometry",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
-    assertHooksConsistent("geometry", harness, SHOWN_ISLANDS);
+    assertHooksConsistent("geometry", harness, [...SHOWN_ISLANDS, "toast", "emptyState"]);
     const root = harness.root ?? DEFAULT_ROOT;
     const problems: string[] = [];
     for (const size of harness.sizes ?? DEFAULT_SIZES) {
       const at = sizeLabel(size);
-      await harness.open(page, { size, requested: LIGHT });
+      await openHarness(page, harness, { size, requested: LIGHT });
       await settle(page);
       const check = async (state: string): Promise<ChromeMeasurement> => {
         const measurement = await measureChrome(page, root);
@@ -313,15 +262,36 @@ const geometryCase: ShellConformanceCase = {
       };
       const opened = await check("as opened");
       problems.push(...(await popupGeometry(page, root, opened)).map((problem) => `[${at}] ${problem}`));
+      const toast = harness.show?.toast;
+      if (toast) {
+        await toast(page, GEOMETRY_TOAST);
+        await settle(page);
+        await check("with a toast");
+      }
       for (const island of SHOWN_ISLANDS) {
         const show = harness.show?.[island];
         if (!show) continue;
         await show(page);
         await settle(page);
         await check(`after show.${island}`);
+        if (island === "problems" && harness.host !== "ide") {
+          await withProblemsListOpen(page, root, () => check("with the problems list open"));
+        }
+      }
+      const emptyState = harness.show?.emptyState;
+      if (emptyState) {
+        await emptyState(page);
+        await settle(page);
+        await check("after show.emptyState");
       }
     }
-    return finish("geometry", harness.host, problems, missingHooks(harness, "the geometry"));
+    return finish("geometry", harness.host, problems, [
+      ...missingHooks(harness, "the geometry"),
+      ...webHookSkips(harness, {
+        toast: "the geometry of the toast stack",
+        emptyState: "the geometry of the start screen",
+      }),
+    ]);
   },
 };
 
@@ -433,8 +403,8 @@ async function paletteShortcutWalk(page: PageLike, root: string): Promise<string
   return paletteShortcutProblems(seen);
 }
 
-/** Tab from the menu trigger: the palette's one stop, then the canvas (guide §5.14). */
-async function tabSequenceFromMenu(page: PageLike, root: string): Promise<string[]> {
+/** Tab from the menu trigger: the primary action (web app), the palette's one stop, then the canvas (guide §5.14). */
+async function tabSequenceFromMenu(page: PageLike, root: string, primary: boolean): Promise<string[]> {
   if (!(await focusTarget(page, root, "menu"))) return [];
   const stops: TabStop[] = [];
   for (let step = 0; step < 3; step++) {
@@ -442,7 +412,7 @@ async function tabSequenceFromMenu(page: PageLike, root: string): Promise<string
     const stop = await inPage(page, activeStopProbe, { root });
     stops.push({ description: stop.description, kind: stop.kind as TabStop["kind"] });
   }
-  return tabSequenceProblems(stops);
+  return tabSequenceProblems(stops, primary);
 }
 
 /** `aria-disabled` at 400 % and 20 % (guide §5.8), reached by clicking the buttons. */
@@ -494,15 +464,18 @@ const ariaCase: ShellConformanceCase = {
     assertHooksConsistent("aria", harness, SHOWN_ISLANDS);
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
-    await harness.open(page, { size, requested: LIGHT });
+    await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const facts = await inPage(page, ariaProbe, { root });
     if (!facts) fail("aria", harness.host, [`no element matches the shell root selector "${root}"`]);
     const problems = ariaProblems(facts, harness.host);
+    problems.push(...menuGroupProblems(await menuEntries(page, root), harness.host, harness.themes));
     problems.push(...(await menuKeyboardProblems(page, root)));
     problems.push(...(await paletteKeyboardProblems(page, root)));
     problems.push(...(await paletteShortcutWalk(page, root)));
-    problems.push(...(await tabSequenceFromMenu(page, root)));
+    problems.push(
+      ...(await tabSequenceFromMenu(page, root, harness.host === "web" && Boolean(facts.primary?.visible))),
+    );
     problems.push(...(await zoomLimitProblems(page, root)));
 
     const shown = new Set<string>();
@@ -519,6 +492,7 @@ const ariaCase: ShellConformanceCase = {
       if (withIslands) {
         final = withIslands;
         problems.push(...optionalIslandProblems(withIslands, shown));
+        if (shown.has("problems")) problems.push(...pillPopupAriaProblems(withIslands, harness.host));
         const known = new Set(problems);
         problems.push(
           ...ariaProblems(withIslands, harness.host)
@@ -538,7 +512,7 @@ const keysCase: ShellConformanceCase = {
     const root = harness.root ?? DEFAULT_ROOT;
     const host = harness.host;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
-    await harness.open(page, { size, requested: LIGHT });
+    await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const problems: string[] = [];
 
@@ -733,15 +707,94 @@ async function paletteColorWalk(page: PageLike, root: string): Promise<string[]>
   return [...new Set(problems)];
 }
 
+/** The web app's mode, its meta tags and the stored choice. */
+function webMode(page: PageLike): Promise<WebModeFacts> {
+  return inPage(page, webModeProbe, { key: APPEARANCE_STORAGE_KEY });
+}
+
+const APPEARANCE_LABELS: Readonly<Record<AppearanceChoice, string>> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
+
+/**
+ * Guide §13.3 for a dark-capable web app: Dark, Light, then System through the Appearance group,
+ * each written to `<html>`, `color-scheme`, both `theme-color`s and `localStorage` in one frame and
+ * never half-dark; the theme colours are the ones the page showed under System.
+ */
+async function appearanceSwitchProblems<P extends PageLike>(
+  page: P,
+  harness: ShellConformanceHarness<P>,
+  root: string,
+  requested: Appearance,
+): Promise<string[]> {
+  const problems: string[] = [];
+  const system = await webMode(page);
+  const media = (scheme: string) =>
+    system.themeColors.find((meta) => meta.media?.replace(/\s+/g, "") === `(prefers-color-scheme:${scheme})`)
+      ?.content;
+  const light = media("light");
+  const dark = media("dark");
+  const colors = light && dark ? { light, dark } : undefined;
+  for (const choice of ["dark", "light", "system"] as const) {
+    const label = APPEARANCE_LABELS[choice];
+    if (!(await openMenuByClick(page, root))) {
+      problems.push(`menu: no visible menu trigger to choose ${label}`);
+      break;
+    }
+    const option = await inPage(page, targetProbe, {
+      root,
+      selector: `[data-menu-id="appearance"] [data-menu-value="${choice}"]`,
+    });
+    if (!option) {
+      problems.push(`menu: no Appearance option "${choice}" to choose (guide §13.3)`);
+      await closeByEscape(page);
+      break;
+    }
+    await inPage(page, watchModeProbe, null);
+    await page.mouse.click(option.client.x, option.client.y);
+    await settle(page);
+    problems.push(...modeSwitchProblems(await inPage(page, modeChangesProbe, null), label));
+    problems.push(
+      ...appearanceChoiceProblems((await inPage(page, menuEntriesProbe, { root })) ?? [], choice),
+    );
+    await closeByEscape(page);
+    problems.push(...webModeProblems(await webMode(page), harness.themes, choice, colors));
+    const facts = await appearanceFacts(page, root);
+    if (facts) {
+      const expected = expectedWebMode(requested, harness.themes, choice);
+      problems.push(
+        ...appearanceProblems(facts, "web", requested, harness.themes, expected).problems.map(
+          (problem) => `[chose ${label}] ${problem}`,
+        ),
+      );
+    }
+  }
+  return problems;
+}
+
 const appearanceCase: ShellConformanceCase = {
   name: "appearance",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
     const problems: string[] = [];
-    for (const requested of REQUESTED_APPEARANCES) {
+    const skipped: ShellSkip[] = [];
+    const web = harness.host === "web";
+    // Without emulateMedia the web app's system preference stays the browser's light default.
+    const emulated = !web || page.emulateMedia !== undefined;
+    if (!emulated) {
+      skipped.push({
+        hook: "open",
+        reason:
+          "page.emulateMedia is undefined: the web app's mode under a dark system and under high contrast was not verified",
+      });
+    }
+    let switched = false;
+    for (const requested of emulated ? REQUESTED_APPEARANCES : [LIGHT]) {
       const at = `[requested ${appearanceLabel(requested)}]`;
-      await harness.open(page, { size, requested });
+      await openHarness(page, harness, { size, requested });
       if (harness.host === "embedded") {
         // The foreign page itself in that mode: a themed page around the modeler (guide §13.3).
         await inPage(page, hostPageModeProbe, {
@@ -755,20 +808,34 @@ const appearanceCase: ShellConformanceCase = {
         problems.push(`${at} no element matches the shell root selector "${root}"`);
         continue;
       }
-      const verdict = appearanceProblems(facts, harness.host, requested, harness.themes);
+      const expected = web ? expectedWebMode(requested, harness.themes, "system") : undefined;
+      const verdict = appearanceProblems(facts, harness.host, requested, harness.themes, expected);
       problems.push(...verdict.problems.map((problem) => `${at} ${problem}`));
       const surround = await inPage(page, surroundProbe, { root });
       if (surround) problems.push(...surroundProblems(surround).map((problem) => `${at} ${problem}`));
       problems.push(...(await paletteColorWalk(page, root)).map((problem) => `${at} ${problem}`));
+      if (web) {
+        problems.push(
+          ...webModeProblems(await webMode(page), harness.themes, "system", undefined).map(
+            (problem) => `${at} ${problem}`,
+          ),
+          ...lightOnlyMenuProblems(await menuEntries(page, root), harness.themes).map(
+            (problem) => `${at} ${problem}`,
+          ),
+        );
+        if (harness.themes.includes("dark") && !switched && requested.theme === "dark") {
+          switched = true;
+          problems.push(
+            ...(await appearanceSwitchProblems(page, harness, root, requested)).map(
+              (problem) => `${at} ${problem}`,
+            ),
+          );
+        }
+      }
     }
-    return finish("appearance", harness.host, problems, []);
+    return finish("appearance", harness.host, problems, skipped);
   },
 };
-
-/** The visible shapes on the canvas. */
-function shapes(page: PageLike, root: string): Promise<ShapeFacts[]> {
-  return inPage(page, shapesProbe, { root });
-}
 
 /** Moves the palette's roving focus by keyboard to `action`; `false` when it cannot get there. */
 async function focusPaletteEntry(page: PageLike, root: string, action: string): Promise<boolean> {
@@ -812,7 +879,7 @@ const createCase: ShellConformanceCase = {
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
-    await harness.open(page, { size, requested: LIGHT });
+    await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const entry = firstCreatingEntry(await inPage(page, paletteEntriesProbe, { root }));
     // A notation whose palette only switches tools has nothing to place.
@@ -830,14 +897,6 @@ const createCase: ShellConformanceCase = {
     return finish("create", harness.host, problems, []);
   },
 };
-
-/** The open menu's entries, opened by a click and closed again by Escape. */
-async function menuEntries(page: PageLike, root: string): Promise<MenuEntryFacts[]> {
-  if (!(await openMenuByClick(page, root))) return [];
-  const entries = (await inPage(page, menuEntriesProbe, { root })) ?? [];
-  await closeByEscape(page);
-  return entries;
-}
 
 /** A shape whose centre a pointer reaches (no chrome above it), found again by its id. */
 async function reachableShape(page: PageLike, root: string, id?: string): Promise<ShapeFacts | undefined> {
@@ -907,7 +966,7 @@ const readOnlyCase: ShellConformanceCase = {
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
     const problems: string[] = [];
     const skipped: ShellSkip[] = [];
-    await harness.open(page, { size, requested: LIGHT });
+    await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const menuBefore = await menuEntries(page, root);
 
@@ -971,7 +1030,7 @@ const cleanupCase: ShellConformanceCase = {
     }
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
-    await harness.open(page, { size, requested: LIGHT });
+    await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const armed = await inPage(page, armCleanupProbe, { root });
     if (!armed) fail("cleanup", harness.host, [`no element matches the shell root selector "${root}"`]);
@@ -1007,6 +1066,11 @@ const cleanupCase: ShellConformanceCase = {
   },
 };
 
-export function createCases(): ShellConformanceCase[] {
+/** The 0.1 cases, extended for the web column. */
+export function createBaseCases(): ShellConformanceCase[] {
   return [geometryCase, ariaCase, keysCase, createCase, readOnlyCase, appearanceCase, cleanupCase];
+}
+
+export function createCases(): ShellConformanceCase[] {
+  return [...createBaseCases(), ...createWebCases()];
 }

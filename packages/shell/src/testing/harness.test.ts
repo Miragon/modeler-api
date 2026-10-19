@@ -42,7 +42,7 @@ function register(
 }
 
 describe("shellConformanceCases", () => {
-  it("are geometry, aria, keys, create, readOnly, appearance and cleanup", () => {
+  it("are the 0.1 cases, then the web column's after cleanup", () => {
     expect(shellConformanceCases().map((conformanceCase) => conformanceCase.name)).toEqual([
       "geometry",
       "aria",
@@ -51,6 +51,11 @@ describe("shellConformanceCases", () => {
       "readOnly",
       "appearance",
       "cleanup",
+      "webChrome",
+      "emptyState",
+      "toasts",
+      "problemsList",
+      "dropZone",
     ]);
   });
 
@@ -73,6 +78,11 @@ describe("registerShellConformance", () => {
       "shell conformance: readOnly",
       "shell conformance: appearance",
       "shell conformance: cleanup",
+      "shell conformance: webChrome",
+      "shell conformance: emptyState",
+      "shell conformance: toasts",
+      "shell conformance: problemsList",
+      "shell conformance: dropZone",
     ]);
   });
 
@@ -159,6 +169,106 @@ describe("registerShellConformance", () => {
       size: { width: 800, height: 600 },
       requested: { theme: "light" },
     });
+  });
+
+  it("skips the web column's cases the web harness cannot feed, before opening anything", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    const tests = register(harness({ host: "web", open }), onSkip);
+    for (const name of ["emptyState", "toasts", "problemsList", "dropZone"]) {
+      await tests.get(`shell conformance: ${name}`)!({ page: emptyPage() });
+    }
+    expect(onSkip.mock.calls).toEqual([
+      [
+        "emptyState",
+        [{ hook: "emptyState", reason: "show.emptyState is undefined: the start screen not verified" }],
+      ],
+      ["toasts", [{ hook: "toast", reason: "show.toast is undefined: the toasts not verified" }]],
+      [
+        "problemsList",
+        [{ hook: "problems", reason: "show.problems is undefined: the problems list not verified" }],
+      ],
+      ["dropZone", [{ hook: "drop", reason: "harness.drop is undefined: the drop zone not verified" }]],
+    ]);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("does not report the web column's features the harness declares absent", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    const tests = register(
+      harness({ host: "web", open, absent: ["emptyState", "toast", "problems", "drop"] }),
+      onSkip,
+    );
+    for (const name of ["emptyState", "toasts", "problemsList", "dropZone"]) {
+      await tests.get(`shell conformance: ${name}`)!({ page: emptyPage() });
+    }
+    expect(onSkip).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("needs no web hooks in the IDE host, where nothing of the web column shows", async () => {
+    const onSkip = vi.fn();
+    const tests = register(harness({ absent: ["problems"] }), onSkip);
+    for (const name of ["emptyState", "toasts", "problemsList", "dropZone"]) {
+      await tests.get(`shell conformance: ${name}`)!({ page: emptyPage() });
+    }
+    expect(onSkip).not.toHaveBeenCalled();
+  });
+
+  it("fails a harness that gives a web feature it declares absent", async () => {
+    const open = vi.fn(async () => {});
+    const toast = async () => {};
+    const tests = register(
+      harness({
+        host: "web",
+        open,
+        show: { toast },
+        drop: { accepted: { name: "a.json", type: "application/json", text: "{}" } },
+        absent: ["toast", "drop"],
+      }),
+    );
+    await expect(tests.get("shell conformance: toasts")!({ page: emptyPage() })).rejects.toThrow(
+      'harness: absent lists "toast", but show.toast is given',
+    );
+    await expect(tests.get("shell conformance: dropZone")!({ page: emptyPage() })).rejects.toThrow(
+      'harness: absent lists "drop", but harness.drop is given',
+    );
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("emulates the system's mode and contrast before opening the web host", async () => {
+    const calls: string[] = [];
+    const page: PageLike = {
+      ...emptyPage(),
+      emulateMedia: async (options) => {
+        calls.push(`emulate ${options.colorScheme ?? ""} ${options.contrast ?? ""}`);
+      },
+    };
+    const open = vi.fn(async (_page: PageLike, context: OpenContext) => {
+      calls.push(
+        `open ${context.requested.theme}${context.requested.kontrast ? ` ${context.requested.kontrast}` : ""}`,
+      );
+    });
+    await expect(
+      register(harness({ host: "web", open })).get("shell conformance: appearance")!({ page }),
+    ).rejects.toThrow(/appearance \(web host\)/);
+    expect(calls).toEqual([
+      "emulate dark no-preference",
+      "open dark",
+      "emulate dark more",
+      "open dark hoch",
+      "emulate light more",
+      "open light hoch",
+    ]);
+  });
+
+  it("opens the web host once with light when the page cannot emulate media", async () => {
+    const open = vi.fn(async (_page: PageLike, _context: OpenContext) => {});
+    await expect(
+      register(harness({ host: "web", open })).get("shell conformance: appearance")!({ page: emptyPage() }),
+    ).rejects.toThrow(/appearance \(web host\)/);
+    expect(open.mock.calls.map(([, context]) => context.requested)).toEqual([{ theme: "light" }]);
   });
 
   it("requests dark, dark with high contrast and light with high contrast in the appearance case", async () => {

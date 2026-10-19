@@ -61,6 +61,8 @@ export interface DropFixtures {
   accepted: DropFixture;
   /** A file outside `accept`; dropping it opens nothing and shows a danger toast (or the modeler's `onReject`). */
   rejected?: DropFixture | undefined;
+  /** `DropZoneOptions.multiple` of the modeler; default `false`, so a drag of two files is forbidden. */
+  multiple?: boolean | undefined;
 }
 
 /**
@@ -124,8 +126,10 @@ export interface ShellConformanceCase {
  * canvas only), `create` (Enter on the first creating palette entry places one selected element in
  * the free rectangle and focuses the canvas), `readOnly` (the invalid-file lock of guide §13.5),
  * `appearance` (dark requested from a light-only modeler: nothing turns dark, `color-scheme` light
- * everywhere, the canvas surround and the palette's tool colours from the roles) and `cleanup` (after
- * `destroy` no shell element, class, attribute or key handling remains).
+ * everywhere, the canvas surround and the palette's tool colours from the roles; the web app's mode
+ * and its Appearance group) and `cleanup` (after `destroy` no shell element, class, attribute or
+ * key handling remains); then the web column's `webChrome`, `emptyState`, `toasts`,
+ * `problemsList` and `dropZone`, which assert in the other hosts that nothing of them shows.
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
   return createCases();

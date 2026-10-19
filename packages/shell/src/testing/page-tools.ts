@@ -51,6 +51,12 @@ export interface PageTools {
   injected: Element[];
   cleanups: Array<() => void>;
   armedRoot?: HTMLElement;
+  /** Clicks a kit listener counted on a control (the web app's primary action). */
+  clicks: number;
+  /** Changes of the document's mode the kit records while it switches the web app's appearance. */
+  modeWatch?: ModeWatch | undefined;
+  /** `newState` of every `beforetoggle` of the web app's toast stack since the kit started listening. */
+  toastToggles?: string[] | undefined;
   frame(): Promise<void>;
   settle(): Promise<void>;
   visible(element: Element): boolean;
@@ -61,6 +67,18 @@ export interface PageTools {
 }
 
 export type ToolWindow = Window & { __modelerShellConformance?: PageTools };
+
+/** One change of `<html>`'s mode or of its meta tags, with the animation frame it landed in. */
+export interface ModeChange {
+  part: "theme" | "kontrast" | "color-scheme" | "theme-color" | "no-transition";
+  value: string | null;
+  frame: number;
+}
+
+export interface ModeWatch {
+  changes: ModeChange[];
+  stop(): void;
+}
 
 /** Installs the in-page helpers once per document (idempotent; a navigation drops them). */
 export const installPageTools = (_: null): void => {
@@ -106,6 +124,7 @@ export const installPageTools = (_: null): void => {
     errors: [],
     injected: [],
     cleanups: [],
+    clicks: 0,
     frame,
     async settle() {
       await frame();
@@ -209,7 +228,9 @@ export type ChromeTarget =
   | "zoom-actual"
   | "zoom-in"
   | "zoom-fit"
-  | "canvas";
+  | "canvas"
+  | "primary"
+  | "pill";
 
 export const CHROME_TARGET_SELECTORS: Readonly<Record<ChromeTarget, string>> = {
   menu: '[data-chrome="menu"]',
@@ -220,6 +241,8 @@ export const CHROME_TARGET_SELECTORS: Readonly<Record<ChromeTarget, string>> = {
   "zoom-in": '[data-chrome="zoom"] [data-zoom="in"]',
   "zoom-fit": '[data-chrome="zoom"] [data-zoom="fit"]',
   canvas: ".djs-container > svg",
+  primary: '[data-chrome="primary"]',
+  pill: '[data-chrome="problems"]',
 };
 
 export interface TargetFacts {
