@@ -256,6 +256,8 @@ function renderShell(
   const inspector = options.inspector
     ? createInspector(ownerDocument, options.inspector, (open) => {
         setState("data-inspector", open ? "open" : null);
+        // Up to 760px the sheet hides zoom panel and pill, so the toasts' bottom row changes.
+        updateBottomRow();
         placeHint();
       })
     : undefined;
@@ -428,7 +430,15 @@ function renderShell(
 
   function setEmptyStateShown(shown: boolean): void {
     if (ledger.isClosed || !emptyState || emptyState.isShown() === shown) return;
-    const hadFocus = emptyState.element.contains(ownerDocument.activeElement);
+    const active = ownerDocument.activeElement;
+    const hadFocus = emptyState.element.contains(active);
+    // The work chrome and the canvas are about to hide: a focus there would fall to <body>. The
+    // legal line and the toasts stay.
+    const workHadFocus =
+      shown &&
+      active !== null &&
+      root.contains(active) &&
+      ![emptyState.element, legal?.element, toaster?.element].some((kept) => kept?.contains(active));
     emptyState.setShown(shown);
     setState("data-empty-state", shown ? "shown" : null);
     // Nothing behind the card takes a click or the Tab (guide §8: nothing else competes).
@@ -437,6 +447,7 @@ function renderShell(
       menu.close();
       popover?.close();
       tooltip.hide();
+      if (workHadFocus) emptyState.focus();
     } else if (hadFocus) {
       focusCanvasOrTrigger();
     }
@@ -446,6 +457,8 @@ function renderShell(
   const ResizeObserverClass = globalThis.ResizeObserver;
   const resizeObserver = ResizeObserverClass ? new ResizeObserverClass(() => updateLayout()) : undefined;
   resizeObserver?.observe(root);
+  // The label widens once the web font has loaded; the top row decides again then.
+  if (primary) resizeObserver?.observe(primary.element);
   ledger.defer(() => resizeObserver?.disconnect());
 
   if (legend && options.legend?.open !== undefined) legend.start(options.legend.open);
@@ -594,10 +607,15 @@ function renderShell(
     },
     setProblems(summary) {
       if (ledger.isClosed || !pill) return;
+      const listHadFocus = popover?.element.contains(ownerDocument.activeElement) ?? false;
       pill.set(summary);
       setState("data-problems", pill.isShown() ? "shown" : null);
       popover?.setItems(summary.items ?? []);
-      if (!pill.isShown()) popover?.close();
+      if (!pill.isShown() && popover?.isOpen()) {
+        popover.close();
+        // The pill went with the list, so the focus cannot return to it.
+        if (listHadFocus) focusCanvasOrTrigger();
+      }
       updateBottomRow();
       placeHint();
     },

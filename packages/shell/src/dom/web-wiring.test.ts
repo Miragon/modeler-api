@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cleanup, installFakes, keydown, mount } from "../../test/support/dom.js";
+import {
+  FakeResizeObserver,
+  chrome,
+  cleanup,
+  fakePalette,
+  installFakes,
+  keydown,
+  mount,
+  setBox,
+} from "../../test/support/dom.js";
+import { problemSummary } from "../core/index.js";
 import type { ShellOptions } from "./types.js";
 
 beforeEach(installFakes);
@@ -97,6 +107,76 @@ describe("web-column wiring (0.2)", () => {
     expect(shell.canvas.hasAttribute("inert")).toBe(false);
     keydown(document.body, { key: "=", code: "Equal", metaKey: true });
     expect(zoom.stepZoom).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves a focus the start screen hides to its New diagram button, else leaves it", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions() });
+    const primary = chrome(root, "primary");
+    primary.focus();
+    shell.setEmptyState(true);
+    const newDiagram = chrome(root, "empty-state").querySelector<HTMLElement>(
+      '.cd-shell-button[data-variant="primary"]',
+    );
+    expect(document.activeElement).toBe(newDiagram);
+
+    shell.setEmptyState(false);
+    const legalLink = chrome(root, "legal").querySelector("a");
+    legalLink?.focus();
+    shell.setEmptyState(true);
+    expect(document.activeElement).toBe(legalLink);
+  });
+
+  it("keeps the focus off <body> when the last problem goes while the list holds it", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions(), problems: {} });
+    shell.setProblems(
+      problemSummary([{ severity: "warning", message: "Unused aggregate.", elementId: "Box_1" }]),
+    );
+    chrome(root, "problems").click();
+    const popover = chrome(root, "problems-popover");
+    expect(popover.contains(document.activeElement)).toBe(true);
+    shell.setProblems({ count: 0, errors: 0 });
+    expect(popover.hidden).toBe(true);
+    expect(document.activeElement).toBe(shell.menu.trigger);
+  });
+
+  it("recomputes the toasts' bottom when the inspector opens and closes", () => {
+    const { shell, root } = mount(
+      { host: "web", ...webOptions(), inspector: { label: "Properties" } },
+      {
+        width: 720,
+        height: 700,
+      },
+    );
+    const toasts = chrome(root, "toasts");
+    const legal = chrome(root, "legal");
+    const zoom = chrome(root, "zoom");
+    setBox(legal, { left: 12, top: 668, width: 696, height: 20 });
+    setBox(zoom, { left: 535, top: 648, width: 173, height: 40 });
+    FakeResizeObserver.resize(root);
+    const before = toasts.style.bottom;
+    // The bottom sheet hides the zoom panel (guide §5.11), so only the legal line stays in the way.
+    setBox(zoom, { left: 0, top: 0, width: 0, height: 0 });
+    shell.inspector?.open();
+    expect(toasts.style.bottom).not.toBe(before);
+    expect(toasts.style.bottom).toBe("40px");
+  });
+
+  it("decides the top row again when the primary action resizes (a late web font)", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions() }, { width: 900, height: 700 });
+    const palette = fakePalette();
+    for (const [name, value] of Object.entries({ offsetWidth: 648, clientWidth: 646, scrollWidth: 646 })) {
+      Object.defineProperty(palette.element, name, { configurable: true, value });
+    }
+    shell.registerPalette(palette);
+    const primary = chrome(root, "primary");
+    Object.defineProperty(primary, "offsetWidth", { configurable: true, value: 80 });
+    FakeResizeObserver.resize(primary);
+    expect(root.hasAttribute("data-primary")).toBe(false);
+
+    Object.defineProperty(primary, "offsetWidth", { configurable: true, value: 100 });
+    FakeResizeObserver.resize(primary);
+    expect(root.getAttribute("data-primary")).toBe("collapsed");
+    expect(root.getAttribute("data-palette")).toBe("top");
   });
 
   it("offers shell.appearance to a dark-capable web modeler only", () => {
