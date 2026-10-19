@@ -7,10 +7,12 @@
  * renamed element keeps its id). It is the kit's reference subject, plus
  * deliberately BROKEN variants: one per real-world drift the contract exists
  * to prevent AND one per case in the kit, so the kit's own CI proves every
- * case bites. Each variant must fail exactly its law's case set. One variant
- * is NOT a flaw but a legitimate implementation choice the kit must accept (a
- * diagram-js style enriched view-state readback) — it must fail nothing. Two
- * variants ignore a RECOMMENDATION — they must fail nothing and advise once.
+ * case bites. Each variant must fail exactly its law's case set. Three
+ * variants are NOT flaws but legitimate implementation choices the kit must
+ * accept (a diagram-js style enriched view-state readback, commands ignored
+ * before the first import, an empty name that reads back absent) — they must
+ * fail nothing. Two variants ignore a RECOMMENDATION — they must fail nothing
+ * and advise once.
  */
 import type { CollaborativeModeler, ElementsSurface, ImportResult, ModelerMeta } from "../src/index.js";
 import { MODELER_API_VERSION } from "../src/index.js";
@@ -108,6 +110,12 @@ export interface Flaws {
   /** NOT a law violation, a missed recommendation: an import closes the open label editor and drops
    *  the typed input instead of reopening it on the element with the same id */
   dropInteractionOnImport?: boolean;
+  /** NOT a flaw: a command before the first import does nothing — no element, no change event (a
+   *  harness mutate that waits for that event never settles) */
+  ignoresCommandsBeforeImport?: boolean;
+  /** NOT a flaw: an element without a label (a `~` line) reports the name "" when created in the
+   *  session and no name at all when read from a text */
+  blankNamesReadBackAbsent?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -134,6 +142,8 @@ interface View {
 interface Entry {
   readonly id: string;
   readonly text: string;
+  /** created by a command in this session, not read from a text */
+  readonly created?: boolean;
 }
 
 /** a line naming its element's id: `text #id` */
@@ -177,6 +187,10 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     const out = [...(title ? [`title: ${title}`] : []), ...body];
     return out.length === 0 ? "" : `${out.join("\n")}\n`;
   };
+  const nameOf = (entry: Entry | undefined): string | undefined => {
+    if (!flaws.blankNamesReadBackAbsent || !entry?.text.startsWith("~")) return entry?.text;
+    return entry.created ? "" : undefined;
+  };
   const ids = (): string[] =>
     flaws.positionalIds ? entries.map((_e, i) => `l${entries.length - i}`) : entries.map((e) => e.id);
   /** a pre-import call the wedging variant never recovers from */
@@ -219,7 +233,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   };
 
   const elements: ElementsSurface = {
-    list: () => ids().map((id, i) => ({ id, name: entries[i]?.text })),
+    list: () => ids().map((id, i) => ({ id, name: nameOf(entries[i]) })),
     reveal: (id) => {
       if (!editable && flaws.viewerCannotReveal) return false;
       const known = ids().includes(id);
@@ -343,6 +357,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       if (!editable) throw new Error("a viewer accepts no commands");
       touchBeforeImport();
       if (wedged) throw new Error("lines notation: parser wedged");
+      if (flaws.ignoresCommandsBeforeImport && !imported) return;
       // the conforming id is the one the text derives on every import; the
       // counter variant writes its id back, the in-memory variant does not
       createdCount += 1;
@@ -354,7 +369,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       // document that lacks it, a deletion on one that carries it
       const before = entries;
       if (flaws.emitBeforeApply) emit();
-      entries = [...entries, { id, text }];
+      entries = [...entries, { id, text, created: true }];
       const after = entries;
       mutated = true;
       undoStack.push(

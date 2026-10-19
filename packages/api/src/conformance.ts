@@ -94,9 +94,17 @@ export interface ConformanceHarness {
    * own commands: ADD an element — never rename or delete one (the elements
    * cases treat it as an edit unrelated to the existing elements and compare
    * the ids two instances allocate for it, and L4 builds undo history from
-   * it, so it must be undoable). The kit also runs it once on a fresh
-   * instance BEFORE the first import; a throw there is tolerated (what a
-   * command does without a document is the modeler's choice)
+   * it, so it must be undoable). Let each call's element differ in content
+   * from the previous one (a counter the harness shares across instances,
+   * as the reference harness does): the collision case compares the ids two
+   * fresh instances allocate for one new element each, and an id derived
+   * from identical content (one that spells out the element's name)
+   * collides by design. The kit also runs it once on a
+   * fresh instance BEFORE the first import; a throw there is tolerated, and
+   * so is a call that never settles (a mutate waiting for the change event
+   * of a command the modeler ignores without a document): the kit stops
+   * waiting after 2 s — what a command does without a document is the
+   * modeler's choice
    */
   mutate(modeler: CollaborativeModeler): Promise<void> | void;
   /**
@@ -216,6 +224,26 @@ function assertFinite(state: unknown, when: string): void {
 
 const defaultSettle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** how long the pre-import case waits for `mutate` on an instance without a document */
+const PRE_IMPORT_CALL_BOUND_MS = 2000;
+
+/** run a harness call whose throw and whose hang are both tolerated: it gets
+ *  `ms` to settle, then the kit moves on (the call may keep running) */
+async function toleratedCall(action: () => Promise<void> | void, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const call = Promise.resolve()
+    .then(action)
+    .catch(() => undefined);
+  const bound = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms);
+  });
+  try {
+    await Promise.race([call, bound]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** count invocations of onContentChanged around an action — settle-aware, so
  *  debounced engines neither hide an echo nor fail a legitimate event; the
  *  export seen INSIDE the last delivery is returned too (L3's ordering rule) */
@@ -239,6 +267,10 @@ async function changeEvents(
   }
   return { calls, exportAtEmit };
 }
+
+/** an id or a name reduced to its letters and digits, lower case — `component_new_component` and
+ *  `New Component` share `newcomponent` */
+const lettersAndDigits = (value: string): string => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 
 const secondText = (h: ConformanceHarness): string => h.canonicalTexts[1] ?? h.canonicalTexts[0] ?? "";
 
@@ -343,9 +375,7 @@ export function conformanceCases(): ConformanceCase[] {
           } catch {
             // a throw before the first import is allowed
           }
-          await Promise.resolve()
-            .then(() => h.mutate(m))
-            .catch(() => undefined);
+          await toleratedCall(() => h.mutate(m), PRE_IMPORT_CALL_BOUND_MS);
           await (h.settle ?? defaultSettle)();
           control = await h.create();
           const texts = h.canonicalTexts.length > 0 ? h.canonicalTexts.slice(0, 2) : [""];
@@ -431,22 +461,27 @@ export function conformanceCases(): ConformanceCase[] {
         }
         const openInteraction = h.openInteraction;
         const first = h.canonicalTexts[0] ?? "";
-        const second = secondText(h);
+        const second = h.canonicalTexts[1];
         const m = await h.create();
         try {
           // the oracles come from the modeler's OWN serializer: this case
           // isolates the interaction — a non-canonical serializer fails L2
-          await m.importText(second);
-          const secondExport = exportOrFail(m, "after importing canonicalTexts[1]");
-          await m.importText(first);
-          const firstExport = exportOrFail(m, "after importing canonicalTexts[0]");
+          const legs: Array<{ text: string; expected: string; what: string }> = [];
           // a DIFFERENT document usually removes the edited element (a commit
           // would land on a removed element); the SAME document keeps it (a
           // commit would write the typed input into the re-imported document)
-          const legs = [
-            { text: second, expected: secondExport, what: "a different document (canonicalTexts[1])" },
-            { text: first, expected: firstExport, what: "the same document again (canonicalTexts[0])" },
-          ];
+          if (second !== undefined) {
+            await m.importText(second);
+            const expected = exportOrFail(m, "after importing canonicalTexts[1]");
+            legs.push({ text: second, expected, what: "a different document (canonicalTexts[1])" });
+          }
+          await m.importText(first);
+          const firstExport = exportOrFail(m, "after importing canonicalTexts[0]");
+          legs.push({
+            text: first,
+            expected: firstExport,
+            what: "the same document again (canonicalTexts[0])",
+          });
           let advice: string | undefined;
           for (const [index, leg] of legs.entries()) {
             await m.importText(first);
@@ -485,12 +520,22 @@ export function conformanceCases(): ConformanceCase[] {
               advice = `an interaction on '${opened.elementId}'${input} did not survive a re-import of the same document (the import ${after}) — RECOMMENDED: keep the typed input and reopen the interaction on the element with the same id, so a remote re-import does not cost the user what they were typing`;
             }
           }
-          if (!h.interactionState) {
-            return skip(
-              "interactionState is undefined — the RECOMMENDED keep-and-reopen of an interaction across an import was not checked (pass interactionState to check it)",
-            );
-          }
-          return advice === undefined ? undefined : { advisories: [advice] };
+          const unverified = [
+            ...(second === undefined
+              ? [
+                  "canonicalTexts holds one text — importing a DIFFERENT document over an open interaction was not verified (add a second canonical text)",
+                ]
+              : []),
+            ...(h.interactionState
+              ? []
+              : [
+                  "interactionState is undefined — the RECOMMENDED keep-and-reopen of an interaction across an import was not checked (pass interactionState to check it)",
+                ]),
+          ];
+          return {
+            ...(unverified.length > 0 ? { skipped: unverified.join("; ") } : {}),
+            ...(advice === undefined ? {} : { advisories: [advice] }),
+          };
         } finally {
           m.destroy();
         }
@@ -858,7 +903,10 @@ export function conformanceCases(): ConformanceCase[] {
                   `element id '${id}' is gone after export → import ${where} — the id a session reports must be the element's id in the document (write it back)`,
                 );
               }
-              if (name !== undefined && after.get(id) !== name) {
+              // an empty name and an absent one are the same across the
+              // serializer: the contract fixes ids, not how a parser reports
+              // an element without a label
+              if (name !== undefined && (after.get(id) ?? "") !== name) {
                 fail(
                   `element id '${id}' names a different element after export → import ${where} ('${name}' → '${String(after.get(id))}')`,
                 );
@@ -891,7 +939,7 @@ export function conformanceCases(): ConformanceCase[] {
         try {
           // two peers start from the same document and each creates one
           // element — what happens when two users add an element at once
-          const created: string[][] = [];
+          const created: Array<Map<string, string | undefined>> = [];
           for (let count = 0; count < 2; count += 1) {
             const peer = await h.create();
             peers.push(peer);
@@ -901,25 +949,48 @@ export function conformanceCases(): ConformanceCase[] {
             const before = new Set(peer.elements.list().map((e) => e.id));
             await h.mutate(peer);
             await (h.settle ?? defaultSettle)();
-            const added = peer.elements
-              .list()
-              .map((e) => e.id)
-              .filter((id) => !before.has(id));
-            if (added.length === 0) {
+            const added = new Map(
+              peer.elements
+                .list()
+                .filter((e) => !before.has(e.id))
+                .map((e) => [e.id, e.name]),
+            );
+            if (added.size === 0) {
               fail(
                 "the harness mutate must ADD an element (the elements cases compare the ids two instances allocate)",
               );
             }
             created.push(added);
           }
-          const [onFirst = [], onSecond = []] = created;
-          const shared = onFirst.filter((id) => onSecond.includes(id));
-          if (shared.length > 0) {
+          const [
+            onFirst = new Map<string, string | undefined>(),
+            onSecond = new Map<string, string | undefined>(),
+          ] = created;
+          const shared = [...onFirst.keys()].filter((id) => onSecond.has(id));
+          // an id derived from the content (OWM's component_<slug>) collides
+          // when both peers create the same named element — by design, and the
+          // merge reconciles identical content anyway; only an id allocated
+          // regardless of the content is the recommendation's concern. An id
+          // that spells out its element's name counts as derived from it
+          const derivedFromContent = (id: string): boolean => {
+            const name = onFirst.get(id) ?? "";
+            if (name === "" || name !== (onSecond.get(id) ?? "")) return false;
+            const spelled = lettersAndDigits(name);
+            return spelled !== "" && lettersAndDigits(id).includes(spelled);
+          };
+          const allocated = shared.filter((id) => !derivedFromContent(id));
+          const quoted = (ids: string[]): string => ids.map((id) => `'${id}'`).join(", ");
+          if (allocated.length > 0) {
             return {
               advisories: [
-                `two instances that imported the same document and each created one element allocated the same id (${shared.map((id) => `'${id}'`).join(", ")}) — RECOMMENDED: allocate ids that do not collide across peers (random or peer-scoped, not a per-instance counter); once both edits merge, two elements share one id`,
+                `two instances that imported the same document and each created one element, not of the same name, allocated the same id (${quoted(allocated)}) — RECOMMENDED: allocate ids for new elements that do not collide across peers (random or peer-scoped, not a per-instance counter); once both edits merge, two elements share one id`,
               ],
             };
+          }
+          if (shared.length > 0) {
+            return skip(
+              `both instances created an element of the same name and allocated the same id, one derived from that name (${quoted(shared)}) — such ids collide for identical content by design, so the check is inconclusive: let mutate's elements differ in content (a counter the harness shares across instances)`,
+            );
           }
         } finally {
           for (const peer of peers) peer.destroy();

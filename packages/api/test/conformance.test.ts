@@ -17,7 +17,7 @@ import {
   conformanceCases,
   registerConformance,
 } from "../src/conformance.js";
-import { MODELER_API_VERSION } from "../src/index.js";
+import { type CollaborativeModeler, MODELER_API_VERSION } from "../src/index.js";
 import { createReferenceModeler, type Flaws, type ReferenceModeler } from "./reference-modeler.js";
 
 function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {}): ConformanceHarness {
@@ -143,6 +143,44 @@ describe("the conforming reference modeler", () => {
     expect(await advisories(harness())).toEqual([]);
   });
 
+  test("a modeler that ignores commands before the first import, with a mutate that waits for its change event, fails nothing", async () => {
+    let counter = 0;
+    const waitsForItsEvent = (m: CollaborativeModeler) =>
+      new Promise<void>((resolve) => {
+        const off = m.onContentChanged(() => {
+          off();
+          resolve();
+        });
+        (m as ReferenceModeler).addLine(`zz-${counter++}`);
+      });
+    expect(await failingCases(harness({}, { mutate: waitsForItsEvent }))).toEqual([]);
+    expect(
+      await failingCases(harness({ ignoresCommandsBeforeImport: true }, { mutate: waitsForItsEvent })),
+    ).toEqual([]);
+  });
+
+  test("an empty name in the session and an absent one after export → import are the same", async () => {
+    let counter = 0;
+    const h = harness(
+      { blankNamesReadBackAbsent: true },
+      { mutate: (m) => (m as ReferenceModeler).addLine(`~zz-${counter++}`) },
+    );
+    expect(await failingCases(h)).toEqual([]);
+    expect(await advisories(h)).toEqual([]);
+  });
+
+  test("an id spelled from identical content is not blamed: the collision check reports a skip instead", async () => {
+    const collision = conformanceCases().find((c) => c.name === CASE.elementsCollision);
+    const sameElement = { mutate: (m: CollaborativeModeler) => (m as ReferenceModeler).addLine("zz") };
+    const derived = await collision?.run(harness({}, sameElement));
+    expect(derived?.advisories).toBeUndefined();
+    expect(derived?.skipped).toMatch(/derived from that name .* inconclusive/);
+    // a counter id names nothing of the content: the same advisory as for different elements
+    const counter = await collision?.run(harness({ counterIds: true }, sameElement));
+    expect(counter?.skipped).toBeUndefined();
+    expect(counter?.advisories).toEqual([expect.stringContaining("allocated the same id ('line_1')")]);
+  });
+
   test("ids the serializer writes back (a renamed element keeps its id) survive export → import", async () => {
     const m = createReferenceModeler();
     await m.importText("alpha\nbeta\n");
@@ -197,6 +235,10 @@ describe("the conforming reference modeler", () => {
     expect((await skippedCases(harness({}, { interactionState: undefined }))).skipped).toEqual([
       CASE.l1Interaction,
     ]);
+    // one canonical text (L4 fails it anyway): the interaction case says which leg it could not run
+    const interaction = conformanceCases().find((c) => c.name === CASE.l1Interaction);
+    const single = await interaction?.run(harness({}, { canonicalTexts: ["alpha\nbeta\ngamma\n"] }));
+    expect(single?.skipped).toMatch(/one text — importing a DIFFERENT document/);
     // an EXPLICIT empty array is a statement, not an omission — no skip
     const explicit = await skippedCases(
       harness(

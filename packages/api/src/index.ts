@@ -58,10 +58,13 @@ export interface ElementInfo {
    * id. An id that lives only in memory anchors nothing: the todo or deep
    * link a host stored against it points nowhere once the text travels.
    *
-   * RECOMMENDED: allocate ids that do not collide when two peers create
-   * elements at the same time — random or peer-scoped ids, not a
-   * per-instance counter (`event_1` on both peers): once both edits merge
-   * into one document, two elements would share one id.
+   * RECOMMENDED: when two peers create different elements at the same time,
+   * their ids do not collide. An id allocated regardless of the content —
+   * a per-instance counter (`event_1` on both peers) — does: once both edits
+   * merge into one document, two elements share one id; random or
+   * peer-scoped ids do not. An id derived from the content (OWM's
+   * `component_<slug>`) collides only when both users create the same
+   * content, which the merge has to reconcile anyway.
    */
   id: string;
   /** human label, when the notation has one */

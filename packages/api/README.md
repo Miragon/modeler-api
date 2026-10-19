@@ -65,9 +65,11 @@ below. The id a session reports is the element's id in the DOCUMENT: after
 `exportText()` → `importText()`, in this instance or any other (a peer, the
 viewer, the next session), the element carries the same id — an element
 created in the session gets an id the serializer writes back, never one that
-lives only in memory. RECOMMENDED: allocate ids that do not collide when two
-peers create elements at the same time (random or peer-scoped, not a
-per-instance counter such as `event_1`).
+lives only in memory. RECOMMENDED: when two peers create different elements
+at the same time, their ids do not collide — random or peer-scoped ids, not a
+per-instance counter such as `event_1`. An id derived from the content (OWM's
+`component_<slug>`) collides only when both users create the same content,
+which the merge has to reconcile anyway.
 
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
@@ -139,16 +141,19 @@ for every harness and never skips.
 
 **Calls before the first import.** A fresh instance gets `exportText()` and
 one `mutate` before any document (throws tolerated — what they return is
-unspecified); then importing the first two canonical texts must render each
-exactly like a fresh instance does, and the next `mutate` must emit and apply.
+unspecified — and a `mutate` that never settles too: the kit waits 2 s for
+it, so a harness that waits for its command's change event still runs); then
+importing the first two canonical texts must render each exactly like a
+fresh instance does, and the next `mutate` must emit and apply.
 
 **Interactions open during an import.** `openInteraction` opens an editor on
 an element of `canonicalTexts[0]` and types without committing. The kit then
-imports over it twice — a different document (the edited element is usually
-gone) and the same document again (the element is still there) — and requires
-no change event, the imported document as the export and an undo that changes
-nothing (L1, L4). `interactionState` lets it check the recommended
-keep-and-reopen on the same-document import.
+imports over it twice — a different document (`canonicalTexts[1]`, the edited
+element is usually gone; a harness with one canonical text reports that leg
+as skipped) and the same document again (the element is still there) — and
+requires no change event, the imported document as the export and an undo
+that changes nothing (L1, L4). `interactionState` lets it check the
+recommended keep-and-reopen on the same-document import.
 
 **Recommendations are advisories.** Where the contract only RECOMMENDS
 (collision-free ids across peers, keep-and-reopen of an open interaction), the
@@ -156,7 +161,13 @@ kit reports what it finds as an ADVISORY through `onAdvisory`
 (`console.warn` by default) and never fails: a recommendation becomes a law,
 with a failing case, only in a major release. The collision check imports the
 same canonical text into two fresh instances, runs `mutate` once on each and
-advises when both allocate the same id.
+advises when both allocate the same id — unless both new elements carry the
+same name and the id spells it out (its letters and digits contain the
+name's, as `component_new_component` does for "New Component"). Such an id is
+derived from the content and collides for identical content by design, so
+the check reports a skip instead: let `mutate`'s elements differ in content
+(a counter the harness shares across instances, as the reference harness
+does).
 
 **View state is compared by readback.** The kit never compares
 `getViewState()` with your `viewState` literal: it sets it, reads the
@@ -197,17 +208,20 @@ that enforces what the contract text already states; a requirement the text
 does not state yet ships as a RECOMMENDATION with an advisory, so no
 conforming modeler turns red in a minor. A case that needs a new optional
 harness field (`openInteraction`) reports a skip until the harness provides
-it; a suite whose `onSkip` throws, to keep every law verified, turns red on
-that upgrade by its own choice, and the skip names the field to add.
+it, and a check the harness cannot feed conclusively (the collision check
+when both peers' new elements share a name their id spells out) reports a
+skip too; a suite whose `onSkip` throws, to keep every law verified, turns red on
+that upgrade by its own choice, and the skip names what to add or change.
 
 ### Candidates for 2.0
 
 Recommendations today, proposed as hard laws for the next major:
 
 - **Collision-free element ids across peers** — two instances that import the
-  same document and each create an element never allocate the same id
-  (today: `ElementInfo.id` RECOMMENDED, advisory in the elements collision
-  case).
+  same document and each create a different element never allocate the same
+  id for them; ids derived from the content (OWM's `component_<slug>`) meet
+  this by construction and collide only for identical content (today:
+  `ElementInfo.id` RECOMMENDED, advisory in the elements collision case).
 - **Keep and reopen an interaction across an import** — an interaction open
   during an import is reopened, with its typed input, on the element with the
   same id when that element is still there (today: L1 RECOMMENDED, advisory in
