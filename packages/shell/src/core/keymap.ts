@@ -162,6 +162,19 @@ export function shortcutLabel(
   }
 }
 
+/**
+ * The chip of a Cmd/Ctrl key a modeler binds itself (the web app's File entries, guide §5.4): macOS
+ * `⌘O`, elsewhere `Ctrl+O` with the key name of the messages table (`Strg+O`). `key` as printed on
+ * the key cap; pass the result to `FileMenuAction.shortcut` or `MenuActionEntry.shortcut`.
+ */
+export function commandKeyLabel(
+  key: string,
+  platform: Platform,
+  keyNames: Pick<ShellMessages["keyNames"], "ctrl">,
+): string {
+  return platform === "mac" ? `⌘${key}` : `${keyNames.ctrl}+${key}`;
+}
+
 const MAC_SHORTCUT_LABELS: Readonly<Record<ChromeKey, string>> = {
   zoomIn: "⌘+",
   zoomOut: "⌘\u2212",

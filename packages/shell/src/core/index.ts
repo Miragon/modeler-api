@@ -52,6 +52,7 @@ export {
   TEXT_FIELD_SELECTOR,
   ariaKeyShortcuts,
   ariaKeyShortcutsFromLabel,
+  commandKeyLabel,
   decideKey,
   detectPlatform,
   isUndoRedoKey,

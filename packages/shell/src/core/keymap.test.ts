@@ -3,6 +3,7 @@ import {
   TEXT_FIELD_SELECTOR,
   ariaKeyShortcuts,
   ariaKeyShortcutsFromLabel,
+  commandKeyLabel,
   decideKey,
   detectPlatform,
   isUndoRedoKey,
@@ -456,6 +457,21 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       stopPropagation: host === "ide" && row.stopInIde,
     };
     expect(decideKey(row.event, { ...nothingOpen, ...row.context, host })).toStrictEqual(expected);
+  });
+});
+
+describe("commandKeyLabel", () => {
+  it("writes ⌘ on macOS and the localized Ctrl elsewhere", () => {
+    expect(commandKeyLabel("O", "mac", defaultMessages.keyNames)).toBe("⌘O");
+    expect(commandKeyLabel("S", "other", defaultMessages.keyNames)).toBe("Ctrl+S");
+    expect(commandKeyLabel("O", "other", { ctrl: "Strg" })).toBe("Strg+O");
+  });
+
+  it("gives labels that name the same keys for aria-keyshortcuts", () => {
+    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("O", "mac", defaultMessages.keyNames))).toBe("Meta+O");
+    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("S", "other", defaultMessages.keyNames))).toBe(
+      "Control+S",
+    );
   });
 });
 
