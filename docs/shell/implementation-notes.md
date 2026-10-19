@@ -1219,8 +1219,9 @@ These topics stay in the design guide because they are not part of the shell:
   Phase 7 of [#4](https://github.com/Miragon/modeler-api/issues/4) own them);
 - light-only export (guide §10.7);
 - the token files and the token module (guide §13.1, §13.2);
-- the mode recipes for IntelliJ, Electron, Tauri and Theia and the web-app bootstrap script with its
-  `localStorage` key (guide §13.3);
+- the mode recipes for IntelliJ, Electron, Tauri and Theia (guide §13.3); the web app's head script
+  and its `localStorage` key are the shell's since 0.2 (`webModeScript`, `webHeadMarkup` and
+  `shell.appearance`, see `packages/shell/API.md`, "Web host (0.2)");
 - the IntelliJ white-flash fix (guide §13.5).
 
 ## Open verification points

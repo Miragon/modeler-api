@@ -31,8 +31,19 @@ export interface ChromeMeasurement {
   paletteRow: PaletteRow;
   /** The visible islands, found by `[data-chrome]`. */
   islands: Partial<Record<ChromeIsland, IslandBox>>;
-  /** `[data-legend="open"]`, `[data-inspector="open"]`, `[data-problems="shown"]` on the root. */
-  open: { legend: boolean; inspector: boolean; problems: boolean };
+  /**
+   * State attributes of the root: `[data-legend="open"]`, `[data-inspector="open"]`,
+   * `[data-problems="shown"]`, and in the web host `[data-empty-state="shown"]`,
+   * `[data-primary="collapsed"]` and `[data-zoom-row="raised"]`.
+   */
+  open: {
+    legend: boolean;
+    inspector: boolean;
+    problems: boolean;
+    emptyState: boolean;
+    primaryCollapsed: boolean;
+    zoomRaised: boolean;
+  };
 }
 
 /** Constraints of one island; every given field must hold within `GEOMETRY_TOLERANCE_PX`. */
@@ -45,6 +56,8 @@ export interface ExpectedBox {
   height?: number;
   /** Horizontal centre relative to the root. */
   centerX?: number;
+  /** Vertical centre relative to the root (the web app's empty-state card). */
+  centerY?: number;
 }
 
 export const DEFAULT_ROOT = ".cd-shell";
@@ -88,6 +101,9 @@ const measureProbe = ({ root, islands }: { root: string; islands: readonly strin
       legend: rootElement.getAttribute("data-legend") === "open",
       inspector: rootElement.getAttribute("data-inspector") === "open",
       problems: rootElement.getAttribute("data-problems") === "shown",
+      emptyState: rootElement.getAttribute("data-empty-state") === "shown",
+      primaryCollapsed: rootElement.getAttribute("data-primary") === "collapsed",
+      zoomRaised: rootElement.getAttribute("data-zoom-row") === "raised",
     },
     duplicates,
   };
@@ -230,6 +246,7 @@ function sides(box: IslandBox, container: Size): Required<ExpectedBox> {
     width: box.width,
     height: box.height,
     centerX: box.left + box.width / 2,
+    centerY: box.top + box.height / 2,
   };
 }
 

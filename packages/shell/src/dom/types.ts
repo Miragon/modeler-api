@@ -1,10 +1,14 @@
 import type {
+  AppearanceChoice,
   Insets,
   Platform,
+  ProblemItem,
   ShellHost,
   ShellMessageOverrides,
   ShellMessages,
   Theme,
+  ThemeColors,
+  ToastRequest,
   ZoomTarget,
 } from "../core/index.js";
 import type { ShellIconName } from "./icons.js";
@@ -32,10 +36,11 @@ export interface ShellOptions {
   keyScope?: "document" | "root" | undefined;
   /**
    * The modes the modeler can show (a static value of the modeler package), default `["light"]`.
-   * Read in the `embedded` host only: there the root carries `data-cd-theme="<themes[0]>"` itself
-   * (until the contract's `appearance` surface an embedded modeler stays in its first mode,
-   * whatever the page shows) and mirrors the host's `data-cd-kontrast` (guide §13.3). In an own
-   * document the host writes the mode on `<html>`.
+   * Read in the `embedded` and `web` hosts. Embedded: the root carries `data-cd-theme="<themes[0]>"`
+   * itself (until the contract's `appearance` surface an embedded modeler stays in its first mode,
+   * whatever the page shows) and mirrors the host's `data-cd-kontrast` (guide §13.3). Web: with
+   * `"dark"` the shell renders the Appearance group and applies the choice on `<html>` (needs
+   * `appearance`); light-only it renders no group. In the `ide` host the host writes the mode.
    */
   themes?: readonly Theme[] | undefined;
   /** The fixed menu groups this modeler fills (guide §5.4); omitted groups and empty ones collapse. */
@@ -48,6 +53,24 @@ export interface ShellOptions {
   inspector?: InspectorOptions | undefined;
   /** The empty-file hint of IDE and embedded hosts (guide §13.5); omitted = no hint. */
   emptyHint?: EmptyHintOptions | undefined;
+
+  // ---- Web host (0.2): read in `host: "web"` only, ignored elsewhere (guide §5.2) ----
+
+  /** The primary action at the top right (guide §5.7); omitted = the top right stays empty. */
+  primary?: PrimaryActionOptions | undefined;
+  /**
+   * The legal line at the bottom left (guide §5.10), always rendered in the web host: copyright,
+   * Impressum and Datenschutz (`lang="de"`), then `links`.
+   */
+  legal?: LegalLineOptions | undefined;
+  /** The File group, first in the menu (guide §5.4); omitted = no File group. */
+  file?: FileMenuOptions | undefined;
+  /** The mode choice of a dark-capable modeler (guide §13.3); required when `themes` includes `"dark"`. */
+  appearance?: WebAppearanceOptions | undefined;
+  /** The start screen (guide §8 Empty State); omitted = none. Shown by `setEmptyState(true)`. */
+  emptyState?: EmptyStateOptions | undefined;
+  /** Files dropped anywhere on the page (guide §9 Drag-over, Drop forbidden); omitted = none. */
+  dropZone?: DropZoneOptions | undefined;
 }
 
 /** Rendered in this order, separated by separators: Model, Export, Help (guide §5.4). */
@@ -126,8 +149,17 @@ export interface MenuRadioOption {
 }
 
 export interface ProblemsOptions {
-  /** A click on the pill: the IDE host opens its Problems view. */
-  onActivate(): void;
+  /**
+   * A click on the pill where the host has a problems view of its own: the IDE host opens its
+   * Problems view (give it there), an embedding host its own list. Ignored in the web host, where
+   * the pill opens the problems popover; an embedded shell without it opens the popover as well.
+   */
+  onActivate?: (() => void) | undefined;
+  /**
+   * A click on a row of the problems popover, after the popover closed (guide §5.10): select the
+   * element the item names, where there is one.
+   */
+  onSelectItem?: ((item: ProblemItem) => void) | undefined;
 }
 
 export interface LegendOptions {
@@ -168,6 +200,10 @@ export interface ShellHandle {
   readonly tooltip: TooltipHandle;
   readonly legend: LegendHandle | undefined;
   readonly inspector: InspectorHandle | undefined;
+  /** The web app's primary action; `undefined` without `primary` and outside the web host. */
+  readonly primary: PrimaryActionHandle | undefined;
+  /** The web app's mode choice; `undefined` outside the web host and for a light-only modeler. */
+  readonly appearance: AppearanceHandle | undefined;
   /** Binds zoom panel, readout and chrome keys; `null` unbinds (buttons disabled). */
   setZoomTarget(target: ZoomTarget | null): void;
   /** The fit insets for what is open right now (palette row, legend, inspector, pill). */
@@ -194,6 +230,21 @@ export interface ShellHandle {
   setReadOnly(readOnly: boolean, options?: { delayMs?: number | undefined }): void;
   /** The lock, true from the first `setReadOnly(true)` on, also while its marks are still delayed. */
   isReadOnly(): boolean;
+  /**
+   * Shows or hides the web app's start screen (guide §8): while it shows, menu trigger, primary
+   * action, palette, zoom panel, pill, legend, status box, hint and inspector are hidden, the canvas
+   * slot is `inert` and the chrome keys do nothing; the legal line, toasts and the drop zone stay.
+   * A no-op without `emptyState`. Hiding it while it holds the focus moves the focus to the canvas.
+   */
+  setEmptyState(shown: boolean): void;
+  isEmptyStateShown(): boolean;
+  /**
+   * Shows a toast (guide §8, §9) in the web and embedded hosts: bottom centre, at most three, the
+   * newest at the bottom, closing by itself after `toastLifetime` unless hovered or focused. In the
+   * `ide` host it shows nothing and returns an inert handle: there the extension shows the host's
+   * notification (§13.5).
+   */
+  toast(request: ToastRequest): ToastHandle;
   /** Removes every element, attribute, listener, observer and timer the shell added. Idempotent. */
   destroy(): void;
 }
@@ -267,6 +318,11 @@ export interface ProblemSummary {
   count: number;
   /** How many of them are errors; decides icon and wording. */
   errors: number;
+  /**
+   * The rows of the problems popover (web, embedded without `onActivate`), in this order; the IDE
+   * host ignores them. `problemSummary(items)` builds the whole summary from them.
+   */
+  items?: readonly ProblemItem[] | undefined;
 }
 
 export type StatusSeverity = "danger" | "warning";
@@ -274,4 +330,126 @@ export type StatusSeverity = "danger" | "warning";
 export interface StatusMessage {
   severity: StatusSeverity;
   text: string;
+}
+
+// ---- Web host (0.2) ----
+
+/** The web app's primary action (guide §5.7): a blue primary button, icon and label, at the top right. */
+export interface PrimaryActionOptions {
+  /** Label and `aria-label`; default `messages.share` ("Share"). */
+  label?: string | undefined;
+  /** Default `"share-2"`. */
+  icon?: ShellIconName | undefined;
+  onSelect(): void;
+  /** Read on mount and on `primary.refresh()`; disabled stays focusable (`aria-disabled`). */
+  disabled?: (() => boolean) | undefined;
+}
+
+export interface PrimaryActionHandle {
+  /** The `<button data-chrome="primary">`. */
+  readonly element: HTMLButtonElement;
+  /** True while the label is collapsed to the icon (guide §5.15); the root then carries `data-primary="collapsed"`. */
+  isCollapsed(): boolean;
+  /** Re-reads `disabled()`. */
+  refresh(): void;
+}
+
+/** A link of the legal line after Impressum and Datenschutz. */
+export interface LegalLink {
+  label: string;
+  href: string;
+  /** For a label in another language than the tool's. */
+  lang?: string | undefined;
+}
+
+export interface LegalLineOptions {
+  /** After Impressum and Datenschutz: `{ label: "GitHub", href: "https://github.com/Miragon/…" }`. */
+  links?: readonly LegalLink[] | undefined;
+  /** The copyright year; default the current year at mount. */
+  year?: number | undefined;
+}
+
+/** One entry of the File group; label and icon come from the shell (guide §2, §5.4). */
+export interface FileMenuAction {
+  onSelect(): void;
+  /** Shortcut chip, e.g. "⌘O"; the web app binds the key itself. */
+  shortcut?: string | undefined;
+  /** `kind: "dialog"` (`aria-haspopup="dialog"`) when it opens an in-page dialog, not the browser's file picker. */
+  dialog?: boolean | undefined;
+  disabled?: (() => boolean) | undefined;
+}
+
+/**
+ * The File group of the web app (guide §5.4), in this order, as far as the modeler has them:
+ * "New diagram" (`file-plus`), "Open…" (`folder-open`), "Show example", "Import…" (`import`).
+ * Menu ids `new-diagram`, `open`, `show-example`, `import`, `data-menu-group="file"`.
+ */
+export interface FileMenuOptions {
+  newDiagram?: FileMenuAction | undefined;
+  open?: FileMenuAction | undefined;
+  showExample?: FileMenuAction | undefined;
+  import?: FileMenuAction | undefined;
+}
+
+/** What `localStorage` offers; a blocked storage throws, the shell catches it. */
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface WebAppearanceOptions {
+  /** The two `theme-color` values from the vendored token JSON (see `ThemeColors`). */
+  themeColors: ThemeColors;
+  /** Default `globalThis.localStorage`. */
+  storage?: StorageLike | undefined;
+}
+
+/** The mode choice of a dark-capable web app (guide §13.3), as the Appearance group drives it. */
+export interface AppearanceHandle {
+  /** The stored choice, `"system"` without one. */
+  choice(): AppearanceChoice;
+  /**
+   * Stores the choice (`"system"` removes `APPEARANCE_STORAGE_KEY`) and applies `documentMode` on
+   * `<html>` and the metas in one step, with `cd-shell-no-transition` for one frame (guide §7).
+   */
+  setChoice(choice: AppearanceChoice): void;
+}
+
+/** The web app's start screen (guide §8): a centred glass card with the Komet and two actions. */
+export interface EmptyStateOptions {
+  /** The card's title (h1, 21px/600), the modeler's name: "Event Storming Modeler". */
+  title: string;
+  /** One line of help (16px/1.6, `--cd-ui-text-leise`): "Start a new diagram, or explore the example." */
+  text: string;
+  /**
+   * URL of the official Miragon icon `miragon-komet-blau.svg`, vendored unchanged from
+   * `Miragon/corporate-identity` (guide §2, §11), shown at 64px with `alt=""`.
+   */
+  komet: string;
+  /** "New diagram", the blue primary button. The shell hides the card first. */
+  onNewDiagram(): void;
+  /** "Show example", the ghost button; omitted = no example button. The shell hides the card first. */
+  onShowExample?: (() => void) | undefined;
+  /** The drag-and-drop hint (13px, `--cd-ui-text-leise`), shown with a `dropZone` only; default `messages.dropHint`. */
+  dropHint?: string | undefined;
+}
+
+export interface DropZoneOptions {
+  /**
+   * Like `<input accept>`: extensions (".storm") and MIME types ("application/json", "text/*").
+   * List the MIME types too, so a drag can already show a foreign type as forbidden. Empty = any file.
+   */
+  accept: readonly string[];
+  /** Default `false`: a drag with more than one file is forbidden. */
+  multiple?: boolean | undefined;
+  /** The dropped files that match `accept` (one unless `multiple`). */
+  onDrop(files: readonly File[]): void;
+  /** The dropped files outside `accept`; default a danger toast `messages.cannotOpenFile`. */
+  onReject?: ((files: readonly File[]) => void) | undefined;
+}
+
+export interface ToastHandle {
+  /** Closes the toast (slide and fade out); a second call does nothing. */
+  dismiss(): void;
 }

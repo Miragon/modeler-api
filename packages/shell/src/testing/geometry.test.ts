@@ -54,7 +54,15 @@ function measurement({
   return {
     container,
     paletteRow: row,
-    open: { legend: false, inspector: false, problems: false, ...open },
+    open: {
+      legend: false,
+      inspector: false,
+      problems: false,
+      emptyState: false,
+      primaryCollapsed: false,
+      zoomRaised: false,
+      ...open,
+    },
     islands: {
       menu: { left: 12, top: 12, width: 40, height: 40 },
       palette: anchored(container, { width: 160, height: 40 }, { top: row === "top" ? 12 : 64 }),

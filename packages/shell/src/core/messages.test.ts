@@ -39,6 +39,29 @@ describe("defaultMessages (guide §2)", () => {
       "This file isn't a valid Event Storming board right now. The diagram shows the last valid version and is read-only until you fix the text.",
     );
   });
+
+  it("names the web chrome with the shared English terms, Impressum and Datenschutz aside", () => {
+    expect(defaultMessages.share).toBe("Share");
+    expect(defaultMessages.legal).toBe("Legal");
+    expect(defaultMessages.copyright(2026)).toBe("© 2026 Miragon GmbH");
+    expect(defaultMessages.newDiagram).toBe("New diagram");
+    expect(defaultMessages.openFile).toBe("Open…");
+    expect(defaultMessages.showExample).toBe("Show example");
+    expect(defaultMessages.importFile).toBe("Import…");
+    expect(defaultMessages.appearance).toBe("Appearance");
+    expect([
+      defaultMessages.appearanceSystem,
+      defaultMessages.appearanceLight,
+      defaultMessages.appearanceDark,
+    ]).toEqual(["System", "Light", "Dark"]);
+    expect(defaultMessages.problemsTitle).toBe("Problems");
+    expect(defaultMessages.close).toBe("Close");
+    expect(defaultMessages.dropFile).toBe("Drop file here");
+    expect(defaultMessages.dropForbidden("multiple")).toBe("Drop one file at a time");
+    expect(defaultMessages.cannotOpenFile("map.png", ".storm or .json")).toBe(
+      "Couldn't open “map.png”. Drop a .storm or .json file.",
+    );
+  });
 });
 
 describe("resolveMessages", () => {
@@ -99,6 +122,24 @@ describe("resolveMessages", () => {
       insertExample: "Beispiel einfügen",
       invalidFile: (diagram) => `Die Datei ist gerade kein gültiges ${diagram}.`,
       keyNames: { ctrl: "Strg", shift: "Umschalt", plus: "Plus", minus: "Minus" },
+      share: "Teilen",
+      legal: "Rechtliches",
+      copyright: (year) => `© ${year} Miragon GmbH`,
+      newDiagram: "Neues Diagramm",
+      openFile: "Öffnen …",
+      showExample: "Beispiel zeigen",
+      importFile: "Importieren …",
+      appearance: "Darstellung",
+      appearanceSystem: "System",
+      appearanceLight: "Hell",
+      appearanceDark: "Dunkel",
+      problemsTitle: "Probleme",
+      close: "Schließen",
+      dropFile: "Datei hier ablegen",
+      dropForbidden: () => "Hier kannst du nichts ablegen",
+      dropHint: "Oder lege eine Datei hier ab",
+      cannotOpenFile: (name, accepted) =>
+        `„${name}“ konnte nicht geöffnet werden. Lege eine ${accepted}-Datei ab.`,
     };
     expect(resolveMessages(german)).toEqual(german);
   });

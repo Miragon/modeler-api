@@ -38,6 +38,11 @@ function openDialogs(scope: ParentNode): Element[] {
   return [...scope.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog')].filter(isShown);
 }
 
+/** A shown modal dialog in `scope`, by the keys' own test (the drop zone forbids drops meanwhile). */
+export function isModalOpen(scope: ParentNode): boolean {
+  return openDialogs(scope).some(isModal);
+}
+
 /** The shell's one `keydown` listener (bubble phase): applies `decideKey` (guide §5.8, §13.5). */
 export function createKeyListener(context: KeyListenerContext): (event: KeyboardEvent) => void {
   return (event) => {

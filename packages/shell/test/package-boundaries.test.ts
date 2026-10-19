@@ -128,7 +128,9 @@ describe("sources", () => {
       .filter((path) => moduleOf(path) === "core")
       .flatMap((path) =>
         importSpecifiers(readFileSync(path, "utf8"))
-          .filter((specifier) => !specifier.startsWith("./"))
+          .filter(
+            (specifier) => !specifier.startsWith(".") || moduleOf(join(dirname(path), specifier)) !== "core",
+          )
           .map((specifier) => `${relative(packageDir, path)} → ${specifier}`),
       );
     expect(offending).toEqual([]);
@@ -138,6 +140,9 @@ describe("sources", () => {
 describe("stylesheets", () => {
   const stylesheets = [...filesUnder(sourceDir, ".css"), ...filesUnder(join(packageDir, "demo"), ".css")];
   const allowedTokens = /^--cd-(ui-|shell-|radius-|shadow-|motion-|ease)/;
+  // Guide §8: the primary button's fill is fixed in both modes; only the button stylesheet reads it.
+  const fixedButtonTokens = new Set(["--cd-blau", "--cd-blau-link", "--cd-weiss"]);
+  const buttonStylesheet = join(sourceDir, "dom", "buttons.css");
 
   it("contain no colour literals", () => {
     const offending = stylesheets.flatMap((path) => {
@@ -154,9 +159,19 @@ describe("stylesheets", () => {
       const tokens = [...css.matchAll(/var\(\s*(--cd-[a-z0-9-]+)/g)].map((match) => match[1] ?? "");
       return tokens
         .filter((token) => !allowedTokens.test(token))
+        .filter((token) => !(path === buttonStylesheet && fixedButtonTokens.has(token)))
         .map((token) => `${relative(packageDir, path)}: ${token}`);
     });
     expect(offending).toEqual([]);
+  });
+
+  it("are all imported by shell.css", () => {
+    const entry = join(sourceDir, "shell.css");
+    const imported = [...readFileSync(entry, "utf8").matchAll(/@import\s+"([^"]+)"/g)].map((match) =>
+      join(sourceDir, match[1] ?? ""),
+    );
+    const parts = filesUnder(sourceDir, ".css").filter((path) => path !== entry);
+    expect([...imported].sort()).toEqual([...parts].sort());
   });
 });
 

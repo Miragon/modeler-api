@@ -1,0 +1,112 @@
+/*
+ * Buttons of the web chrome (guide §8): `.cd-shell-button` with `data-variant="primary"` (the top
+ * right primary action, the empty state's "New diagram") or `data-variant="ghost"` ("Show
+ * example", a toast's action). 36px by default (dialogs, panels, empty state); the primary action
+ * of the top row sets its own 40px.
+ *
+ * The one stylesheet of the shell that reads fixed palette tokens, and only these three: the
+ * primary button is --cd-blau with --cd-weiss text in both modes, hover and active --cd-blau-link
+ * (guide §8: "Feste Werte nimmst du nur für die Fläche von Primär- und Destruktiv-Button"). The
+ * stylesheet test allows them here and nowhere else.
+ */
+
+.cd-shell-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cd-shell-luecke);
+  height: var(--cd-shell-eintrag);
+  margin: 0;
+  padding: 0 16px;
+  color: var(--cd-ui-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--cd-radius-md);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    border-color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    transform var(--cd-motion-fast) var(--cd-ease);
+}
+
+.cd-shell-button[hidden] {
+  display: none;
+}
+
+.cd-shell-button svg {
+  display: block;
+  flex: none;
+}
+
+.cd-shell-button[data-variant="primary"] {
+  color: var(--cd-weiss);
+  background: var(--cd-blau);
+  box-shadow: var(--cd-shadow-1);
+}
+
+.cd-shell-button[data-variant="primary"]:is(:hover, :active):not([aria-disabled="true"]) {
+  background: var(--cd-blau-link);
+  box-shadow: var(--cd-shadow-2);
+  transform: translateY(-1px);
+}
+
+.cd-shell-button[data-variant="ghost"]:is(:hover, :active):not([aria-disabled="true"]) {
+  background: var(--cd-ui-hover);
+}
+
+/* Disabled is opaque and neutral, never through opacity (guide §8). */
+.cd-shell-button[aria-disabled="true"] {
+  color: var(--cd-ui-text-leise);
+  cursor: not-allowed;
+}
+
+.cd-shell-button[data-variant="primary"][aria-disabled="true"] {
+  background: var(--cd-ui-hover);
+  border-color: var(--cd-ui-linie);
+  box-shadow: none;
+}
+
+.cd-shell-button:focus {
+  outline: none;
+}
+
+.cd-shell-button:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-button {
+  box-shadow: none;
+}
+
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-button:focus-visible {
+  outline-width: 3px;
+}
+
+@media (forced-colors: active) {
+  .cd-shell .cd-shell-button {
+    border-color: ButtonText;
+  }
+
+  .cd-shell .cd-shell-button:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .cd-shell .cd-shell-button[aria-disabled="true"] {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}

@@ -14,4 +14,14 @@ export interface PageLike {
     up(): Promise<void>;
   };
   waitForTimeout(timeout: number): Promise<void>;
+  /**
+   * Playwright's `page.emulateMedia`; the web-host cases need it for the system's mode and contrast
+   * (`appearance`) and report a skip with `hook: "open"` without it.
+   */
+  emulateMedia?(options: {
+    colorScheme?: "light" | "dark" | "no-preference" | null;
+    contrast?: "more" | "no-preference" | null;
+    reducedMotion?: "reduce" | "no-preference" | null;
+    forcedColors?: "active" | "none" | null;
+  }): Promise<void>;
 }

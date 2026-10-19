@@ -82,3 +82,45 @@ export {
   legendStartsOpen,
   placeTooltip,
 } from "./layout.js";
+
+// ---- Web host (0.2) ----
+
+export type { PrimaryWidths, TopRow, TopRowInput } from "./web-chrome/top-row.js";
+export { decideTopRow } from "./web-chrome/top-row.js";
+export type { BottomRowInput } from "./web-chrome/bottom-row.js";
+export { zoomRowRaised } from "./web-chrome/bottom-row.js";
+export type { DragContext, DragItemLike, DragVerdict, DropForbiddenReason } from "./web-chrome/drop.js";
+export { acceptsFile, dragVerdict } from "./web-chrome/drop.js";
+
+export type {
+  BottomObstacle,
+  ToastAction,
+  ToastRequest,
+  ToastSlot,
+  ToastStackInput,
+  ToastStatus,
+} from "./feedback/toasts.js";
+export {
+  MAX_TOASTS,
+  TOAST_DURATION_MS,
+  TOAST_MAX_WIDTH,
+  toastLifetime,
+  toastStackBottom,
+  toastStackWidth,
+  toastToEvict,
+} from "./feedback/toasts.js";
+export type {
+  AppearanceChoice,
+  DocumentMode,
+  ThemeColors,
+  WebModeScriptOptions,
+} from "./feedback/appearance.js";
+export {
+  APPEARANCE_STORAGE_KEY,
+  documentMode,
+  parseAppearanceChoice,
+  webHeadMarkup,
+  webModeScript,
+} from "./feedback/appearance.js";
+export type { ProblemItem, ProblemSeverity } from "./feedback/problems.js";
+export { problemSummary } from "./feedback/problems.js";

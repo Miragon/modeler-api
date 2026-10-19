@@ -157,7 +157,14 @@ describe("probes in a page", () => {
     await expect(measureChrome(page)).resolves.toEqual({
       container: { width: 720, height: 700 },
       paletteRow: "second-row",
-      open: { legend: true, inspector: false, problems: true },
+      open: {
+        legend: true,
+        inspector: false,
+        problems: true,
+        emptyState: false,
+        primaryCollapsed: false,
+        zoomRaised: false,
+      },
       islands: {
         menu: { left: 12, top: 12, width: 40, height: 40 },
         palette: { left: 280, top: 64, width: 160, height: 40 },

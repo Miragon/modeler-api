@@ -73,6 +73,12 @@ export interface FitLayout {
   paletteRow: PaletteRow;
   /** The problems pill is shown (only the web app reserves room for it). */
   problemsVisible: boolean;
+  /**
+   * Web app: the zoom panel stands above the legal line (`bottom: 40px`) because the two would
+   * meet in the bottom row of a narrow container (`zoomRowRaised`); the bottom then keeps 92px as
+   * with the pill.
+   */
+  zoomRaised?: boolean | undefined;
   /** Rendered width of the open legend; `undefined` when it is closed or the modeler has none. */
   legendWidth?: number | undefined;
   /**
@@ -83,16 +89,18 @@ export interface FitLayout {
 }
 
 /**
- * The fit insets of guide §5.9: top 88 (second row 140), sides 24, bottom 64 (web app with pill 92),
+ * The fit insets of guide §5.9: top 88 (second row 140), sides 24, bottom 64 (web app with pill or
+ * with the zoom panel raised above the legal line 92),
  * right 324 with an open side inspector, left 12 + legend width + 24 with an open legend above
  * `SHELL.veryNarrow`, bottom = distance to the sheet's top edge + 12 with an open bottom sheet.
  */
 export function fitInsets(layout: FitLayout): Insets {
-  const { container, host, paletteRow, problemsVisible, legendWidth, inspector } = layout;
+  const { container, host, paletteRow, problemsVisible, zoomRaised, legendWidth, inspector } = layout;
+  const raisedBottomRow = host === "web" && (problemsVisible || zoomRaised === true);
   const insets: Insets = {
     top: paletteRow === "second-row" ? SHELL.fitInsetTopSecondRow : SHELL.fitInsetTop,
     right: SHELL.fitInsetSide,
-    bottom: host === "web" && problemsVisible ? SHELL.fitInsetBottomWeb : SHELL.fitInsetBottom,
+    bottom: raisedBottomRow ? SHELL.fitInsetBottomWeb : SHELL.fitInsetBottom,
     left: SHELL.fitInsetSide,
   };
 

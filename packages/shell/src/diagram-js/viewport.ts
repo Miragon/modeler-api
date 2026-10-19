@@ -62,6 +62,13 @@ export interface Viewport extends ZoomTarget {
    * the user created on the canvas does not (guide §5.9), so the next import keeps the view.
    */
   afterImport(): void;
+  /**
+   * The web app opens another document (New diagram, Open…, Import…, Show example, a shared link,
+   * a dropped file): the next `afterImport()` counts as the first again (guide §5.9). Forgets the
+   * user's moves, a stored view and a pending restore, and stops a running fit animation, so
+   * non-empty content fits (jump) and an empty document shows 100 %. Call it before the import.
+   */
+  newDocument(): void;
   /** Restores a viewbox after a re-import (external change): reference updated, user-move state kept. */
   restore(viewbox: Bounds): void;
   /** The current viewbox (x, y, width, height), `undefined` before the canvas has a size. */
@@ -227,6 +234,18 @@ export class DiagramViewport implements Viewport {
       if (!this.userMoved && !this.showActualSize()) this.emptyViewDue = true;
     }
     this.notify();
+  }
+
+  newDocument(): void {
+    if (this.destroyed) return;
+    this.cancelAnimation();
+    this.userMoved = false;
+    this.firstFitPending = true;
+    this.emptyViewPending = true;
+    this.emptyViewDue = false;
+    this.autoFitDue = false;
+    this.pendingView = undefined;
+    this.fittable = undefined;
   }
 
   restore(viewbox: Bounds): void {

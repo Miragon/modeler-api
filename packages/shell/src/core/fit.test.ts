@@ -180,6 +180,12 @@ describe("fitInsets (guide §5.9)", () => {
     expect(fitInsets(layout({ host: "embedded", problemsVisible: true })).bottom).toBe(64);
   });
 
+  it("bottom 92 in the web app while the zoom panel stands above the legal line", () => {
+    expect(fitInsets(layout({ host: "web", zoomRaised: true })).bottom).toBe(92);
+    expect(fitInsets(layout({ host: "web", zoomRaised: false })).bottom).toBe(64);
+    expect(fitInsets(layout({ host: "ide", zoomRaised: true })).bottom).toBe(64);
+  });
+
   it("right 324 (12 + 288 + 24) with an open side inspector in containers wider than 760", () => {
     expect(fitInsets(layout({ container: { width: 761, height: 900 }, inspector: {} }))).toEqual({
       top: 88,

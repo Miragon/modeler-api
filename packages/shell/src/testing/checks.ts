@@ -15,7 +15,7 @@ import {
   type ZoomButton,
 } from "./facts.js";
 import { GEOMETRY_TOLERANCE_PX, type Rectangle } from "./geometry.js";
-import type { ShellConformanceHarness, ShowHook } from "./harness.js";
+import type { AbsentFeature, ShellConformanceHarness, ShowHook } from "./harness.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
 import type { PageLike } from "./page.js";
 
@@ -589,14 +589,14 @@ export type AbsentIsland = Extract<ShowHook, "legend" | "inspector" | "problems"
 const ABSENT_ISLANDS: readonly AbsentIsland[] = ["legend", "inspector", "problems", "status"];
 
 /** The islands of `absent` (its state `invalid` has no island). */
-export function absentIslands(absent: readonly ShowHook[] | undefined): AbsentIsland[] {
+export function absentIslands(absent: readonly AbsentFeature[] | undefined): AbsentIsland[] {
   return ABSENT_ISLANDS.filter((island) => absent?.includes(island));
 }
 
 /** An island the harness declares absent must never show. */
 export function absentIslandProblems(
   visible: ReadonlySet<string>,
-  absent: readonly ShowHook[] | undefined,
+  absent: readonly AbsentFeature[] | undefined,
 ): string[] {
   return absentIslands(absent)
     .filter((island) => visible.has(island))

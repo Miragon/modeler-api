@@ -1,0 +1,10 @@
+/*
+ * Feedback of @miragon/modeler-shell (owned by src/dom/feedback): the toast stack and the problems
+ * popover (guide §5.10, §8, §9). Colours only from var(--cd-ui-*), sizes from var(--cd-shell-*).
+ * Toasts render in the web and embedded hosts, so their rules also reset what a foreign page's
+ * element rules would set (font, colour, letter spacing, text transform), like shell-dom.css.
+ *
+ * TODO(feedback): .cd-shell-toasts (layer 60, popover reset in the web host), .cd-shell-toast
+ * [data-status] with bar and dot, the leaving state, .cd-shell-problems-popover and its rows,
+ * reduced motion, high contrast and forced colours for each.
+ */

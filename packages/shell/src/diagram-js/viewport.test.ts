@@ -427,6 +427,42 @@ describe("afterImport", () => {
   });
 });
 
+describe("newDocument (web app: every new document opens like the first)", () => {
+  it("fits the next import again after the user moved the view", () => {
+    const { viewport, canvas, setContent } = setup();
+    viewport.afterImport();
+    canvas.pan(-300, 120);
+    expect(viewport.isAutomatic()).toBe(false);
+
+    const next: Bounds = { x: 0, y: 0, width: 600, height: 400 };
+    viewport.newDocument();
+    setContent(next);
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, next));
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("shows 100 % for an empty new document, whatever zoom the last one had", () => {
+    const { viewport, canvas, setContent } = setup();
+    viewport.afterImport();
+    expect(viewport.zoom()).not.toBe(1);
+
+    viewport.newDocument();
+    setContent(undefined);
+    viewport.afterImport();
+    expect(viewport.zoom()).toBe(1);
+    expect(canvas.viewboxWrites.length).toBeGreaterThan(1);
+  });
+
+  it("lets a stored view no longer win over the new document's fit", () => {
+    const { viewport, canvas } = setup();
+    viewport.setState({ viewbox: { x: -50, y: -40, width: 1000, height: 800 }, userMoved: true });
+    viewport.newDocument();
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas));
+  });
+});
+
 describe("afterImport: an empty file opens at 100 %", () => {
   /** What a renderer does while it imports an empty file: frames its board at its own zoom. */
   function importEmptyAt(setupResult: Setup, zoom: number): void {

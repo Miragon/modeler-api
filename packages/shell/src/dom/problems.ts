@@ -2,7 +2,7 @@ import { formatNumber, type ShellMessages } from "../core/index.js";
 import { createElement } from "./element.js";
 import { iconElement } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
-import type { ProblemSummary, ProblemsOptions } from "./types.js";
+import type { ProblemSummary } from "./types.js";
 
 export interface ProblemsPill {
   readonly element: HTMLButtonElement;
@@ -18,11 +18,12 @@ export interface ProblemsContext {
   tooltip: TooltipController;
   /** The IDE host opens its Problems view, so only there the pill explains itself. */
   showTooltip: boolean;
-  options: ProblemsOptions;
+  /** A click: `ProblemsOptions.onActivate` (IDE host) or the problems popover's toggle (web host). */
+  onActivate(): void;
 }
 
 export function createProblemsPill(context: ProblemsContext): ProblemsPill {
-  const { ownerDocument, messages, lang, tooltip, options } = context;
+  const { ownerDocument, messages, lang, tooltip } = context;
   const icon = createElement(ownerDocument, "span", { class: "cd-shell-problems-icon" });
   const text = createElement(ownerDocument, "span", { class: "cd-shell-problems-text" });
   const element = createElement(
@@ -33,7 +34,7 @@ export function createProblemsPill(context: ProblemsContext): ProblemsPill {
     text,
   );
   element.hidden = true;
-  element.addEventListener("click", () => options.onActivate());
+  element.addEventListener("click", () => context.onActivate());
   const detachTooltip = context.showTooltip
     ? tooltip.attach(element, { label: messages.showProblems })
     : undefined;

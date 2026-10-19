@@ -2,8 +2,9 @@
 
 The shared, framework-free chrome around Miragon diagram-js modelers: the menu button with its
 dropdown, the horizontal palette skin, the chrome tooltip, the zoom panel with its keys and fit, the
-problems pill, the status box, the empty-file hint, legend and inspector slots, and the plumbing to
-a VS Code webview. One implementation for every modeler and every host (VS Code webview, web app,
+problems pill, the status box, the empty-file hint, legend and inspector slots, the plumbing to a
+VS Code webview, and the web-app chrome (primary action, legal line, File and Appearance groups,
+problems list, toasts, empty-state card, drop zone, the web app's mode). One implementation for every modeler and every host (VS Code webview, web app,
 embedded in a foreign page), so the chrome looks and behaves the same everywhere.
 
 - **Look and behaviour** follow the Miragon design system, guide
@@ -238,18 +239,33 @@ const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: 
 const shell = mountShell(document.getElementById("app")!, {
   host: "web",
   canvas: modeler.container,
+  themes: ["light"],
+  primary: { onSelect: share }, // "Share", top right
+  legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/…" }] },
+  file: {
+    newDiagram: { onSelect: newDiagram },
+    open: { onSelect: pickFile },
+    showExample: { onSelect: example },
+  },
   menu: { export: [/* … */], help: [/* Keyboard shortcuts… */] },
   legend: { render: renderLegend, open: storedLegendOpen(), onToggle: storeLegendOpen },
+  emptyState: { title: "…", text: "…", komet: kometUrl, onNewDiagram, onShowExample: example },
+  dropZone: { accept: [".bpmn", "application/xml"], onDrop: ([file]) => openFile(file) },
 });
 const { viewport } = connectDiagramJs(shell, modeler, { contentBounds: () => elementBounds() });
+viewport.newDocument(); // every new document opens like the first
 await modeler.importXML(xml);
 viewport.afterImport();
+shell.toast({ status: "success", text: "Link copied" });
 ```
 
 The `web` host prevents the browser's page zoom for the chrome keys (outside text fields and
-dialogs), lifts pill and legend above the legal line and fits with the web insets. The rest of the
-web-app chrome (primary action, legal line, File and Appearance groups, toasts, empty state) is not
-part of 0.1.
+dialogs), fits with the web insets and renders the whole web column of guide §5.2: the primary
+action at the top right (its label collapses before the palette moves), the legal line at the
+bottom left with pill and legend above it, the File group first and, for a dark-capable modeler,
+the Appearance group in the menu, the problems list above the pill, toasts at the bottom centre,
+the start screen and a page-wide drop zone. The page's head writes the mode before the first paint
+(`webHeadMarkup` from `./core`). See `API.md`, "Web host (0.2)".
 
 ## Usage in a foreign page
 

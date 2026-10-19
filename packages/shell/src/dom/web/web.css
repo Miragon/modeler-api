@@ -1,0 +1,12 @@
+/*
+ * Web-app chrome of @miragon/modeler-shell (owned by src/dom/web): primary action, legal line,
+ * empty-state card, drop zone, the start screen hiding the work chrome and the raised zoom row
+ * (guide §5.7, §5.10, §5.15, §8, §9). Colours only from var(--cd-ui-*), sizes from
+ * var(--cd-shell-*); the primary fill comes from ../buttons.css. Every rule is scoped to
+ * .cd-shell[data-cd-shell-host="web"] or to classes only the web host renders.
+ *
+ * TODO(web-chrome): .cd-shell-primary (top 12, right 12, 40 high, layer 30, collapsed 40 × 40),
+ * .cd-shell-legal, .cd-shell-empty-state, .cd-shell-drop-zone[data-state], [hidden] rules,
+ * .cd-shell[data-empty-state="shown"] hiding the work chrome, .cd-shell[data-zoom-row="raised"],
+ * high contrast and forced colours for each.
+ */
