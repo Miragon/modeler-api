@@ -7,27 +7,67 @@
 import Diagram from "diagram-js/lib/Diagram";
 import type { ModuleDeclaration } from "didi";
 import type Canvas from "diagram-js/lib/core/Canvas";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type { Root } from "diagram-js/lib/model/Types";
+import { parseDocumentText, serializeDocumentText } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { saveSVG } from "./io/saveSvg.js";
 import type CmImporter from "./io/CmImporter.js";
 import type CmExporter from "./io/CmExporter.js";
+import type CmLabelEditing from "./label-editing/CmLabelEditing.js";
+import type CmModeling from "./modeling/CmModeling.js";
+import type CmReadOnly from "./read-only/CmReadOnly.js";
 import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./io/types.js";
+
+/** Container margins in screen px that a host's chrome covers. */
+export interface FreeRectInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
 
 export interface CmViewerOptions {
   /** Host element. When absent, a detached <div> is created (attach later). */
-  container?: HTMLElement;
-  width?: number | string;
-  height?: number | string;
+  container?: HTMLElement | undefined;
+  width?: number | string | undefined;
+  height?: number | string | undefined;
   /** Appended to the module list (extension point). */
-  additionalModules?: ModuleDeclaration[];
+  additionalModules?: ModuleDeclaration[] | undefined;
+  /**
+   * Bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas undo/redo (default true).
+   * Pass false when the host owns the history (the VS Code document), so the keys reach it.
+   */
+  undoRedoKeys?: boolean | undefined;
+  /**
+   * The margins of the container the host's chrome covers (palette row, zoom panel, legend). The
+   * fit after an import centres the content in what is left, and an element created from the
+   * palette with Enter or Space lands in its centre (guide §5.5, §5.9). Default: room for the
+   * renderer's own palette.
+   */
+  freeRectInsets?: (() => FreeRectInsets) | undefined;
 }
 
 export type EventCallback<T = unknown> = (event: T) => void;
 
 type RootWithMeta = Root & { businessObject?: RootBusinessObject };
+
+/** Margins (screen px) the renderer's own palette needs, without a host's chrome around it. */
+const DEFAULT_FREE_RECT_INSETS: FreeRectInsets = { top: 84, right: 56, bottom: 56, left: 56 };
+
+/**
+ * diagram-js reads its zoom back rounded to three decimals: a fit below 0.0005 would read back as
+ * zoom 0 and a NaN viewbox.
+ */
+const SMALLEST_FIT_ZOOM = 0.001;
+
+/** Services of the Modeler that hold an edit in progress; the viewers have none of them. */
+interface ContextPadPrompt {
+  cancelPrompt(): void;
+}
 
 function sizeToCss(value: number | string): string {
   return typeof value === "number" ? `${value}px` : value;
@@ -56,7 +96,12 @@ export abstract class CmBaseViewer {
   private _ensureDiagram(): Diagram {
     if (!this._diagram) {
       const modules = [...this._getModules(), ...(this._options.additionalModules ?? [])];
-      this._diagram = new Diagram({ canvas: { container: this._container }, modules });
+      this._diagram = new Diagram({
+        canvas: { container: this._container },
+        modules,
+        cmKeyboard: { undoRedoKeys: this._options.undoRedoKeys ?? true },
+        cmPalette: { freeRectInsets: this.freeRectInsets },
+      });
     }
     return this._diagram;
   }
@@ -64,6 +109,15 @@ export abstract class CmBaseViewer {
   /** Resolve a diagram-js service from the didi injector. */
   get<T>(name: string): T {
     return this._ensureDiagram().get<T>(name);
+  }
+
+  /** The margins the host's chrome covers right now. */
+  private readonly freeRectInsets = (): FreeRectInsets =>
+    this._options.freeRectInsets?.() ?? DEFAULT_FREE_RECT_INSETS;
+
+  /** A service only some of the viewers have (the Modeler's editing services), else null. */
+  private _optional<T>(name: string): T | null {
+    return this._ensureDiagram().get<T>(name, false);
   }
 
   on<T = unknown>(event: string, callback: EventCallback<T>, priority = 1000): void {
@@ -74,16 +128,41 @@ export abstract class CmBaseViewer {
     this.get<EventBus>("eventBus").off(event, callback);
   }
 
-  /** Load a document into the canvas (replaces existing content). */
+  /**
+   * Load a document into the canvas (replaces existing content). Silent: the previous document's
+   * undo history goes without a `commandStack.changed`, so a host that saves on every change does
+   * not write the import back. Throws before anything changes when the document cannot be drawn.
+   */
   importDocument(doc: CmDocument): { warnings: ImportWarning[] } {
     const diagram = this._ensureDiagram();
     const eventBus = diagram.get<EventBus>("eventBus");
     const importer = diagram.get<CmImporter>("cmImporter");
+    importer.assertImportable(doc);
+    const labelEditing = this._optional<CmLabelEditing>("cmLabelEditing");
+    // An edit in progress belongs to an element the import is about to replace: a commit (the
+    // fit below changes the viewbox, which commits) would land on a removed shape.
+    labelEditing?.suspend();
+    this._optional<ContextPadPrompt>("cmContextPadProvider")?.cancelPrompt();
+    this._optional<PopupMenu>("popupMenu")?.close();
     importer.clear();
     const warnings = importer.import(doc);
+    // The previous document's history would undo onto elements that are gone (or, by id
+    // coincidence, onto re-imported ones). Only the editors have a command stack.
+    this._optional<CommandStack>("commandStack")?.clear(false);
     this._fit();
     eventBus.fire("import.done", { warnings });
+    labelEditing?.resumeAfterImport();
     return { warnings };
+  }
+
+  /**
+   * Load the text of a `.cm`/`.cm.json` file. Throws (and changes nothing) when the text is no
+   * importable document.
+   */
+  importText(text: string): { warnings: ImportWarning[] } {
+    const parsed = parseDocumentText(text);
+    if (!parsed.ok) throw new Error(parsed.error);
+    return this.importDocument(parsed.document);
   }
 
   /** Current canvas state as a canonical document. */
@@ -91,28 +170,35 @@ export abstract class CmBaseViewer {
     return this.get<CmExporter>("cmExporter").export();
   }
 
-  /** Update diagram-level metadata (title / flow-of-change) on the root. */
-  setMeta(partial: Partial<RootBusinessObject>): void {
-    const canvas = this.get<Canvas>("canvas");
-    let root: RootWithMeta | undefined;
-    try {
-      root = canvas.getRootElement() as RootWithMeta;
-    } catch {
-      return;
-    }
-    if (!root || root.id !== ROOT_ID) return;
-    const current = root.businessObject ?? { title: "Untitled context map" };
-    root.businessObject = { ...current, ...partial };
+  /** Current canvas state as the canonical file text (ends in one line break). */
+  exportText(): string {
+    return serializeDocumentText(this.exportDocument());
   }
 
-  /** Read diagram-level metadata (title / flow-of-change) from the root. */
+  /**
+   * Update diagram-level metadata on the root. In an editor a title change is an undoable command
+   * (`cmModeling.setTitle`); a viewer has no history and writes it directly. A locked editor
+   * (`cmReadOnly`) changes nothing: its host takes no edits, and the next import would silently
+   * revert the title.
+   */
+  setMeta(partial: Partial<RootBusinessObject>): void {
+    if (partial.title === undefined) return;
+    if (this._optional<CmReadOnly>("cmReadOnly")?.isReadOnly()) return;
+    const root = this._documentRoot();
+    if (!root?.businessObject || root.businessObject.title === partial.title) return;
+    const modeling = this._optional<CmModeling>("cmModeling");
+    if (modeling) modeling.setTitle(partial.title);
+    else root.businessObject = { ...root.businessObject, title: partial.title };
+  }
+
+  /** Read diagram-level metadata from the root; undefined before the first import. */
   getMeta(): RootBusinessObject | undefined {
-    try {
-      const root = this.get<Canvas>("canvas").getRootElement() as RootWithMeta;
-      return root.businessObject;
-    } catch {
-      return undefined;
-    }
+    return this._documentRoot()?.businessObject;
+  }
+
+  /** Through the registry: asking the canvas would create an implicit root before an import. */
+  private _documentRoot(): RootWithMeta | undefined {
+    return this.get<ElementRegistry>("elementRegistry").get(ROOT_ID) as RootWithMeta | undefined;
   }
 
   /** Standalone, self-contained SVG snapshot. */
@@ -120,8 +206,12 @@ export abstract class CmBaseViewer {
     return saveSVG(this.get<Canvas>("canvas"), this.get<ElementRegistry>("elementRegistry"));
   }
 
-  /** Fit the content into the viewport, leaving room at the top for the palette. */
-  private _fit(topInset = 84, pad = 56, leftInset = pad): void {
+  /**
+   * Centres the content in the container minus room for the chrome, at the largest zoom that
+   * shows all of it and never above 100 % (guide §5.9); an empty map shows 100 %. The same view
+   * for the same document and container (the contract's fitted view after an import).
+   */
+  private _fit(): void {
     const canvas = this.get<Canvas>("canvas");
     const registry = this.get<ElementRegistry>("elementRegistry");
     let minX = Infinity;
@@ -143,25 +233,26 @@ export abstract class CmBaseViewer {
       maxX = Math.max(maxX, e.x + e.width);
       maxY = Math.max(maxY, e.y + e.height);
     }
-    if (!Number.isFinite(minX)) return;
-
-    const rect = this._container.getBoundingClientRect();
-    const W = rect.width;
-    const H = rect.height;
-    const cw = Math.max(maxX - minX, 1);
-    const ch = Math.max(maxY - minY, 1);
-    if (!W || !H) {
-      canvas.zoom("fit-viewport");
+    const { width, height } = canvas.getSize();
+    if (!(width > 0 && height > 0)) return;
+    if (!Number.isFinite(minX)) {
+      canvas.viewbox({ x: 0, y: 0, width, height });
       return;
     }
-    const s = Math.min((W - leftInset - pad) / cw, (H - topInset - pad) / ch, 1.25);
-    // Centre the content in the region right of the palette column.
-    const offsetX = leftInset + (W - leftInset - pad - s * cw) / 2;
+    const insets = this.freeRectInsets();
+    const freeWidth = Math.max(width - insets.left - insets.right, 1);
+    const freeHeight = Math.max(height - insets.top - insets.bottom, 1);
+    const contentWidth = Math.max(maxX - minX, 1);
+    const contentHeight = Math.max(maxY - minY, 1);
+    const scale = Math.max(
+      Math.min(freeWidth / contentWidth, freeHeight / contentHeight, 1),
+      SMALLEST_FIT_ZOOM,
+    );
     canvas.viewbox({
-      x: minX - offsetX / s,
-      y: minY - topInset / s,
-      width: W / s,
-      height: H / s,
+      x: minX + contentWidth / 2 - (insets.left + freeWidth / 2) / scale,
+      y: minY + contentHeight / 2 - (insets.top + freeHeight / 2) / scale,
+      width: width / scale,
+      height: height / scale,
     });
   }
 

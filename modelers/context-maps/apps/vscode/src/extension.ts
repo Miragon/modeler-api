@@ -1,32 +1,24 @@
 import * as vscode from "vscode";
-import {
-  serializeDocument,
-  SAMPLE_DOCUMENT,
-  DOCUMENT_VERSION,
-} from "@miragon/context-maps-schema-model";
-import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { CmEditorProvider } from "./CmEditorProvider.js";
 import { CmPngEditorProvider } from "./CmPngEditorProvider.js";
-
-const EMPTY_DOCUMENT: CmDocument = {
-  version: DOCUMENT_VERSION,
-  title: "New context map",
-  contexts: [],
-  relationships: [],
-};
-
-const EMPTY_MAP = serializeDocument(EMPTY_DOCUMENT, true) + "\n";
-
-/** The bundled example diagram (identical to the demo webapp), as a starting point. */
-const EXAMPLE_MAP = serializeDocument(SAMPLE_DOCUMENT, true) + "\n";
+import { ActivePanels, registerSideBySideCommands, registerWebviewCommands } from "./commands.js";
+import { DIAGNOSTIC_COLLECTION_NAME } from "./diagnostics.js";
+import { EMPTY_MAP, EXAMPLE_MAP } from "./examples.js";
+import { newDiagramFromCml } from "./importCml.js";
 
 export function activate(context: vscode.ExtensionContext): void {
+  const panels = new ActivePanels();
+  const diagnostics = vscode.languages.createDiagnosticCollection(DIAGNOSTIC_COLLECTION_NAME);
   context.subscriptions.push(
-    CmEditorProvider.register(context),
-    CmPngEditorProvider.register(context),
+    diagnostics,
+    CmEditorProvider.register(context, panels, diagnostics),
+    CmPngEditorProvider.register(context, panels, diagnostics),
+    ...registerWebviewCommands((name) => panels.runCommand(name)),
+    ...registerSideBySideCommands(() => panels.activeDocumentUri()),
     vscode.commands.registerCommand("contextMaps.newDiagram", () => createMap(EMPTY_MAP)),
     vscode.commands.registerCommand("contextMaps.newFromExample", () => createMap(EXAMPLE_MAP)),
     vscode.commands.registerCommand("contextMaps.newPngDiagram", () => createPngMap()),
+    vscode.commands.registerCommand("contextMaps.newFromCml", () => newDiagramFromCml()),
   );
 }
 
@@ -73,7 +65,7 @@ async function createPngMap(): Promise<void> {
   const chosen = await vscode.window.showSaveDialog(options);
   if (!chosen) return;
 
-  // Ensure the editor will actually claim the file (it only binds *.cm.png/*.cm.png).
+  // Ensure the editor will actually claim the file (it only binds *.cm.png).
   const target = /\.cm\.png$/i.test(chosen.path)
     ? chosen
     : chosen.with({ path: `${chosen.path.replace(/\.png$/i, "")}.cm.png` });

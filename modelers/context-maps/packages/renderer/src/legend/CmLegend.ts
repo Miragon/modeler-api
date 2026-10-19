@@ -1,6 +1,8 @@
 /**
- * Consolidated, collapsible notation legend (single card, bottom-left of the
- * canvas): subdomain types, integration roles (OHS/PL/ACL/CF) and the
+ * The notation legend as a card of its own, for hosts without the Miragon
+ * modeler shell (opt-in: `additionalModules: [cmLegendModule]`; the shell
+ * renders `renderLegend` into its own legend instead). A collapsible card
+ * (bottom-left of the canvas): subdomain types, integration roles (OHS/PL/ACL/CF) and the
  * relationship patterns — driven entirely by the notation spec, so it can
  * never drift from what the canvas draws. Shipped by the renderer so every
  * embedder gets it, replacing the per-host copies the reference apps carried.
@@ -11,59 +13,35 @@
 
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type EventBus from "diagram-js/lib/core/EventBus";
-import {
-  ALL_PATTERN_SPECS,
-  ALL_SUBDOMAIN_SPECS,
-  DOWNSTREAM_ROLE_SPECS,
-  MARK_COLORS,
-  UPSTREAM_ROLE_SPECS,
-} from "@miragon/context-maps-schema-model";
-import { relationshipIconSvg, subdomainIconSvg } from "../draw/palette-icons.js";
+import { chromeIcon } from "../draw/lucide.js";
+import { legendGroups, type LegendRow } from "./legendContent.js";
 
-const ROLES: ReadonlyArray<{ token: string; label: string; description: string }> = [
-  { token: "OHS", ...UPSTREAM_ROLE_SPECS.OHS },
-  { token: "PL", ...UPSTREAM_ROLE_SPECS.PL },
-  { token: "ACL", ...DOWNSTREAM_ROLE_SPECS.ACL },
-  { token: "CF", ...DOWNSTREAM_ROLE_SPECS.CF },
-];
-
-function legendRow(icon: HTMLElement, label: string, explanation: string): HTMLElement {
-  const row = document.createElement("div");
-  row.className = "cm-legend__row cm-legend-item";
+function legendRow(row: LegendRow): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "cm-legend__row cm-legend-item";
+  const icon = document.createElement("span");
+  icon.className = "cm-legend__icon";
+  icon.innerHTML = row.preview;
   const text = document.createElement("span");
-  text.textContent = label;
+  text.textContent = row.label;
   const tip = document.createElement("span");
   tip.className = "cm-legend-tip";
-  tip.textContent = explanation;
+  tip.textContent = row.explanation;
   // The tip is position: fixed (anchored here) so it escapes the card's
   // scroll clipping when a small canvas forces the legend body to scroll.
-  row.addEventListener("mouseenter", () => {
-    const bounds = row.getBoundingClientRect();
+  element.addEventListener("mouseenter", () => {
+    const bounds = element.getBoundingClientRect();
     tip.style.left = `${bounds.right + 10}px`;
     tip.style.top = `${bounds.top + bounds.height / 2}px`;
   });
-  row.append(icon, text, tip);
-  return row;
-}
-
-function iconNode(svg: string): HTMLElement {
-  const span = document.createElement("span");
-  span.className = "cm-legend__icon";
-  span.innerHTML = svg;
-  return span;
-}
-
-function markNode(token: string): HTMLElement {
-  const span = document.createElement("span");
-  span.className = "cm-legend__mark";
-  span.style.background = MARK_COLORS[token];
-  span.textContent = token;
-  return span;
+  element.append(icon, text, tip);
+  return element;
 }
 
 function group(label: string, rows: HTMLElement[]): HTMLElement {
   const el = document.createElement("div");
   el.className = "cm-legend__group";
+  el.setAttribute("role", "group");
   el.setAttribute("aria-label", label);
   el.append(...rows);
   return el;
@@ -126,37 +104,17 @@ export default class CmLegend {
     close.type = "button";
     close.className = "cm-legend__close";
     close.setAttribute("aria-expanded", "true");
-    close.setAttribute("aria-label", "Collapse legend");
-    close.textContent = "–";
+    close.setAttribute("aria-label", "Close legend");
+    close.innerHTML = chromeIcon("x");
     close.addEventListener("click", () => this.toggle());
     head.append(title, close);
 
-    const subdomains = group(
-      "Subdomain types",
-      ALL_SUBDOMAIN_SPECS.map((s) =>
-        legendRow(iconNode(subdomainIconSvg(s.type)), s.label, s.description),
-      ),
-    );
-    const roles = group(
-      "Integration roles",
-      ROLES.map((r) => legendRow(markNode(r.token), r.label, `${r.label} — ${r.description}`)),
-    );
-    const patterns = group(
-      "Relationship patterns",
-      ALL_PATTERN_SPECS.map((p) =>
-        legendRow(
-          iconNode(relationshipIconSvg(p.pattern, 18)),
-          `${p.abbreviation} · ${p.label}`,
-          p.description,
-        ),
-      ),
-    );
-
+    const groups = legendGroups().map((entry) => group(entry.label, entry.rows.map(legendRow)));
     // Groups live in a scrollable body so a small canvas never clips the head
     // (and with it the collapse button) away.
     const body = document.createElement("div");
     body.className = "cm-legend__body";
-    body.append(subdomains, divider(), roles, divider(), patterns);
+    groups.forEach((element, index) => body.append(...(index > 0 ? [divider()] : []), element));
     box.append(head, body);
     return box;
   }
@@ -167,12 +125,7 @@ export default class CmLegend {
     button.className = "cm-legend-toggle";
     button.setAttribute("aria-expanded", "false");
     button.setAttribute("aria-label", "Show legend");
-    const glyph = document.createElement("span");
-    glyph.setAttribute("aria-hidden", "true");
-    glyph.textContent = "▤";
-    const label = document.createElement("span");
-    label.textContent = "Legend";
-    button.append(glyph, label);
+    button.textContent = "Legend";
     button.addEventListener("click", () => this.toggle());
     return button;
   }

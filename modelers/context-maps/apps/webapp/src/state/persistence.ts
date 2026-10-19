@@ -1,74 +1,84 @@
 /**
- * Autosave + restore of the working document to localStorage, so a refresh
- * never loses work. Offline-friendly; no network involved.
+ * The browser's copy of the working map and of the view preferences, so a reload never loses
+ * work. Offline, no network involved. A blocked storage (private mode, a policy) saves nothing and
+ * restores nothing; the page keeps working.
  */
 
-import { serializeDocument } from "@miragon/context-maps-schema-model";
-import { parseDocument } from "@miragon/context-maps-schema-model";
+import { parseDocument, serializeDocument } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
-import { toast } from "@/ui/toast";
 
-const STORAGE_KEY = "cm-modeler:document:v1";
+const DOCUMENT_KEY = "cm-modeler:document:v1";
+const LEGEND_OPEN_KEY = "cm-modeler:legend-open";
 
-/** Only warn about a full quota once per session to avoid toast spam. */
-let quotaWarned = false;
+export type SaveOutcome = "saved" | "full" | "unavailable";
 
-function hasStorage(): boolean {
+function storage(): Storage | undefined {
   try {
-    return typeof window !== "undefined" && !!window.localStorage;
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+function isQuotaError(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === "QuotaExceededError" ||
+      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      error.code === 22)
+  );
+}
+
+export function saveToStorage(doc: CmDocument): SaveOutcome {
+  const store = storage();
+  if (!store) return "unavailable";
+  try {
+    store.setItem(DOCUMENT_KEY, serializeDocument(doc, false));
+    return "saved";
+  } catch (error) {
+    return isQuotaError(error) ? "full" : "unavailable";
+  }
+}
+
+export function loadFromStorage(): CmDocument | null {
+  try {
+    const raw = storage()?.getItem(DOCUMENT_KEY);
+    if (!raw) return null;
+    const parsed = parseDocument(JSON.parse(raw));
+    if (!parsed.ok) {
+      console.warn("[cm-modeler] Ignoring a corrupted autosave:", parsed.error);
+      return null;
+    }
+    return parsed.document;
+  } catch (error) {
+    console.warn("[cm-modeler] Could not read the autosave:", error);
+    return null;
+  }
+}
+
+/** Whether the browser holds a copy of a map at all, readable or not. */
+export function hasStoredDocument(): boolean {
+  try {
+    return Boolean(storage()?.getItem(DOCUMENT_KEY));
   } catch {
     return false;
   }
 }
 
-function isQuotaError(err: unknown): boolean {
-  return (
-    err instanceof DOMException &&
-    (err.name === "QuotaExceededError" ||
-      err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
-      err.code === 22)
-  );
-}
-
-export function saveToStorage(doc: CmDocument): void {
-  if (!hasStorage()) return;
+/** Whether the legend was open when this browser last showed it; undefined before the first toggle. */
+export function readLegendOpen(): boolean | undefined {
   try {
-    window.localStorage.setItem(STORAGE_KEY, serializeDocument(doc, false));
-  } catch (err) {
-    // Autosave is best-effort, but a full quota means silent data loss —
-    // surface it once so the user can export their diagram instead.
-    if (isQuotaError(err) && !quotaWarned) {
-      quotaWarned = true;
-      toast(
-        "Autosave paused — browser storage is full. Use Export (JSON) to keep your diagram safe.",
-        "error",
-      );
-    }
-  }
-}
-
-export function loadFromStorage(): CmDocument | null {
-  if (!hasStorage()) return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = parseDocument(JSON.parse(raw));
-    if (!parsed.ok) {
-      console.warn("[cm-modeler] Ignoring corrupted autosave:", parsed.error);
-      return null;
-    }
-    return parsed.document;
-  } catch (err) {
-    console.warn("[cm-modeler] Could not read autosave:", err);
-    return null;
-  }
-}
-
-export function clearStorage(): void {
-  if (!hasStorage()) return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    const stored = storage()?.getItem(LEGEND_OPEN_KEY);
+    return stored === null || stored === undefined ? undefined : stored === "1";
   } catch {
-    /* ignore */
+    return undefined;
+  }
+}
+
+export function writeLegendOpen(open: boolean): void {
+  try {
+    storage()?.setItem(LEGEND_OPEN_KEY, open ? "1" : "0");
+  } catch {
+    // The choice still holds for this page.
   }
 }

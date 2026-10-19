@@ -10,10 +10,11 @@ import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type { Root } from "diagram-js/lib/model/Types";
 import type { Point } from "diagram-js/lib/util/Types";
-import type { CmDocument } from "@miragon/context-maps-schema-model";
+import { DOCUMENT_KEYS, foreignFields } from "@miragon/context-maps-schema-model";
+import type { CmDocument, Relationship } from "@miragon/context-maps-schema-model";
 import type CmElementFactory from "../model/CmElementFactory.js";
 import type { CmContext } from "../model/di-types.js";
-import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./types.js";
+import { ROOT_ID, isReservedId, type ImportWarning, type RootBusinessObject } from "./types.js";
 
 type RootWithMeta = Root & { businessObject?: RootBusinessObject };
 
@@ -52,24 +53,31 @@ export default class CmImporter {
     private readonly elementRegistry: ElementRegistry,
   ) {}
 
+  /**
+   * Throws when `doc` cannot be drawn: diagram-js keeps one element per id, so a duplicate or an id
+   * of its own roots would throw halfway through the import, after the previous document was
+   * cleared. Checked before anything is removed, so a rejected import leaves no trace.
+   */
+  assertImportable(doc: CmDocument): void {
+    const seen = new Set<string>();
+    for (const { id } of [...doc.contexts, ...doc.relationships]) {
+      if (isReservedId(id)) throw new Error(`The id "${id}" is reserved for the diagram itself.`);
+      if (seen.has(id)) throw new Error(`The id "${id}" is used more than once.`);
+      seen.add(id);
+    }
+  }
+
   import(doc: CmDocument): ImportWarning[] {
     const warnings: ImportWarning[] = [];
     this.eventBus.fire("import.render.start", { document: doc });
 
-    let existing: RootWithMeta | undefined;
-    try {
-      existing = this.canvas.getRootElement() as RootWithMeta;
-    } catch {
-      existing = undefined;
-    }
-    let root: RootWithMeta;
-    if (existing && existing.id === ROOT_ID) {
-      root = existing;
-    } else {
-      root = this.elementFactory.createRoot({ id: ROOT_ID }) as RootWithMeta;
-      this.canvas.setRootElement(root);
-    }
-    root.businessObject = { title: doc.title };
+    const root = this.documentRoot();
+    const foreign = foreignFields(doc, DOCUMENT_KEYS);
+    const unplacedRelationships: Relationship[] = [];
+    root.businessObject = {
+      title: doc.title,
+      ...(Object.keys(foreign).length > 0 ? { foreign } : {}),
+    };
 
     const byId = new Map<string, CmContext>();
     for (const ctx of doc.contexts) {
@@ -82,8 +90,9 @@ export default class CmImporter {
       const source = byId.get(rel.from);
       const target = byId.get(rel.to);
       if (!source || !target) {
+        unplacedRelationships.push(rel);
         warnings.push({
-          message: `Relationship "${rel.id}" references a missing context; skipped.`,
+          message: `Relationship "${rel.id}" references a missing context; it stays in the file but is not drawn.`,
           elementId: rel.id,
         });
         continue;
@@ -98,15 +107,35 @@ export default class CmImporter {
     for (const shape of byId.values()) {
       this.canvas.addShape(shape, root);
     }
+    if (unplacedRelationships.length > 0)
+      root.businessObject.unplacedRelationships = unplacedRelationships;
 
     this.eventBus.fire("import.render.done", { warnings });
     return warnings;
   }
 
-  /** Removes every element (for re-import). */
+  /**
+   * The document root, created on the first import. Any other root goes: diagram-js creates an
+   * implicit one whenever something asks for the root before the first import (an export, a
+   * palette create), and it would stay in the registry next to the document's root.
+   */
+  private documentRoot(): RootWithMeta {
+    let root = this.elementRegistry.get(ROOT_ID) as RootWithMeta | undefined;
+    if (!root) {
+      root = this.elementFactory.createRoot({ id: ROOT_ID }) as RootWithMeta;
+      this.canvas.setRootElement(root);
+    }
+    for (const other of this.canvas.getRootElements()) {
+      if (other !== root) this.canvas.removeRootElement(other);
+    }
+    return root;
+  }
+
+  /** Removes every element but the roots (removing a root as a shape corrupts the canvas). */
   clear(): void {
+    const roots = new Set<unknown>(this.canvas.getRootElements());
     for (const el of [...this.elementRegistry.getAll()]) {
-      if (el.id === ROOT_ID) continue;
+      if (roots.has(el)) continue;
       try {
         if ("waypoints" in el) this.canvas.removeConnection(el.id);
         else this.canvas.removeShape(el.id);

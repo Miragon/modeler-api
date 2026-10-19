@@ -1,25 +1,11 @@
-import { defineConfig, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
+import { webHeadMarkup } from "@miragon/modeler-shell/core";
+import { defineConfig, type Plugin } from "vite";
+import tokens from "../../packages/renderer/src/theme/cd-tokens.generated.json" with { type: "json" };
+import { THEMES } from "./src/themes.ts";
 
-const fromHere = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
+const fromHere = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 const portlessUrl = process.env.PORTLESS_URL || undefined;
-
-/**
- * The Modeler instance lives in a React ref and survives Fast Refresh, so an
- * HMR patch of the renderer/schema-model source would leave the RUNNING
- * modeler on stale code (fixes appear "not working" until a manual reload).
- * Force a full page reload whenever workspace-package source changes.
- */
-const fullReloadOnPackageChange = (): Plugin => ({
-  name: "full-reload-on-package-change",
-  handleHotUpdate({ file, server }) {
-    if (/\/packages\/(renderer|schema-model|cml)\/src\//.test(file)) {
-      server.ws.send({ type: "full-reload" });
-      return [];
-    }
-  },
-});
 
 const portlessBanner = (url: string): Plugin => ({
   name: "portless-url-banner",
@@ -34,17 +20,29 @@ const portlessBanner = (url: string): Plugin => ({
   },
 });
 
+/**
+ * The web app's mode before the first paint (guide §13.3): a light-only map writes
+ * `data-cd-theme="light"` statically in index.html, one theme-color and the contrast line of the
+ * guide's script. With the joint dark-mode release THEMES gains "dark" and the same call writes
+ * the whole script with both theme-colors (index.html then says `data-cd-theme="system"`).
+ */
+const modeMarkup = (): Plugin => ({
+  name: "miragon-mode",
+  transformIndexHtml: (html) =>
+    html.replace(
+      "<!-- miragon-mode -->",
+      webHeadMarkup({
+        themes: THEMES,
+        themeColors: { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] },
+      }),
+    ),
+});
+
 export default defineConfig({
-  plugins: [
-    react(),
-    fullReloadOnPackageChange(),
-    ...(portlessUrl ? [portlessBanner(portlessUrl)] : []),
-  ],
+  plugins: [modeMarkup(), ...(portlessUrl ? [portlessBanner(portlessUrl)] : [])],
   base: "./",
   resolve: {
-    dedupe: ["react", "react-dom"],
     alias: [
-      { find: "@", replacement: fromHere("./src") },
       {
         find: "@miragon/context-maps-renderer/assets/context-maps.css",
         replacement: fromHere("../../packages/renderer/src/assets/context-maps.css"),
@@ -63,10 +61,9 @@ export default defineConfig({
       },
     ],
   },
-  // The @miragon/context-maps-* packages are consumed from SOURCE via the aliases
-  // above. Excluding them from dep pre-bundling makes Vite treat their files as
-  // first-class source: edits are watched and hot-reloaded, so the running app
-  // never serves a stale, pre-bundled renderer while the app code is fresh.
+  // The @miragon/context-maps-* packages are consumed from SOURCE via the aliases above. Excluding
+  // them from dep pre-bundling makes Vite treat their files as first-class source: edits are
+  // watched and reload the page, so the running app never serves a stale, pre-bundled renderer.
   optimizeDeps: {
     exclude: [
       "@miragon/context-maps-renderer",
@@ -83,5 +80,8 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    // The shell inlines Lucide's icon geometry (ISC, partly Feather, MIT) and names both licences
+    // in a legal comment; the bundle carries it, as the shell's notices ask.
+    rolldownOptions: { output: { comments: { legal: true } } },
   },
 });

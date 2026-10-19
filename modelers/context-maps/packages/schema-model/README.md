@@ -154,7 +154,11 @@ console.log(SAMPLE_DOCUMENT.title);
 | `SUBDOMAIN_TYPE_SPECS`, `RELATIONSHIP_PATTERN_SPECS`, `MARK_COLORS`, `dashArray()`            | The visual notation spec (colours, strokes, markers) as data.        |
 | `documentSchema`, `boundedContextSchema`, `relationshipSchema`                                | Zod schemas for each shape.                                          |
 | `parseDocument()`, `ParseResult`, `validateDocument()`, `ValidationReport`                    | Structural parse + the thirteen strategic-DDD semantic rules.        |
+| `parseDocumentText()`, `serializeDocumentText()`                                              | The text of a `.cm`/`.cm.json` file: parse it, write it canonically. |
 | `serializeDocument()`, `canonicalize()`                                                       | Deterministic JSON serialization (sorted, rounded, fixed key order). |
+| `DOCUMENT_KEYS`, `CONTEXT_KEYS`, `RELATIONSHIP_KEYS`, `foreignFields()`                       | The keys this version knows; every other key is kept as it is.       |
+| `MAX_COORDINATE`                                                                              | The largest coordinate or size a document may hold (1,000,000 px).   |
+| `DIAGRAM_ROOT_ID`, `isReservedId()`                                                           | The ids the canvas keeps for its own root elements.                  |
 | `emptyDocument()`, `createBoundedContext()`, `createRelationship()`, `newId()`                | Factories with notation defaults + id generation.                    |
 | `SAMPLE_DOCUMENT`                                                                             | A complete example context map.                                      |
 | `DOCUMENT_VERSION`                                                                            | The current document version (`1`).                                  |
@@ -164,10 +168,17 @@ console.log(SAMPLE_DOCUMENT.title);
 - **Determinism** — `serializeDocument()` runs `canonicalize()` first: arrays are sorted by `id`,
   coordinates are rounded to two decimals, optional fields with no value are dropped, and keys are
   written in a fixed order. The same logical diagram always produces byte-identical JSON, which is
-  what makes Git diffs small and share URLs stable.
+  what makes Git diffs small and share URLs stable. `serializeDocumentText()` is the file's text:
+  the pretty-printed JSON ending in one line break, a fixpoint of `parseDocumentText()`.
+- **Foreign keys** — a key the model does not know (a vendor extension, a field of a newer modeler)
+  on the document, a context or a relationship is kept as it is and written back after the known
+  keys of its object, sorted by name. Opening and saving a file never drops content.
 - **Migrations** — `parseDocument()` normalises older/foreign documents before validating (keyed by
   `version`). `1` is the first version, so this mainly coerces loosely-shaped input (e.g. a
-  hand-written file) into the expected `{ contexts, relationships }` container.
+  hand-written file) into the expected `{ contexts, relationships }` container. A document of a
+  newer `version` is rejected rather than rewritten as version 1, and so is a coordinate or size
+  beyond `MAX_COORDINATE` and a context or relationship id the canvas keeps for itself
+  (`isReservedId()`: `cm-root` and `__implicitroot…`).
 
 ## Development
 

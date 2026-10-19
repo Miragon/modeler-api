@@ -4,7 +4,6 @@
  * subdomain, team, pattern, roles, colours) are read from runtime properties.
  */
 
-import type Canvas from "diagram-js/lib/core/Canvas";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type { Root } from "diagram-js/lib/model/Types";
 import { DOCUMENT_VERSION } from "@miragon/context-maps-schema-model";
@@ -13,23 +12,15 @@ import { isCmContext, isCmRelationship } from "../model/di-types.js";
 import { ROOT_ID, type RootBusinessObject } from "./types.js";
 
 export default class CmExporter {
-  static $inject = ["elementRegistry", "canvas"];
+  static $inject = ["elementRegistry"];
 
-  constructor(
-    private readonly elementRegistry: ElementRegistry,
-    private readonly canvas: Canvas,
-  ) {}
+  constructor(private readonly elementRegistry: ElementRegistry) {}
 
   export(): CmDocument {
-    let meta: RootBusinessObject | undefined;
-    try {
-      const root = this.canvas.getRootElement() as Root & {
-        businessObject?: RootBusinessObject;
-      };
-      meta = root.businessObject;
-    } catch {
-      meta = undefined;
-    }
+    // Through the registry: asking the canvas would create an implicit root before the first import.
+    const root = this.elementRegistry.get(ROOT_ID) as
+      (Root & { businessObject?: RootBusinessObject }) | undefined;
+    const meta = root?.businessObject;
 
     const contexts: BoundedContext[] = [];
     const relationships: Relationship[] = [];
@@ -49,6 +40,7 @@ export default class CmExporter {
           ...(el.description ? { description: el.description } : {}),
           ...(el.fill ? { fill: el.fill } : {}),
           ...(el.stroke ? { stroke: el.stroke } : {}),
+          ...el.cmForeign,
         });
       } else if (isCmRelationship(el)) {
         const source = el.source as { id?: string } | undefined;
@@ -66,15 +58,18 @@ export default class CmExporter {
           ...(el.implementationTechnology
             ? { implementationTechnology: el.implementationTechnology }
             : {}),
+          ...el.cmForeign,
         });
       }
     }
+    relationships.push(...(meta?.unplacedRelationships ?? []));
 
     return {
       version: DOCUMENT_VERSION,
       title: meta?.title ?? "Untitled context map",
       contexts,
       relationships,
+      ...meta?.foreign,
     };
   }
 }

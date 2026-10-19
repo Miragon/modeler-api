@@ -1,7 +1,8 @@
 /**
  * Live semantic-rule markers on the canvas: a relationship with validation
- * findings gets a small warning triangle next to the issue — amber for
- * warnings, red if any finding is an error. Sided findings (e.g. an ACL issue
+ * findings gets a small marker next to the issue — the problem pill's icons in
+ * the status roles: `triangle-alert` for warnings, `circle-x` if any finding is
+ * an error. Sided findings (e.g. an ACL issue
  * is a downstream concern) anchor at the BOTTOM-RIGHT corner of that end's
  * role-chip box (geometry shared with the renderer via endRoleChipLayout);
  * findings about the relationship as a whole sit at the middle of the line.
@@ -19,17 +20,15 @@ import { validateDocument, type SemanticFinding } from "@miragon/context-maps-sc
 import type CmExporter from "../io/CmExporter.js";
 import { isCmRelationship, type CmRelationship } from "../model/di-types.js";
 import { endRoleChipLayout } from "../draw/endRoleChips.js";
+import { chromeIcon } from "../draw/lucide.js";
 
 const OVERLAY_TYPE = "cm-validation";
-const MARKER_SIZE = 20;
+const MARKER_SIZE = 22;
 const LINE_OFFSET = 16;
 /** Fallback distance from the endpoint when the end has no role chips. */
 const END_DISTANCE = 44;
 
 type MarkerSide = "upstream" | "downstream" | "middle";
-
-const AMBER = "#d97706";
-const RED = "#dc2626";
 
 interface RankedFinding extends SemanticFinding {
   kind: "error" | "warning";
@@ -37,14 +36,10 @@ interface RankedFinding extends SemanticFinding {
 
 function markerHtml(findings: RankedFinding[]): HTMLElement {
   const hasError = findings.some((finding) => finding.kind === "error");
-  const fill = hasError ? RED : AMBER;
   const marker = document.createElement("div");
   marker.className = "cm-validation-marker";
-  marker.innerHTML =
-    `<svg width="${MARKER_SIZE}" height="${MARKER_SIZE}" viewBox="0 0 24 24">` +
-    `<path d="M12 2.5 23 21.5H1Z" fill="${fill}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>` +
-    `<text x="12" y="18.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="system-ui, sans-serif">!</text>` +
-    `</svg>`;
+  marker.dataset.severity = hasError ? "error" : "warning";
+  marker.innerHTML = chromeIcon(hasError ? "circle-x" : "triangle-alert");
 
   const tooltip = document.createElement("div");
   tooltip.className = "cm-validation-tooltip";

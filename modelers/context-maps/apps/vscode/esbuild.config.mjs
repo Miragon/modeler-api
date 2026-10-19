@@ -5,6 +5,7 @@
 // Like the demo webapp, we bundle the @miragon/context-maps-* packages straight from SOURCE (aliased to
 // src/index.ts). That makes the build self-contained: no prior lib build needed, and the diagram-js
 // imports resolve relative to the renderer source (packages/renderer/node_modules).
+// @miragon/modeler-shell comes from node_modules in both bundles.
 import * as esbuild from "esbuild";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -38,7 +39,9 @@ const host = {
   outfile: resolve(here, "dist/extension.cjs"),
   platform: "node",
   format: "cjs",
-  target: "node18",
+  // VS Code 1.96 (engines) runs extensions on Node 20; the shell's createNonce needs its
+  // globalThis.crypto.
+  target: "node20",
   alias,
   // `vscode` is only available at runtime (from the host) and must not be bundled.
   external: ["vscode"],
@@ -53,13 +56,18 @@ const web = {
   format: "iife",
   target: "es2022",
   alias,
+  // Font files next to the bundle, not inlined: Geist Mono alone brings six subsets, and as
+  // separate files the browser fetches only the ones a page's unicode-range needs. The CSP of
+  // renderWebviewHtml allows fonts from cspSource, and dist/ is the webview's resource root.
+  loader: { ".woff2": "file", ".woff": "file", ".ttf": "file" },
+  assetNames: "fonts/[name]-[hash]",
 };
 
 if (watch) {
   const ctxs = await Promise.all([esbuild.context(host), esbuild.context(web)]);
   await Promise.all(ctxs.map((c) => c.watch()));
-  console.log("[tt-vscode] watching …");
+  console.log("[context-maps-vscode] watching …");
 } else {
   await Promise.all([esbuild.build(host), esbuild.build(web)]);
-  console.log("[tt-vscode] build done");
+  console.log("[context-maps-vscode] build done");
 }

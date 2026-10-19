@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { element, openMap, relationships } from "./support/app.js";
 
 // The exact user gestures, end to end with the REAL mouse, all running through
 // the context pad's connect arrow: arm on a selected context, click a target
@@ -15,28 +16,14 @@ const DOC = {
   relationships: [{ id: "r_ab", from: "a", to: "b", pattern: "upstream-downstream" }],
 };
 
-async function setup(page: import("@playwright/test").Page) {
-  await page.goto("/");
-  await page.waitForFunction(() => "__cmModeler" in window);
-  await page.evaluate(
-    (doc) =>
-      (
-        window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }
-      ).__cmModeler.importDocument(doc),
-    DOC,
-  );
+function setup(page: Page): Promise<void> {
+  return openMap(page, DOC);
 }
 
-const rels = (page: import("@playwright/test").Page) =>
-  page.evaluate(
-    () =>
-      (
-        window as unknown as { __cmModeler: { exportDocument(): { relationships: unknown[] } } }
-      ).__cmModeler.exportDocument().relationships,
-  );
+const rels = relationships;
 
-async function armConnect(page: import("@playwright/test").Page, sourceId: string) {
-  const source = (await page.locator(`.tt-canvas [data-element-id="${sourceId}"]`).boundingBox())!;
+async function armConnect(page: Page, sourceId: string) {
+  const source = (await element(page, sourceId).boundingBox())!;
   await page.mouse.click(source.x + source.width / 2, source.y + source.height / 2);
   const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
   await expect(arm).toBeVisible();
@@ -47,7 +34,7 @@ test("full user gesture: select, arm connect in the pad, click a free target", a
   await setup(page);
   await armConnect(page, "a");
 
-  const c = (await page.locator('.tt-canvas [data-element-id="c"]').boundingBox())!;
+  const c = (await element(page, "c").boundingBox())!;
   await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2, { steps: 8 });
   await page.mouse.click(c.x + c.width / 2, c.y + c.height / 2);
 
@@ -55,10 +42,12 @@ test("full user gesture: select, arm connect in the pad, click a free target", a
 
   // the fresh relationship is selected — the finishing click must not
   // re-select the target over it (the pad's one-shot click blocker)
-  const selected = await page.evaluate(() => {
-    const m = (window as unknown as { __cmModeler: { get(n: string): unknown } }).__cmModeler;
-    return (m.get("selection") as { get(): Array<{ id: string }> }).get().map((s) => s.id);
-  });
+  const selected = await page.evaluate(() =>
+    window.__cmModeler
+      .get<{ get(): Array<{ id: string }> }>("selection")
+      .get()
+      .map((selectedElement) => selectedElement.id),
+  );
   expect(selected).toHaveLength(1);
   expect(String(selected[0])).toMatch(/^rel_/);
   // …and its context pad is open with the relationship actions
@@ -81,7 +70,7 @@ test("Escape cancels an armed connect without a chasing preview", async ({ page 
   expect(await rels(page)).toHaveLength(1);
 
   // the very next click selects normally (nothing swallowed it)
-  const c = (await page.locator('.tt-canvas [data-element-id="c"]').boundingBox())!;
+  const c = (await element(page, "c").boundingBox())!;
   await page.mouse.click(c.x + c.width / 2, c.y + c.height / 2);
   await expect(page.locator(".djs-context-pad.open")).toBeVisible();
 });
@@ -90,7 +79,7 @@ test("already-connected pair: the click is refused (no duplicate line)", async (
   await setup(page);
   await armConnect(page, "a");
 
-  const b = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
+  const b = (await element(page, "b").boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
 

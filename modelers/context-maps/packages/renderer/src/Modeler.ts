@@ -12,16 +12,17 @@ import { cmRulesModule } from "./rules/index.js";
 import { cmBehaviorsModule } from "./behaviors/index.js";
 import { cmPaletteModule } from "./palette/index.js";
 import { cmContextPadModule } from "./context-pad/index.js";
-import { cmLegendModule } from "./legend/index.js";
 import { cmLabelEditingModule } from "./label-editing/index.js";
 import { cmKeyboardModule } from "./keyboard/index.js";
 import { cmValidationModule } from "./validation/index.js";
 import { cmZOrderModule } from "./zorder/index.js";
+import { cmReadOnlyModule } from "./read-only/index.js";
 
 /**
  * Full Context Maps editor: palette/create, move, connect with rules,
- * context pad, inline label editing, undo/redo. Boxes are fixed-size —
- * no resize feature.
+ * context pad, inline label editing, undo/redo, and the edit lock for a
+ * document the host cannot take edits for (`cmReadOnly`). Boxes are
+ * fixed-size — no resize feature.
  */
 export class Modeler extends NavigatedViewer {
   protected override _getModules(): ModuleDeclaration[] {
@@ -33,12 +34,12 @@ export class Modeler extends NavigatedViewer {
       MoveModule,
       OutlineModule,
       // Context Maps editor
+      cmReadOnlyModule,
       cmModelingModule,
       cmRulesModule,
       cmBehaviorsModule,
       cmPaletteModule,
       cmContextPadModule,
-      cmLegendModule,
       cmLabelEditingModule,
       cmKeyboardModule,
       cmValidationModule,

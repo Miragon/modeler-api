@@ -8,14 +8,18 @@
  * Enter/blur commits through `cmModeling` (undoable), Escape cancels;
  * panning/zooming or starting a drag completes the edit. The edited text is
  * hidden behind an element marker while the box is open so nothing doubles up.
+ * An import never commits an open edit: it is taken down before and reopened
+ * on the element with the same id afterwards, with the text typed so far.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type { Element, ShapeLike } from "diagram-js/lib/model/Types";
 import { CONTEXT_NAME_TOP, CONTEXT_TEAM_RESERVE, FONT } from "../draw/styles.js";
 import { isCmContext, isCmElement, type CmContext, type CmElement } from "../model/di-types.js";
 import type CmModeling from "../modeling/CmModeling.js";
+import { READ_ONLY_CHANGED_EVENT, type CmReadOnly } from "../read-only/index.js";
 
 type EditMode = "name" | "team";
 
@@ -49,20 +53,41 @@ interface DirectEditingService {
   isActive(element?: Element): boolean;
   cancel(): void;
   complete(): void;
+  getValue(): string;
+  /** The text box's parent element of the edit open right now. */
+  $textbox?: HTMLElement;
+}
+
+/** An open edit taken down for an import: its element, what it edits, the text typed so far. */
+interface SuspendedEdit {
+  elementId: string;
+  mode: EditMode;
+  text: string;
 }
 
 export default class CmLabelEditing {
-  static $inject = ["eventBus", "canvas", "directEditing", "cmModeling"];
+  static $inject = [
+    "eventBus",
+    "canvas",
+    "directEditing",
+    "cmModeling",
+    "elementRegistry",
+    "cmReadOnly",
+  ];
 
   /** Which property the CURRENT activation edits (set right before activate). */
   private mode: EditMode = "name";
   private activeMarker?: { element: Element; marker: string };
+  private suspended?: SuspendedEdit;
+  private resumeTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     eventBus: EventBus,
     private readonly canvas: Canvas,
     private readonly directEditing: DirectEditingService,
     private readonly modeling: CmModeling,
+    private readonly elementRegistry: ElementRegistry,
+    private readonly readOnly: Pick<CmReadOnly, "isReadOnly">,
   ) {
     // Registered as a plain object: the provider contract claims the method
     // name `activate` for context creation, while this service keeps
@@ -102,6 +127,68 @@ export default class CmLabelEditing {
       if (active) canvas.removeMarker(active.element as unknown as ShapeLike, active.marker);
       this.activeMarker = undefined;
     });
+    eventBus.on("diagram.destroy", () => {
+      clearTimeout(this.resumeTimer);
+      this.suspended = undefined;
+    });
+    // A read-only canvas has no label editor (guide §13.5), also not on a double-click.
+    eventBus.on("directEditing.activate.allowed", 2000, () =>
+      this.readOnly.isReadOnly() ? false : undefined,
+    );
+    eventBus.on(READ_ONLY_CHANGED_EVENT, (event: { readOnly?: boolean }) => {
+      if (event.readOnly) directEditing.cancel();
+    });
+  }
+
+  /**
+   * Takes an open edit down WITHOUT committing it, for an import that replaces the elements: a
+   * commit (the import's viewbox change triggers one) would land on a removed shape and be wiped
+   * with the history. `resumeAfterImport` brings the editor back with the typed text.
+   */
+  suspend(): void {
+    clearTimeout(this.resumeTimer);
+    const element = this.activeMarker?.element;
+    if (!this.directEditing.isActive() || !element) return;
+    this.suspended = {
+      elementId: element.id,
+      mode: this.mode,
+      text: this.directEditing.getValue(),
+    };
+    this.directEditing.cancel();
+  }
+
+  /**
+   * Reopens a suspended edit on the element with the same id, if the imported document still has
+   * it. Deferred to the next task, after the host has restored its viewbox around the import (a
+   * viewbox change commits an open editor).
+   */
+  resumeAfterImport(): void {
+    clearTimeout(this.resumeTimer);
+    if (!this.suspended) return;
+    this.resumeTimer = setTimeout(() => {
+      const edit = this.suspended;
+      this.suspended = undefined;
+      if (edit && !this.directEditing.isActive()) this.resume(edit);
+    }, 0);
+  }
+
+  /** The edit open right now (its element and the uncommitted text), for hosts and tests. */
+  openEdit(): { elementId: string; text: string } | undefined {
+    const element = this.activeMarker?.element;
+    if (!this.directEditing.isActive() || !element) return undefined;
+    return { elementId: element.id, text: this.directEditing.getValue() };
+  }
+
+  private resume(edit: SuspendedEdit): void {
+    const element = this.elementRegistry.get(edit.elementId);
+    if (!isCmElement(element)) return;
+    if (edit.mode === "team" && !isCmContext(element)) return;
+    this.mode = edit.mode;
+    if (!this.directEditing.activate(element as Element)) return;
+    const content = this.directEditing.$textbox?.querySelector<HTMLElement>("[contenteditable]");
+    if (!content) return;
+    content.innerText = edit.text;
+    placeCaretAtEnd(content);
   }
 
   /** Start in-place editing of the element's name (context pad, hosts). */
@@ -152,7 +239,7 @@ export default class CmLabelEditing {
           fontWeight: 400,
           lineHeight: 1.2,
           backgroundColor: "transparent",
-          border: "1px dashed rgba(51, 93, 229, 0.65)",
+          border: "1px dashed var(--cd-ui-interaktion)",
           textAlign: "center",
         },
         options: { centerVertically: true },
@@ -167,7 +254,7 @@ export default class CmLabelEditing {
       // In-place illusion: the element's own fill stays visible, a dashed
       // accent frame signals the edit state (the rendered name is hidden).
       backgroundColor: "transparent",
-      border: "1px dashed rgba(51, 93, 229, 0.65)",
+      border: "1px dashed var(--cd-ui-interaktion)",
       textAlign: "center",
     };
 
@@ -201,7 +288,7 @@ export default class CmLabelEditing {
         height,
       },
       text: (element as CmElement).cmLabel ?? "",
-      style: { ...style, backgroundColor: "rgba(255, 255, 255, 0.95)" },
+      style: { ...style, backgroundColor: "var(--cd-ui-flaeche-hoch)" },
       options: { centerVertically: true },
     };
   }
@@ -219,4 +306,13 @@ export default class CmLabelEditing {
     if (value === ((element as CmElement).cmLabel ?? "")) return;
     this.modeling.updateLabel(element as CmElement, value);
   }
+}
+
+function placeCaretAtEnd(field: HTMLElement): void {
+  const range = document.createRange();
+  range.selectNodeContents(field);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
 }

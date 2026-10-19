@@ -8,11 +8,11 @@ interface OverlayEntry {
   html: HTMLElement;
 }
 
-// Semantic findings must show up ON the canvas: a warning triangle anchored
+// Semantic findings must show up ON the canvas: a status marker anchored
 // next to the issue (sided findings at the affected end, e.g. an ACL concern
 // at the downstream role chips) whose tooltip (title) carries the message,
 // live-updating as the model changes.
-test("findings show triangles anchored at the affected end and clear when fixed", () => {
+test("findings show markers anchored at the affected end and clear when fixed", () => {
   const container = document.createElement("div");
   container.style.width = "900px";
   container.style.height = "640px";
@@ -53,7 +53,9 @@ test("findings show triangles anchored at the affected end and clear when fixed"
     const upstreamMarker = markers().find((m) => tooltipText(m).includes("Open Host Service"));
     expect(upstreamMarker).toBeDefined();
     expect(upstreamMarker!.position.left).toBeLessThan(100); // first third = upstream end
-    expect(upstreamMarker!.html.innerHTML).toContain("#dc2626"); // error → red
+    // an error takes the danger role, a warning only the warning role
+    expect(upstreamMarker!.html.dataset.severity).toBe("error");
+    expect(aclMarker.html.dataset.severity).toBe("warning");
 
     // fixing everything removes all markers
     cmModeling.updateProperties(rel, { upstreamRoles: undefined, downstreamRoles: undefined });

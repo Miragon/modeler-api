@@ -3,10 +3,10 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
 
 The browser editor for strategic Domain-Driven Design [Context Maps](https://contextmapper.org/)
-diagrams — a Vite + React app built on the shared
-[`@miragon/context-maps-renderer`](../../packages/renderer) core. An
-**Excalidraw-style full-bleed canvas** with floating chrome: no header bar, the tools sit over the
-diagram. **No backend** — everything is local, and a diagram is shared by encoding it into the URL.
+diagrams: a Vite app on the shared [`@miragon/context-maps-renderer`](../../packages/renderer) core,
+inside the Miragon modeler chrome ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell),
+web host). A full-bleed canvas with floating islands, no header bar, and **no backend**: everything
+is local, and a map is shared by encoding it into the URL.
 
 **[Live demo](https://context-maps.modeler.miragon.io)**
 
@@ -14,73 +14,85 @@ diagram. **No backend** — everything is local, and a diagram is shared by enco
 
 ## Highlights
 
-- **Full-bleed canvas + floating chrome.** A floating **Palette** with a lasso tool
-  top-centre, an element-bound **context pad** floating next to the selection and the notation
-  **Legend** bottom-left (all from the renderer), a **☰ Menu** top-left and a **Share** button
-  top-right.
-- **Edit by direct manipulation.** Drag from the palette to create and move contexts, connect
-  them with relationships, inline-edit labels, undo/redo — all from the diagram-js core.
-- **Share via URL, no server.** **Share** copies a self-contained link — the whole diagram is
-  LZ-compressed into the URL hash (`#d=…`). Opening that link restores the diagram.
-- **Autosave.** Every edit is debounced to `localStorage` and mirrored into the address bar, so a
-  reload brings your work back.
-- **Import / export.** Open a `.cm.json` or Context Mapper `.cml` file, export **JSON**, **CML**, **SVG**
-  or **PNG** (rasterised at 2×), start a **New** diagram, or load the bundled **example** context map.
-- **Offline-friendly.** No CDN calls; the type fallback degrades cleanly to the system sans stack.
+- **The Miragon modeler chrome**, the same as in the VS Code extension: the menu top left, the tool
+  palette top centre (Enter or Space on a subdomain type places a context), **Share** top right,
+  the zoom panel bottom right (`Cmd/Ctrl` + `+` / `−`, `Cmd/Ctrl+0` for 100 %, `Shift+1` to fit),
+  the legend, the problems pill and the legal line bottom left. The work chrome waits behind a
+  **start screen** (New diagram, Show example, or open a file) on a fresh visit.
+- **Menu:** File (**New diagram**, **Open…** `Cmd/Ctrl+O` for `.cm`, `.cm.json` and `.json`, **Show
+  example**, **Import…** for Context Mapper `.cml`), Model (**Map title…**, the **Legend** checkbox),
+  Export (**PNG** at 2×, **SVG**, **JSON** `Cmd/Ctrl+S`, **CML**) and Help (**Keyboard
+  shortcuts…**). Undo and redo stay on the keys.
+- **Edit by direct manipulation.** Drag from the palette to create and move contexts, connect them
+  through the context pad, rename in place; diagram-js keeps the history.
+- **Drop a file** anywhere on the page: a `.cm`, `.json` or `.cml` file opens. Replacing a map offers
+  **Undo** in a toast (and on `Cmd/Ctrl+Z` while the canvas has nothing else to undo) instead of
+  asking first.
+- **Problems.** The semantic rules of the notation show as markers on the canvas and in the problems
+  pill; its list names each finding's relationship and selects it. What a CML import skipped stays
+  in the list until the next map.
+- **Share via URL, no server.** **Share** copies a self-contained link: the whole map is
+  LZ-compressed into the URL hash (`#d=…`). Opening that link restores the map; a link cut off when
+  it was copied says so.
+- **Autosave.** Every change goes to `localStorage` and into the address bar, so a reload brings the
+  map back; the legend remembers whether it is open. A saved map this version cannot open (one a
+  newer modeler wrote, say) stays saved until the next map is started or opened, and a toast says
+  so.
+- **Offline-friendly.** No CDN calls; Geist and Geist Mono are bundled.
 
 ## Run it
 
-From the repo root (Node ≥ 22.13):
+From the repo root (Node ≥ 24.15):
 
 ```bash
 npm install
-npm run dev:webapp            # stable per-worktree https://<worktree>.context-maps-modeler.localhost
+npm run dev:webapp            # stable per-worktree http://<worktree>.context-maps-modeler.localhost:8080
 ```
 
 `npm run dev:webapp` serves the app via [Portless](https://portless.sh) at a stable per-worktree
-`.localhost` URL (needs Node ≥ 24 + a one-time `npx portless service install` — see
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md)). For plain Vite on a fixed port instead:
+`.localhost` URL (see [`CONTRIBUTING.md`](../../CONTRIBUTING.md)). For plain Vite on a fixed port
+instead:
 
 ```bash
 npm run dev:webapp:plain      # http://localhost:5181
 ```
 
-Production build (also what Netlify runs):
+Production build (also what Netlify runs), and the check of what it ships:
 
 ```bash
 npm run build:webapp          # → apps/webapp/dist
+npm run check:build -w apps/webapp
 ```
 
-On first load the app shows, in priority order, a diagram from a **shared link** (`#d=…`), then the
-**autosaved** diagram from `localStorage`, then the bundled **example**.
+On first load the app shows, in priority order, a map from a **shared link** (`#d=…`), then the
+**autosaved** map from `localStorage`, then the **start screen**.
 
 ## How it works
 
-A thin React shell over the framework-agnostic modeler:
+`src/main.ts` mounts the renderer's `Modeler` and the shell around it, without a UI framework:
 
-- **`DiagramCanvas`** mounts the `Modeler` from
-  [`@miragon/context-maps-renderer`](../../packages/renderer) into a `<div>` and loads the initial
-  document.
-- **State** — a React context mirrors modeler events (selection, undo/redo availability, title,
-  revision) into React; a small **Zustand** store holds UI-only state (help dialog, welcome card) and toasts.
-  The diagram itself stays owned by diagram-js, not by React.
-- **Sharing / persistence** — `serializeDocument()` →
-  `LZString.compressToEncodedURIComponent` → `#d=…`. Autosave writes the same to `localStorage`
-  (debounced ~600 ms) and to the address bar; very large diagrams skip the hash and rely on
-  `localStorage`.
-- **Export** — JSON via `serializeDocument()`; SVG via `modeler.saveSVG()`; PNG by rasterising that
-  SVG onto a canvas.
+- **Chrome:** `mountShell(…, { host: "web", themes: ["light"] })` renders the menu, Share, the legal
+  line, toasts, the problems list, the start screen and the drop zone; `connectDiagramJs` binds the
+  zoom panel, the keys and the fit. The map's own parts come from the renderer: `contextMapMenu`
+  (Model, Export, Help), `createShortcutsDialog`, `createTitleDialog` and `renderLegend`.
+- **Mode:** light only until the joint dark-mode release. `index.html` writes
+  `data-cd-theme="light"`, and the Vite config puts the shell's `webHeadMarkup` (theme colour, the
+  high-contrast line) in place of `<!-- miragon-mode -->`.
+- **Sharing and autosave:** `serializeDocument()` → `LZString.compressToEncodedURIComponent` →
+  `#d=…`; very large maps skip the hash and rely on `localStorage`.
+- **Export:** JSON is the canonical `.cm.json` text, CML via `@miragon/context-maps-cml`, SVG via
+  `modeler.saveSVG()`, PNG by rasterising that SVG on a canvas. Downloads are named after the map's
+  title.
 
-The renderer and schema-model packages are aliased to their **TypeScript source** in `vite.config.ts`,
-so there is no separate library build step — `npm run dev:webapp` and the Netlify build compile the
-whole monorepo from source.
+The renderer, cml and schema-model packages are aliased to their **TypeScript source** in
+`vite.config.ts`, so there is no separate library build step.
 
 ## Deployment
 
 Deployed on **Netlify** (config in [`netlify.toml`](../../netlify.toml)): build `npm run build:webapp`,
-publish `apps/webapp/dist`, Node 22, with an SPA catch-all redirect to `index.html` (hash-based
-routing).
+publish `apps/webapp/dist`, with an SPA catch-all redirect to `index.html` (hash-based routing).
 
 ## License
 
-[MIT](../../LICENSE).
+[MIT](../../LICENSE). The bundled Lucide icons of the modeler shell are ISC (partly Feather, MIT); the
+bundle keeps their licence comment.

@@ -40,6 +40,12 @@ export function decodeDocumentFromHash(hash: string): CmDocument | null {
   }
 }
 
+/** Whether a raw location hash carries a map payload, readable or not (a link cut off when copied). */
+export function hashHoldsDocument(hash: string): boolean {
+  const raw = hash.startsWith("#") ? hash.slice(1) : hash;
+  return new URLSearchParams(raw).has(HASH_KEY);
+}
+
 export function readDocumentFromLocation(): CmDocument | null {
   if (typeof window === "undefined") return null;
   return decodeDocumentFromHash(window.location.hash);

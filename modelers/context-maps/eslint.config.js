@@ -2,13 +2,12 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 
 /**
  * Flat Config. The most important project-specific piece is DOM-boundary enforcement:
- * the DOM-free package (schema-model) must not import diagram-js or any DOM library/global. This
+ * the DOM-free packages (schema-model, cml) must not import diagram-js or any DOM library/global,
+ * and take only types from @miragon/modeler-api; no package imports @miragon/modeler-shell. This
  * mirrors the dependency-cruiser check so a violating import fails both `npm run lint` and
  * `npm run depcruise`.
  */
@@ -18,12 +17,31 @@ const DOM_RESTRICTED_IMPORTS = {
     { name: "diagram-js", message: "DOM-free packages must not import diagram-js." },
     { name: "tiny-svg", message: "DOM-free packages must not import tiny-svg." },
     { name: "min-dom", message: "DOM-free packages must not import min-dom." },
+    { name: "@miragon/modeler-shell", message: "Only the apps mount the shell." },
+    {
+      name: "@miragon/modeler-api",
+      allowTypeImports: true,
+      message: "DOM-free packages take only types from the contract.",
+    },
   ],
   patterns: [
     {
       group: ["diagram-js/*"],
       message: "DOM-free packages must not import diagram-js.",
     },
+    { group: ["@miragon/modeler-shell/*"], message: "Only the apps mount the shell." },
+    {
+      group: ["@miragon/modeler-api/*"],
+      allowTypeImports: true,
+      message: "DOM-free packages take only types from the contract.",
+    },
+  ],
+};
+
+const SHELL_RESTRICTED_IMPORTS = {
+  paths: [{ name: "@miragon/modeler-shell", message: "The renderer never imports the shell." }],
+  patterns: [
+    { group: ["@miragon/modeler-shell/*"], message: "The renderer never imports the shell." },
   ],
 };
 
@@ -42,7 +60,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["**/*.ts"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
@@ -57,9 +75,16 @@ export default tseslint.config(
   },
   // DOM-dependent packages/apps + E2E specs (page.evaluate runs in the browser): browser globals.
   {
-    files: ["packages/renderer/**/*.ts", "apps/webapp/**/*.{ts,tsx}", "e2e/**/*.ts"],
+    files: ["packages/renderer/**/*.ts", "apps/webapp/**/*.ts", "e2e/**/*.ts"],
     languageOptions: {
       globals: { ...globals.browser },
+    },
+  },
+  // Build and release scripts run in Node.
+  {
+    files: ["**/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { ...globals.node },
     },
   },
   // The VS Code extension has a Node host AND a browser webview — allow both global sets.
@@ -67,19 +92,6 @@ export default tseslint.config(
     files: ["apps/vscode/**/*.ts"],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
-    },
-  },
-  // React app: hooks + fast-refresh hygiene.
-  {
-    files: ["apps/webapp/**/*.{ts,tsx}"],
-    plugins: {
-      "react-hooks": reactHooks,
-      "react-refresh": reactRefresh,
-    },
-    rules: {
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
   // DOM-FREE packages: hard boundary.
@@ -97,9 +109,16 @@ export default tseslint.config(
       ],
     },
   },
+  // The renderer: the shell is the apps' chrome, never a renderer dependency.
+  {
+    files: ["packages/renderer/src/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", SHELL_RESTRICTED_IMPORTS],
+    },
+  },
   // Tests may be more lenient.
   {
-    files: ["**/*.{test,spec}.{ts,tsx}"],
+    files: ["**/*.{test,spec}.ts"],
     languageOptions: {
       globals: { ...globals.node },
     },

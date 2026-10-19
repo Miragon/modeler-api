@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDocument, validateDocument } from "./schema";
+import { isReservedId, parseDocument, validateDocument } from "./schema";
 import { SAMPLE_DOCUMENT } from "./sample";
 import { emptyDocument } from "./factory";
 import type { CmDocument, Relationship } from "./types";
@@ -55,6 +55,27 @@ describe("parseDocument", () => {
   it("rejects a non-object", () => {
     expect(parseDocument(42).ok).toBe(false);
     expect(parseDocument(null).ok).toBe(false);
+  });
+
+  it("rejects an id the canvas keeps for itself, at that id", () => {
+    const doc = structuredClone(SAMPLE_DOCUMENT) as CmDocument;
+    doc.contexts[2]!.id = "cm-root";
+    doc.relationships[1]!.id = "__implicitroot_1";
+    const result = parseDocument(doc);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toEqual([
+        {
+          path: ["contexts", 2, "id"],
+          message: 'the id "cm-root" is reserved for the diagram itself',
+        },
+        {
+          path: ["relationships", 1, "id"],
+          message: 'the id "__implicitroot_1" is reserved for the diagram itself',
+        },
+      ]);
+    }
+    expect(isReservedId("cm-root-billing")).toBe(false);
   });
 });
 

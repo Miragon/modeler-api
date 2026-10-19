@@ -1,22 +1,22 @@
 /**
- * Miragon design tokens — the single source of truth for every non-notation colour in the renderer.
+ * Miragon design tokens — the single source of truth for every non-notation colour the renderer
+ * draws into SVG.
  *
- * Values mirror the Miragon corporate identity: the `miragon-brand:corporate-design` skill in
- * `Miragon/corporate-identity`, whose vendored `cd-tokens.generated.css` (next to this file) defines
- * the `--cd-*` custom properties, generated from the brand's `tokens.json`. Re-copy that CSS from the
- * corporate-identity repo to update; never fork the hex values by hand. `theme.sync.test.ts` fails if
- * this mirror drifts from the vendored CSS.
+ * Values mirror the Miragon design system: the `miragon-brand:modeler-tool-design` skill in
+ * `Miragon/corporate-identity`, whose files are vendored unchanged next to this module
+ * (`cd-tokens.generated.css`, `cd-tokens.generated.json`, `cd-canvas.css`; design system 1.13.0).
+ * Re-copy them from the skill to update; never fork the hex values by hand. SVG attributes need
+ * literal values (exports carry presentation attributes, never `var()`), so `draw/styles.ts`
+ * derives its colours from `MIRAGON`; the in-canvas chrome in `assets/context-maps.css` reads the
+ * `--cd-ui-*` roles directly. `test/theme.sync.test.ts` fails if a value here drifts from the
+ * vendored files.
  *
- * Pure data — no DOM, no imports — so it can be consumed by the SVG-drawing constants in
- * `draw/styles.ts`.
- *
- * Brand rule: blue leads (`blau` — surfaces, buttons, links, selection), green accents (`gruen` — key
- * visual, highlights; a fill, never body text on white). The subdomain-type fills and
- * relationship-pattern strokes are the official Context Maps notation and live in
- * `schema-model/notation.ts` — they are NOT part of this brand ramp.
+ * Pure data — no DOM, no imports. The subdomain-type fills and relationship-pattern strokes are the
+ * official Context Maps notation and live in `schema-model/notation.ts`; they are NOT part of this
+ * brand ramp. The renderer draws light only (the modelers switch to dark together, guide §13.3).
  */
 
-/** Raw Miragon brand ramp + functional layer — exact `--cd-*` values. */
+/** Raw Miragon brand ramp and status layer — the `fest` values of `cd-tokens.generated.json`. */
 export const MIRAGON = {
   /** Primary: surfaces, buttons, links, selection, backgrounds. */
   blau: "#335DE5",
@@ -31,19 +31,23 @@ export const MIRAGON = {
   /** Text on light; not pure black. */
   schwarz: "#1D1D1D",
   weiss: "#FFFFFF",
-  /** Functional / status layer (own layer beside the brand palette; AA as text on white). */
-  success: "#0B7A55",
-  warning: "#92610A",
-  danger: "#C92A2A",
-  info: "#2B50D4",
+  /** Fixed light neutral for lines and borders on a light stage. */
+  linie: "#E6E2E2",
+  /**
+   * Status layer (guide §3.3): fills, borders, icons and dots; as text on white only `danger` and
+   * `info` reach AA.
+   */
+  success: "#00E676",
+  warning: "#FFB000",
+  danger: "#CD1839",
+  info: "#335DE5",
   /** Signature brand gradient — brand moments only. Use verbatim. */
   gradientBrand: "linear-gradient(120deg, #335DE5 30%, #00E676)",
 } as const;
 
 /**
- * Every `--cd-*` token this repo depends on, mapped to the value it MUST hold. The drift test parses
- * `cd-tokens.generated.css` and asserts each entry matches, so re-copying the vendored CSS with a
- * changed value fails CI until this mirror (and `MIRAGON`) is updated too.
+ * Every fixed `--cd-*` token this repo mirrors, mapped to the value it MUST hold in the vendored
+ * files (`fest` in the JSON, `:root` in the CSS).
  */
 export const CD_TOKENS: Record<string, string> = {
   "--cd-blau": MIRAGON.blau,
@@ -53,13 +57,10 @@ export const CD_TOKENS: Record<string, string> = {
   "--cd-weiss": MIRAGON.weiss,
   "--cd-blau-link": MIRAGON.blauLink,
   "--cd-blau-hell": MIRAGON.blauHell,
+  "--cd-linie": MIRAGON.linie,
   "--cd-success": MIRAGON.success,
-  "--cd-success-soft": "rgba(11, 122, 85, 0.12)",
   "--cd-warning": MIRAGON.warning,
-  "--cd-warning-soft": "rgba(146, 97, 10, 0.12)",
   "--cd-danger": MIRAGON.danger,
-  "--cd-danger-soft": "rgba(201, 42, 42, 0.12)",
   "--cd-info": MIRAGON.info,
-  "--cd-info-soft": "rgba(43, 80, 212, 0.12)",
   "--cd-gradient-brand": MIRAGON.gradientBrand,
 };

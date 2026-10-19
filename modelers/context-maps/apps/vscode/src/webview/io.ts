@@ -6,10 +6,12 @@
  * Only what the browser needs remains here (rasterization via canvas, Blob/FileReader).
  */
 
+import { MIRAGON } from "@miragon/context-maps-renderer";
 import { EMBED_KEYWORD, encodeDoc, pngInsertText } from "../png.js";
 
 const SVG_ATTR = "data-tt-document";
-const BG = "#ffffff";
+/** The light ground (`--cd-ui-grund`): a picture is light in every mode (guide §10.7). */
+const BG = MIRAGON.grau;
 
 export function embedSvg(svg: string, doc: string): string {
   return svg.replace(/<svg\b/, `<svg ${SVG_ATTR}="${encodeDoc(doc)}"`);

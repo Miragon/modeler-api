@@ -16,7 +16,8 @@ import type Dragging from "diagram-js/lib/features/dragging/Dragging";
 import type { Element } from "diagram-js/lib/model/Types";
 import { getMid } from "diagram-js/lib/layout/LayoutUtil";
 import { isCmContext } from "../model/di-types.js";
-import { ICON_ARROW_FORWARD, iconMarkup } from "../draw/icons.js";
+import { chromeIcon } from "../draw/lucide.js";
+import { READ_ONLY_CHANGED_EVENT, type CmReadOnly } from "../read-only/index.js";
 
 const OVERLAY_TYPE = "cm-connect-handle";
 const HANDLE_SIZE = 28;
@@ -52,7 +53,7 @@ function handlePosition(
 }
 
 export default class CmConnectHandles {
-  static $inject = ["eventBus", "selection", "overlays", "connect", "dragging"];
+  static $inject = ["eventBus", "selection", "overlays", "connect", "dragging", "cmReadOnly"];
 
   constructor(
     private readonly eventBus: EventBus,
@@ -60,6 +61,7 @@ export default class CmConnectHandles {
     private readonly overlays: Overlays,
     connect: Connect,
     private readonly dragging: Dragging,
+    private readonly readOnly: Pick<CmReadOnly, "isReadOnly">,
   ) {
     // Not used to start the drag, but injecting Connect instantiates it so its
     // connect.* event handlers (hover/end → modeling.connect) are registered —
@@ -69,11 +71,13 @@ export default class CmConnectHandles {
     eventBus.on("selection.changed", refresh);
     // Re-anchor after resize/undo/redo (handle offsets depend on width/height).
     eventBus.on("commandStack.changed", refresh);
+    eventBus.on(READ_ONLY_CHANGED_EVENT, refresh);
   }
 
   private refresh(): void {
     this.overlays.remove({ type: OVERLAY_TYPE });
 
+    if (this.readOnly.isReadOnly()) return;
     const selected = this.selection.get() as Element[];
     if (selected.length !== 1) return;
     const element = selected[0];
@@ -85,7 +89,12 @@ export default class CmConnectHandles {
       handle.className = "cm-connect-handle";
       handle.dataset.side = side;
       handle.title = "Connect to another context";
-      handle.innerHTML = `<span style="display:flex;transform:rotate(${rotationDeg}deg)">${iconMarkup(ICON_ARROW_FORWARD)}</span>`;
+      handle.setAttribute("aria-label", "Connect to another context");
+      const arrow = document.createElement("span");
+      arrow.className = "cm-connect-handle__arrow";
+      arrow.style.transform = `rotate(${rotationDeg}deg)`;
+      arrow.innerHTML = chromeIcon("arrow-right");
+      handle.append(arrow);
       handle.addEventListener("mousedown", (event: MouseEvent) => {
         if (event.button !== 0) return;
         event.preventDefault();

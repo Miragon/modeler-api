@@ -7,9 +7,12 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
+    "dev:webview": "vite --config webview/vite.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.0"
+    "@miragon/modeler-shell": "0.2.1",
+    "@playwright/test": "1.64.0",
+    "esbuild": "0.28.2"
   }
 }

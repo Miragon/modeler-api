@@ -16,7 +16,6 @@ const alias = {
   "@miragon/context-maps-cml": fileURLToPath(
     new URL("./packages/cml/src/index.ts", import.meta.url),
   ),
-  "@": fileURLToPath(new URL("./apps/webapp/src", import.meta.url)),
 };
 
 export default defineConfig({
@@ -30,10 +29,19 @@ export default defineConfig({
           globals: true,
           environment: "jsdom",
           include: [
-            "packages/*/src/**/*.{test,spec}.{ts,tsx}",
-            "apps/*/src/**/*.{test,spec}.{ts,tsx}",
+            "packages/*/src/**/*.{test,spec}.ts",
+            "packages/*/test/**/*.{test,spec}.ts",
+            "apps/*/src/**/*.{test,spec}.ts",
+            "apps/*/test/**/*.{test,spec}.ts",
           ],
           exclude: ["packages/renderer/test/browser/**", "**/node_modules/**", "**/dist/**"],
+          // The VS Code host imports the ambient `vscode` runtime, which only exists inside the
+          // editor. Point it at a thin in-repo mock so the host logic is unit-testable.
+          alias: {
+            vscode: fileURLToPath(
+              new URL("./apps/vscode/test/__mocks__/vscode.ts", import.meta.url),
+            ),
+          },
         },
       },
       {

@@ -18,6 +18,8 @@ files — all around the Context Maps notation.
 
 ![The Context Maps editor](docs/screenshots/editor.png)
 
+![The Context Maps editor in VS Code](docs/screenshots/vscode-editor.png)
+
 ## Notation
 
 Bounded contexts are boxes, coloured by **subdomain type**; relationships are lines carrying a
@@ -54,30 +56,42 @@ checked by `validateDocument()`.
 
 ## Targets
 
-- **Web app** ([`apps/webapp`](apps/webapp/README.md)) — a Vite + React editor with a full-bleed
-  canvas, palette, inspector, PNG/SVG export and a shareable, self-contained URL (LZ-compressed, no
-  backend). Deployed on Netlify.
-- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)) — a custom editor for `.cm.json`
-  files: the JSON file stays the source of truth (save, Git and diff keep working), and
-  editable embedded-PNG diagrams (`*.cm.png`) let you drop a diagram into a wiki or README and still
-  edit it graphically. Context Mapper `.cml` maps import and export via [`packages/cml`](packages/cml).
+- **Web app** ([`apps/webapp`](apps/webapp/README.md)) — a Vite editor in the same Miragon modeler
+  chrome ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell), web
+  host): a full-bleed canvas with palette, context pad, legend, zoom panel and problems list, a
+  start screen, a page-wide drop zone for `.cm`, `.json` and `.cml` files, PNG/SVG/JSON/CML
+  export and a shareable, self-contained URL (LZ-compressed, no backend). Deployed on Netlify.
+- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)) — a custom editor for `.cm` and
+  `.cm.json` files inside the shared Miragon modeler chrome
+  ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)): the JSON file
+  stays the source of truth (save, Git, diff and undo keep working), the semantic rules show in the
+  Problems view, and editable embedded-PNG diagrams (`*.cm.png`) let you drop a diagram into a wiki
+  or README and still edit it graphically. Context Mapper `.cml` maps import and export via
+  [`packages/cml`](packages/cml).
 
-Both targets share two published packages:
+The renderer implements the collaborative-modeler contract of
+[`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) and runs its conformance
+kit, so collaborative hosts embed it without per-modeler knowledge.
+
+Both targets share the published packages:
 
 | Package                                                                 | Purpose                                                                          | DOM |
 | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --- |
 | [`@miragon/context-maps-schema-model`](packages/schema-model/README.md) | Types, the notation spec, Zod validation, migrations, deterministic JSON         | no  |
+| [`@miragon/context-maps-cml`](packages/cml)                             | Context Mapper CML ↔ document                                                    | no  |
 | [`@miragon/context-maps-renderer`](packages/renderer/README.md)         | diagram-js viewer/modeler, custom rendering, palette, context pad, import/export | yes |
 
 ## Getting started
 
-Requires Node ≥ 22.13 and npm. From the repo root:
+Requires Node ≥ 24.15 and npm. From the repo root:
 
 ```bash
 npm install
 npm run dev:webapp   # start the webapp dev server (prints a stable .localhost URL; Portless)
 npm run dev:vscode   # watch-build the VS Code extension (then F5 in VS Code)
 npm test             # unit tests (Vitest)
+npm run test:browser # renderer and the modeler-api conformance kit in Chromium
+npm run test:e2e     # Playwright: the web app and the VS Code webview (with the shell's kit)
 npm run lint         # eslint + type-check
 npm run build        # build the publishable packages (schema-model, renderer)
 ```
@@ -90,12 +104,14 @@ An **npm-workspaces monorepo** with a strict boundary between the pure model and
 packages/
   schema-model/  @miragon/context-maps-schema-model — DOM-free core: types, notation spec, Zod schema,
                                             deterministic JSON, migrations, factory, the example.
+  cml/           @miragon/context-maps-cml          — DOM-free Context Mapper CML parser and serializer.
   renderer/      @miragon/context-maps-renderer     — diagram-js bootstrap: viewer/modeler, renderer, palette,
-                                            context-pad, label editing, import/export, CSS.
+                                            context-pad, label editing, import/export, CSS, the
+                                            collaborative-modeler contract.
 apps/
-  webapp/        @miragon/context-maps-webapp       — Vite + React editor application.
-  vscode/        context-maps-modeler  — VS Code custom editor for .cm.json.
-e2e/                                       — Playwright end-to-end tests for the webapp.
+  webapp/        @miragon/context-maps-webapp       — Vite editor application on the modeler shell.
+  vscode/        context-maps-modeler  — VS Code custom editors for .cm/.cm.json and *.cm.png.
+e2e/                                       — Playwright end-to-end tests: the webapp and the VS Code webview.
 ```
 
 The `schema-model` package compiles **without the DOM lib**, so a stray browser import fails

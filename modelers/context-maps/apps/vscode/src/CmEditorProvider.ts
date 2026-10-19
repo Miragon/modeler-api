@@ -1,109 +1,79 @@
 import * as vscode from "vscode";
-import { getWebviewHtml } from "./webviewHtml.js";
-import { exportToFile } from "./exportImage.js";
-import { pickImportFile } from "./importFile.js";
-import type { HostToWebview, WebviewToHost } from "./protocol.js";
+import {
+  connectThemeBridge,
+  currentAppearance,
+  renderWebviewHtml,
+} from "@miragon/modeler-shell/vscode/extension";
+import { MAP_VIEW_TYPE, type ActivePanels } from "./commands.js";
+import { MapSession } from "./MapSession.js";
+import { WEBVIEW_THEMES } from "./themes.js";
+
+export const WEBVIEW_TITLE = "Context Maps Diagram";
+
+/** The webview of both editors: the shell's HTML, CSP and appearance around dist/webview.js. */
+export function setWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): void {
+  const dist = vscode.Uri.joinPath(extensionUri, "dist");
+  // dist holds the script, the stylesheet and the font files (fonts/), which the CSP allows from
+  // the webview's resource origin.
+  webview.options = { enableScripts: true, localResourceRoots: [dist] };
+  const asset = (file: string): string =>
+    webview.asWebviewUri(vscode.Uri.joinPath(dist, file)).toString();
+  webview.html = renderWebviewHtml({
+    cspSource: webview.cspSource,
+    scriptUri: asset("webview.js"),
+    styleUris: [asset("webview.css")],
+    title: WEBVIEW_TITLE,
+    lang: "en",
+    appearance: currentAppearance(vscode, { themes: WEBVIEW_THEMES }),
+    body: '<div id="app"></div>',
+  });
+}
 
 /**
- * CustomTextEditor for `.cm` / `.cm.json`. The document (native JSON) remains the source of truth —
- * VS Code handles dirty state, saving, Git, diff, and file undo "for free". The webview renders the
- * diagram (diagram-js modeler) and mirrors graphical changes back into the document via WorkspaceEdit.
+ * CustomTextEditor for `.cm` / `.cm.json`. The document (native JSON) remains the source of truth
+ * — VS Code handles dirty state, saving, Git, diff, and file undo "for free". The webview renders
+ * the diagram inside the Miragon modeler shell and mirrors graphical changes back into the
+ * document as minimal WorkspaceEdits.
  */
 export class CmEditorProvider implements vscode.CustomTextEditorProvider {
-  public static readonly viewType = "contextMaps.editor";
+  public static readonly viewType = MAP_VIEW_TYPE;
 
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+  public static register(
+    context: vscode.ExtensionContext,
+    panels: ActivePanels,
+    diagnostics: vscode.DiagnosticCollection,
+  ): vscode.Disposable {
     return vscode.window.registerCustomEditorProvider(
       CmEditorProvider.viewType,
-      new CmEditorProvider(context),
+      new CmEditorProvider(context, panels, diagnostics),
       {
-        // Diagram editor: preserve state (zoom/selection) across tab switches.
+        // A hidden tab keeps document, view and selection (and reports 0 × 0 meanwhile).
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
       },
     );
   }
 
-  private constructor(private readonly context: vscode.ExtensionContext) {}
+  private constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly panels: ActivePanels,
+    private readonly diagnostics: vscode.DiagnosticCollection,
+  ) {}
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
-    const webview = webviewPanel.webview;
-    webview.options = {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "dist")],
-    };
-    webview.html = getWebviewHtml(webview, this.context.extensionUri);
-
-    const post = (msg: HostToWebview): Thenable<boolean> => webview.postMessage(msg);
-
-    // Texts the webview itself produced — to suppress the echo (an own change comes back as
-    // onDidChangeTextDocument) and NOT reset the canvas. A SET (not a single value): for edits A,B
-    // in quick succession, EVERY echo must be suppressed, regardless of the order in which the
-    // change events arrive.
-    const suppressEcho = new Set<string>();
-
-    const changeSub = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() !== document.uri.toString()) return;
-      const text = document.getText();
-      if (suppressEcho.has(text)) {
-        suppressEcho.delete(text);
-        return;
-      }
-      void post({ type: "update", text });
-    });
-
-    const messageSub = webview.onDidReceiveMessage(async (msg: WebviewToHost) => {
-      switch (msg.type) {
-        case "ready":
-          await post({ type: "init", text: document.getText() });
-          break;
-        case "edit":
-          await this.replaceWholeDocument(document, msg.text, suppressEcho);
-          break;
-        case "export":
-          await exportToFile(document.uri, msg.format, msg.data);
-          break;
-        case "importRequest": {
-          const file = await pickImportFile();
-          if (file) await post({ type: "importFile", name: file.name, text: file.text });
-          break;
-        }
-        case "info":
-          void vscode.window.showInformationMessage(msg.message);
-          break;
-        case "error":
-          void vscode.window.showErrorMessage(msg.message);
-          break;
-      }
-    });
-
+    setWebviewHtml(webviewPanel.webview, this.context.extensionUri);
+    const session = new MapSession(document, webviewPanel, this.diagnostics);
+    const tracking = this.panels.track(webviewPanel, document.uri);
+    // Disposes itself with the panel; disposed here as well so nothing outlives the editor.
+    const themeBridge = connectThemeBridge(vscode, webviewPanel, { themes: WEBVIEW_THEMES });
     webviewPanel.onDidDispose(() => {
-      changeSub.dispose();
-      messageSub.dispose();
+      tracking.dispose();
+      themeBridge.dispose();
+      session.dispose();
     });
-  }
-
-  private async replaceWholeDocument(
-    document: vscode.TextDocument,
-    text: string,
-    suppressEcho: Set<string>,
-  ): Promise<void> {
-    if (document.getText() === text) return;
-    // Register first (synchronously, before applyEdit), so the resulting change event is reliably
-    // recognized as an echo. Only add when a write actually happens (not a no-op above) -> no
-    // orphaned set entries.
-    suppressEcho.add(text);
-    const edit = new vscode.WorkspaceEdit();
-    const fullRange = new vscode.Range(
-      document.positionAt(0),
-      document.positionAt(document.getText().length),
-    );
-    edit.replace(document.uri, fullRange, text);
-    const ok = await vscode.workspace.applyEdit(edit);
-    if (!ok) suppressEcho.delete(text); // write failed (e.g. read-only) -> no echo
   }
 }

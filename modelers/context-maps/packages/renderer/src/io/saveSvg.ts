@@ -9,9 +9,13 @@ import { isCmContext } from "../model/di-types.js";
 
 const MARGIN = 40;
 
+/** What the live canvas <svg> carries for keyboard and screen-reader users, not for a picture. */
+const LIVE_CANVAS_ATTRIBUTES = ["tabindex", "role", "aria-label"];
+
 export function saveSVG(canvas: Canvas, elementRegistry: ElementRegistry): { svg: string } {
-  const container = canvas.getContainer();
-  const source = container.querySelector("svg");
+  // The container's own <svg> child: a chrome that moves the palette in front of it (the modeler
+  // shell does) puts the palette's icon <svg>s first in the container.
+  const source = canvas.getContainer().querySelector(":scope > svg");
   if (!source) throw new Error("No SVG found in the canvas container.");
 
   // Content bounds from the context boxes (relationship lines stay within them).
@@ -40,6 +44,7 @@ export function saveSVG(canvas: Canvas, elementRegistry: ElementRegistry): { svg
   const height = maxY - minY + MARGIN * 2;
 
   const clone = source.cloneNode(true) as SVGSVGElement;
+  for (const attribute of LIVE_CANVAS_ATTRIBUTES) clone.removeAttribute(attribute);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   clone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
   clone.setAttribute("width", String(Math.round(width)));

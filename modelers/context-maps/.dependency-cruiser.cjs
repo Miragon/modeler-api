@@ -1,7 +1,8 @@
 /**
  * DOM-boundary enforcement at the module-graph level. Complements the ESLint rule: forbids the
- * DOM-free package (schema-model) from depending on diagram-js / DOM libraries or on the
- * DOM-dependent @miragon/context-maps-renderer.
+ * DOM-free packages (schema-model, cml) from depending on diagram-js / DOM libraries or on the
+ * DOM-dependent @miragon/context-maps-renderer, keeps @miragon/modeler-shell out of every package
+ * and lets the DOM-free packages take only types from @miragon/modeler-api.
  */
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -19,6 +20,23 @@ module.exports = {
       severity: "error",
       from: { path: "^packages/(schema-model|cml)/src" },
       to: { path: "^packages/renderer/src" },
+    },
+    {
+      name: "packages-no-shell",
+      comment:
+        "The renderer and the DOM-free packages never import @miragon/modeler-shell; only the apps " +
+        "mount the shell (dependency direction of Miragon/modeler-api#4).",
+      severity: "error",
+      from: { path: "^packages/[^/]+/src" },
+      // Matches the specifier too, so an import that does not resolve from the package fails.
+      to: { path: "@miragon/modeler-shell" },
+    },
+    {
+      name: "dom-free-contract-types-only",
+      comment: "DOM-free packages take only types from @miragon/modeler-api, never runtime code.",
+      severity: "error",
+      from: { path: "^packages/(schema-model|cml)/src" },
+      to: { path: "@miragon/modeler-api", dependencyTypesNot: ["type-only"] },
     },
     {
       name: "no-circular",

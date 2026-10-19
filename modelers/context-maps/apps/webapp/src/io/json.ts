@@ -1,26 +1,18 @@
-/** Import/export of the native, deterministic `.cm.json` document format. */
+/** The map's own file: the canonical `.cm.json` text, deterministic and lossless. */
 
-import { serializeDocument } from "@miragon/context-maps-schema-model";
-import { parseDocument, type ParseResult } from "@miragon/context-maps-schema-model";
+import { parseDocumentText, serializeDocumentText } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
-import { downloadBlob, slugify } from "./download";
+import { downloadText } from "./download";
 
 export const JSON_EXTENSION = ".cm.json";
 
-export function exportJson(doc: CmDocument): void {
-  const json = serializeDocument(doc, true);
-  const blob = new Blob([json], { type: "application/json" });
-  downloadBlob(`${slugify(doc.title)}${JSON_EXTENSION}`, blob);
+export function exportJson(doc: CmDocument, fileName: string): void {
+  downloadText(fileName, serializeDocumentText(doc), "application/json");
 }
 
-export async function importJsonFile(file: File): Promise<ParseResult> {
-  try {
-    const text = await file.text();
-    return parseDocument(JSON.parse(text));
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Could not read file",
-    };
-  }
+/** Reads a `.cm`, `.cm.json` or `.json` file as a map; throws with the reason when it is none. */
+export async function readMapFile(file: File): Promise<CmDocument> {
+  const parsed = parseDocumentText(await file.text());
+  if (!parsed.ok) throw new Error(parsed.error);
+  return parsed.document;
 }

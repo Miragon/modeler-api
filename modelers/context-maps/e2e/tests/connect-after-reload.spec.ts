@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { element, openMap, relationships } from "./support/app.js";
 
 // A share URL / saved file can contain relationships whose ids came from
 // diagram-js' session id counter (`connection_N`) of an earlier session. After
@@ -26,22 +27,14 @@ const DOC = {
 };
 
 test("drawing a connection in a reloaded document with counter-style ids", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => "__cmModeler" in window);
-  await page.evaluate(
-    (doc) =>
-      (
-        window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }
-      ).__cmModeler.importDocument(doc),
-    DOC,
-  );
+  await openMap(page, DOC);
 
-  const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
+  const a = (await element(page, "a").boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
   const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
   await expect(arm).toBeVisible();
   await arm.click();
-  const d = (await page.locator('.tt-canvas [data-element-id="d"]').boundingBox())!;
+  const d = (await element(page, "d").boundingBox())!;
   const tx = d.x + d.width / 2;
   const ty = d.y + d.height / 2;
 
@@ -49,16 +42,7 @@ test("drawing a connection in a reloaded document with counter-style ids", async
   await page.mouse.move(tx, ty, { steps: 6 });
   await page.mouse.click(tx, ty);
 
-  const rels = await page.evaluate(
-    () =>
-      (
-        window as unknown as {
-          __cmModeler: {
-            exportDocument(): { relationships: Array<{ id: string; from: string; to: string }> };
-          };
-        }
-      ).__cmModeler.exportDocument().relationships,
-  );
+  const rels = await relationships(page);
   expect(rels).toHaveLength(5);
   const created = rels.find((r) => r.from === "a" && r.to === "d")!;
   expect(created).toBeDefined();

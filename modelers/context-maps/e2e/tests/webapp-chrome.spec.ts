@@ -1,0 +1,569 @@
+import { expect, test, type Page } from "@playwright/test";
+import { SAMPLE_DOCUMENT, serializeDocumentText } from "@miragon/context-maps-schema-model";
+import {
+  exportMap,
+  mapLink,
+  mapText,
+  openExample,
+  openMap,
+  openMenu,
+  startScreen,
+  toast,
+  waitForApp,
+} from "./support/app.js";
+import { CML_WITH_UNKNOWN_ROLE, MAP_WITH_FINDINGS } from "./support/maps.js";
+
+/**
+ * The web app's side of the shell's web chrome: what it hands the shell (menu groups, primary
+ * action, legal links, start screen, drop zone) and its own handlers behind them (share link,
+ * replace with undo, open and import, drop, exports, app keys, problems, title, the browser's copy
+ * of the map). What the shell guarantees itself runs in webapp-shell-conformance.spec.ts.
+ */
+
+const EXAMPLE_TITLE = SAMPLE_DOCUMENT.title;
+
+function fileInput(page: Page) {
+  return page.locator('body > input[type="file"]');
+}
+
+async function menuLayout(page: Page): Promise<Array<string | null>> {
+  const dropdown = await openMenu(page);
+  return dropdown.evaluate((menu) =>
+    [...menu.querySelectorAll("[data-menu-id], [role='separator']")].map((entry) =>
+      entry.getAttribute("role") === "separator" ? "|" : entry.getAttribute("data-menu-id"),
+    ),
+  );
+}
+
+/** A file drag and drop on the page, as the browser delivers one (the drop zone listens on window). */
+async function dropFile(page: Page, name: string, type: string, text: string): Promise<void> {
+  await page.evaluate(
+    ({ name, type, text }) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([text], name, { type }));
+      for (const event of ["dragenter", "dragover", "drop"]) {
+        document.body.dispatchEvent(
+          new DragEvent(event, { dataTransfer: transfer, bubbles: true, cancelable: true }),
+        );
+      }
+    },
+    { name, type, text },
+  );
+}
+
+async function readDownload(page: Page, menuId: string): Promise<{ name: string; text: string }> {
+  const dropdown = await openMenu(page);
+  const download = page.waitForEvent("download");
+  await dropdown.locator(`[data-menu-id="${menuId}"]`).click();
+  const file = await download;
+  const chunks: Buffer[] = [];
+  for await (const chunk of await file.createReadStream()) chunks.push(chunk as Buffer);
+  return { name: file.suggestedFilename(), text: Buffer.concat(chunks).toString("utf8") };
+}
+
+function selectedIds(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    window.__cmModeler
+      .get<{ get(): Array<{ id: string }> }>("selection")
+      .get()
+      .map((selected) => selected.id),
+  );
+}
+
+test.describe("webapp: the shell web chrome and the app behind it", () => {
+  test("the start screen hides the work chrome until a map starts", async ({ page }) => {
+    await page.goto("/");
+    await waitForApp(page);
+
+    await expect(startScreen(page)).toBeVisible();
+    await expect(startScreen(page).getByRole("heading", { level: 1 })).toHaveText(
+      "Context Maps Modeler",
+    );
+    await expect(startScreen(page)).toContainText("Or drop a .cm, .json, or .cml file here");
+    await expect(page).toHaveTitle("Context Maps Modeler");
+    for (const island of ["menu", "primary", "palette", "zoom"]) {
+      await expect(page.locator(`[data-chrome="${island}"]`)).toBeHidden();
+    }
+    await expect(page.locator('[data-chrome="legal"]')).toBeVisible();
+
+    await startScreen(page).getByRole("button", { name: "New diagram" }).click();
+    await expect(startScreen(page)).toBeHidden();
+    for (const island of ["menu", "primary", "palette", "zoom"]) {
+      await expect(page.locator(`[data-chrome="${island}"]`)).toBeVisible();
+    }
+    await expect(page.locator('[data-chrome="zoom"] [data-zoom="actual"]')).toHaveText("100%");
+    expect(new URL(page.url()).hash).toBe("");
+  });
+
+  test("a shared link opens its map at once, without the start screen", async ({ page }) => {
+    await openMap(page, SAMPLE_DOCUMENT);
+
+    await expect(startScreen(page)).toBeHidden();
+    expect((await exportMap(page)).title).toBe(EXAMPLE_TITLE);
+    await expect(page.locator('[data-chrome="primary"]')).toBeVisible();
+    await expect(page).toHaveTitle(`${EXAMPLE_TITLE} · Context Maps Modeler`);
+  });
+
+  test("a link cut off when it was copied shows a danger toast on the start screen", async ({
+    page,
+  }) => {
+    await page.goto("/#d=!!!not-a-map");
+    await waitForApp(page);
+
+    await expect(startScreen(page)).toBeVisible();
+    await expect(toast(page, "Check that you copied the whole link.")).toHaveAttribute(
+      "data-status",
+      "danger",
+    );
+  });
+
+  test("the menu holds File, Model, Export and Help; no Appearance, no Undo", async ({ page }) => {
+    await openExample(page);
+
+    expect(await menuLayout(page)).toEqual([
+      "new-diagram",
+      "open",
+      "show-example",
+      "import",
+      "|",
+      "map-title",
+      "legend",
+      "|",
+      "export-png",
+      "export-svg",
+      "export-json",
+      "export-cml",
+      "|",
+      "keyboard-shortcuts",
+    ]);
+    const dropdown = page.locator(".cd-shell-menu[role='menu']");
+    await expect(dropdown.locator('[data-menu-id="open"]')).toHaveText(/Open…\s*(⌘|Ctrl\+)O/);
+    await expect(dropdown.locator('[data-menu-id="export-json"]')).toHaveText(
+      /Export as JSON\s*(⌘|Ctrl\+)S/,
+    );
+    await expect(dropdown.locator('[data-menu-group="appearance"]')).toHaveCount(0);
+    await expect(dropdown.getByRole("menuitem", { name: /undo|redo/i })).toHaveCount(0);
+  });
+
+  test("Share copies the link, writes it into the address bar and confirms with a toast", async ({
+    page,
+    context,
+    browserName,
+  }) => {
+    test.skip(
+      browserName !== "chromium",
+      "Playwright grants clipboard permissions in Chromium only",
+    );
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openExample(page);
+
+    await page.locator('[data-chrome="primary"]').click();
+
+    await expect(toast(page, "Link copied")).toHaveAttribute("data-status", "success");
+    // Screen readers hear it through the shell's polite live region.
+    await expect(page.locator(".cd-shell-live [role='status']")).toHaveText("Link copied");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/\/#d=[\w$+-]+$/);
+    expect(copied).toBe(page.url());
+
+    const shared = await context.newPage();
+    await shared.goto(copied);
+    await waitForApp(shared);
+    expect(await mapText(shared)).toBe(await mapText(page));
+  });
+
+  test("a refused copy points at the address bar", async ({ page }) => {
+    await openExample(page);
+    await page.evaluate(() => {
+      const refuse = () => Promise.reject(new DOMException("denied", "NotAllowedError"));
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: refuse, write: refuse },
+      });
+    });
+
+    await page.locator('[data-chrome="primary"]').click();
+
+    await expect(
+      toast(page, "Couldn't copy the link. Copy it from the address bar instead."),
+    ).toHaveAttribute("data-status", "danger");
+    expect(new URL(page.url()).hash).toMatch(/^#d=/);
+  });
+
+  test("replacing a map offers Undo instead of asking first", async ({ page }) => {
+    await openExample(page);
+    const example = await mapText(page);
+
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect.poll(async () => (await exportMap(page)).contexts.length).toBe(0);
+
+    const offer = toast(page, "Map replaced");
+    await expect(offer).toBeVisible();
+    await offer.getByRole("button", { name: "Undo" }).click();
+    await expect.poll(() => mapText(page)).toBe(example);
+    await expect(offer).toBeHidden();
+  });
+
+  test("an edit after a replacement withdraws the undo offer", async ({ page }) => {
+    await openExample(page);
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect(toast(page, "Map replaced")).toBeVisible();
+
+    await page.locator('.djs-palette [data-action="context.core"]').focus();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+
+    await expect(toast(page, "Map replaced")).toBeHidden();
+    expect((await exportMap(page)).contexts).toHaveLength(1);
+  });
+
+  test("Cmd/Ctrl+Z takes back a replaced map while the canvas has nothing to undo", async ({
+    page,
+  }) => {
+    await openMap(page, SAMPLE_DOCUMENT);
+    const example = await mapText(page);
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect.poll(async () => (await exportMap(page)).contexts.length).toBe(0);
+    await expect(toast(page, "Map replaced")).toBeVisible();
+
+    await page.locator(".cd-shell-canvas svg[tabindex]").focus();
+    await page.keyboard.press("ControlOrMeta+Z");
+
+    await expect.poll(() => mapText(page)).toBe(example);
+    await expect(toast(page, "Map replaced")).toBeHidden();
+  });
+
+  test("Open… reads a .cm.json file and replaces the map", async ({ page }) => {
+    await openMap(page, MAP_WITH_FINDINGS);
+
+    await fileInput(page).setInputFiles({
+      name: "conference.cm.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(serializeDocumentText(SAMPLE_DOCUMENT)),
+    });
+
+    await expect.poll(async () => (await exportMap(page)).title).toBe(EXAMPLE_TITLE);
+    await expect(toast(page, "Map replaced")).toBeVisible();
+    await expect(page).toHaveTitle(`${EXAMPLE_TITLE} · Context Maps Modeler`);
+  });
+
+  test("a file that is no map shows a danger toast and keeps the map", async ({ page }) => {
+    await openExample(page);
+    const before = await mapText(page);
+
+    await fileInput(page).setInputFiles({
+      name: "bad.json",
+      mimeType: "application/json",
+      buffer: Buffer.from('{ "contexts": '),
+    });
+
+    await expect(
+      toast(page, "Couldn't read “bad.json”. Check that it contains a valid context map."),
+    ).toHaveAttribute("data-status", "danger");
+    expect(await mapText(page)).toBe(before);
+  });
+
+  test("Import… reads Context Mapper CML; what it skips goes to the pill and its list", async ({
+    page,
+  }) => {
+    await openExample(page);
+    const dropdown = await openMenu(page);
+    const chooser = page.waitForEvent("filechooser");
+    await dropdown.locator('[data-menu-id="import"]').click();
+    await (
+      await chooser
+    ).setFiles({
+      name: "shop.cml",
+      mimeType: "",
+      buffer: Buffer.from(CML_WITH_UNKNOWN_ROLE),
+    });
+
+    await expect.poll(async () => (await exportMap(page)).title).toBe("Shop");
+    await expect(
+      toast(page, "Imported with 1 warning. Details under “1 problem” bottom left."),
+    ).toHaveAttribute("data-status", "warning");
+    const pill = page.locator('[data-chrome="problems"]');
+    await expect(pill).toHaveText("1 problem");
+    await pill.click();
+    const list = page.locator('[data-chrome="problems-popover"]');
+    await expect(list.locator(".cd-shell-problem-message")).toContainText(["BAD"]);
+    await expect(list.locator(".cd-shell-problem-location")).toHaveText(["shop.cml"]);
+  });
+
+  test("the problems list names each finding's relationship and selects it", async ({ page }) => {
+    await openMap(page, MAP_WITH_FINDINGS);
+    const pill = page.locator('[data-chrome="problems"]');
+    await expect(pill).toHaveText("3 problems");
+    await expect(pill).toHaveAttribute("aria-label", "3 problems, 2 errors");
+
+    await pill.click();
+    const list = page.locator('[data-chrome="problems-popover"]');
+    await expect(list.locator(".cd-shell-problem-location")).toHaveText([
+      "“Ordering” → “Billing”",
+      "“Ordering” → “Billing”",
+      "“Billing” → “Shipping”",
+    ]);
+    await list.locator(".cd-shell-problem").nth(2).click();
+    await expect(list).toBeHidden();
+    expect(await selectedIds(page)).toEqual(["rel_bill_ship"]);
+  });
+
+  test("the pill follows the map: fixing a finding on the canvas takes it off", async ({
+    page,
+  }) => {
+    await openMap(page, MAP_WITH_FINDINGS);
+    await expect(page.locator('[data-chrome="problems"]')).toHaveText("3 problems");
+
+    await page.evaluate(() => {
+      const registry = window.__cmModeler.get<{ get(id: string): unknown }>("elementRegistry");
+      window.__cmModeler
+        .get<{ removeElements(elements: unknown[]): void }>("modeling")
+        .removeElements([registry.get("rel_bill_ship")]);
+    });
+
+    await expect(page.locator('[data-chrome="problems"]')).toHaveText("2 problems");
+  });
+
+  test("a .cml file dropped on the start screen opens", async ({ page }) => {
+    await page.goto("/");
+    await waitForApp(page);
+
+    await dropFile(page, "shop.cml", "", CML_WITH_UNKNOWN_ROLE);
+
+    await expect(startScreen(page)).toBeHidden();
+    await expect.poll(async () => (await exportMap(page)).title).toBe("Shop");
+    await expect(page.locator('[data-chrome="palette"]')).toBeVisible();
+  });
+
+  test("the exports download under the map's name and confirm with a toast", async ({ page }) => {
+    await openMap(page, { ...SAMPLE_DOCUMENT, title: "Conference Planner" });
+
+    for (const [id, fileName] of [
+      ["export-png", "conference-planner.png"],
+      ["export-svg", "conference-planner.svg"],
+      ["export-json", "conference-planner.cm.json"],
+      ["export-cml", "conference-planner.cml"],
+    ] as const) {
+      const { name } = await readDownload(page, id);
+      expect(name).toBe(fileName);
+      await expect(toast(page, `Exported ${fileName}.`)).toBeVisible();
+    }
+  });
+
+  test("the JSON export is the canonical file and opens as the same map", async ({ page }) => {
+    await openExample(page);
+    const { text } = await readDownload(page, "export-json");
+    expect(text).toBe(await mapText(page));
+    const { text: cml } = await readDownload(page, "export-cml");
+    expect(cml).toContain("ContextMap");
+
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await fileInput(page).setInputFiles({
+      name: "again.cm.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(text),
+    });
+    await expect.poll(() => mapText(page)).toBe(text);
+  });
+
+  test("Cmd/Ctrl+O opens the file picker and Cmd/Ctrl+S exports the map as JSON", async ({
+    page,
+  }) => {
+    await openMap(page, { ...SAMPLE_DOCUMENT, title: "Conference Planner" });
+
+    const chooser = page.waitForEvent("filechooser");
+    await page.keyboard.press("ControlOrMeta+O");
+    expect((await chooser).isMultiple()).toBe(false);
+
+    const download = page.waitForEvent("download");
+    await page.keyboard.press("ControlOrMeta+S");
+    expect((await download).suggestedFilename()).toBe("conference-planner.cm.json");
+  });
+
+  test("Cmd/Ctrl+S saves nothing on the start screen, and never reaches the browser", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await waitForApp(page);
+    const downloads: string[] = [];
+    page.on("download", (download) => downloads.push(download.suggestedFilename()));
+    const prevented = page.evaluate(
+      () =>
+        new Promise<boolean>((resolve) =>
+          window.addEventListener("keydown", (event) => {
+            if (event.key.toLowerCase() === "s") resolve(event.defaultPrevented);
+          }),
+        ),
+    );
+
+    await page.keyboard.press("ControlOrMeta+S");
+
+    expect(await prevented).toBe(true);
+    await page.waitForTimeout(300);
+    expect(downloads).toEqual([]);
+    await expect(page.locator('[data-chrome="toasts"] .cd-shell-toast')).toHaveCount(0);
+    await expect(startScreen(page)).toBeVisible();
+  });
+
+  test("the start screen opens a file from its hint, without the hidden menu", async ({ page }) => {
+    await page.goto("/");
+    await waitForApp(page);
+    const open = startScreen(page).getByRole("button", { name: "Open a file…" });
+    await expect(open).toHaveAttribute("aria-keyshortcuts", /^(Meta|Control)\+O$/);
+
+    const chooser = page.waitForEvent("filechooser");
+    await open.click();
+    await (
+      await chooser
+    ).setFiles({
+      name: "conference.cm",
+      mimeType: "",
+      buffer: Buffer.from(serializeDocumentText(SAMPLE_DOCUMENT)),
+    });
+
+    await expect(startScreen(page)).toBeHidden();
+    await expect.poll(async () => (await exportMap(page)).title).toBe(EXAMPLE_TITLE);
+  });
+
+  test("Map title… renames the map; the tab, the link and the history follow", async ({ page }) => {
+    await openExample(page);
+    await (await openMenu(page)).locator('[data-menu-id="map-title"]').click();
+    const dialog = page.getByRole("dialog", { name: "Map title" });
+    await expect(dialog).toBeVisible();
+    const field = dialog.getByRole("textbox", { name: "Title" });
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue(EXAMPLE_TITLE);
+
+    await field.fill("Conference Planner");
+    await dialog.getByRole("button", { name: "Apply" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('[data-chrome="menu"]')).toBeFocused();
+    await expect(page).toHaveTitle("Conference Planner · Context Maps Modeler");
+    expect((await exportMap(page)).title).toBe("Conference Planner");
+    const link = page.url();
+    expect(link).toContain("#d=");
+
+    await page.locator(".cd-shell-canvas svg[tabindex]").focus();
+    await page.keyboard.press("ControlOrMeta+Z");
+    await expect.poll(async () => (await exportMap(page)).title).toBe(EXAMPLE_TITLE);
+
+    const shared = await page.context().newPage();
+    await shared.goto(link);
+    await waitForApp(shared);
+    expect((await exportMap(shared)).title).toBe("Conference Planner");
+  });
+
+  test("the browser keeps the map: a visit without a link restores it", async ({ page }) => {
+    await openExample(page);
+    await page.locator('.djs-palette [data-action="context.core"]').focus();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    const edited = await mapText(page);
+
+    await page.goto("/");
+    await waitForApp(page);
+
+    await expect(startScreen(page)).toBeHidden();
+    expect(await mapText(page)).toBe(edited);
+  });
+
+  test("a copy the app cannot open stays in the browser, and a toast says so", async ({ page }) => {
+    const newer = JSON.stringify({
+      version: 2,
+      title: "Saved by a newer modeler",
+      contexts: [],
+      relationships: [],
+    });
+    await page.goto("/");
+    await waitForApp(page);
+    await page.evaluate((text) => localStorage.setItem("cm-modeler:document:v1", text), newer);
+
+    await page.reload();
+    await waitForApp(page);
+
+    await expect(startScreen(page)).toBeVisible();
+    await expect(toast(page, "Couldn't open the map saved in this browser.")).toHaveAttribute(
+      "data-status",
+      "danger",
+    );
+    expect(await page.evaluate(() => localStorage.getItem("cm-modeler:document:v1"))).toBe(newer);
+  });
+
+  test("the legend remembers whether it is open", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openExample(page);
+    const legend = page.locator('[data-chrome="legend"]');
+    await expect(legend).toBeVisible();
+
+    await legend.getByRole("button", { name: "Close legend" }).click();
+    await expect(legend).toBeHidden();
+    await page.reload();
+    await waitForApp(page);
+    await expect(legend).toBeHidden();
+
+    await (await openMenu(page)).locator('[data-menu-id="legend"]').click();
+    await expect(legend).toBeVisible();
+    await page.reload();
+    await waitForApp(page);
+    await expect(legend).toBeVisible();
+  });
+
+  test("the shortcuts dialog lists the file keys first and returns the focus", async ({ page }) => {
+    await openExample(page);
+
+    await (await openMenu(page)).locator('[data-menu-id="keyboard-shortcuts"]').click();
+    const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("h4")).toHaveText(["File", "View", "Edit", "Tools"]);
+    await expect(dialog.getByRole("row", { name: /Open…/ })).toContainText(/(⌘|Ctrl\+)O/);
+    await expect(dialog.getByRole("row", { name: /Export as JSON/ })).toContainText(/(⌘|Ctrl\+)S/);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('[data-chrome="menu"]')).toBeFocused();
+  });
+
+  test("the legal line names Miragon GmbH and keeps Impressum and Datenschutz German", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await waitForApp(page);
+
+    const legal = page.locator('[data-chrome="legal"]');
+    const year = new Date().getFullYear();
+    await expect(legal.getByRole("link", { name: `© ${year} Miragon GmbH` })).toHaveAttribute(
+      "href",
+      "https://www.miragon.io/",
+    );
+    for (const [name, href] of [
+      ["Impressum", "https://www.miragon.io/impressum/"],
+      ["Datenschutz", "https://www.miragon.io/datenschutz/"],
+    ] as const) {
+      const link = legal.getByRole("link", { name });
+      await expect(link).toHaveAttribute("href", href);
+      await expect(link).toHaveAttribute("lang", "de");
+    }
+    await expect(legal.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "href",
+      "https://github.com/Miragon/context-maps-modeler",
+    );
+  });
+
+  test("a link pasted into the open tab replaces the map, with Undo", async ({ page }) => {
+    await openMap(page, SAMPLE_DOCUMENT);
+    const example = await mapText(page);
+
+    const pasted = mapLink(MAP_WITH_FINDINGS);
+    await page.evaluate(
+      (hash) => {
+        location.hash = hash;
+      },
+      pasted.slice(pasted.indexOf("#") + 1),
+    );
+
+    await expect.poll(async () => (await exportMap(page)).title).toBe("Findings");
+    await toast(page, "Map replaced").getByRole("button", { name: "Undo" }).click();
+    await expect.poll(() => mapText(page)).toBe(example);
+  });
+});

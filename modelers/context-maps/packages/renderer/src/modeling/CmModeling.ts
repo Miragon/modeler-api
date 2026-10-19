@@ -17,9 +17,11 @@ import type { CmContext, CmElement, CmRelationship } from "../model/di-types.js"
 import { isCmRelationship } from "../model/di-types.js";
 import UpdatePropertiesHandler from "./cmd/UpdatePropertiesHandler.js";
 import SwapEndsHandler, { type SwapEndsContext } from "./cmd/SwapEndsHandler.js";
+import UpdateTitleHandler, { type UpdateTitleContext } from "./cmd/UpdateTitleHandler.js";
 
 const UPDATE_PROPERTIES = "element.updateProperties";
 const SWAP_ENDS = "relationship.swapEnds";
+const UPDATE_TITLE = "map.updateTitle";
 
 export default class CmModeling {
   static $inject = ["commandStack", "elementRegistry", "graphicsFactory"];
@@ -31,6 +33,12 @@ export default class CmModeling {
   ) {
     commandStack.registerHandler(UPDATE_PROPERTIES, UpdatePropertiesHandler);
     commandStack.registerHandler(SWAP_ENDS, SwapEndsHandler);
+    commandStack.registerHandler(UPDATE_TITLE, UpdateTitleHandler);
+  }
+
+  /** Rename the diagram (undoable). Throws while no document is loaded. */
+  setTitle(title: string): void {
+    this.commandStack.execute(UPDATE_TITLE, { title } as UpdateTitleContext);
   }
 
   /**

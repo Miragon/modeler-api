@@ -13,7 +13,18 @@ export { Viewer } from "./Viewer.js";
 export { NavigatedViewer } from "./NavigatedViewer.js";
 export { Modeler } from "./Modeler.js";
 export { CmBaseViewer } from "./CmBaseViewer.js";
-export type { CmViewerOptions, EventCallback } from "./CmBaseViewer.js";
+export type { CmViewerOptions, EventCallback, FreeRectInsets } from "./CmBaseViewer.js";
+
+// The collaborative-modeler contract of @miragon/modeler-api (editor and viewer mounts)
+export {
+  CONTEXT_MAPS_NOTATION,
+  createCollaborativeModeler,
+  createCollaborativeViewer,
+} from "./collaborative/index.js";
+export type {
+  CollaborativeContextMapsModeler,
+  CollaborativeContextMapsOptions,
+} from "./collaborative/index.js";
 
 // Modules (for additionalModules / extension) + their services
 export { cmModelModule, CmElementFactory } from "./model/index.js";
@@ -23,12 +34,49 @@ export { cmModelingModule, CmModeling } from "./modeling/index.js";
 export { cmRulesModule, CmRules } from "./rules/index.js";
 export { cmBehaviorsModule, CmFlatModelBehavior } from "./behaviors/index.js";
 export { cmPaletteModule, CmPaletteProvider } from "./palette/index.js";
+export type { CmPaletteConfig } from "./palette/index.js";
 export { cmConnectHandlesModule, CmConnectHandles } from "./connect-handles/index.js";
 export { cmContextPadModule, CmContextPadProvider } from "./context-pad/index.js";
-export { cmLegendModule, CmLegend } from "./legend/index.js";
+export { cmLegendModule, CmLegend, legendGroups, renderLegend } from "./legend/index.js";
+export type { LegendGroup, LegendRenderOptions, LegendRow, LegendTooltip } from "./legend/index.js";
+export { cmHoverTooltipModule, CmHoverTooltip, hoverTipFor } from "./hover-tooltip/index.js";
 export { cmLabelEditingModule, CmLabelEditing } from "./label-editing/index.js";
 export { cmKeyboardModule, CmKeyboard } from "./keyboard/index.js";
+export type { CmKeyboardConfig } from "./keyboard/index.js";
+export { cmReadOnlyModule, CmReadOnly, READ_ONLY_CHANGED_EVENT } from "./read-only/index.js";
 export { cmZOrderModule, CmZOrder } from "./zorder/index.js";
+
+// The map's part of a host's chrome: menu entries, the keyboard shortcuts and the title dialogs
+export {
+  JSON_EXPORT_LABEL,
+  contextMapMenu,
+  contextMapShortcuts,
+  createShortcutsDialog,
+  createTitleDialog,
+} from "./chrome/index.js";
+export type {
+  ChromeDialog,
+  ContextMapShortcutOptions,
+  DialogChrome,
+  MapExport,
+  MapExports,
+  MapMenu,
+  MapMenuAction,
+  MapMenuActions,
+  MapMenuDialog,
+  MapMenuEntry,
+  MapMenuIcon,
+  MapTitle,
+  ShortcutGroup,
+  ShortcutKeyNames,
+  ShortcutPlatform,
+  ShortcutRow,
+  ShortcutsChrome,
+  ShortcutsDialog,
+  ShortcutsDialogChrome,
+  TitleDialog,
+  TitleDialogChrome,
+} from "./chrome/index.js";
 
 // Runtime types & guards
 export { isCmElement, isCmContext, isCmRelationship } from "./model/di-types.js";

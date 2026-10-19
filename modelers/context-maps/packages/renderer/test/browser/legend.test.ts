@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { Modeler, NavigatedViewer, cmLegendModule } from "@miragon/context-maps-renderer";
+import {
+  Modeler,
+  NavigatedViewer,
+  cmLegendModule,
+  renderLegend,
+} from "@miragon/context-maps-renderer";
 import type { CmLegend } from "@miragon/context-maps-renderer";
 import { emptyDocument } from "@miragon/context-maps-schema-model";
 
@@ -11,9 +16,9 @@ function mountContainer(): HTMLDivElement {
   return container;
 }
 
-test("the modeler shows the full notation legend and collapses to a button", () => {
+test("the legend card shows the full notation legend and collapses to a button", () => {
   const container = mountContainer();
-  const modeler = new Modeler({ container });
+  const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
   try {
     modeler.importDocument(emptyDocument("m"));
 
@@ -45,7 +50,7 @@ test("the modeler shows the full notation legend and collapses to a button", () 
 
 test("the legend service is controllable by hosts", () => {
   const container = mountContainer();
-  const modeler = new Modeler({ container });
+  const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
   try {
     const legend = modeler.get<CmLegend>("cmLegend");
     expect(legend.isOpen()).toBe(true);
@@ -58,6 +63,48 @@ test("the legend service is controllable by hosts", () => {
     modeler.destroy();
     container.remove();
   }
+});
+
+test("the modeler leaves the legend to its host's chrome", () => {
+  const container = mountContainer();
+  const modeler = new Modeler({ container });
+  try {
+    modeler.importDocument(emptyDocument("m"));
+    expect(container.querySelector(".cm-legend, .cm-legend-toggle")).toBeNull();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("renderLegend fills a chrome's legend body with the shell's rows and tooltips", () => {
+  const body = document.createElement("div");
+  const attached: Array<{ control: HTMLElement; label: string }> = [];
+  const detach = renderLegend(body, {
+    tooltip: {
+      attach(control, content) {
+        attached.push({ control, label: content.label });
+        return () =>
+          attached.splice(attached.indexOf(attached.find((a) => a.control === control)!), 1);
+      },
+    },
+  });
+  expect(body.querySelectorAll(".cd-shell-legend-row")).toHaveLength(12);
+  expect(body.querySelectorAll(".cd-shell-legend-preview svg")).toHaveLength(12);
+  expect(body.querySelectorAll(".cd-shell-legend-separator")).toHaveLength(2);
+  expect(
+    [...body.querySelectorAll('[role="group"]')].map((g) => g.getAttribute("aria-label")),
+  ).toEqual(["Subdomain types", "Integration roles", "Relationship patterns"]);
+  expect(body.textContent).toContain("SK · Shared Kernel");
+  expect(body.querySelector("[title]")).toBeNull();
+  expect(attached).toHaveLength(12);
+  expect(attached[0]!.label).toContain("Business-critical");
+  detach();
+  expect(attached).toHaveLength(0);
+
+  const withoutTooltip = document.createElement("div");
+  renderLegend(withoutTooltip);
+  expect(withoutTooltip.querySelectorAll(".cm-visually-hidden")).toHaveLength(12);
 });
 
 test("viewers stay legend-free unless the module is added explicitly", () => {

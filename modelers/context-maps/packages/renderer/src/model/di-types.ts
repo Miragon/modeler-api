@@ -29,6 +29,8 @@ export interface CmContext extends Shape {
   description?: string;
   fill?: string;
   stroke?: string;
+  /** Keys of the document's context this version does not know, written back on export. */
+  cmForeign?: Record<string, unknown>;
 }
 
 export interface CmRelationship extends Connection {
@@ -39,6 +41,8 @@ export interface CmRelationship extends Connection {
   cmLabel?: string;
   description?: string;
   implementationTechnology?: string;
+  /** Keys of the document's relationship this version does not know, written back on export. */
+  cmForeign?: Record<string, unknown>;
 }
 
 export type CmElement = CmContext | CmRelationship;

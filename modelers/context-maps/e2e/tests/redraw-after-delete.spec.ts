@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { element, openMap, relationships } from "./support/app.js";
 
 const DOC = {
   version: 1,
@@ -10,21 +11,15 @@ const DOC = {
   relationships: [],
 };
 
-const rels = (page: import("@playwright/test").Page) =>
-  page.evaluate(
-    () =>
-      (
-        window as unknown as { __cmModeler: { exportDocument(): { relationships: unknown[] } } }
-      ).__cmModeler.exportDocument().relationships,
-  );
+const rels = relationships;
 
-async function drawLine(page: import("@playwright/test").Page) {
-  const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
+async function drawLine(page: Page) {
+  const a = (await element(page, "a").boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
   const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
   await arm.waitFor();
   await arm.click();
-  const b = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
+  const b = (await element(page, "b").boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
 }
@@ -34,15 +29,7 @@ async function drawLine(page: import("@playwright/test").Page) {
 // pad's one-shot click blocker keeps the finishing click from re-selecting the
 // target) — and the VERY NEXT click after any of it must select normally.
 test("draw, delete via inspector, immediately draw again", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => "__cmModeler" in window);
-  await page.evaluate(
-    (doc) =>
-      (
-        window as unknown as { __cmModeler: { importDocument(d: unknown): unknown } }
-      ).__cmModeler.importDocument(doc),
-    DOC,
-  );
+  await openMap(page, DOC);
 
   await drawLine(page);
   expect(await rels(page)).toHaveLength(1);
@@ -52,7 +39,7 @@ test("draw, delete via inspector, immediately draw again", async ({ page }) => {
   expect(await rels(page)).toHaveLength(0);
 
   // no waiting: the immediate next click on A must select it (context pad shows)
-  const a = (await page.locator('.tt-canvas [data-element-id="a"]').boundingBox())!;
+  const a = (await element(page, "a").boundingBox())!;
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);
   await expect(page.locator(".djs-context-pad.open")).toBeVisible();
 

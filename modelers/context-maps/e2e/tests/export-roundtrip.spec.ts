@@ -1,48 +1,19 @@
-import { test, expect, type Page } from "@playwright/test";
-
-/**
- * Typed handle to the app's debug surface (exposed in apps/webapp/src/ui/DiagramCanvas.tsx). We never
- * import the renderer here — only the structural shape we call into. Kept minimal so @miragon/context-maps-e2e
- * stays free of @miragon/context-maps-* dependencies.
- */
-interface CmModeler {
-  importDocument(doc: unknown): { warnings: ReadonlyArray<unknown> };
-  exportDocument(): {
-    title: string;
-    contexts: ReadonlyArray<{ id: string; label: string; subdomainType?: string }>;
-    relationships: ReadonlyArray<{ id: string; pattern: string }>;
-  };
-  saveSVG(): { svg: string };
-}
-declare global {
-  interface Window {
-    __cmModeler: CmModeler;
-  }
-}
-
-async function waitForModeler(page: Page): Promise<void> {
-  await page.waitForFunction(() => typeof window.__cmModeler !== "undefined");
-}
+import { test, expect } from "@playwright/test";
+import { exportMap, openExample } from "./support/app.js";
 
 test.describe("webapp export round-trip", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await waitForModeler(page);
-    // The app boots onto an empty canvas fronted by the EmptyState card; load
-    // the bundled example via its "Show example" button so the round-trip
-    // tests operate on real content.
-    await page.locator(".tt-empty__example").click();
+    // The app starts on the start screen; its "Show example" loads the bundled example, so the
+    // round-trip tests operate on real content.
+    await openExample(page);
   });
 
   test("loads the example context map and exports stable JSON + SVG", async ({ page }) => {
-    // The renderer paints one .djs-element per bounded context / relationship once import.done fires.
-    await expect(page.locator(".tt-canvas .djs-element").first()).toBeVisible();
-
-    const doc = await page.evaluate(() => window.__cmModeler.exportDocument());
+    const doc = await exportMap(page);
     expect(doc.contexts.length).toBeGreaterThan(0);
     expect(doc.relationships.length).toBeGreaterThan(0);
 
-    const subdomainTypes = doc.contexts.map((c) => c.subdomainType);
+    const subdomainTypes = doc.contexts.map((context) => context.subdomainType);
     expect(subdomainTypes).toContain("core");
     expect(subdomainTypes).toContain("generic");
 
@@ -54,13 +25,13 @@ test.describe("webapp export round-trip", () => {
     const result = await page.evaluate(() => {
       const modeler = window.__cmModeler;
       const first = modeler.exportDocument();
-      modeler.importDocument(first); // round-trip
+      modeler.importDocument(first);
       return { first, second: modeler.exportDocument() };
     });
 
     // Re-importing the exported document yields the same set of contexts/relationships.
-    expect(result.second.contexts.map((c) => c.id).sort()).toEqual(
-      result.first.contexts.map((c) => c.id).sort(),
+    expect(result.second.contexts.map((context) => context.id).sort()).toEqual(
+      result.first.contexts.map((context) => context.id).sort(),
     );
     expect(result.second.relationships.length).toBe(result.first.relationships.length);
   });

@@ -17,6 +17,8 @@ const EXTERNAL = [
   "inherits-browser",
   "path-intersection",
   "@miragon/context-maps-schema-model",
+  "@miragon/modeler-api",
+  /^@miragon\/modeler-api\//,
 ];
 
 export default defineConfig({

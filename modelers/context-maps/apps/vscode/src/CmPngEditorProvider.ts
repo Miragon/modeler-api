@@ -1,20 +1,14 @@
 import * as vscode from "vscode";
-import { serializeDocument, DOCUMENT_VERSION } from "@miragon/context-maps-schema-model";
-import type { CmDocument } from "@miragon/context-maps-schema-model";
-import { getWebviewHtml } from "./webviewHtml.js";
+import { connectThemeBridge } from "@miragon/modeler-shell/vscode/extension";
+import { PNG_VIEW_TYPE, type ActivePanels } from "./commands.js";
+import { setWebviewHtml } from "./CmEditorProvider.js";
+import { toDiagnostics } from "./diagnostics.js";
+import { EMPTY_MAP, withExampleInserted } from "./examples.js";
 import { exportToFile } from "./exportImage.js";
-import { pickImportFile } from "./importFile.js";
 import { EMBED_KEYWORD, decodeDoc, pngExtractText } from "./png.js";
+import { mapProblems, problemCounts } from "./problems.js";
 import type { HostToWebview, WebviewToHost } from "./protocol.js";
-
-const EMPTY_DOCUMENT: CmDocument = {
-  version: DOCUMENT_VERSION,
-  title: "New context map",
-  contexts: [],
-  relationships: [],
-};
-
-const EMPTY_MAP = serializeDocument(EMPTY_DOCUMENT, true) + "\n";
+import { WEBVIEW_THEMES } from "./themes.js";
 
 /**
  * How long to wait for the webview's rasterized PNG before the save aborts. Generously sized:
@@ -75,12 +69,16 @@ interface PendingPng {
  * browser, not in the Node host).
  */
 export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDocument> {
-  public static readonly viewType = "contextMaps.pngEditor";
+  public static readonly viewType = PNG_VIEW_TYPE;
 
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+  public static register(
+    context: vscode.ExtensionContext,
+    panels: ActivePanels,
+    diagnostics: vscode.DiagnosticCollection,
+  ): vscode.Disposable {
     return vscode.window.registerCustomEditorProvider(
       CmPngEditorProvider.viewType,
-      new CmPngEditorProvider(context),
+      new CmPngEditorProvider(context, panels, diagnostics),
       {
         // Keep the modeler in memory for as long as the tab exists: needed so `saveCustomDocument`
         // can rasterize the diagram even with a hidden editor (otherwise no canvas -> no save).
@@ -90,7 +88,11 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
     );
   }
 
-  private constructor(private readonly context: vscode.ExtensionContext) {}
+  private constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly panels: ActivePanels,
+    private readonly diagnostics: vscode.DiagnosticCollection,
+  ) {}
 
   private readonly bindings = new Map<CmPngDocument, PanelBinding>();
 
@@ -132,14 +134,12 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
     _token: vscode.CancellationToken,
   ): Promise<void> {
     const webview = webviewPanel.webview;
-    webview.options = {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "dist")],
-    };
-    webview.html = getWebviewHtml(webview, this.context.extensionUri);
+    setWebviewHtml(webview, this.context.extensionUri);
 
     const binding: PanelBinding = { webview, pending: new Map(), nextId: 1 };
     this.bindings.set(document, binding);
+    const tracking = this.panels.track(webviewPanel, document.uri);
+    const themeBridge = connectThemeBridge(vscode, webviewPanel, { themes: WEBVIEW_THEMES });
 
     const post = (msg: HostToWebview): Thenable<boolean> => webview.postMessage(msg);
 
@@ -147,6 +147,7 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
       switch (msg.type) {
         case "ready":
           await post({ type: "init", text: document.text });
+          this.publishProblems(document);
           // New (empty) file: set "dirty" once so the first Cmd+S materializes a real PNG
           // (otherwise a 0-byte placeholder file sits there until the first edit).
           if (document.isNew && !document.seededDirty) {
@@ -157,19 +158,23 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
         case "edit":
           this.onWebviewEdit(document, msg.text);
           break;
+        case "insertExample": {
+          const text = withExampleInserted(document.text);
+          if (text === undefined) break;
+          // One edit of the document's history; the canvas learns about it through the update
+          // and fits, as after "Insert example" in the text editor.
+          this.onWebviewEdit(document, text);
+          await post({ type: "update", text });
+          break;
+        }
         case "export":
           await exportToFile(document.uri, msg.format, msg.data);
           break;
-        case "importRequest": {
-          const file = await pickImportFile();
-          if (file) await post({ type: "importFile", name: file.name, text: file.text });
-          break;
-        }
         case "pngResponse":
           this.resolvePng(binding, msg);
           break;
-        case "info":
-          void vscode.window.showInformationMessage(msg.message);
+        case "showProblems":
+          void vscode.commands.executeCommand("workbench.actions.view.problems");
           break;
         case "error":
           void vscode.window.showErrorMessage(msg.message);
@@ -179,6 +184,9 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
 
     webviewPanel.onDidDispose(() => {
       messageSub.dispose();
+      tracking.dispose();
+      themeBridge.dispose();
+      this.diagnostics.delete(document.uri);
       if (this.bindings.get(document) === binding) this.bindings.delete(document);
       // Cleanly abort pending save/backup roundtrips of this (now dead) webview. Snapshot first,
       // because reject() deletes from binding.pending (don't mutate the iterator during iteration).
@@ -193,12 +201,26 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
   // Edits / Undo-Redo (dirty state via the edit stack)
   // -------------------------------------------------------------------------
 
+  /**
+   * The embedded map's problems: in the Problems view (at the start of the file, since the PNG's
+   * bytes are not the text they were found in) and on the webview's pill.
+   */
+  private publishProblems(document: CmPngDocument): void {
+    const problems = mapProblems(document.text);
+    this.diagnostics.set(document.uri, toDiagnostics(document.text, problems, true));
+    void this.bindings.get(document)?.webview.postMessage({
+      type: "problems",
+      ...problemCounts(problems),
+    } satisfies HostToWebview);
+  }
+
   private onWebviewEdit(document: CmPngDocument, text: string): void {
     if (text === document.text) return;
     const before = document.text;
     const after = text;
     document.text = after;
     document.isNew = false;
+    this.publishProblems(document);
     // Undo/Redo post to the CURRENT webview (via `bindings`), not one captured when the edit was
     // created: if the editor is moved to another group, the original webview is disposed and
     // replaced by a new one — a captured `post` would otherwise go nowhere. Cf. revertCustomDocument.
@@ -207,10 +229,12 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
       label: "Edit diagram",
       undo: () => {
         document.text = before;
+        this.publishProblems(document);
         void this.bindings.get(document)?.webview.postMessage({ type: "update", text: before });
       },
       redo: () => {
         document.text = after;
+        this.publishProblems(document);
         void this.bindings.get(document)?.webview.postMessage({ type: "update", text: after });
       },
     });
@@ -278,6 +302,7 @@ export class CmPngEditorProvider implements vscode.CustomEditorProvider<CmPngDoc
     document.text = text;
     document.isNew = false;
     document.seededDirty = false;
+    this.publishProblems(document);
     await this.bindings.get(document)?.webview.postMessage({ type: "update", text });
   }
 

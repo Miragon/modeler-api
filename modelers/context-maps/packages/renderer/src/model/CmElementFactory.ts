@@ -6,13 +6,27 @@
 
 import type ElementFactory from "diagram-js/lib/core/ElementFactory";
 import type { Point } from "diagram-js/lib/util/Types";
-import { SUBDOMAIN_TYPE_SPECS } from "@miragon/context-maps-schema-model";
+import {
+  CONTEXT_KEYS,
+  RELATIONSHIP_KEYS,
+  SUBDOMAIN_TYPE_SPECS,
+  foreignFields,
+} from "@miragon/context-maps-schema-model";
 import type {
   BoundedContext,
   Relationship,
   SubdomainType,
 } from "@miragon/context-maps-schema-model";
 import type { CmContext, CmRelationship } from "./di-types.js";
+
+/** `{ cmForeign }` when `source` carries keys this version does not know, else nothing. */
+function foreignAttributes(
+  source: object,
+  knownKeys: readonly string[],
+): { cmForeign?: Record<string, unknown> } {
+  const foreign = foreignFields(source, knownKeys);
+  return Object.keys(foreign).length > 0 ? { cmForeign: foreign } : {};
+}
 
 export default class CmElementFactory {
   static $inject = ["elementFactory"];
@@ -40,6 +54,7 @@ export default class CmElementFactory {
       ...(ctx.description ? { description: ctx.description } : {}),
       ...(ctx.fill ? { fill: ctx.fill } : {}),
       ...(ctx.stroke ? { stroke: ctx.stroke } : {}),
+      ...foreignAttributes(ctx, CONTEXT_KEYS),
     } as Partial<CmContext>) as unknown as CmContext;
   }
 
@@ -63,6 +78,7 @@ export default class CmElementFactory {
       ...(rel.implementationTechnology
         ? { implementationTechnology: rel.implementationTechnology }
         : {}),
+      ...foreignAttributes(rel, RELATIONSHIP_KEYS),
     } as unknown as Partial<CmRelationship>) as unknown as CmRelationship;
   }
 

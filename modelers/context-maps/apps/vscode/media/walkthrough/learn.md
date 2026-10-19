@@ -20,8 +20,10 @@ Conformist (CF).
 
 **Working in the editor**
 
-- Drag a subdomain type from the palette onto the canvas, then click its label to rename it.
+- Drag a subdomain type from the palette onto the canvas (or press Enter on it), then double-click
+  the context to rename it.
 - Connect two contexts with a relationship, then pick its pattern and integration roles.
 - Select an element to get its context pad, which renames, connects or deletes it.
+- **Keyboard shortcuts…** in the menu at the top left lists every key.
 
-Your changes are saved straight back into the `.tt` file, so diagrams version nicely in Git.
+Your changes are saved straight back into the `.cm` file, so diagrams version nicely in Git.

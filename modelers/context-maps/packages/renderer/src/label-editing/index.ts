@@ -1,11 +1,12 @@
 import type { ModuleDeclaration } from "didi";
 import DirectEditingModule from "diagram-js-direct-editing";
 import { cmModelingModule } from "../modeling/index.js";
+import { cmReadOnlyModule } from "../read-only/index.js";
 import CmLabelEditing from "./CmLabelEditing.js";
 
 /** In-place name editing (double-click / context pad), bpmn.io style. */
 export const cmLabelEditingModule: ModuleDeclaration = {
-  __depends__: [DirectEditingModule, cmModelingModule],
+  __depends__: [DirectEditingModule, cmModelingModule, cmReadOnlyModule],
   __init__: ["cmLabelEditing"],
   cmLabelEditing: ["type", CmLabelEditing],
 };

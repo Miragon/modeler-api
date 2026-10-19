@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { element, openMap, relationships } from "./support/app.js";
 
 const DOC = {
   version: 1,
@@ -14,27 +15,18 @@ const DOC = {
 // connect arrow, drag — the native dragstart hands over to diagram-js and the
 // live preview follows — and release over the target context.
 test("dragging from the pad's connect arrow draws the line", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForFunction(() => "__cmModeler" in window);
-  await page.evaluate((doc) => {
-    const m = (
-      window as unknown as {
-        __cmModeler: {
-          importDocument(d: unknown): unknown;
-          get(n: string): unknown;
-        };
-      }
-    ).__cmModeler;
-    m.importDocument(doc);
-    const registry = m.get("elementRegistry") as { get(id: string): unknown };
-    (m.get("selection") as { select(el: unknown): void }).select(registry.get("a"));
-  }, DOC);
+  await openMap(page, DOC);
+  await page.evaluate(() => {
+    const modeler = window.__cmModeler;
+    const registry = modeler.get<{ get(id: string): unknown }>("elementRegistry");
+    modeler.get<{ select(element: unknown): void }>("selection").select(registry.get("a"));
+  });
 
   const arm = page.locator('.djs-context-pad.open [data-action="connect"]');
   await expect(arm).toBeVisible();
   const ab = (await arm.boundingBox())!;
 
-  const tb = (await page.locator('.tt-canvas [data-element-id="b"]').boundingBox())!;
+  const tb = (await element(page, "b").boundingBox())!;
   const tx = tb.x + tb.width / 2;
   const ty = tb.y + tb.height / 2;
 
@@ -46,14 +38,7 @@ test("dragging from the pad's connect arrow draws the line", async ({ page }) =>
   await page.mouse.move(tx, ty, { steps: 5 });
   await page.mouse.up();
 
-  const rels = await page.evaluate(
-    () =>
-      (
-        window as unknown as {
-          __cmModeler: { exportDocument(): { relationships: Array<Record<string, unknown>> } };
-        }
-      ).__cmModeler.exportDocument().relationships,
-  );
+  const rels = await relationships(page);
   expect(rels).toHaveLength(1);
   expect(rels[0]).toMatchObject({ from: "a", to: "b", pattern: "upstream-downstream" });
 });

@@ -1,39 +1,38 @@
 /**
- * Image export from the renderer's standalone SVG snapshot (`modeler.saveSVG()`).
- * SVG downloads directly; PNG is rasterised through a canvas at 2×.
+ * Picture export from the renderer's standalone SVG snapshot (`modeler.saveSVG()`): SVG as it is,
+ * PNG rasterised through a canvas at 2×, on white.
  */
 
-import { downloadBlob, slugify, triggerDownload } from "./download";
+import { downloadBlob, triggerDownload } from "./download";
 
-const BG = "#ffffff";
+const PNG_BACKGROUND = "#ffffff";
 
-export function downloadSvg(svg: string, title: string): void {
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  downloadBlob(`${slugify(title)}.svg`, blob);
+export function downloadSvg(svg: string, fileName: string): void {
+  downloadBlob(fileName, new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
 }
 
-export async function downloadPng(svg: string, title: string): Promise<void> {
+export async function downloadPng(svg: string, fileName: string): Promise<void> {
   const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  const img = new Image();
+  const image = new Image();
   await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("Could not rasterise the diagram"));
-    img.src = url;
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("Could not rasterise the map"));
+    image.src = url;
   });
 
-  const w = img.naturalWidth || 1000;
-  const h = img.naturalHeight || 700;
-  const scale = w * h > 4_000_000 ? 1 : 2;
+  const width = image.naturalWidth || 1000;
+  const height = image.naturalHeight || 700;
+  const scale = width * height > 4_000_000 ? 1 : 2;
 
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not supported");
-  ctx.fillStyle = BG;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.scale(scale, scale);
-  ctx.drawImage(img, 0, 0, w, h);
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas not supported");
+  context.fillStyle = PNG_BACKGROUND;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.scale(scale, scale);
+  context.drawImage(image, 0, 0, width, height);
 
-  triggerDownload(`${slugify(title)}.png`, canvas.toDataURL("image/png"));
+  triggerDownload(fileName, canvas.toDataURL("image/png"));
 }
