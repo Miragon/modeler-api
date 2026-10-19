@@ -10,7 +10,11 @@
 - `@miragon/modeler-api` is on 1.x: a new optional surface of the contract or
   the kit is a `feat` (minor); a new required member, a stricter law or a
   breaking change to the kit's harness shape is breaking, marked with `!` in
-  the PR title (`feat!:`, major). Wording-only changes are `docs`.
+  the PR title (`feat!:`, major). Wording-only changes are `docs`. A kit case
+  that enforces what the contract text already states is not a stricter law
+  (`fix`, or `feat` when it comes with a new optional harness field); a
+  requirement the text does not state yet ships as a RECOMMENDATION whose
+  case only advises, and becomes a law in the next major.
   `bump-minor-pre-major` only matters for a package still on 0.x.
 - The PR body becomes the commit body, but GitHub's squash appends a
   `---------` / `Co-authored-by:` block after it whenever a commit has a
@@ -76,4 +80,5 @@ Adding a case to the kit means adding a saboteur flaw to
 `packages/api/test/conformance.test.ts` — a case without a saboteur is a case
 the kit's CI cannot prove to bite. A legitimate implementation choice the kit
 must accept (the enriched view-state readback) gets a variant that must fail
-nothing.
+nothing. A RECOMMENDATION gets a variant that misses it, fails nothing and
+advises exactly once.
