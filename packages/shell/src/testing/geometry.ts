@@ -1,7 +1,9 @@
 import {
   CHROME_ISLANDS,
+  LEGAL_LINE_HEIGHT,
   PALETTE_CLEARANCE,
   SHELL,
+  legalLineHeight,
   toastStackBottom,
   toastStackWidth,
   zoomRowRaised,
@@ -48,6 +50,8 @@ export interface ChromeMeasurement {
     primaryCollapsed: boolean;
     zoomRaised: boolean;
   };
+  /** Width of the widest visible toast card (`[data-status]` in the stack); absent without a toast. */
+  toastCardWidth?: number;
 }
 
 /** Constraints of one island; every given field must hold within `GEOMETRY_TOLERANCE_PX`. */
@@ -69,8 +73,8 @@ export const DEFAULT_ROOT = ".cd-shell";
 /** `[−] [NN%] [+] | [Fit]` with a 56px readout (guide §5.1, §5.8): 1+3+32+2+56+2+32+2+5+2+32+3+1. */
 export const ZOOM_PANEL_WIDTH = 173;
 
-/** Height of the web app's legal line under the bottom-left stack (guide §5.10). */
-export const LEGAL_LINE = 20;
+/** Height of one line of the web app's legal line under the bottom-left stack (guide §5.10). */
+export const LEGAL_LINE = LEGAL_LINE_HEIGHT;
 
 /** The web app's start screen card: `min(400px, 100% − 24px)` wide (guide §8). */
 const EMPTY_STATE_MAX_WIDTH = 400;
@@ -104,7 +108,11 @@ const measureProbe = ({ root, islands }: { root: string; islands: readonly strin
     }
     boxes[name] = tools.box(element, rootElement);
   }
+  const cardWidths = [...rootElement.querySelectorAll<HTMLElement>('[data-chrome="toasts"] > [data-status]')]
+    .filter((card) => tools.visible(card))
+    .map((card) => card.getBoundingClientRect().width);
   return {
+    ...(cardWidths.length > 0 ? { toastCardWidth: Math.max(...cardWidths) } : {}),
     container: tools.container(rootElement),
     paletteRow: rootElement.getAttribute("data-palette") === "second-row" ? "second-row" : "top",
     islands: boxes,
@@ -133,6 +141,7 @@ export async function measureChrome(page: PageLike, root: string = DEFAULT_ROOT)
     paletteRow: result.paletteRow,
     islands: result.islands,
     open: result.open,
+    ...(result.toastCardWidth !== undefined ? { toastCardWidth: result.toastCardWidth } : {}),
   };
 }
 
@@ -204,6 +213,8 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
   const secondRow = paletteRow === "second-row";
   const sheet = sheetOpen(measurement);
   const sideInspector = open.inspector && !isNarrow(container);
+  // A narrow container wraps the legal line; the stack above it stands on its whole lines.
+  const legalHeight = legalLineHeight(web ? islands.legal?.height : undefined);
   const boxes: Partial<Record<ChromeIsland, ExpectedBox>> = {};
   const limits: Partial<Record<ChromeIsland, BoxLimits>> = {};
   const hidden: Partial<Record<ChromeIsland, string>> = {};
@@ -232,7 +243,7 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
     hidden.legend = reason;
   } else {
     if (!startScreen) required.push("zoom");
-    const legalStack = edge + LEGAL_LINE + gap;
+    const legalStack = edge + legalHeight + gap;
     boxes.zoom = { right: edge, bottom: raised ? legalStack : edge, width: ZOOM_PANEL_WIDTH, height: row };
     const stackBase = web ? legalStack : edge;
     if (islands.problems) boxes.problems = { left: edge, bottom: stackBase, height: row };
@@ -269,7 +280,8 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
       boxes.primary = { top: edge, right: edge, height: row };
       if (open.primaryCollapsed) boxes.primary.width = row;
     }
-    boxes.legal = { left: edge, bottom: edge, height: LEGAL_LINE };
+    boxes.legal = { left: edge, bottom: edge, height: legalHeight };
+    limits.legal = { maxWidth: container.width - 2 * edge };
     if (islands["empty-state"]) {
       boxes["empty-state"] = {
         centerX: container.width / 2,
@@ -295,7 +307,11 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
       boxes.toasts = {
         centerX: container.width / 2,
         width: toastStackWidth(container.width),
-        bottom: toastStackBottom({ containerWidth: container.width, obstacles }),
+        bottom: toastStackBottom({
+          containerWidth: container.width,
+          obstacles,
+          cardWidth: measurement.toastCardWidth,
+        }),
       };
     }
     const pill = islands.problems;
@@ -514,7 +530,9 @@ export function expectedFitInsets(measurement: ChromeMeasurement, host: ShellHos
     top: paletteRow === "second-row" ? SHELL.fitInsetTopSecondRow : SHELL.fitInsetTop,
     right: SHELL.fitInsetSide,
     bottom:
-      host === "web" && (open.problems || open.zoomRaised) ? SHELL.fitInsetBottomWeb : SHELL.fitInsetBottom,
+      host === "web" && (open.problems || open.zoomRaised)
+        ? SHELL.fitInsetBottomWeb + legalLineHeight(islands.legal?.height) - LEGAL_LINE
+        : SHELL.fitInsetBottom,
     left: SHELL.fitInsetSide,
   };
   if (sheetOpen(measurement)) {

@@ -57,10 +57,12 @@ import {
   labelledWidth,
   legalAriaProblems,
   legalContentProblems,
+  legalReachProblems,
   lightOnlyMenuProblems,
   menuGroupProblems,
   modeSwitchProblems,
   openPopoverProblems,
+  popoverKeyboardProblems,
   pillPopupAriaProblems,
   primaryActivationProblems,
   primaryAriaProblems,
@@ -69,6 +71,7 @@ import {
   shownToasts,
   speaksEnglish,
   toastAnatomyProblems,
+  toastLiveRegion,
   toastStackProblems,
   toastTimingProblems,
   topRowProblems,
@@ -1614,7 +1617,7 @@ describe("the start screen (guide §8)", () => {
     ]);
   });
 
-  it("keeps the chrome keys prevented and without effect behind the card", () => {
+  it("leaves the chrome keys to the browser and without effect behind the card", () => {
     const key = (defaultPrevented: boolean): RecordedKey => ({
       key: "=",
       code: "Equal",
@@ -1624,10 +1627,11 @@ describe("the start screen (guide §8)", () => {
       altKey: false,
       defaultPrevented,
     });
-    expect(emptyStateKeyProblems("Control+Equal", 100, 100, [key(true)])).toEqual([]);
-    expect(emptyStateKeyProblems("Control+Equal", 100, 135, [key(false)])).toEqual([
-      "empty-state: Control+Equal behind the start screen changed the zoom from 100% to 135%; the chrome keys do nothing there",
-      "empty-state: Control+Equal behind the start screen arrived unprevented; the browser would zoom the page",
+    expect(emptyStateKeyProblems("Control+Equal", 100, 100, [key(false)])).toEqual([]);
+    expect(emptyStateKeyProblems("Control+Equal", 100, 100, [])).toEqual([]);
+    expect(emptyStateKeyProblems("Control+Equal", 100, 135, [key(true)])).toEqual([
+      "empty-state: Control+Equal behind the start screen changed the zoom from 100% to 135%; the chrome keys zoom no diagram there",
+      "empty-state: Control+Equal behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom (WCAG 1.4.4)",
     ]);
   });
 
@@ -1662,7 +1666,7 @@ describe("the start screen (guide §8)", () => {
 describe("toasts (guide §8)", () => {
   const toast = (text: string, extra: Partial<ToastFacts> = {}): ToastFacts => ({
     text,
-    role: "status",
+    role: null,
     status: "success",
     box: { left: 400, top: 800, width: 480, height: 42 },
     client: { x: 640, y: 821 },
@@ -1672,28 +1676,39 @@ describe("toasts (guide §8)", () => {
     ...extra,
   });
 
-  it("wants role alert for errors and status otherwise, and a Close icon button", () => {
-    expect(toastAnatomyProblems(toast("Saved"), "success", "en")).toEqual([]);
-    expect(toastAnatomyProblems(toast("Failed", { role: "alert" }), "danger", "en")).toEqual([]);
+  const heard = { persistent: true, announced: true };
+
+  it("wants the text in a persistent alert region for errors and status otherwise, and a Close icon button", () => {
+    expect(toastAnatomyProblems(toast("Saved"), "success", "en", heard)).toEqual([]);
+    expect(toastAnatomyProblems(toast("Failed"), "danger", "en", heard)).toEqual([]);
     expect(
       toastAnatomyProblems(
         toast("Failed", {
+          role: "status",
           buttons: [{ name: "Dismiss", text: "", client: { x: 0, y: 0 } }],
           box: { left: 0, top: 0, width: 480, height: 30 },
         }),
         "danger",
         "en",
+        { persistent: true, announced: false },
       ),
     ).toEqual([
-      'toasts: a danger toast has role "status", expected "alert" (guide §8)',
+      'toasts: the danger toast\'s text never reaches the role="alert" live region (guide §8, §12)',
+      'toasts: the danger toast\'s card carries role="status"; the live region announces it, so a live card is read twice',
       'toasts: the Close button is named "Dismiss", expected "Close" (guide §8)',
       "toasts: the danger toast is 30px high, at least 40px (guide §8)",
+    ]);
+    expect(
+      toastAnatomyProblems(toast("Saved"), "info", "en", { persistent: false, announced: false }),
+    ).toEqual([
+      'toasts: no role="status" live region in the root before the first toast; a live region created together with its text is often not announced (guide §8, §12)',
     ]);
     expect(
       toastAnatomyProblems(
         toast("Saved", { buttons: [{ name: "Undo", text: "Undo", client: { x: 0, y: 0 } }] }),
         "info",
         "de",
+        heard,
       ),
     ).toEqual(["toasts: the info toast has no Close icon button at its end (guide §8)"]);
     expect(
@@ -1701,8 +1716,20 @@ describe("toasts (guide §8)", () => {
         toast("Saved", { buttons: [{ name: "", text: "", client: { x: 0, y: 0 } }] }),
         "success",
         "de",
+        heard,
       ),
     ).toEqual(["toasts: the success toast's Close button has no accessible name"]);
+  });
+
+  it("finds the live region of a toast's status", () => {
+    const regions = [
+      { role: "status", live: "polite", text: "Saved" },
+      { role: "alert", live: "assertive", text: "" },
+    ];
+    expect(toastLiveRegion(regions, "success")?.text).toBe("Saved");
+    expect(toastLiveRegion(regions, "warning")?.role).toBe("status");
+    expect(toastLiveRegion(regions, "danger")?.role).toBe("alert");
+    expect(toastLiveRegion([], "danger")).toBeUndefined();
   });
 
   it("keeps at most three, evicts the oldest without an action and puts the newest at the bottom", () => {
@@ -1787,10 +1814,64 @@ describe("the problems list (guide §5.10)", () => {
     ],
     focus: "popover",
     focused: "button.cd-shell-problem",
+    focusedRow: { index: 0, inView: true },
   });
 
   it("accepts the list above the pill with labelled rows and the focus inside", () => {
     expect(openPopoverProblems(open(), container, "en")).toEqual([]);
+  });
+
+  it("wants every legal link inside the legal line and the container (WCAG 1.4.10)", () => {
+    const facts = {
+      container: { width: 320, height: 700 },
+      legal: { left: 12, top: 648, width: 296, height: 40 },
+      links: [
+        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 } },
+        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 } },
+      ],
+    };
+    expect(legalReachProblems(facts)).toEqual([]);
+    const scrolled = {
+      ...facts,
+      legal: { left: 12, top: 668, width: 296, height: 20 },
+      links: [
+        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 } },
+        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 } },
+      ],
+    };
+    expect(legalReachProblems(scrolled)).toEqual([
+      'legal: [320px wide] "Datenschutz" is cut off or scrolled out of the legal line; it wraps instead (guide §5.10, WCAG 1.4.10)',
+    ]);
+    expect(legalReachProblems({ ...facts, legal: null })).toEqual([]);
+  });
+
+  it("wants every row reached by the keyboard and scrolled into the list", () => {
+    const at = (index: number, inView = true) => ({ index, inView });
+    expect(
+      popoverKeyboardProblems(
+        [
+          { key: "Enter on the pill", expected: 0, focused: at(0) },
+          { key: "ArrowDown", expected: 1, focused: at(1) },
+          { key: "Home", expected: 0, focused: at(0) },
+          { key: "End", expected: 1, focused: at(1) },
+        ],
+        2,
+      ),
+    ).toEqual([]);
+    expect(
+      popoverKeyboardProblems(
+        [
+          { key: "Enter on the pill", expected: 0, focused: null },
+          { key: "ArrowDown", expected: 1, focused: at(0) },
+          { key: "End", expected: 2, focused: at(2, false) },
+        ],
+        3,
+      ),
+    ).toEqual([
+      "problems-popover: Enter on the pill reaches no row, expected row 1 of 3; the keyboard reads every row, text rows too (guide §5.10, WCAG 2.1.1)",
+      "problems-popover: ArrowDown reaches row 1, expected row 2 of 3; the keyboard reads every row, text rows too (guide §5.10, WCAG 2.1.1)",
+      "problems-popover: row 3 takes the focus on End but stays scrolled out of the list",
+    ]);
   });
 
   it("reports role, modality, title, state, rows, focus and geometry", () => {

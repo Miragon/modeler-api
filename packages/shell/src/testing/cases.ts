@@ -3,6 +3,7 @@ import {
   INVALID_STATUS_DELAY_MS,
   SHELL,
   TOOLTIP_DELAY_MS,
+  legalLineHeight,
   type Appearance,
   type AppearanceChoice,
 } from "../core/index.js";
@@ -54,7 +55,6 @@ import {
 } from "./facts.js";
 import {
   DEFAULT_ROOT,
-  LEGAL_LINE,
   dropdownProblems,
   freeRectangle,
   geometryProblems,
@@ -208,7 +208,8 @@ async function popupGeometry(
       problems.push(`tooltip: hovering ${target} ("${anchor.label}") shows "${tooltip.text}"`);
     }
     // The web app's raised zoom row stands above the legal line (`data-zoom-row="raised"`).
-    const bottomRow = measurement.open.zoomRaised ? SHELL.edge + LEGAL_LINE + SHELL.gap : SHELL.edge;
+    const legalHeight = legalLineHeight(measurement.islands.legal?.height);
+    const bottomRow = measurement.open.zoomRaised ? SHELL.edge + legalHeight + SHELL.gap : SHELL.edge;
     problems.push(
       ...tooltipProblems(tooltip.box, anchor.box, row, measurement.container, undefined, bottomRow).map(
         (problem) => `${problem} (on ${target})`,

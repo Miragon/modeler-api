@@ -135,6 +135,28 @@ export interface TopRowFacts {
   } | null;
 }
 
+/** The legal line and each of its links, relative to the root (guide §5.10). */
+export interface LegalLineFacts {
+  container: { width: number; height: number };
+  legal: RelativeBox | null;
+  links: Array<{ text: string; box: RelativeBox }>;
+}
+
+export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector<HTMLElement>(root);
+  if (!rootElement) return null;
+  const legal = rootElement.querySelector('[data-chrome="legal"]');
+  return {
+    container: tools.container(rootElement),
+    legal: legal && tools.visible(legal) ? tools.box(legal, rootElement) : null,
+    links: [...(legal?.querySelectorAll("a") ?? [])].map((link) => ({
+      text: (link.textContent ?? "").replace(/\s+/g, " ").trim(),
+      box: tools.box(link, rootElement),
+    })),
+  };
+};
+
 export const topRowProbe = ({ root }: { root: string }): TopRowFacts | null => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector<HTMLElement>(root);
@@ -246,8 +268,9 @@ export const emptyStateProbe = ({
     heading: heading
       ? { tag: heading.tagName.toLowerCase(), text: (heading.textContent ?? "").replace(/\s+/g, " ").trim() }
       : null,
+    // The card's actions; a text link inside the hint paragraph is no action (guide §8).
     buttons: [...(card?.querySelectorAll("button") ?? [])]
-      .filter((button) => tools.visible(button))
+      .filter((button) => tools.visible(button) && !button.closest("p"))
       .map((button) => {
         const rect = button.getBoundingClientRect();
         return {
@@ -309,13 +332,22 @@ export interface ToastFacts {
   focused: boolean;
 }
 
+/** One of the toasts' live regions (`.cd-shell-live [role]`), rendered whether a toast shows or not. */
+export interface LiveRegionFacts {
+  role: string | null;
+  live: string | null;
+  text: string;
+}
+
 export interface ToastsFacts {
   /** `[data-chrome="toasts"]`; `null` where there is none (the IDE host). */
   stack: { visible: boolean; box: RelativeBox; popover: string | null; popoverOpen: boolean } | null;
-  /** The visible toasts, in DOM order (the newest last). */
+  /** The visible toasts (`[data-status]` cards of the stack), in DOM order (the newest last). */
   toasts: ToastFacts[];
   /** Toast cards (`.cd-shell-toast`) visible anywhere in the document outside the stack. */
   strays: string[];
+  /** The live regions in the root that announce the toasts. */
+  live: LiveRegionFacts[];
 }
 
 export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
@@ -331,7 +363,7 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
     }
   };
   const toasts = stack
-    ? [...stack.querySelectorAll<HTMLElement>('[role="status"], [role="alert"]')].filter((toast) =>
+    ? [...stack.querySelectorAll<HTMLElement>(":scope > [data-status]")].filter((toast) =>
         tools.visible(toast),
       )
     : [];
@@ -373,6 +405,13 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
     strays: [...document.querySelectorAll(".cd-shell-toast")]
       .filter((element) => !stack?.contains(element) && tools.visible(element))
       .map((element) => tools.describe(element)),
+    live: [...rootElement.querySelectorAll(".cd-shell-live [role], .cd-shell-live [aria-live]")].map(
+      (region) => ({
+        role: region.getAttribute("role"),
+        live: region.getAttribute("aria-live"),
+        text: (region.textContent ?? "").replace(/\s+/g, " ").trim(),
+      }),
+    ),
   };
 };
 
@@ -387,7 +426,7 @@ export const focusToastButtonProbe = ({
   name: string;
 }): boolean => {
   const stack = document.querySelector(root)?.querySelector('[data-chrome="toasts"]');
-  const toast = [...(stack?.querySelectorAll<HTMLElement>('[role="status"], [role="alert"]') ?? [])].find(
+  const toast = [...(stack?.querySelectorAll<HTMLElement>(":scope > [data-status]") ?? [])].find(
     (candidate) => (candidate.textContent ?? "").includes(text),
   );
   const button = [...(toast?.querySelectorAll("button") ?? [])].find(
@@ -457,6 +496,11 @@ export interface PopoverFacts {
   rows: Array<{ button: boolean; height: number; icon: boolean; text: string; client: Point }>;
   focus: "pill" | "popover" | "canvas" | "body" | "other";
   focused: string;
+  /**
+   * The row holding the focus: its index among `rows`, and whether it lies inside the visible part
+   * of the scrolling list; `null` while no row holds it.
+   */
+  focusedRow: { index: number; inView: boolean } | null;
 }
 
 export const popoverProbe = ({ root }: { root: string }): PopoverFacts | null => {
@@ -525,6 +569,18 @@ export const popoverProbe = ({ root }: { root: string }): PopoverFacts | null =>
               ? "canvas"
               : "other",
     focused: !active || active === document.body ? "<body>" : tools.describe(active),
+    focusedRow: (() => {
+      const index = active ? rows.findIndex((row) => row === active || row.contains(active)) : -1;
+      const row = rows[index];
+      if (!row) return null;
+      let scroller: Element | null = row.parentElement;
+      while (scroller && scroller !== popover && scroller.scrollHeight <= scroller.clientHeight) {
+        scroller = scroller.parentElement;
+      }
+      const view = (scroller ?? popover ?? row).getBoundingClientRect();
+      const box = row.getBoundingClientRect();
+      return { index, inView: box.top >= view.top - 1 && box.bottom <= view.bottom + 1 };
+    })(),
   };
 };
 

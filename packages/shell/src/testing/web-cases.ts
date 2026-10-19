@@ -55,16 +55,20 @@ import {
   emptyStateTabProblems,
   labelledWidth,
   legalContentProblems,
+  legalReachProblems,
   openPopoverProblems,
+  popoverKeyboardProblems,
   primaryActivationProblems,
   primaryTooltipProblems,
   repeatedToastProblems,
   toastAnatomyProblems,
+  toastLiveRegion,
   toastStackProblems,
   toastTimingProblems,
   topRowProblems,
   zoomRowBottomProblems,
   type ExpectedDrop,
+  type PopoverKeyStep,
   type ToastTiming,
 } from "./web-checks.js";
 import {
@@ -75,6 +79,7 @@ import {
   emptyStateProbe,
   focusOwnerProbe,
   focusToastButtonProbe,
+  legalLineProbe,
   popoverProbe,
   showModalProbe,
   toastStackTogglesProbe,
@@ -92,6 +97,8 @@ import {
 /** The width steps of the web app's top and bottom rows, from wide to narrow (guide §5.15). */
 const WIDEST_STEP = 1280;
 const NARROWEST_STEP = 400;
+/** The narrowest container the legal line must still hold every link in (320 CSS px, WCAG 1.4.10). */
+const PHONE_WIDTH = 320;
 const STEP_PX = 24;
 
 /** Room after a toast's lifetime for its 250ms exit and a frame on either side. */
@@ -99,6 +106,9 @@ const TOAST_MARGIN_MS = 900;
 
 /** A toast's resumed time after hover or focus is at least this (API.md, Toasts). */
 const TOAST_RESUME_MS = 1500;
+
+/** How long a toast's text may take to reach its live region. */
+const TOAST_ANNOUNCE_WAIT_MS = 1000;
 
 /** Room for a modeler that reads a dropped file asynchronously before it opens it. */
 const DROP_WAIT_MS = 2000;
@@ -282,6 +292,7 @@ const webChromeCase: ShellConformanceCase = {
           measurement.islands.zoom,
           measurement.open.zoomRaised,
           measurement.container,
+          measurement.islands.legal?.height,
         ),
       );
     }
@@ -304,6 +315,12 @@ const webChromeCase: ShellConformanceCase = {
       }
     }
 
+    // The narrowest phone: the legal line wraps rather than cutting off Datenschutz.
+    await page.setViewportSize({ width: PHONE_WIDTH, height: size.height });
+    await settle(page);
+    const legalLine = await inPage(page, legalLineProbe, { root });
+    if (legalLine) problems.push(...legalReachProblems(legalLine));
+
     await page.setViewportSize({ width: size.width, height: size.height });
     await settle(page);
     problems.push(...(await fileEntryProblems(page, root)));
@@ -316,6 +333,32 @@ const webChromeCase: ShellConformanceCase = {
 
 function startScreen(page: PageLike, root: string): Promise<EmptyStateFacts | null> {
   return inPage(page, emptyStateProbe, { root, work: WORK_CHROME });
+}
+
+/**
+ * Closing a toast that holds the focus on the start screen hands the focus to the card; the canvas
+ * and the menu trigger behind it cannot take it, and <body> would lose the user's place.
+ */
+async function toastFocusOnStartScreen<P extends PageLike>(
+  page: P,
+  root: string,
+  show: (page: P, toast: ToastFixture) => Promise<void>,
+): Promise<string[]> {
+  const text = "Conformance: a toast on the start screen";
+  await show(page, { status: "danger", text });
+  await settle(page);
+  const closeName = (await toasts(page, root))?.toasts
+    .find((toast) => toast.text.includes(text))
+    ?.buttons.at(-1)?.name;
+  if (!closeName || !(await inPage(page, focusToastButtonProbe, { root, text, name: closeName }))) return [];
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const focus = await inPage(page, focusOwnerProbe, { root });
+  return focus.owner === "empty-state"
+    ? []
+    : [
+        `empty-state: closing a focused toast on the start screen leaves the focus on ${focus.description}; it goes to the card's "New diagram" (WCAG 2.4.3)`,
+      ];
 }
 
 const emptyStateCase: ShellConformanceCase = {
@@ -368,6 +411,9 @@ const emptyStateCase: ShellConformanceCase = {
       const after = await inPage(page, afterPressProbe, { root });
       problems.push(...emptyStateKeyProblems(key, before, after.zoom, after.keys));
     }
+
+    const showToast = harness.show?.toast;
+    if (showToast) problems.push(...(await toastFocusOnStartScreen(page, root, showToast)));
 
     const start = facts.buttons[0];
     if (start) {
@@ -427,6 +473,8 @@ async function toastAnatomy<P extends PageLike>(
   lang: string,
 ): Promise<string[]> {
   const problems: string[] = [];
+  // Read before any toast of the case: a region that only comes with its first text is too late.
+  const before = (await toasts(page, root))?.live ?? [];
   for (const status of TOAST_STATUSES) {
     const text = `Conformance: a ${status} toast`;
     await show(page, { status, text });
@@ -436,7 +484,12 @@ async function toastAnatomy<P extends PageLike>(
       problems.push(`toasts: show.toast with a ${status} toast shows nothing`);
       continue;
     }
-    problems.push(...toastAnatomyProblems(toast, status, lang));
+    const persistent = toastLiveRegion(before, status) !== undefined;
+    const reached = (facts: ToastsFacts | null): boolean =>
+      toastLiveRegion(facts?.live ?? [], status)?.text.includes(text) ?? false;
+    const announced =
+      persistent && reached(await pollUntil(page, () => toasts(page, root), reached, TOAST_ANNOUNCE_WAIT_MS));
+    problems.push(...toastAnatomyProblems(toast, status, lang, { persistent, announced }));
     const close = toast.buttons.at(-1);
     if (close) {
       await page.mouse.click(close.client.x, close.client.y);
@@ -630,6 +683,39 @@ async function clickPill(page: PageLike, root: string): Promise<PopoverFacts | n
   return popover(page, root);
 }
 
+/**
+ * Opens the list from the pill with Enter, then walks it with ArrowDown to the last row and jumps
+ * back with Home and to the end with End; every step must land on its row, inside the list.
+ */
+async function keyboardRows(page: PageLike, root: string): Promise<string[]> {
+  if (!(await focusTarget(page, root, "pill"))) return ["problems: the pill cannot take the focus"];
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const opened = await popover(page, root);
+  const count = opened?.rows.length ?? 0;
+  if (!opened?.popover?.visible || count === 0) {
+    await closeByEscape(page);
+    return opened?.popover?.visible ? [] : ["problems-popover: Enter on the pill does not open the list"];
+  }
+  const steps: PopoverKeyStep[] = [{ key: "Enter on the pill", expected: 0, focused: opened.focusedRow }];
+  for (let index = 1; index < count; index++) {
+    await page.keyboard.press("ArrowDown");
+    steps.push({
+      key: "ArrowDown",
+      expected: index,
+      focused: (await popover(page, root))?.focusedRow ?? null,
+    });
+  }
+  if (count > 1) {
+    await page.keyboard.press("Home");
+    steps.push({ key: "Home", expected: 0, focused: (await popover(page, root))?.focusedRow ?? null });
+    await page.keyboard.press("End");
+    steps.push({ key: "End", expected: count - 1, focused: (await popover(page, root))?.focusedRow ?? null });
+  }
+  await closeByEscape(page);
+  return popoverKeyboardProblems(steps, count);
+}
+
 const problemsListCase: ShellConformanceCase = {
   name: "problemsList",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
@@ -678,6 +764,8 @@ const problemsListCase: ShellConformanceCase = {
     const outside = await popover(page, root);
     if (outside) problems.push(...closedPopoverProblems(outside, "an outside click"));
 
+    problems.push(...(await keyboardRows(page, root)));
+
     const skipped: ShellSkip[] = [];
     const reopened = await clickPill(page, root);
     const row = reopened?.rows.find((candidate) => candidate.button);
@@ -688,11 +776,11 @@ const problemsListCase: ShellConformanceCase = {
       if (selected) problems.push(...closedPopoverProblems(selected, "a row with an element"));
     } else {
       await closeByEscape(page);
-      if ((reopened?.rows.length ?? 0) > 0) {
+      if ((reopened?.rows.length ?? 0) > 0 && !harness.absent?.includes("problemSelection")) {
         skipped.push({
           hook: "problems",
           reason:
-            "show.problems gives no item with an elementId: a row that selects its element was not verified",
+            'show.problems gives no item with an elementId: a row that selects its element was not verified (absent: ["problemSelection"] for a modeler whose problems never point at an element)',
         });
       }
     }
@@ -778,10 +866,10 @@ const dropZoneCase: ShellConformanceCase = {
       const shown = await pollUntil(
         page,
         () => toasts(page, root),
-        (facts) => facts?.toasts.some((toast) => toast.role === "alert") ?? false,
+        (facts) => facts?.toasts.some((toast) => toast.status === "danger") ?? false,
         DROP_WAIT_MS,
       );
-      if (!shown?.toasts.some((toast) => toast.role === "alert")) {
+      if (!shown?.toasts.some((toast) => toast.status === "danger")) {
         problems.push(
           `drop-zone: dropping "${rejected.name}" shows no danger toast (guide §9, or the modeler's onReject)`,
         );

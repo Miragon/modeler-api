@@ -23,7 +23,7 @@ test.describe("web demo wiring", () => {
     await primary.focus();
     await page.keyboard.press("Enter");
     expect(await calls(page)).toEqual(["share", "share"]);
-    await expect(page.locator('[data-chrome="toasts"] [role="status"]').first()).toContainText("Link copied");
+    await expect(page.locator('[data-chrome="toasts"] [data-status]').first()).toContainText("Link copied");
   });
 
   test("the File entries run their handlers after the menu closed", async ({ page }) => {

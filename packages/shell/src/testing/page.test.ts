@@ -523,8 +523,9 @@ describe("probes of the web column (0.2)", () => {
           </div>
           <div data-chrome="drop-zone" aria-hidden="true"><span class="cd-shell-drop-zone-chip">Drop file here</span></div>
         </div>
+        <div class="cd-shell-live"><div role="status" aria-live="polite">Link copied</div><div role="alert" aria-live="assertive"></div></div>
         <div data-chrome="toasts" popover="manual">
-          <div class="cd-shell-toast" role="status" data-status="success"><span class="cd-shell-toast-text">Link copied</span><button>Undo</button><button aria-label="Close"><svg></svg></button></div>
+          <div class="cd-shell-toast" data-status="success"><span class="cd-shell-toast-text">Link copied</span><button>Undo</button><button aria-label="Close"><svg></svg></button></div>
           <div class="cd-shell-toast" role="alert" data-status="danger"><span class="cd-shell-toast-text">Couldn't open it.</span><button aria-label="Close"><svg></svg></button></div>
         </div>
       </div>
@@ -548,7 +549,7 @@ describe("probes of the web column (0.2)", () => {
     at("li.cd-shell-problem", 13, 760, 318, 36);
     at('[data-chrome="drop-zone"]', 12, 12, 1256, 876);
     at('[data-chrome="toasts"]', 400, 790, 480, 98);
-    const toasts = root.querySelectorAll('[data-chrome="toasts"] [role]');
+    const toasts = root.querySelectorAll('[data-chrome="toasts"] [data-status]');
     place(toasts[0]!, 400, 790, 480, 42);
     place(toasts[1]!, 400, 840, 480, 42);
     for (const button of root.querySelectorAll('[data-chrome="toasts"] button'))
@@ -816,8 +817,12 @@ describe("probes of the web column (0.2)", () => {
         toast.buttons.map((button) => button.name),
       ]),
     ).toEqual([
-      ["Link copiedUndo", "status", "success", ["Undo", "Close"]],
+      ["Link copiedUndo", null, "success", ["Undo", "Close"]],
       ["Couldn't open it.", "alert", "danger", ["Close"]],
+    ]);
+    expect(facts?.live).toEqual([
+      { role: "status", live: "polite", text: "Link copied" },
+      { role: "alert", live: "assertive", text: "" },
     ]);
     expect(facts?.toasts[0]?.buttons[0]?.text).toBe("Undo");
     expect(facts?.strays).toEqual(["div.cd-shell-toast"]);

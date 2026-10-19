@@ -640,7 +640,7 @@ export function harnessHookProblems<P extends PageLike>(
     .filter((hook) =>
       hook === "drop"
         ? harness.absent?.includes("drop") && harness.drop
-        : harness.absent?.includes(hook) && harness.show?.[hook],
+        : hook !== "problemSelection" && harness.absent?.includes(hook) && harness.show?.[hook],
     )
     .map((hook) =>
       hook === "drop"

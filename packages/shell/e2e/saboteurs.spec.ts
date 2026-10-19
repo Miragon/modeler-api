@@ -161,6 +161,17 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("webChrome fails when a narrow legal line scrolls instead of wrapping", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = ".cd-shell-legal { flex-wrap: nowrap !important; overflow-x: auto; }";
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /legal: \[320px wide\] "[^"]+" is cut off or scrolled out of the legal line; it wraps instead/,
+      ]);
+    });
+
     test("emptyState fails when the start screen leaves the palette visible", async ({ page }) => {
       const harness = webSabotaged(() => {
         const style = document.createElement("style");
@@ -170,6 +181,19 @@ test.describe("saboteurs", () => {
       });
       await expectOnlyCaseFails(page, harness, "emptyState", [
         /empty-state: palette is visible behind the start screen; it hides the work chrome/,
+      ]);
+    });
+
+    test("emptyState fails when the start screen swallows the browser's zoom keys", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        document.addEventListener("keydown", (event) => {
+          const shown = document.querySelector('.cd-shell[data-empty-state="shown"]') !== null;
+          if (shown && (event.ctrlKey || event.metaKey) && (event.key === "=" || event.key === "-"))
+            event.preventDefault();
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: Control\+Equal behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom/,
       ]);
     });
 
@@ -183,6 +207,28 @@ test.describe("saboteurs", () => {
       });
       await expectOnlyCaseFails(page, harness, "toasts", [
         /toasts: "Conformance: a plain toast" is still there 3700ms after it appeared; it closes after its lifetime/,
+      ]);
+    });
+
+    test("toasts fails when the live regions come only with the toast", async ({ page }) => {
+      const harness = webSabotaged(() => document.querySelector(".cd-shell-live")?.remove());
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /toasts: no role="status" live region in the root before the first toast/,
+        /toasts: no role="alert" live region in the root before the first toast/,
+      ]);
+    });
+
+    test("problemsList fails when a text row cannot take the focus", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const unfocusable = () => {
+          for (const row of document.querySelectorAll("div.cd-shell-problem[tabindex]"))
+            row.removeAttribute("tabindex");
+        };
+        unfocusable();
+        new MutationObserver(unfocusable).observe(document.body, { childList: true, subtree: true });
+      });
+      await expectOnlyCaseFails(page, harness, "problemsList", [
+        /problems-popover: ArrowDown reaches row 1, expected row 2 of 2; the keyboard reads every row, text rows too/,
       ]);
     });
 

@@ -3,6 +3,7 @@ import {
   SHELL,
   decideTopRow,
   defaultMessages,
+  legalLineHeight,
   type Appearance,
   type AppearanceChoice,
   type ShellHost,
@@ -16,6 +17,8 @@ import type { ModeChange, RecordedKey } from "./page-tools.js";
 import type {
   DropZoneFacts,
   EmptyStateFacts,
+  LegalLineFacts,
+  LiveRegionFacts,
   PopoverFacts,
   ToastFacts,
   TopRowFacts,
@@ -404,14 +407,44 @@ export function legalContentProblems(links: AriaFacts["legalLinks"]): string[] {
   return [...new Set(problems)];
 }
 
-/** The zoom panel's bottom in the web app: 12px, 40px while `data-zoom-row="raised"`. */
+/**
+ * Guide §5.10, WCAG 1.4.10: in the narrowest container every legal link lies whole inside the legal
+ * line and the container, so Impressum and Datenschutz are never cut off or scrolled away.
+ */
+export function legalReachProblems(facts: LegalLineFacts): string[] {
+  const legal = facts.legal;
+  if (!legal) return [];
+  const width = round(facts.container.width);
+  const problems: string[] = [];
+  for (const link of facts.links) {
+    const box = link.box;
+    const inside =
+      box.left >= Math.max(0, legal.left) - GEOMETRY_TOLERANCE_PX &&
+      box.left + box.width <=
+        Math.min(legal.left + legal.width, facts.container.width) + GEOMETRY_TOLERANCE_PX &&
+      box.top >= legal.top - GEOMETRY_TOLERANCE_PX &&
+      box.top + box.height <= legal.top + legal.height + GEOMETRY_TOLERANCE_PX;
+    if (!inside) {
+      problems.push(
+        `legal: [${width}px wide] "${link.text}" is cut off or scrolled out of the legal line; it wraps instead (guide §5.10, WCAG 1.4.10)`,
+      );
+    }
+  }
+  return problems;
+}
+
+/**
+ * The zoom panel's bottom in the web app: 12px, 40px while `data-zoom-row="raised"` (on a legal line
+ * that wraps, 8px above its measured `legalHeight`).
+ */
 export function zoomRowBottomProblems(
   zoom: IslandBox | undefined,
   raised: boolean,
   container: Size,
+  legalHeight?: number,
 ): string[] {
   if (!zoom) return [];
-  const bottom = raised ? SHELL.edge + 20 + SHELL.gap : SHELL.edge;
+  const bottom = raised ? SHELL.edge + legalLineHeight(legalHeight) + SHELL.gap : SHELL.edge;
   return boxMismatches("zoom", zoom, { bottom }, container).map(
     (problem) => `[${round(container.width)}px wide${raised ? ", raised" : ""}] ${problem}`,
   );
@@ -532,7 +565,10 @@ export function emptyStateTabProblems(
   return [...new Set(problems)];
 }
 
-/** A chrome key behind the start screen: prevented (no page zoom), acting on nothing (API.md, Empty state). */
+/**
+ * A chrome key behind the start screen (API.md, Empty state): it zooms no diagram, and it reaches
+ * the browser unprevented, which zooms the page (WCAG 1.4.4: there is no diagram to zoom instead).
+ */
 export function emptyStateKeyProblems(
   key: string,
   before: number | null,
@@ -542,12 +578,12 @@ export function emptyStateKeyProblems(
   const problems: string[] = [];
   if (after !== before) {
     problems.push(
-      `empty-state: ${key} behind the start screen changed the zoom from ${before ?? "?"}% to ${after ?? "?"}%; the chrome keys do nothing there`,
+      `empty-state: ${key} behind the start screen changed the zoom from ${before ?? "?"}% to ${after ?? "?"}%; the chrome keys zoom no diagram there`,
     );
   }
-  if (keys.length > 0 && keys.some((recorded) => !recorded.defaultPrevented)) {
+  if (keys.some((recorded) => recorded.defaultPrevented)) {
     problems.push(
-      `empty-state: ${key} behind the start screen arrived unprevented; the browser would zoom the page`,
+      `empty-state: ${key} behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom (WCAG 1.4.4)`,
     );
   }
   return problems;
@@ -577,12 +613,52 @@ export function afterStartProblems(
 
 // ---- toasts ----
 
-/** Guide §8: `role="alert"` for errors, `role="status"` (polite) otherwise; Close named "Close". */
-export function toastAnatomyProblems(toast: ToastFacts, status: ToastStatus, lang: string): string[] {
+/** How a toast reached screen readers: its live region existed before it, and its text arrived there. */
+export interface ToastAnnouncement {
+  /** A live region of the toast's role was rendered in the root before the first toast. */
+  persistent: boolean;
+  /** The toast's text arrived in that region. */
+  announced: boolean;
+}
+
+/**
+ * The live region a toast of `status` is announced through (guide §8, §12): `role="alert"` for
+ * errors, `role="status"` (`aria-live="polite"`) otherwise.
+ */
+export function toastLiveRegion(
+  regions: readonly LiveRegionFacts[],
+  status: ToastStatus,
+): LiveRegionFacts | undefined {
+  const role = status === "danger" ? "alert" : "status";
+  return regions.find((region) => region.role === role);
+}
+
+/**
+ * Guide §8, §12: announced through a persistent `role="alert"` (errors) or `role="status"` live
+ * region, the card itself without a live role (it would be read twice); Close named "Close".
+ */
+export function toastAnatomyProblems(
+  toast: ToastFacts,
+  status: ToastStatus,
+  lang: string,
+  announcement: ToastAnnouncement,
+): string[] {
   const problems: string[] = [];
   const role = status === "danger" ? "alert" : "status";
-  if (toast.role !== role)
-    problems.push(`toasts: a ${status} toast has role "${toast.role ?? ""}", expected "${role}" (guide §8)`);
+  if (!announcement.persistent) {
+    problems.push(
+      `toasts: no role="${role}" live region in the root before the first toast; a live region created together with its text is often not announced (guide §8, §12)`,
+    );
+  } else if (!announcement.announced) {
+    problems.push(
+      `toasts: the ${status} toast's text never reaches the role="${role}" live region (guide §8, §12)`,
+    );
+  }
+  if (toast.role === "status" || toast.role === "alert") {
+    problems.push(
+      `toasts: the ${status} toast's card carries role="${toast.role}"; the live region announces it, so a live card is read twice`,
+    );
+  }
   const close = toast.buttons.at(-1);
   if (!close || close.text !== "") {
     problems.push(`toasts: the ${status} toast has no Close icon button at its end (guide §8)`);
@@ -681,6 +757,33 @@ export function toastTimingProblems(timings: readonly ToastTiming[]): string[] {
 }
 
 // ---- problemsList ----
+
+/** One ArrowDown (or End) in the open problems list: the row it should reach, and the one it did. */
+export interface PopoverKeyStep {
+  key: string;
+  expected: number;
+  focused: { index: number; inView: boolean } | null;
+}
+
+/**
+ * Guide §5.10, §12 (WCAG 2.1.1): the keyboard reaches every row of the problems list, text rows
+ * without an element too, and each focused row scrolls into the list's visible part.
+ */
+export function popoverKeyboardProblems(steps: readonly PopoverKeyStep[], rowCount: number): string[] {
+  const problems: string[] = [];
+  for (const step of steps) {
+    if (step.focused?.index !== step.expected) {
+      problems.push(
+        `problems-popover: ${step.key} reaches ${step.focused ? `row ${step.focused.index + 1}` : "no row"}, expected row ${step.expected + 1} of ${rowCount}; the keyboard reads every row, text rows too (guide §5.10, WCAG 2.1.1)`,
+      );
+    } else if (!step.focused.inView) {
+      problems.push(
+        `problems-popover: row ${step.expected + 1} takes the focus on ${step.key} but stays scrolled out of the list`,
+      );
+    }
+  }
+  return problems;
+}
 
 /** The problems list once the pill opened it (guide §5.10). */
 export function openPopoverProblems(facts: PopoverFacts, container: Size, lang: string): string[] {

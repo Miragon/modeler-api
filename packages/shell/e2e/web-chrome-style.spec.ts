@@ -210,11 +210,13 @@ test.describe("web chrome styles", () => {
     const title = await styleOf(page, `${card} h1`, ["font-size", "font-weight"]);
     expect([title["font-size"], title["font-weight"]]).toEqual(["21px", "600"]);
     const buttons = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-chrome="empty-state"] button')].map((button) => ({
-        variant: button.getAttribute("data-variant"),
-        height: button.getBoundingClientRect().height,
-        background: getComputedStyle(button).backgroundColor,
-      })),
+      [...document.querySelectorAll('[data-chrome="empty-state"] .cd-shell-empty-state-actions button')].map(
+        (button) => ({
+          variant: button.getAttribute("data-variant"),
+          height: button.getBoundingClientRect().height,
+          background: getComputedStyle(button).backgroundColor,
+        }),
+      ),
     );
     expect(buttons.map((button) => [button.variant, button.height])).toEqual([
       ["primary", 36],
@@ -222,6 +224,19 @@ test.describe("web chrome styles", () => {
     ]);
     expect(buttons[0]?.background).toBe(await computed(page, "background-color", "var(--cd-blau)"));
     expect(buttons[1]?.background).toBe("rgba(0, 0, 0, 0)");
+    // The File group's Open… as a text link in the hint: link colour, the hint's 13px, no button skin.
+    const open = await styleOf(page, `${card} .cd-shell-empty-state-open`, [
+      "color",
+      "font-size",
+      "background-color",
+      "border-top-width",
+    ]);
+    expect(open.color).toBe(await computed(page, "color", "var(--cd-ui-link)"));
+    expect([open["font-size"], open["background-color"], open["border-top-width"]]).toEqual([
+      "13px",
+      "rgba(0, 0, 0, 0)",
+      "0px",
+    ]);
   });
 
   test("high contrast drops the shadows and widens the focus ring to 3px (guide §5.3, §5.14)", async ({

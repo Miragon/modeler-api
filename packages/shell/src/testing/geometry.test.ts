@@ -645,6 +645,43 @@ describe("the web column (0.2)", () => {
     ]);
   });
 
+  it("stands the bottom-left stack and the raised zoom panel on a wrapped legal line", () => {
+    const container = { width: 320, height: 700 };
+    const wrapped = anchored(container, { width: 296, height: 40 }, { left: 12, bottom: 12 });
+    const state = web({
+      container,
+      open: { problems: true, zoomRaised: true },
+      islands: {
+        legal: wrapped,
+        primary: primary(container, 40),
+        problems: anchored(container, { width: 120, height: 40 }, { left: 12, bottom: 60 }),
+        zoom: anchored(container, { width: 173, height: 40 }, { right: 12, bottom: 60 }),
+      },
+    });
+    const expected = expectedChromeBoxes(state, "web");
+    expect(expected.legal).toEqual({ left: 12, bottom: 12, height: 40 });
+    expect(expected.problems).toMatchObject({ bottom: 60 });
+    expect(expected.zoom).toMatchObject({ bottom: 60 });
+    expect(chromeExpectations(state, "web").limits.legal).toEqual({ maxWidth: 296 });
+    expect(expectedFitInsets(state, "web").bottom).toBe(112);
+    const overflowing = web({ container, islands: { legal: { ...wrapped, width: 380 } } });
+    expect(geometryProblems(overflowing, "web")).toContain("legal: width is 380px, at most 296px expected");
+  });
+
+  it("lifts the toast stack only where its widest card would meet the bottom row", () => {
+    // The legal line with a GitHub link ends 7.5px before the 480px stack's column.
+    const state = web({ islands: { legal: { left: 12, top: WIDE.height - 32, width: 380.5, height: 20 } } });
+    const narrowCard = { ...state, toastCardWidth: 146 };
+    narrowCard.islands = {
+      ...state.islands,
+      toasts: anchored(WIDE, { width: 480, height: 42 }, { bottom: 12 }),
+    };
+    expect(expectedChromeBoxes(narrowCard, "web").toasts?.bottom).toBe(12);
+    expect(geometryProblems(narrowCard, "web")).toEqual([]);
+    const wideCard = { ...narrowCard, toastCardWidth: 480 };
+    expect(expectedChromeBoxes(wideCard, "web").toasts?.bottom).toBe(40);
+  });
+
   it("reads an obstacle's top from the container's bottom", () => {
     expect(bottomObstacle({ left: 1095, top: 848, width: 173, height: 40 }, WIDE)).toEqual({
       left: 1095,

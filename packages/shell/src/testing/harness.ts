@@ -71,8 +71,11 @@ export interface DropFixtures {
  */
 export type ShowHook = keyof ShowHooks;
 
-/** What a harness can lack: a show hook, or the web app's drop zone (`drop`). */
-export type AbsentFeature = ShowHook | "drop";
+/**
+ * What a harness can lack: a show hook, the web app's drop zone (`drop`), or problems that point at
+ * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects).
+ */
+export type AbsentFeature = ShowHook | "drop" | "problemSelection";
 
 export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
