@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { REDUCED_MOTION_CLASS, defaultMessages, type ToastRequest } from "../../core/index.js";
-import { TOAST_LEAVE_FALLBACK_MS, createToaster, type Toaster, type ToasterContext } from "./toasts.js";
+import {
+  TOAST_ANNOUNCE_DELAY_MS,
+  TOAST_LEAVE_FALLBACK_MS,
+  createToaster,
+  type Toaster,
+  type ToasterContext,
+} from "./toasts.js";
 
 let toasters: Toaster[] = [];
 
@@ -24,14 +30,32 @@ interface PopoverCalls {
 /** happy-dom has no popover API: records show/hide like a browser's top layer would see them. */
 function stubPopover(element: HTMLElement, onHide?: () => void): PopoverCalls {
   const record: PopoverCalls = { calls: [] };
+  let open = false;
+  const matches = element.matches.bind(element);
   Object.assign(element, {
-    showPopover: () => record.calls.push("show"),
+    showPopover: () => {
+      open = true;
+      record.calls.push("show");
+    },
     hidePopover: () => {
+      open = false;
       record.calls.push("hide");
       onHide?.();
     },
+    matches: (selector: string) => (selector === ":popover-open" ? open : matches(selector)),
   });
   return record;
+}
+
+/** A shown modal dialog, as `:modal` finds it. */
+function openModal(): HTMLDialogElement {
+  const dialog = document.createElement("dialog");
+  document.body.append(dialog);
+  const querySelector = document.querySelector.bind(document);
+  vi.spyOn(document, "querySelector").mockImplementation((selector: string) =>
+    selector === ":modal" ? dialog : querySelector(selector),
+  );
+  return dialog;
 }
 
 function setup(overrides: Partial<ToasterContext> = {}) {
@@ -40,12 +64,13 @@ function setup(overrides: Partial<ToasterContext> = {}) {
     ownerDocument: document,
     host: "web",
     messages: defaultMessages,
+    idPrefix: "cd-shell-toast-1",
     focusFallback,
     ...overrides,
   });
   toasters.push(toaster);
   const popover = stubPopover(toaster.element);
-  document.body.append(toaster.element);
+  document.body.append(toaster.announcer, toaster.element);
   return { toaster, stack: toaster.element, focusFallback, popover };
 }
 
@@ -74,7 +99,8 @@ describe("toaster: markup (guide §8)", () => {
 
     toaster.show(success());
     const [card] = cards(stack);
-    expect(card?.getAttribute("role")).toBe("status");
+    // The live regions speak for it; a live card would be read twice.
+    expect(card?.hasAttribute("role")).toBe(false);
     expect(card?.dataset.status).toBe("success");
     const dot = card?.querySelector(".cd-shell-toast-dot");
     expect(dot?.getAttribute("aria-hidden")).toBe("true");
@@ -86,16 +112,106 @@ describe("toaster: markup (guide §8)", () => {
     expect(card?.lastElementChild).toBe(close);
   });
 
-  it("uses role alert for danger and status otherwise", () => {
+  it("describes each Close button by its toast's text", () => {
     const { toaster, stack } = setup();
-    for (const status of ["success", "info", "warning", "danger"] as const) {
-      toaster.show({ status, text: status });
-    }
-    expect(cards(stack).map((card) => [card.dataset.status, card.getAttribute("role")])).toEqual([
-      ["info", "status"],
-      ["warning", "status"],
-      ["danger", "alert"],
+    toaster.show(success("one"));
+    toaster.show(success("two"));
+    const [first, second] = cards(stack).map((card) => {
+      const describedBy = closeButton(card).getAttribute("aria-describedby") ?? "";
+      return document.getElementById(describedBy)?.textContent;
+    });
+    expect([first, second]).toEqual(["one", "two"]);
+  });
+});
+
+describe("toaster: live regions (guide §8, §12)", () => {
+  function regions(toaster: Toaster) {
+    const [polite, assertive] = [...toaster.announcer.children] as HTMLElement[];
+    return { polite: polite!, assertive: assertive! };
+  }
+
+  it("keeps a polite status region and an alert region rendered before any toast", () => {
+    const { toaster } = setup();
+    const { polite, assertive } = regions(toaster);
+    expect(toaster.announcer.isConnected).toBe(true);
+    expect(toaster.announcer.className).toBe("cd-shell-live");
+    expect([polite.getAttribute("role"), polite.getAttribute("aria-live")]).toEqual(["status", "polite"]);
+    expect([assertive.getAttribute("role"), assertive.getAttribute("aria-live")]).toEqual([
+      "alert",
+      "assertive",
     ]);
+    expect(polite.textContent).toBe("");
+    expect(assertive.textContent).toBe("");
+  });
+
+  it("writes the text into the region of its status after a short delay", () => {
+    const { toaster } = setup();
+    const { polite, assertive } = regions(toaster);
+    toaster.show(success());
+    expect(polite.textContent).toBe("");
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    expect(polite.textContent).toBe("Link copied");
+    toaster.show({ status: "danger", text: "Couldn't open it." });
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    expect(assertive.textContent).toBe("Couldn't open it.");
+    expect(polite.textContent).toBe("Link copied");
+    for (const status of ["info", "warning"] as const) {
+      toaster.show({ status, text: status });
+      vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+      expect(polite.textContent).toBe(status);
+    }
+  });
+
+  it("announces a repeated toast again: emptied, then written", () => {
+    const { toaster } = setup();
+    const { polite } = regions(toaster);
+    toaster.show(success());
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    toaster.show(success());
+    expect(polite.textContent).toBe("");
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    expect(polite.textContent).toBe("Link copied");
+  });
+
+  it("empties the region when its toast closes", () => {
+    const { toaster } = setup();
+    const { polite } = regions(toaster);
+    const handle = toaster.show(success());
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    handle.dismiss();
+    expect(polite.textContent).toBe("");
+  });
+
+  it("leaves a newer toast's text when an older one closes", () => {
+    const { toaster } = setup();
+    const { polite } = regions(toaster);
+    const older = toaster.show(success("one"));
+    toaster.show(success("two"));
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    older.dismiss();
+    expect(polite.textContent).toBe("two");
+  });
+
+  it("removes the regions and writes nothing after destroy", () => {
+    const { toaster } = setup();
+    const { polite } = regions(toaster);
+    toaster.show(success());
+    toaster.destroy();
+    vi.advanceTimersByTime(TOAST_ANNOUNCE_DELAY_MS);
+    expect(toaster.announcer.isConnected).toBe(false);
+    expect(polite.textContent).toBe("");
+  });
+
+  it("reports every change of the stack", () => {
+    const onChange = vi.fn();
+    const { toaster } = setup({ onChange });
+    const handle = toaster.show(success());
+    expect(onChange).toHaveBeenCalledTimes(1);
+    toaster.show(success());
+    expect(onChange).toHaveBeenCalledTimes(2);
+    handle.dismiss();
+    vi.advanceTimersByTime(TOAST_LEAVE_FALLBACK_MS);
+    expect(onChange).toHaveBeenCalledTimes(3);
   });
 
   it("puts the action as a ghost button before Close", () => {
@@ -131,19 +247,29 @@ describe("toaster: markup (guide §8)", () => {
 });
 
 describe("toaster: hosts", () => {
-  it("web: a manual popover shown again with every toast and hidden once empty", () => {
+  it("web: a manual popover, shown once and kept open while no modal dialog opens", () => {
     const { toaster, stack, popover } = setup();
     expect(stack.getAttribute("popover")).toBe("manual");
     const first = toaster.show(success("one"));
     toaster.show(success("two"));
     toaster.show(success("two"));
-    expect(popover.calls).toEqual(["hide", "show", "hide", "show", "hide", "show"]);
+    expect(popover.calls).toEqual(["hide", "show"]);
     popover.calls.length = 0;
     first.dismiss();
     vi.advanceTimersByTime(TOAST_LEAVE_FALLBACK_MS);
     expect(popover.calls).toEqual([]);
     toaster.destroy();
     expect(stack.isConnected).toBe(false);
+  });
+
+  it("web: shown again with every toast while a modal dialog is open, so it stays above it", () => {
+    const { toaster, popover } = setup();
+    toaster.show(success("one"));
+    popover.calls.length = 0;
+    openModal();
+    toaster.show(success("two"));
+    toaster.show(success("two"));
+    expect(popover.calls).toEqual(["hide", "show", "hide", "show"]);
   });
 
   it("web: hides the popover when the last toast is gone", () => {
@@ -170,6 +296,7 @@ describe("toaster: hosts", () => {
       ownerDocument: document,
       host: "web",
       messages: defaultMessages,
+      idPrefix: "cd-shell-toast-2",
       focusFallback() {},
     });
     toasters.push(toaster);

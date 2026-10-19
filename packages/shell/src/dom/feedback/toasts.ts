@@ -18,16 +18,28 @@ export interface ToasterContext {
   /** `web`: the stack is a `popover="manual"` raised on every toast; `embedded`: absolute in the root. */
   host: Exclude<ShellHost, "ide">;
   messages: ShellMessages;
+  /** `cd-shell-toast-N`: the prefix of the ids the Close buttons' `aria-describedby` names. */
+  idPrefix: string;
   /** Where the focus goes when a closing toast held it and no other toast can take it. */
   focusFallback(): void;
+  /** A toast came or went: the widest card, and with it the stack's bottom, may have changed. */
+  onChange?: (() => void) | undefined;
 }
 
 export interface Toaster {
   /** The stack `<div class="cd-shell-toasts" data-chrome="toasts">`, always in the DOM, empty = no box. */
   readonly element: HTMLElement;
+  /**
+   * `<div class="cd-shell-live">` with the two live regions, always rendered and visually hidden,
+   * outside the stack: `role="status"` (polite) and `role="alert"` (danger). The shell puts it in the
+   * root, where it stays in the accessibility tree while the stack is empty or closed.
+   */
+  readonly announcer: HTMLElement;
   show(request: ToastRequest): ToastHandle;
   /** The stack's `bottom` in px from `toastStackBottom`, set by the shell's layout pass. */
   setBottom(bottom: number): void;
+  /** Rendered width of the widest card in the stack; `undefined` while it is empty. */
+  widestCard(): number | undefined;
   destroy(): void;
 }
 
@@ -39,6 +51,12 @@ export const TOAST_LEAVE_FALLBACK_MS = 400;
 
 /** The keyframes of feedback.css the leaving toast runs. */
 const LEAVE_ANIMATION = "cd-shell-toast-out";
+
+/**
+ * A live region announces a change of its content, not content it was created with; the text
+ * arrives this long after the region was emptied, so a repeated toast is announced again too.
+ */
+export const TOAST_ANNOUNCE_DELAY_MS = 100;
 
 const INERT_HANDLE: ToastHandle = Object.freeze({ dismiss() {} });
 
@@ -63,13 +81,18 @@ interface LiveToast {
  * web host the stack is a manual popover, re-shown on every toast, so it stays above a
  * `showModal()` dialog in the top layer; in the embedded host it is absolute inside the root.
  *
- * A toast: `<div class="cd-shell-toast" data-status role="status|alert">` (`alert` for danger,
- * `status` with its implicit polite live region otherwise), opaque `--cd-ui-flaeche-hoch`, 1px
+ * A toast: `<div class="cd-shell-toast" data-status>`, opaque `--cd-ui-flaeche-hoch`, 1px
  * `--cd-ui-linie`, a straight 4px bar and an 8px dot in `--cd-ui-<status>`, radius `md`,
  * `shadow-3`, at least 40px high, padding `4px 4px 4px 16px`, gap 8px, text 13px/1.5
  * `--cd-ui-text`; then the action as a 32px ghost button and Close as a 32 × 32 ghost icon button
- * (Lucide `x`, `aria-label` `messages.close`). Slide and fade in from `translateY(8px)` (250ms),
- * out the same way; none under reduced motion.
+ * (Lucide `x`, `aria-label` `messages.close`, `aria-describedby` the toast's text). Slide and fade
+ * in from `translateY(8px)` (250ms), out the same way; none under reduced motion.
+ *
+ * Screen readers hear a toast through the two persistent live regions of `announcer` (guide §8,
+ * §12): its text goes to `role="alert"` for danger, else to `role="status"` (`aria-live="polite"`),
+ * `TOAST_ANNOUNCE_DELAY_MS` after the region was emptied; a repeat is announced again. The cards
+ * themselves carry no live role, so nothing is read twice and re-showing the stack re-announces
+ * nothing. The region empties again when its toast closes.
  *
  * Lifetime `toastLifetime(request)`, paused while hovered or focused (and resumed with at least
  * 1.5 s left); a toast with an action never closes by itself. A fourth toast evicts per
@@ -87,20 +110,83 @@ export function createToaster(context: ToasterContext): Toaster {
     "data-chrome": "toasts",
     popover: web ? "manual" : undefined,
   });
+  const liveRegion = (politeness: "polite" | "assertive"): HTMLElement =>
+    createElement(ownerDocument, "div", {
+      class: "cd-shell-live-region",
+      "data-live": politeness,
+      role: politeness === "polite" ? "status" : "alert",
+      "aria-live": politeness,
+      "aria-atomic": "true",
+    });
+  const politeRegion = liveRegion("polite");
+  const assertiveRegion = liveRegion("assertive");
+  const announcer = createElement(
+    ownerDocument,
+    "div",
+    { class: "cd-shell-live" },
+    politeRegion,
+    assertiveRegion,
+  );
 
   /** Shown toasts, oldest first; a leaving toast is no longer one of them. */
   const live: LiveToast[] = [];
   const leaveTimers = new Set<ReturnType<typeof setTimeout>>();
+  const announceTimers = new Map<HTMLElement, ReturnType<typeof setTimeout>>();
   let lastId = 0;
   let destroyed = false;
+
+  function regionFor(request: ToastRequest): HTMLElement {
+    return request.status === "danger" ? assertiveRegion : politeRegion;
+  }
+
+  function announce(request: ToastRequest): void {
+    const region = regionFor(request);
+    clearTimeout(announceTimers.get(region));
+    region.textContent = "";
+    announceTimers.set(
+      region,
+      setTimeout(() => {
+        announceTimers.delete(region);
+        if (!destroyed) region.textContent = request.text;
+      }, TOAST_ANNOUNCE_DELAY_MS),
+    );
+  }
+
+  // A closed toast's text stays out of the regions, where a screen reader's reading cursor finds it.
+  function silence(request: ToastRequest): void {
+    const region = regionFor(request);
+    if (region.textContent === request.text) region.textContent = "";
+  }
+
+  function changed(): void {
+    if (!destroyed) context.onChange?.();
+  }
 
   function supportsPopover(): boolean {
     return web && typeof element.showPopover === "function" && typeof element.hidePopover === "function";
   }
 
-  // Showing a popover again puts it on top of the top layer, above a modal dialog opened since.
+  function popoverOpen(): boolean {
+    try {
+      return element.matches(":popover-open");
+    } catch {
+      return false;
+    }
+  }
+
+  function modalOpen(): boolean {
+    try {
+      return ownerDocument.querySelector(":modal") !== null;
+    } catch {
+      return true;
+    }
+  }
+
+  // Showing a popover again puts it on top of the top layer, above a modal dialog opened since. An
+  // open stack without a modal dialog stays as it is: hiding it would rebuild it for screen readers.
   function raise(): void {
     if (!supportsPopover() || !element.isConnected) return;
+    if (popoverOpen() && !modalOpen()) return;
     const focused = ownerDocument.activeElement as HTMLElement | null;
     const keepFocus = focused && element.contains(focused) ? focused : undefined;
     try {
@@ -170,6 +256,7 @@ export function createToaster(context: ToasterContext): Toaster {
   function removeElement(toastElement: HTMLElement): void {
     toastElement.remove();
     lowerWhenEmpty();
+    changed();
   }
 
   function leave(toastElement: HTMLElement): void {
@@ -200,6 +287,7 @@ export function createToaster(context: ToasterContext): Toaster {
     if (index < 0) return;
     live.splice(index, 1);
     stopTimer(toast);
+    silence(toast.request);
     const heldFocus = toast.element.contains(ownerDocument.activeElement);
     if (heldFocus) {
       const next = live[index] ?? live[index - 1];
@@ -237,22 +325,25 @@ export function createToaster(context: ToasterContext): Toaster {
 
   function render(request: ToastRequest): LiveToast {
     const id = ++lastId;
+    const textId = `${context.idPrefix}-${id}`;
+    // Three Close buttons in a stack are told apart by the text of their toast.
     const closeButton = createElement(
       ownerDocument,
       "button",
-      { type: "button", class: "cd-shell-toast-close", "aria-label": messages.close },
+      {
+        type: "button",
+        class: "cd-shell-toast-close",
+        "aria-label": messages.close,
+        "aria-describedby": textId,
+      },
       iconElement("x"),
     );
     const toastElement = createElement(
       ownerDocument,
       "div",
-      {
-        class: "cd-shell-toast",
-        "data-status": request.status,
-        role: request.status === "danger" ? "alert" : "status",
-      },
+      { class: "cd-shell-toast", "data-status": request.status },
       createElement(ownerDocument, "span", { class: "cd-shell-toast-dot", "aria-hidden": "true" }),
-      createElement(ownerDocument, "span", { class: "cd-shell-toast-text" }, request.text),
+      createElement(ownerDocument, "span", { class: "cd-shell-toast-text", id: textId }, request.text),
       closeButton,
     );
     const toast: LiveToast = {
@@ -290,6 +381,8 @@ export function createToaster(context: ToasterContext): Toaster {
       same.remaining = toastLifetime(request);
       runTimer(same);
       raise();
+      announce(request);
+      changed();
       return same.handle;
     }
     while (live.length >= MAX_TOASTS) {
@@ -303,14 +396,25 @@ export function createToaster(context: ToasterContext): Toaster {
     element.append(toast.element);
     raise();
     runTimer(toast);
+    announce(request);
+    changed();
     return toast.handle;
   }
 
   return {
     element,
+    announcer,
     show,
     setBottom(bottom) {
       element.style.bottom = `${bottom}px`;
+    },
+    widestCard() {
+      let widest: number | undefined;
+      for (const card of element.children) {
+        const width = card.getBoundingClientRect().width;
+        if (width > 0) widest = Math.max(widest ?? 0, width);
+      }
+      return widest;
     },
     destroy() {
       if (destroyed) return;
@@ -318,7 +422,10 @@ export function createToaster(context: ToasterContext): Toaster {
       for (const toast of live.splice(0)) stopTimer(toast);
       for (const timer of leaveTimers) clearTimeout(timer);
       leaveTimers.clear();
+      for (const timer of announceTimers.values()) clearTimeout(timer);
+      announceTimers.clear();
       element.remove();
+      announcer.remove();
     },
   };
 }

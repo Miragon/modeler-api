@@ -109,6 +109,18 @@ describe("web-column wiring (0.2)", () => {
     expect(zoom.stepZoom).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the toasts' live regions in the root, outside the stack", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions() });
+    const live = root.querySelector(".cd-shell-live");
+    expect(live?.parentElement).toBe(root);
+    expect([...(live?.children ?? [])].map((region) => region.getAttribute("role"))).toEqual([
+      "status",
+      "alert",
+    ]);
+    shell.destroy();
+    expect(live?.isConnected).toBe(false);
+  });
+
   it("moves a focus the start screen hides to its New diagram button, else leaves it", () => {
     const { shell, root } = mount({ host: "web", ...webOptions() });
     const primary = chrome(root, "primary");

@@ -80,6 +80,11 @@ export interface ToastStackInput {
   containerWidth: number;
   /** The visible zoom panel, legal line and problems pill (not the legend card). */
   obstacles: readonly BottomObstacle[];
+  /**
+   * Measured width of the widest toast in the stack. The cards are sized to their text and centred
+   * in the stack, so only this column can touch an obstacle; absent = the whole `toastStackWidth`.
+   */
+  cardWidth?: number | undefined;
 }
 
 /** `min(TOAST_MAX_WIDTH, containerWidth − 2 · SHELL.edge)`. */
@@ -88,14 +93,19 @@ export function toastStackWidth(containerWidth: number): number {
 }
 
 /**
- * The stack's `bottom` in px. Guide §8 anchors it at `bottom: 12px`, centred; where its column
- * (`toastStackWidth`, centred) comes closer than `SHELL.gap` horizontally to an obstacle, the stack
- * stands `SHELL.gap` above the highest such obstacle instead (above the legal line 40, above the
- * zoom panel 60, above a raised zoom panel or the web pill 88). Guide §8 does not settle this
- * collision of a narrow container; it is the shell's rule until it does.
+ * The stack's `bottom` in px. Guide §8 anchors it at `bottom: 12px`, centred; where the column of
+ * its widest card (`cardWidth`, at most `toastStackWidth`, centred) comes closer than `SHELL.gap`
+ * horizontally to an obstacle, the stack stands `SHELL.gap` above the highest such obstacle instead
+ * (above the legal line 40, above the zoom panel 60, above a raised zoom panel or the web pill 88).
+ * Guide §8 does not settle this collision of a narrow container; it is the shell's rule until it does.
  */
 export function toastStackBottom(input: ToastStackInput): number {
-  const width = toastStackWidth(input.containerWidth);
+  const stackWidth = toastStackWidth(input.containerWidth);
+  const { cardWidth } = input;
+  const width =
+    cardWidth !== undefined && Number.isFinite(cardWidth)
+      ? Math.min(stackWidth, Math.max(0, cardWidth))
+      : stackWidth;
   const left = (input.containerWidth - width) / 2;
   const right = left + width;
   let highest: number | undefined;

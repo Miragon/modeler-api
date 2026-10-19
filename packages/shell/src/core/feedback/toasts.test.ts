@@ -150,6 +150,24 @@ describe("toastStackBottom", () => {
     );
   });
 
+  it("tests the column of the widest card, not the whole stack", () => {
+    // 1280 with the GitHub link: the legal line ends at 392.5, the 480px stack starts at 400.
+    const obstacles = [legal(392.5), zoom(1280)];
+    expect(toastStackBottom({ containerWidth: 1280, obstacles })).toBe(40);
+    // "Link copied", 146px wide: 567…713.
+    expect(toastStackBottom({ containerWidth: 1280, obstacles, cardWidth: 146 })).toBe(12);
+    // A card of the full 480px meets the legal line again.
+    expect(toastStackBottom({ containerWidth: 1280, obstacles, cardWidth: 480 })).toBe(40);
+    // A card is never wider than the stack.
+    expect(toastStackBottom({ containerWidth: 1280, obstacles, cardWidth: 900 })).toBe(40);
+  });
+
+  it("falls back to the stack's width for a card width that is no number", () => {
+    const obstacles = [legal(392.5)];
+    expect(toastStackBottom({ containerWidth: 1280, obstacles, cardWidth: Number.NaN })).toBe(40);
+    expect(toastStackBottom({ containerWidth: 1280, obstacles, cardWidth: undefined })).toBe(40);
+  });
+
   it("ignores obstacles off to the side, however high", () => {
     expect(
       toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 12, right: 200, top: 400 }, zoom(1280)] }),

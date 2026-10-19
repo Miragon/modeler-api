@@ -300,7 +300,14 @@ function renderShell(
   const toaster =
     host === "ide"
       ? undefined
-      : createToaster({ ownerDocument, host, messages, focusFallback: focusCanvasOrTrigger });
+      : createToaster({
+          ownerDocument,
+          host,
+          messages,
+          idPrefix: `cd-shell-toast-${index}`,
+          focusFallback: focusCanvasOrTrigger,
+          onChange: () => updateBottomRow(),
+        });
   if (toaster) ledger.defer(() => toaster.destroy());
 
   const defined = (element: HTMLElement | undefined): element is HTMLElement => element !== undefined;
@@ -317,7 +324,7 @@ function renderShell(
       zoomPanel.element,
     ].filter(defined),
     layer,
-    ...[toaster?.element].filter(defined),
+    ...[toaster?.announcer, toaster?.element].filter(defined),
   );
 
   function showToast(request: ToastRequest): ToastHandle {
@@ -424,7 +431,9 @@ function renderShell(
           return box ? [{ left: box.x, right: box.x + box.width, top: size.height - box.y }] : [];
         },
       );
-      toaster.setBottom(toastStackBottom({ containerWidth: size.width, obstacles }));
+      toaster.setBottom(
+        toastStackBottom({ containerWidth: size.width, obstacles, cardWidth: toaster.widestCard() }),
+      );
     }
   }
 
