@@ -491,9 +491,9 @@ html.cd-shell-document kbd {
   color: var(--cd-ui-warning);
 }
 
-/* The web app keeps its legal line (20px) below the pill. */
+/* The web app keeps its legal line (20px, more where it wraps) below the pill. */
 .cd-shell[data-cd-shell-host="web"] .cd-shell-problems {
-  bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+  bottom: calc(var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke));
 }
 
 /* ---- Status box under the palette (guide §5.12) --------------------------------------------- */
@@ -651,12 +651,15 @@ html.cd-shell-document kbd {
 }
 
 .cd-shell[data-cd-shell-host="web"] .cd-shell-legend {
-  --modeler-shell-legend-bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+  --modeler-shell-legend-bottom: calc(
+    var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke)
+  );
 }
 
 .cd-shell[data-cd-shell-host="web"][data-problems="shown"] .cd-shell-legend {
   --modeler-shell-legend-bottom: calc(
-    var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+    var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke) +
+      var(--cd-shell-zeile) + var(--cd-shell-luecke)
   );
 }
 

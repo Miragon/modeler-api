@@ -196,6 +196,22 @@ describe("web-column wiring (0.2)", () => {
     expect(toasts.style.bottom).toBe("40px");
   });
 
+  it("stands the bottom row on the legal line's measured height when it wraps", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions() }, { width: 320, height: 700 });
+    const legal = chrome(root, "legal");
+    setBox(legal, { left: 12, top: 668, width: 296, height: 20 });
+    FakeResizeObserver.resize(root);
+    expect(root.style.getPropertyValue("--modeler-shell-legal-height")).toBe("20px");
+    setBox(legal, { left: 12, top: 648, width: 296, height: 40 });
+    setBox(chrome(root, "zoom"), { left: 135, top: 588, width: 173, height: 40 });
+    FakeResizeObserver.resize(legal);
+    expect(root.style.getPropertyValue("--modeler-shell-legal-height")).toBe("40px");
+    expect(root.getAttribute("data-zoom-row")).toBe("raised");
+    expect(shell.fitInsets().bottom).toBe(112);
+    shell.destroy();
+    expect(root.style.getPropertyValue("--modeler-shell-legal-height")).toBe("");
+  });
+
   it("decides the top row again when the primary action resizes (a late web font)", () => {
     const { shell, root } = mount({ host: "web", ...webOptions() }, { width: 900, height: 700 });
     const palette = fakePalette();

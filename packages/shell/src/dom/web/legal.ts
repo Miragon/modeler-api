@@ -11,6 +11,8 @@ export interface LegalLineContext {
   ownerDocument: Document;
   messages: ShellMessages;
   options: LegalLineOptions;
+  /** `cd-shell-legal-N`: the prefix of the id the links' `aria-describedby` names. */
+  idPrefix: string;
 }
 
 export interface LegalLineController {
@@ -22,8 +24,10 @@ export interface LegalLineController {
 /**
  * `<nav class="cd-shell-legal" data-chrome="legal" aria-label="Legal">` (guide §5.10, §2): one
  * line, 13px, line height 20px, at `left: 12px; bottom: 12px`, glass without border and shadow,
- * padding `0 8px`, radius `sm`, layer 20. Links in `--cd-ui-link`, `target="_blank"
- * rel="noopener noreferrer"`, separated by `<span aria-hidden="true">·</span>`:
+ * padding `0 8px`, radius `sm`, layer 20; in a container too narrow for it, it wraps between its
+ * entries and grows upwards. Links in `--cd-ui-link`, `target="_blank" rel="noopener noreferrer"`
+ * and `aria-describedby` a hidden `messages.opensInNewTab`, each after the first in a
+ * `<span class="cd-shell-legal-item">` with its separator `<span aria-hidden="true">·</span>`:
  * `messages.copyright(year)` → `MIRAGON_HOME`, "Impressum" → `MIRAGON_IMPRESSUM` and "Datenschutz"
  * → `MIRAGON_DATENSCHUTZ` (both `lang="de"`, never translated), then `options.links`.
  */
@@ -31,9 +35,18 @@ export function createLegalLine(context: LegalLineContext): LegalLineController 
   const { ownerDocument, messages, options } = context;
   const year = options.year ?? new Date().getFullYear();
 
+  // Every link opens a new tab; screen readers hear that from one shared description.
+  const newTabId = `${context.idPrefix}-new-tab`;
   const link = (label: string, href: string, lang?: string): HTMLAnchorElement =>
-    createElement(ownerDocument, "a", { href, lang, target: "_blank", rel: "noopener noreferrer" }, label);
+    createElement(
+      ownerDocument,
+      "a",
+      { href, lang, target: "_blank", rel: "noopener noreferrer", "aria-describedby": newTabId },
+      label,
+    );
   const separator = (): HTMLElement => createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·");
+  const item = (anchor: HTMLAnchorElement): HTMLElement =>
+    createElement(ownerDocument, "span", { class: "cd-shell-legal-item" }, separator(), anchor);
 
   // The legal pages are German whatever the tool's language (guide §2), so their names are too.
   const links = [
@@ -48,7 +61,10 @@ export function createLegalLine(context: LegalLineContext): LegalLineController 
     "data-chrome": "legal",
     "aria-label": messages.legal,
   });
-  element.append(...links.flatMap((anchor, index) => (index === 0 ? [anchor] : [separator(), anchor])));
+  element.append(
+    ...links.map((anchor, index) => (index === 0 ? anchor : item(anchor))),
+    createElement(ownerDocument, "span", { id: newTabId, hidden: "" }, messages.opensInNewTab),
+  );
 
   return {
     element,

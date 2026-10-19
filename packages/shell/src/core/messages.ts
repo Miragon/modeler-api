@@ -47,6 +47,8 @@ export interface ShellMessages {
   legal: string;
   /** First entry of the legal line, linking the Miragon home page: "© 2026 Miragon GmbH". */
   copyright(year: number): string;
+  /** The description of every legal link for screen readers: they open in a new tab. */
+  opensInNewTab: string;
   /** File group (web app) and the empty state's primary button. */
   newDiagram: string;
   /** File group: "Open…" (U+2026, it opens the browser's file dialog). */
@@ -114,6 +116,7 @@ export const defaultMessages: ShellMessages = {
   share: "Share",
   legal: "Legal",
   copyright: (year) => `© ${year} Miragon GmbH`,
+  opensInNewTab: "Opens in a new tab",
   newDiagram: "New diagram",
   openFile: "Open…",
   showExample: "Show example",

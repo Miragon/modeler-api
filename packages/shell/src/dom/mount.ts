@@ -1,8 +1,10 @@
 import {
+  LEGAL_LINE_HEIGHT,
   SHELL,
   decideTopRow,
   detectPlatform,
   fitInsets,
+  legalLineHeight,
   legendStartsOpen,
   resolveMessages,
   toastStackBottom,
@@ -63,6 +65,9 @@ function nextMountIndex(): number {
 }
 
 const DEFAULT_THEMES: readonly Theme[] = ["light"];
+
+/** The legal line's height on the root, which the stack above it (pill, legend, zoom row) adds. */
+const LEGAL_HEIGHT_PROPERTY = "--modeler-shell-legal-height";
 
 /** What `toast()` returns where no toast shows (the IDE host, after `destroy`). */
 const INERT_TOAST: ToastHandle = Object.freeze({ dismiss() {} });
@@ -306,7 +311,14 @@ function renderShell(
     popover = created;
     ledger.defer(() => created.destroy());
   }
-  const legal = web ? createLegalLine({ ownerDocument, messages, options: options.legal ?? {} }) : undefined;
+  const legal = web
+    ? createLegalLine({
+        ownerDocument,
+        messages,
+        options: options.legal ?? {},
+        idPrefix: `cd-shell-legal-${index}`,
+      })
+    : undefined;
   if (legal) ledger.defer(() => legal.destroy());
   const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip });
   ledger.defer(() => zoomPanel.destroy());
@@ -363,6 +375,9 @@ function renderShell(
   let paletteRow: PaletteRow = "top";
   /** Web: the zoom panel stands above the legal line (`data-zoom-row="raised"`). */
   let zoomRaised = false;
+  /** Web: the legal line's measured height, more than one line where a narrow container wraps it. */
+  let legalHeight = LEGAL_LINE_HEIGHT;
+  if (legal) ledger.defer(() => root.style.removeProperty(LEGAL_HEIGHT_PROPERTY));
 
   function containerSize(): Size {
     return { width: root.clientWidth, height: root.clientHeight };
@@ -387,7 +402,10 @@ function renderShell(
       paletteRow,
       problemsVisible: pill?.isShown() ?? false,
     };
-    if (web) layout.zoomRaised = zoomRaised;
+    if (web) {
+      layout.zoomRaised = zoomRaised;
+      layout.legalHeight = legalHeight;
+    }
     if (legend?.isOpen()) layout.legendWidth = legend.element.getBoundingClientRect().width;
     if (inspector?.isOpen()) {
       layout.inspector =
@@ -430,6 +448,11 @@ function renderShell(
     if (size.width === 0 || size.height === 0) return;
     if (legal) {
       const legalBox = visibleBoxIn(legal.element, root);
+      const height = legalLineHeight(legalBox?.height);
+      if (height !== legalHeight || !root.style.getPropertyValue(LEGAL_HEIGHT_PROPERTY)) {
+        legalHeight = height;
+        root.style.setProperty(LEGAL_HEIGHT_PROPERTY, `${height}px`);
+      }
       zoomRaised = zoomRowRaised({
         containerWidth: size.width,
         legalRight: legalBox && legalBox.x + legalBox.width,
@@ -479,8 +502,10 @@ function renderShell(
   const ResizeObserverClass = globalThis.ResizeObserver;
   const resizeObserver = ResizeObserverClass ? new ResizeObserverClass(() => updateLayout()) : undefined;
   resizeObserver?.observe(root);
-  // The label widens once the web font has loaded; the top row decides again then.
+  // The label widens once the web font has loaded; the top row decides again then. The legal line
+  // may wrap onto a second line then, which lifts everything stacked above it.
   if (primary) resizeObserver?.observe(primary.element);
+  if (legal) resizeObserver?.observe(legal.element);
   ledger.defer(() => resizeObserver?.disconnect());
 
   if (legend && options.legend?.open !== undefined) legend.start(options.legend.open);

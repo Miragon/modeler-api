@@ -5,7 +5,9 @@
  * var(--cd-shell-*); the primary fill comes from ../buttons.css. Every rule is scoped to
  * .cd-shell[data-cd-shell-host="web"] or to classes only the web host renders.
  *
- * 20px is the legal line's height (13px text on a 20px line, guide §5.10); it has no token.
+ * 20px is the legal line's height (13px text on a 20px line, guide §5.10); it has no token. Where a
+ * narrow container wraps the line, the shell measures it into --modeler-shell-legal-height on the
+ * root, and everything stacked above the line stands on that height.
  */
 
 /* The app's own element rules (h1 { font-size: 2em }, a { text-transform … }) stay out. */
@@ -54,6 +56,10 @@
 
 /* ---- Legal line, bottom left (guide §5.10, §2) ---------------------------------------------- */
 
+/*
+ * One line where it fits; in a narrower container it wraps between its entries instead of being
+ * cut off (Datenschutz must stay reachable, WCAG 1.4.10), and grows upwards from bottom 12.
+ */
 .cd-shell-legal {
   position: absolute;
   left: var(--cd-shell-rand);
@@ -61,9 +67,12 @@
   z-index: var(--cd-shell-ebene-inseln);
   box-sizing: border-box;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  height: 20px;
+  column-gap: 6px;
+  row-gap: 0;
+  min-height: 20px;
+  max-width: calc(100cqw - 2 * var(--cd-shell-rand));
   margin: 0;
   padding: 0 8px;
   color: var(--cd-ui-text-leise);
@@ -89,6 +98,13 @@
   flex: none;
 }
 
+/* A separator and the link after it: a wrap never leaves a separator alone at a line's end. */
+.cd-shell-legal-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .cd-shell .cd-shell-legal a,
 .cd-shell .cd-shell-legal a:visited {
   color: var(--cd-ui-link);
@@ -110,33 +126,6 @@
   text-decoration: underline;
   outline: 2px solid var(--cd-ui-fokus);
   outline-offset: 2px;
-}
-
-.cd-shell-legal::-webkit-scrollbar {
-  display: none;
-}
-
-/*
- * Narrow: the one line may be wider than the container (with a GitHub link below about 415px).
- * It scrolls sideways instead of wrapping under the pill, and like any scrolling container keeps
- * the focus ring inside (guide §5.14).
- */
-@container cd-shell (max-width: 440px) {
-  .cd-shell-legal {
-    max-width: calc(100cqw - 2 * var(--cd-shell-rand));
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .cd-shell .cd-shell-legal a {
-    padding: 0 2px;
-  }
-
-  .cd-shell .cd-shell-legal a:focus-visible {
-    outline-offset: -2px;
-  }
 }
 
 /* ---- Empty state, centre (guide §8) --------------------------------------------------------- */
@@ -274,14 +263,15 @@
 /* ---- Bottom row: the zoom panel above the legal line where they meet (shell rule) ----------- */
 
 .cd-shell[data-cd-shell-host="web"][data-zoom-row="raised"] .cd-shell-zoom {
-  bottom: calc(var(--cd-shell-rand) + 20px + var(--cd-shell-luecke));
+  bottom: calc(var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke));
 }
 
 /* Up to 440px the legend stands above the raised zoom panel too: 40 + 40 + 8 = 88. */
 @container cd-shell (max-width: 440px) {
   .cd-shell[data-cd-shell-host="web"][data-zoom-row="raised"] .cd-shell-legend {
     --modeler-shell-legend-min-bottom: calc(
-      var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+      var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke) +
+        var(--cd-shell-zeile) + var(--cd-shell-luecke)
     );
   }
 }
@@ -357,12 +347,6 @@ html.cd-shell-reduce-motion .cd-shell .cd-shell-empty-state {
 .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
   :is(.cd-shell-legal a, .cd-shell-empty-state-open):focus-visible {
   outline-width: 3px;
-}
-
-@container cd-shell (max-width: 440px) {
-  .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a:focus-visible {
-    outline-offset: -3px;
-  }
 }
 
 /* ---- Forced colours (guide §5.14, §12): nothing disappears ---------------------------------- */

@@ -9,7 +9,9 @@ afterEach(() => {
 });
 
 function legalLine(options: LegalLineOptions = {}, messages = defaultMessages) {
-  return createLegalLine({ ownerDocument: document, messages, options });
+  const line = createLegalLine({ ownerDocument: document, messages, options, idPrefix: "cd-shell-legal-1" });
+  document.body.append(line.element);
+  return line;
 }
 
 function links(element: HTMLElement) {
@@ -60,13 +62,26 @@ describe("legal line (guide §5.10, §2)", () => {
     }
   });
 
-  it("separates the links with hidden middle dots", () => {
+  it("puts each link after the first behind a hidden middle dot, the two kept together when it wraps", () => {
     const { element } = legalLine({ links: [{ label: "GitHub", href: "https://github.com/Miragon" }] });
-    const children = [...element.children];
-    expect(children.map((child) => child.tagName)).toEqual(["A", "SPAN", "A", "SPAN", "A", "SPAN", "A"]);
-    for (const separator of children.filter((child) => child.tagName === "SPAN")) {
-      expect(separator.textContent).toBe("·");
-      expect(separator.getAttribute("aria-hidden")).toBe("true");
+    const items = [...element.querySelectorAll(":scope > .cd-shell-legal-item")];
+    expect(element.firstElementChild?.tagName).toBe("A");
+    expect(items).toHaveLength(3);
+    for (const entry of items) {
+      const [separator, anchor] = [...entry.children];
+      expect(separator?.textContent).toBe("·");
+      expect(separator?.getAttribute("aria-hidden")).toBe("true");
+      expect(anchor?.tagName).toBe("A");
+    }
+  });
+
+  it("tells screen readers once that the links open a new tab", () => {
+    const { element } = legalLine();
+    const description = element.querySelector<HTMLElement>("#cd-shell-legal-1-new-tab");
+    expect(description?.hidden).toBe(true);
+    expect(description?.textContent).toBe("Opens in a new tab");
+    for (const anchor of element.querySelectorAll("a")) {
+      expect(anchor.getAttribute("aria-describedby")).toBe("cd-shell-legal-1-new-tab");
     }
   });
 

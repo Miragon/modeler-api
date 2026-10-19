@@ -89,7 +89,7 @@ export {
 export type { PrimaryWidths, TopRow, TopRowInput } from "./web-chrome/top-row.js";
 export { decideTopRow } from "./web-chrome/top-row.js";
 export type { BottomRowInput } from "./web-chrome/bottom-row.js";
-export { zoomRowRaised } from "./web-chrome/bottom-row.js";
+export { LEGAL_LINE_HEIGHT, legalLineHeight, zoomRowRaised } from "./web-chrome/bottom-row.js";
 export type { DragContext, DragItemLike, DragVerdict, DropForbiddenReason } from "./web-chrome/drop.js";
 export { acceptsFile, dragVerdict } from "./web-chrome/drop.js";
 

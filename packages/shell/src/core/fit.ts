@@ -1,4 +1,5 @@
 import { SHELL } from "./sizes.js";
+import { LEGAL_LINE_HEIGHT, legalLineHeight } from "./web-chrome/bottom-row.js";
 import type { Bounds, Insets, PaletteRow, Point, ScaledViewbox, ShellHost, Size } from "./types.js";
 
 /** Fit never zooms above 100 % (guide §5.9). */
@@ -79,6 +80,11 @@ export interface FitLayout {
    * with the pill.
    */
   zoomRaised?: boolean | undefined;
+  /**
+   * Web app: the measured height of the legal line (`LEGAL_LINE_HEIGHT`, more where a narrow
+   * container wraps it); the raised bottom row stands on it. Default one line.
+   */
+  legalHeight?: number | undefined;
   /** Rendered width of the open legend; `undefined` when it is closed or the modeler has none. */
   legendWidth?: number | undefined;
   /**
@@ -90,17 +96,18 @@ export interface FitLayout {
 
 /**
  * The fit insets of guide §5.9: top 88 (second row 140), sides 24, bottom 64 (web app with pill or
- * with the zoom panel raised above the legal line 92),
+ * with the zoom panel raised above the legal line 92, plus 20 per extra line of a wrapped legal line),
  * right 324 with an open side inspector, left 12 + legend width + 24 with an open legend above
  * `SHELL.veryNarrow`, bottom = distance to the sheet's top edge + 12 with an open bottom sheet.
  */
 export function fitInsets(layout: FitLayout): Insets {
   const { container, host, paletteRow, problemsVisible, zoomRaised, legendWidth, inspector } = layout;
   const raisedBottomRow = host === "web" && (problemsVisible || zoomRaised === true);
+  const wrappedLegalLines = legalLineHeight(layout.legalHeight) - LEGAL_LINE_HEIGHT;
   const insets: Insets = {
     top: paletteRow === "second-row" ? SHELL.fitInsetTopSecondRow : SHELL.fitInsetTop,
     right: SHELL.fitInsetSide,
-    bottom: raisedBottomRow ? SHELL.fitInsetBottomWeb : SHELL.fitInsetBottom,
+    bottom: raisedBottomRow ? SHELL.fitInsetBottomWeb + wrappedLegalLines : SHELL.fitInsetBottom,
     left: SHELL.fitInsetSide,
   };
 

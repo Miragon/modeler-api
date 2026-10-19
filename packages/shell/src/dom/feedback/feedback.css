@@ -243,7 +243,8 @@
 
 .cd-shell[data-cd-shell-host="web"] .cd-shell-problems-popover {
   --modeler-shell-problems-bottom: calc(
-    var(--cd-shell-rand) + 20px + var(--cd-shell-luecke) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+    var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke) +
+      var(--cd-shell-zeile) + var(--cd-shell-luecke)
   );
 }
 
