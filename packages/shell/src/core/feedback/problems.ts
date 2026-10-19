@@ -18,6 +18,6 @@ export function problemSummary(items: readonly ProblemItem[]): {
   errors: number;
   items: readonly ProblemItem[];
 } {
-  // TODO(feedback): errors = items with severity "error".
-  return { count: items.length, errors: 0, items };
+  const errors = items.filter((item) => item.severity === "error").length;
+  return { count: items.length, errors, items };
 }

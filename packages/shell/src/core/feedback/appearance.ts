@@ -18,9 +18,7 @@ export interface ThemeColors {
 
 /** `"light"` and `"dark"` pass, everything else (a missing entry, a foreign value) is `"system"`. */
 export function parseAppearanceChoice(stored: unknown): AppearanceChoice {
-  // TODO(feedback): only "light" and "dark" pass.
-  void stored;
-  return "system";
+  return stored === "light" || stored === "dark" ? stored : "system";
 }
 
 /** What `<html>` and the meta tags carry for a choice. */
@@ -45,10 +43,20 @@ export function documentMode(
   themes: readonly Theme[],
   colors: ThemeColors,
 ): DocumentMode {
-  // TODO(feedback): the table above.
-  void choice;
-  void themes;
-  return { theme: "light", colorScheme: "light", themeColor: { light: colors.light, dark: colors.light } };
+  if (!themes.includes("dark")) return fixedMode("light", colors.light);
+  const parsed = parseAppearanceChoice(choice);
+  if (parsed === "system") {
+    return {
+      theme: "system",
+      colorScheme: "light dark",
+      themeColor: { light: colors.light, dark: colors.dark },
+    };
+  }
+  return fixedMode(parsed, colors[parsed]);
+}
+
+function fixedMode(theme: Theme, color: string): DocumentMode {
+  return { theme, colorScheme: theme, themeColor: { light: color, dark: color } };
 }
 
 export interface WebModeScriptOptions {
@@ -65,9 +73,39 @@ export interface WebModeScriptOptions {
  * contrast line alone. Plain ES5 without the modeler's bundle, so it runs before the first paint.
  */
 export function webModeScript(options: WebModeScriptOptions): string {
-  // TODO(feedback): both variants above.
-  void options;
-  return "";
+  const contrast = [
+    `if (window.matchMedia && window.matchMedia(${scriptString("(prefers-contrast: more)")}).matches)`,
+    `  document.documentElement.setAttribute("data-cd-kontrast", "hoch");`,
+  ];
+  if (!options.themes.includes("dark")) return contrast.join("\n");
+  const { light, dark } = options.themeColors;
+  return [
+    "(function () {",
+    "  var html = document.documentElement;",
+    "  var choice = null;",
+    "  try {",
+    `    choice = window.localStorage.getItem(${scriptString(APPEARANCE_STORAGE_KEY)});`,
+    "  } catch (error) {}",
+    `  if (choice === "light" || choice === "dark") {`,
+    `    var color = choice === "dark" ? ${scriptString(dark)} : ${scriptString(light)};`,
+    `    html.setAttribute("data-cd-theme", choice);`,
+    `    var scheme = document.querySelector("meta[name=color-scheme]");`,
+    `    if (scheme) scheme.setAttribute("content", choice);`,
+    `    var metas = document.querySelectorAll("meta[name=theme-color]");`,
+    `    for (var index = 0; index < metas.length; index++) metas[index].setAttribute("content", color);`,
+    "  }",
+    ...contrast.map((line) => `  ${line}`),
+    "})();",
+  ].join("\n");
+}
+
+// The script sits inline in <head>: "<" never appears in a literal, so a value cannot end the
+// element ("</script>"), and U+2028/U+2029 are escaped because ES5 forbids them in string literals.
+function scriptString(value: string): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 /**
@@ -78,6 +116,26 @@ export function webModeScript(options: WebModeScriptOptions): string {
  * `data-cd-theme="<documentMode("system", themes, colors).theme>"` statically.
  */
 export function webHeadMarkup(options: WebModeScriptOptions): string {
-  // TODO(feedback): the markup above, attribute values escaped.
-  return `<script>${webModeScript(options)}</script>`;
+  const mode = documentMode("system", options.themes, options.themeColors);
+  const script = `<script>\n${webModeScript(options)}\n</script>`;
+  if (mode.theme !== "system") {
+    return [`<meta name="theme-color" content="${escapeAttribute(mode.themeColor.light)}">`, script].join(
+      "\n",
+    );
+  }
+  return [
+    `<meta name="color-scheme" content="${escapeAttribute(mode.colorScheme)}">`,
+    `<meta name="theme-color" content="${escapeAttribute(mode.themeColor.light)}" media="(prefers-color-scheme: light)">`,
+    `<meta name="theme-color" content="${escapeAttribute(mode.themeColor.dark)}" media="(prefers-color-scheme: dark)">`,
+    script,
+  ].join("\n");
+}
+
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

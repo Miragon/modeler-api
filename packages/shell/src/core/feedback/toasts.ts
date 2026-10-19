@@ -1,3 +1,5 @@
+import { SHELL } from "../sizes.js";
+
 /** The statuses of guide §3.3 and §9; each colours bar and dot through `--cd-ui-<status>`. */
 export type ToastStatus = "success" | "info" | "warning" | "danger";
 
@@ -39,8 +41,11 @@ export const TOAST_MAX_WIDTH = 480;
  * itself, guide §8), else `max(TOAST_DURATION_MS[status], durationMs ?? 0)`.
  */
 export function toastLifetime(request: ToastRequest): number | undefined {
-  // TODO(feedback): the rule above.
-  return request.action ? undefined : TOAST_DURATION_MS[request.status];
+  if (request.action) return undefined;
+  const requested = request.durationMs;
+  // A NaN or an infinite duration would reach setTimeout, which fires at once for both.
+  const longer = requested !== undefined && Number.isFinite(requested) ? requested : 0;
+  return Math.max(TOAST_DURATION_MS[request.status], longer);
 }
 
 /** A toast in the stack as the eviction sees it, oldest first. */
@@ -57,8 +62,10 @@ export interface ToastSlot {
  * stack has room.
  */
 export function toastToEvict(stack: readonly ToastSlot[]): number | undefined {
-  // TODO(feedback): the preference order above.
-  return stack.length >= MAX_TOASTS ? stack[0]?.id : undefined;
+  if (stack.length < MAX_TOASTS) return undefined;
+  const evicted =
+    stack.find((slot) => !slot.engaged && !slot.hasAction) ?? stack.find((slot) => !slot.engaged) ?? stack[0];
+  return evicted?.id;
 }
 
 /** Something in the bottom row the toast stack must clear, relative to the shell root. */
@@ -77,8 +84,7 @@ export interface ToastStackInput {
 
 /** `min(TOAST_MAX_WIDTH, containerWidth − 2 · SHELL.edge)`. */
 export function toastStackWidth(containerWidth: number): number {
-  // TODO(feedback): the clamp above (never below 0).
-  return Math.min(TOAST_MAX_WIDTH, containerWidth);
+  return Math.max(0, Math.min(TOAST_MAX_WIDTH, containerWidth - 2 * SHELL.edge));
 }
 
 /**
@@ -89,7 +95,14 @@ export function toastStackWidth(containerWidth: number): number {
  * collision of a narrow container; it is the shell's rule until it does.
  */
 export function toastStackBottom(input: ToastStackInput): number {
-  // TODO(feedback): the obstacle rule above.
-  void input;
-  return 12;
+  const width = toastStackWidth(input.containerWidth);
+  const left = (input.containerWidth - width) / 2;
+  const right = left + width;
+  let highest: number | undefined;
+  for (const obstacle of input.obstacles) {
+    const distance = Math.max(obstacle.left - right, left - obstacle.right);
+    if (distance >= SHELL.gap) continue;
+    highest = highest === undefined ? obstacle.top : Math.max(highest, obstacle.top);
+  }
+  return highest === undefined ? SHELL.edge : Math.max(SHELL.edge, highest + SHELL.gap);
 }

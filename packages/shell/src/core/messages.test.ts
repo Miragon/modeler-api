@@ -55,6 +55,10 @@ describe("defaultMessages (guide §2)", () => {
       defaultMessages.appearanceDark,
     ]).toEqual(["System", "Light", "Dark"]);
     expect(defaultMessages.problemsTitle).toBe("Problems");
+    expect([defaultMessages.problemSeverity("error"), defaultMessages.problemSeverity("warning")]).toEqual([
+      "Error",
+      "Warning",
+    ]);
     expect(defaultMessages.close).toBe("Close");
     expect(defaultMessages.dropFile).toBe("Drop file here");
     expect(defaultMessages.dropForbidden("multiple")).toBe("Drop one file at a time");
@@ -134,6 +138,7 @@ describe("resolveMessages", () => {
       appearanceLight: "Hell",
       appearanceDark: "Dunkel",
       problemsTitle: "Probleme",
+      problemSeverity: (severity) => (severity === "error" ? "Fehler" : "Warnung"),
       close: "Schließen",
       dropFile: "Datei hier ablegen",
       dropForbidden: () => "Hier kannst du nichts ablegen",

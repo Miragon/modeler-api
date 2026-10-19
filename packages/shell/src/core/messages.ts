@@ -1,3 +1,4 @@
+import type { ProblemSeverity } from "./feedback/problems.js";
 import type { DropForbiddenReason } from "./web-chrome/drop.js";
 
 /**
@@ -61,6 +62,8 @@ export interface ShellMessages {
   appearanceDark: string;
   /** Title of the problems popover (web app). */
   problemsTitle: string;
+  /** A row's severity for screen readers, the `aria-label` of its icon: "Error", "Warning". */
+  problemSeverity(severity: ProblemSeverity): string;
   /** `aria-label` of a Close button (toasts). */
   close: string;
   /** Chip of the drop zone while a drag can be dropped (guide §9 Drag-over). */
@@ -118,6 +121,7 @@ export const defaultMessages: ShellMessages = {
   appearanceLight: "Light",
   appearanceDark: "Dark",
   problemsTitle: "Problems",
+  problemSeverity: (severity) => (severity === "error" ? "Error" : "Warning"),
   close: "Close",
   dropFile: "Drop file here",
   dropForbidden: (reason) =>
