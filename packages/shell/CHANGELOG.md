@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.0...modeler-shell-v0.2.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **shell:** place a tooltip again when it grows after it is shown ([#17](https://github.com/Miragon/modeler-api/issues/17)) ([f0149e4](https://github.com/Miragon/modeler-api/commit/f0149e468b0c7aab786b081ff15c50aee082e55b))
+
 ## [0.2.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.1.0...modeler-shell-v0.2.0) (2026-10-19)
 
 
