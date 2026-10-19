@@ -83,7 +83,7 @@ describe("web-column wiring (0.2)", () => {
     expect(children.at(-1)?.getAttribute("data-chrome")).toBe("toasts");
   });
 
-  it("shows the start screen: root state, inert canvas, inert chrome keys", () => {
+  it("shows the start screen: root state, inert canvas, chrome keys left to the browser", () => {
     const { shell, root } = mount({ host: "web", ...webOptions() });
     const zoom = {
       zoom: () => 1,
@@ -98,15 +98,38 @@ describe("web-column wiring (0.2)", () => {
     expect(shell.isEmptyStateShown()).toBe(true);
     expect(root.getAttribute("data-empty-state")).toBe("shown");
     expect(shell.canvas.hasAttribute("inert")).toBe(true);
+    // No diagram to zoom: the browser zooms the page.
     const event = keydown(document.body, { key: "=", code: "Equal", metaKey: true });
-    expect(event.defaultPrevented).toBe(true);
+    expect(event.defaultPrevented).toBe(false);
+    expect(keydown(document.body, { key: "!", code: "Digit1", shiftKey: true }).defaultPrevented).toBe(false);
     expect(zoom.stepZoom).not.toHaveBeenCalled();
+    expect(zoom.fit).not.toHaveBeenCalled();
 
     shell.setEmptyState(false);
     expect(root.hasAttribute("data-empty-state")).toBe(false);
     expect(shell.canvas.hasAttribute("inert")).toBe(false);
     keydown(document.body, { key: "=", code: "Equal", metaKey: true });
     expect(zoom.stepZoom).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the focus of a closed toast to New diagram on the start screen", () => {
+    const { shell, root } = mount({ host: "web", ...webOptions() });
+    shell.setEmptyState(true);
+    shell.toast({ status: "danger", text: "Couldn't read the board in this link." });
+    const close = chrome(root, "toasts").querySelector<HTMLButtonElement>(".cd-shell-toast-close");
+    close?.focus();
+    close?.click();
+    const newDiagram = chrome(root, "empty-state").querySelector('.cd-shell-button[data-variant="primary"]');
+    expect(document.activeElement).toBe(newDiagram);
+  });
+
+  it("makes the canvas slot the page's main landmark in the web host only", () => {
+    const web = mount({ host: "web", ...webOptions() });
+    expect(web.shell.canvas.getAttribute("role")).toBe("main");
+    web.shell.destroy();
+    expect(web.shell.canvas.hasAttribute("role")).toBe(false);
+    expect(mount({ host: "embedded" }).shell.canvas.hasAttribute("role")).toBe(false);
+    expect(mount({ host: "ide" }).shell.canvas.hasAttribute("role")).toBe(false);
   });
 
   it("keeps the toasts' live regions in the root, outside the stack", () => {

@@ -34,7 +34,8 @@ export interface ProblemsPopover {
 interface Row {
   /** The same problem across `setItems`, so a re-render keeps the focus on it. */
   key: string;
-  button: HTMLButtonElement;
+  /** A `<button>` for a row with an element, else a `<div tabindex="-1">`. */
+  element: HTMLElement;
 }
 
 const PILL_ATTRIBUTES = ["aria-haspopup", "aria-expanded", "aria-controls"] as const;
@@ -52,10 +53,12 @@ function isPrintable(event: KeyboardEvent): boolean {
  * icon of the pill (`circle-x` in `--cd-ui-danger`, `triangle-alert` in `--cd-ui-warning`), the
  * message 13px `--cd-ui-text`, below it the location 13px `--cd-ui-text-leise`. Rows with an
  * `elementId` are buttons: a click closes the popover, returns the focus to the canvas and then
- * calls `onSelectItem(item)`; rows without one are text. ↑/↓/Home/End move between the row buttons.
- * Escape (the popover's own handler) and Tab out close it with the focus back on the pill (Tab then
- * moves on from the pill, Shift+Tab stays on it); an outside `pointerdown` (capture) and the
- * window's blur close it without moving the focus. The zoom keys keep working (not modal).
+ * calls `onSelectItem(item)`; rows without one are text that still takes the focus (`tabindex="-1"`),
+ * so the keyboard reads every row. ↑/↓/Home/End move between all rows and scroll the focused one
+ * into the list; Enter and Space act only on a row button. Escape (the popover's own handler) and
+ * Tab out close it with the focus back on the pill (Tab then moves on from the pill, Shift+Tab stays
+ * on it); an outside `pointerdown` (capture) and the window's blur close it without moving the
+ * focus. The zoom keys keep working (not modal).
  */
 export function createProblemsPopover(context: ProblemsPopoverContext): ProblemsPopover {
   const { ownerDocument, root, layer, pill, id, titleId, messages } = context;
@@ -114,21 +117,43 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
         : undefined,
     ];
     const attributes = { class: "cd-shell-problem", "data-severity": severity };
-    if (!item.elementId) return createElement(ownerDocument, "div", attributes, ...parts);
+    if (!item.elementId) {
+      const text = createElement(ownerDocument, "div", { ...attributes, tabindex: "-1" }, ...parts);
+      rows.push({ key: keyOf(item), element: text });
+      return text;
+    }
     const button = createElement(ownerDocument, "button", { type: "button", ...attributes }, ...parts);
     button.addEventListener("click", () => select(item));
-    rows.push({ key: keyOf(item), button });
+    rows.push({ key: keyOf(item), element: button });
     return button;
   }
 
+  function focusedRowIndex(): number {
+    return rows.findIndex((row) => row.element === ownerDocument.activeElement);
+  }
+
   function render(): void {
-    const focusedIndex = rows.findIndex((row) => row.button === ownerDocument.activeElement);
+    const focusedIndex = focusedRowIndex();
     const focusedKey = rows[focusedIndex]?.key;
     rows = [];
     list.replaceChildren(...items.map((item) => createElement(ownerDocument, "li", {}, rowElement(item))));
     if (focusedKey === undefined || !isOpen()) return;
     const kept = rows.find((row) => row.key === focusedKey) ?? rows[Math.min(focusedIndex, rows.length - 1)];
-    (kept?.button ?? element).focus({ preventScroll: true });
+    if (kept) focusRowElement(kept.element);
+    else element.focus({ preventScroll: true });
+  }
+
+  // Scrolls only the list: `focus()` and `scrollIntoView()` would also scroll the shell root.
+  function revealInList(row: HTMLElement): void {
+    const rowBox = row.getBoundingClientRect();
+    const listBox = list.getBoundingClientRect();
+    if (rowBox.top < listBox.top) list.scrollTop -= listBox.top - rowBox.top;
+    else if (rowBox.bottom > listBox.bottom) list.scrollTop += rowBox.bottom - listBox.bottom;
+  }
+
+  function focusRowElement(row: HTMLElement): void {
+    row.focus({ preventScroll: true });
+    revealInList(row);
   }
 
   function focusCanvas(): void {
@@ -146,7 +171,8 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
 
   function focusRow(index: number): void {
     if (rows.length === 0) return;
-    rows[(index + rows.length) % rows.length]?.button.focus({ preventScroll: true });
+    const row = rows[(index + rows.length) % rows.length];
+    if (row) focusRowElement(row.element);
   }
 
   const onOutsidePointerDown = (event: PointerEvent): void => {
@@ -166,7 +192,10 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
     // Capture phase: diagram-js stops pointer events on palette, context pad and canvas.
     ownerDocument.addEventListener("pointerdown", onOutsidePointerDown, true);
     view?.addEventListener("blur", onWindowBlur);
-    (rows[0]?.button ?? element).focus({ preventScroll: true });
+    list.scrollTop = 0;
+    const first = rows[0];
+    if (first) focusRowElement(first.element);
+    else element.focus({ preventScroll: true });
   }
 
   function close(options: { restoreFocus?: boolean | undefined } = {}): void {
@@ -188,14 +217,14 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
   element.addEventListener("keydown", (event) => {
     // Zoom and fit keys still act with the popover open; the shell's key listener runs them.
     if (matchChromeKey(event)) return;
-    const index = rows.findIndex((row) => row.button === ownerDocument.activeElement);
+    const index = focusedRowIndex();
     switch (event.key) {
       case "Escape":
         consume(event);
         close({ restoreFocus: true });
         return;
       case "Tab": {
-        // Without a row button the popover itself holds the focus and is first and last at once.
+        // Without a row the popover itself holds the focus and is first and last at once.
         const first = index <= 0;
         const last = rows.length === 0 || index === rows.length - 1;
         if (event.shiftKey && first) {
@@ -224,7 +253,7 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
       case " ":
       case "Delete":
       case "Backspace":
-        // A row's native click handles Enter and Space; nothing else may act on these keys.
+        // A row button's native click handles Enter and Space; nothing else may act on these keys.
         event.stopPropagation();
         return;
       default:

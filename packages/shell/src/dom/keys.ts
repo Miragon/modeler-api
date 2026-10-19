@@ -5,6 +5,8 @@ export interface KeyListenerContext {
   /** Where dialogs and popovers count: the document in an own document, else the shell root. */
   dialogScope: ParentNode;
   menuOpen(): boolean;
+  /** The web app's start screen shows: the zoom keys belong to the browser (`KeyContext.startScreen`). */
+  startScreen?: (() => boolean) | undefined;
   closeMenu(): void;
   hideTooltip(): void;
   run(key: ChromeKey): void;
@@ -55,6 +57,7 @@ export function createKeyListener(context: KeyListenerContext): (event: Keyboard
       dialogOpen: dialogs.length > 0,
       modalOpen: dialogs.some(isModal),
       defaultPrevented: event.defaultPrevented,
+      startScreen: context.startScreen?.() ?? false,
     });
     if (decision.preventDefault) event.preventDefault();
     if (decision.stopPropagation) event.stopPropagation();

@@ -143,6 +143,7 @@ describe("resolveMessages", () => {
       dropFile: "Datei hier ablegen",
       dropForbidden: () => "Hier kannst du nichts ablegen",
       dropHint: "Oder lege eine Datei hier ab",
+      openFileLink: "Datei öffnen…",
       cannotOpenFile: (name, accepted) =>
         `„${name}“ konnte nicht geöffnet werden. Lege eine ${accepted}-Datei ab.`,
     };

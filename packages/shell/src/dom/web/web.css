@@ -19,6 +19,8 @@
     .cd-shell-empty-state-title,
     .cd-shell-empty-state-text,
     .cd-shell-empty-state-hint,
+    .cd-shell-empty-state-open,
+    .cd-shell-empty-state-key,
     .cd-shell-empty-state .cd-shell-button,
     .cd-shell-drop-zone-chip
   ) {
@@ -214,6 +216,44 @@
   line-height: 1.5;
 }
 
+/* The File group's "Open…" as a text link in the hint: the keyboard's way to a file (guide §8). */
+.cd-shell .cd-shell-empty-state-open {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  color: var(--cd-ui-link);
+  font: inherit;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.cd-shell .cd-shell-empty-state-open:hover {
+  text-decoration: underline;
+}
+
+.cd-shell .cd-shell-empty-state-open:focus {
+  outline: none;
+}
+
+.cd-shell .cd-shell-empty-state-open:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.cd-shell-empty-state-open-item {
+  white-space: nowrap;
+}
+
+.cd-shell .cd-shell-empty-state-key {
+  color: var(--cd-ui-text-leise);
+  font-family: var(--modeler-shell-font-mono);
+  font-size: 13px;
+}
+
 /* ---- Start screen: only the card and the legal line compete (guide §8) ---------------------- */
 
 .cd-shell[data-cd-shell-host="web"][data-empty-state="shown"]
@@ -309,15 +349,13 @@ html.cd-shell-reduce-motion .cd-shell .cd-shell-empty-state {
   box-shadow: none;
 }
 
-.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-empty-state {
-  border-color: var(--cd-ui-kontur);
-}
-
-.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a {
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-legal a, .cd-shell-empty-state-open) {
   text-decoration: underline;
 }
 
-.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-legal a:focus-visible {
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  :is(.cd-shell-legal a, .cd-shell-empty-state-open):focus-visible {
   outline-width: 3px;
 }
 
@@ -335,11 +373,11 @@ html.cd-shell-reduce-motion .cd-shell .cd-shell-empty-state {
     border-color: CanvasText;
   }
 
-  .cd-shell .cd-shell-legal a {
+  .cd-shell :is(.cd-shell-legal a, .cd-shell-empty-state-open) {
     text-decoration: underline;
   }
 
-  .cd-shell .cd-shell-legal a:focus-visible {
+  .cd-shell :is(.cd-shell-legal a, .cd-shell-empty-state-open):focus-visible {
     outline-color: Highlight;
   }
 

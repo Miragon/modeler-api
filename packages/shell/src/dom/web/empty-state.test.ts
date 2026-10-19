@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { defaultMessages } from "../../core/index.js";
-import type { EmptyStateOptions } from "../types.js";
+import type { EmptyStateOptions, FileMenuAction } from "../types.js";
 import { createEmptyState } from "./empty-state.js";
 
 afterEach(() => {
@@ -12,7 +12,9 @@ const KOMET = "/miragon-komet-blau.svg";
 
 function emptyState(
   options: Partial<EmptyStateOptions> = {},
-  { dropHint }: { dropHint: string | undefined } = { dropHint: "Or drop a file here" },
+  { dropHint, open }: { dropHint: string | undefined; open?: FileMenuAction | undefined } = {
+    dropHint: "Or drop a file here",
+  },
 ) {
   const calls: string[] = [];
   const card = createEmptyState({
@@ -27,6 +29,7 @@ function emptyState(
       ...options,
     },
     dropHint,
+    open,
     titleId: "cd-shell-empty-state-title-1",
     onLeave: () => calls.push("leave"),
   });
@@ -108,6 +111,46 @@ describe("empty state (guide §8)", () => {
         ".cd-shell-empty-state-hint",
       )?.textContent,
     ).toBe("Or drop a .storm file");
+  });
+
+  it("ends the hint in a text link to the File group's Open…, which keeps the card", () => {
+    const opened: string[] = [];
+    const { card, calls } = emptyState(
+      {},
+      {
+        dropHint: "Or drop a .storm file here",
+        open: { onSelect: () => opened.push("open"), shortcut: "⌘O" },
+      },
+    );
+    const hint = card.element.querySelector(".cd-shell-empty-state-hint");
+    const link = hint?.querySelector<HTMLButtonElement>("button.cd-shell-empty-state-open");
+    expect(hint?.textContent).toBe("Or drop a .storm file here · Open a file… ⌘O");
+    expect(link?.type).toBe("button");
+    expect(link?.textContent).toBe("Open a file…");
+    expect(link?.getAttribute("aria-keyshortcuts")).toBe("Meta+O");
+    expect(link?.hasAttribute("data-variant")).toBe(false);
+    expect(hint?.querySelector("kbd")?.getAttribute("aria-hidden")).toBe("true");
+    expect(link?.parentElement?.className).toBe("cd-shell-empty-state-open-item");
+    expect(link?.parentElement?.lastElementChild?.tagName).toBe("KBD");
+    link?.click();
+    expect(opened).toEqual(["open"]);
+    expect(calls).toEqual([]);
+    // Still exactly two buttons as actions: the link is part of the hint.
+    expect(
+      [...card.element.querySelectorAll(".cd-shell-empty-state-actions button")].map(
+        (button) => button.textContent,
+      ),
+    ).toEqual(["New diagram", "Show example"]);
+  });
+
+  it("offers Open… without a drop zone, and no chip without a shortcut", () => {
+    const { card } = emptyState({}, { dropHint: undefined, open: { onSelect() {}, dialog: true } });
+    const hint = card.element.querySelector(".cd-shell-empty-state-hint");
+    expect(hint?.textContent).toBe("Open a file…");
+    const link = hint?.querySelector("button");
+    expect(link?.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(link?.hasAttribute("aria-keyshortcuts")).toBe(false);
+    expect(hint?.querySelector("kbd")).toBeNull();
   });
 
   it("shows, hides and removes itself", () => {

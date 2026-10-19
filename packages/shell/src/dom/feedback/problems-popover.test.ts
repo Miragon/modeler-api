@@ -54,6 +54,10 @@ function rowButtons(element: HTMLElement): HTMLButtonElement[] {
   return [...element.querySelectorAll<HTMLButtonElement>("button.cd-shell-problem")];
 }
 
+function allRows(element: HTMLElement): HTMLElement[] {
+  return [...element.querySelectorAll<HTMLElement>(".cd-shell-problem")];
+}
+
 function keydown(target: EventTarget, init: KeyboardEventInit): KeyboardEvent {
   const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
   target.dispatchEvent(event);
@@ -164,9 +168,16 @@ describe("problems popover: opening and closing", () => {
     expect(document.activeElement).toBe(pill);
   });
 
-  it("focuses the popover itself when no row is a button", () => {
+  it("focuses the first row even when it is text, and the popover itself only without rows", () => {
     const { popover, element } = setup();
     popover.setItems([{ severity: "warning", message: "Unused aggregate." }]);
+    popover.open();
+    const [row] = allRows(element);
+    expect(row?.tagName).toBe("DIV");
+    expect(row?.getAttribute("tabindex")).toBe("-1");
+    expect(document.activeElement).toBe(row);
+    popover.close();
+    popover.setItems([]);
     popover.open();
     expect(element.getAttribute("tabindex")).toBe("-1");
     expect(document.activeElement).toBe(element);
@@ -283,12 +294,15 @@ describe("problems popover: keys inside", () => {
     expect(popover.isOpen()).toBe(true);
   });
 
-  it("moves between the row buttons with the arrow keys, Home and End", () => {
+  it("moves between every row, text rows included, with the arrow keys, Home and End", () => {
     const { popover, element } = setup();
     popover.setItems(ITEMS);
     popover.open();
-    const [first, last] = rowButtons(element);
+    const [first, text, last] = allRows(element);
+    expect(text?.tagName).toBe("DIV");
     expect(keydown(first!, { key: "ArrowDown" }).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(text);
+    keydown(text!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(last);
     keydown(last!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(first);
@@ -298,6 +312,45 @@ describe("problems popover: keys inside", () => {
     expect(document.activeElement).toBe(first);
     keydown(first!, { key: "End" });
     expect(document.activeElement).toBe(last);
+  });
+
+  it("reads a list of text rows to its end, scrolling each focused row into the list", () => {
+    const { popover, element } = setup();
+    const items = Array.from({ length: 10 }, (_, index) => ({
+      severity: "warning" as const,
+      message: `Line problem ${index + 1}.`,
+      location: `Line ${index + 1}`,
+    }));
+    popover.setItems(items);
+    const list = element.querySelector<HTMLElement>(".cd-shell-problems-list")!;
+    // happy-dom has no layout: a 270px list showing rows of 56px from its scroll position.
+    vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 100, 320, 270));
+    allRows(element).forEach((row, index) =>
+      vi
+        .spyOn(row, "getBoundingClientRect")
+        .mockImplementation(() => new DOMRect(0, 100 + index * 56 - list.scrollTop, 320, 56)),
+    );
+    popover.open();
+    const rows = allRows(element);
+    keydown(rows[0]!, { key: "End" });
+    expect(document.activeElement).toBe(rows[9]);
+    // Row 10 ends at 660, the list at 370: it scrolls by the difference.
+    expect(list.scrollTop).toBe(290);
+    keydown(rows[9]!, { key: "Home" });
+    expect(document.activeElement).toBe(rows[0]);
+    expect(list.scrollTop).toBe(0);
+  });
+
+  it("acts on Enter only on a row with an element", () => {
+    const { popover, element, onSelectItem } = setup();
+    popover.setItems(ITEMS);
+    popover.open();
+    const text = allRows(element)[1]!;
+    text.focus();
+    const enter = keydown(text, { key: "Enter" });
+    expect(enter.defaultPrevented).toBe(false);
+    expect(onSelectItem).not.toHaveBeenCalled();
+    expect(popover.isOpen()).toBe(true);
   });
 });
 
@@ -352,6 +405,8 @@ describe("problems popover: setItems while open", () => {
     popover.setItems([ITEMS[0]!]);
     expect(document.activeElement).toBe(rowButtons(element)[0]);
     popover.setItems([{ severity: "warning", message: "Text only." }]);
+    expect(document.activeElement).toBe(allRows(element)[0]);
+    popover.setItems([]);
     expect(document.activeElement).toBe(element);
   });
 

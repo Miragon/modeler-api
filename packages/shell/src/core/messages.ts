@@ -72,6 +72,8 @@ export interface ShellMessages {
   dropForbidden(reason: DropForbiddenReason): string;
   /** The empty state's drag-and-drop hint when the modeler has a drop zone. */
   dropHint: string;
+  /** The text link after the empty state's hint that runs the File group's "Open…". */
+  openFileLink: string;
   /**
    * Danger toast for a dropped file outside `DropZoneOptions.accept`; `accepted` is the accept list
    * joined by `Intl.ListFormat` (disjunction) in `lang`: ".storm, .json, or .txt".
@@ -131,6 +133,7 @@ export const defaultMessages: ShellMessages = {
         ? "Close the dialog to drop a file"
         : "This modeler can't open this file type",
   dropHint: "Or drop a file here",
+  openFileLink: "Open a file…",
   cannotOpenFile: (name, accepted) => `Couldn't open “${name}”. Drop a ${accepted} file.`,
 };
 

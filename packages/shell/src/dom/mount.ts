@@ -222,14 +222,26 @@ function renderShell(
 
   const canvas = options.canvas ?? createElement(ownerDocument, "div");
   ledger.addClass(canvas, "cd-shell-canvas");
+  // An own page needs a main landmark; the diagram is its content. A foreign page has its own.
+  if (web && !canvas.hasAttribute("role")) ledger.attribute(canvas, "role", "main");
   if (!options.canvas) ledger.defer(() => canvas.remove());
 
-  /** The focus target when the element holding it goes away: the canvas, else the menu trigger. */
+  /**
+   * The focus target when the element holding it goes away: on the start screen its "New
+   * diagram", else the canvas, else the menu trigger. A target that cannot take the focus (inert,
+   * hidden behind the start screen) is passed over, so the focus never falls to `<body>` unseen.
+   */
   function focusCanvasOrTrigger(): void {
-    const canvasTarget = canvas.querySelector<HTMLElement | SVGElement>("svg[tabindex]");
-    canvasTarget?.focus({ preventScroll: true });
-    if (canvasTarget && ownerDocument.activeElement === canvasTarget) return;
-    if (!menu.trigger.hidden) menu.trigger.focus({ preventScroll: true });
+    const took = (target: HTMLElement | SVGElement | null | undefined): boolean => {
+      target?.focus({ preventScroll: true });
+      return target !== null && target !== undefined && ownerDocument.activeElement === target;
+    };
+    if (emptyState?.isShown()) {
+      emptyState.focus();
+      if (emptyState.element.contains(ownerDocument.activeElement)) return;
+    }
+    if (took(canvas.querySelector<HTMLElement | SVGElement>("svg[tabindex]"))) return;
+    if (!menu.trigger.hidden) took(menu.trigger);
   }
 
   /** Where the focus goes when the island holding it hides. */
@@ -248,6 +260,7 @@ function renderShell(
           messages,
           options: options.emptyState,
           dropHint: options.dropZone ? (options.emptyState.dropHint ?? messages.dropHint) : undefined,
+          open: options.file?.open,
           titleId: `cd-shell-empty-state-title-${index}`,
           onLeave: () => setEmptyStateShown(false),
         })
@@ -478,12 +491,13 @@ function renderShell(
     host,
     dialogScope: keyTarget,
     menuOpen: () => menu.isOpen(),
+    startScreen: () => emptyState?.isShown() ?? false,
     closeMenu() {
       const active = ownerDocument.activeElement;
       menu.close({ restoreFocus: active === menu.trigger || menu.dropdown.contains(active) });
     },
     hideTooltip: () => tooltip.hide(),
-    // Behind the start screen the keys stay prevented (no page zoom) but act on nothing.
+    // Behind the start screen the keys reach the browser instead: there is no diagram to zoom.
     run: (key) => {
       if (!emptyState?.isShown()) zoomPanel.run(key);
     },

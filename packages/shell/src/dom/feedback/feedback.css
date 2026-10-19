@@ -251,9 +251,14 @@
   display: none;
 }
 
-/* Focus lands on the dialog itself only when it has no row to take it; the rows carry the ring. */
+/* Focus lands on the dialog itself only when it has no row to take it; inside, as in a scroller. */
 .cd-shell-problems-popover:focus {
   outline: none;
+}
+
+.cd-shell-problems-popover:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
 }
 
 .cd-shell-problems-popover-title {
@@ -374,7 +379,12 @@ button.cd-shell-problem:focus-visible {
 }
 
 .cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
-  :is(.cd-shell-toast-close, .cd-shell-toast-action, .cd-shell-problem):focus-visible {
+  :is(
+    .cd-shell-toast-close,
+    .cd-shell-toast-action,
+    .cd-shell-problem,
+    .cd-shell-problems-popover
+  ):focus-visible {
   outline-width: 3px;
   outline-offset: -3px;
 }
@@ -393,7 +403,13 @@ button.cd-shell-problem:focus-visible {
     background: CanvasText;
   }
 
-  .cd-shell :is(.cd-shell-toast-close, .cd-shell-toast-action, .cd-shell-problem):focus-visible {
+  .cd-shell
+    :is(
+      .cd-shell-toast-close,
+      .cd-shell-toast-action,
+      .cd-shell-problem,
+      .cd-shell-problems-popover
+    ):focus-visible {
     outline-color: Highlight;
   }
 
