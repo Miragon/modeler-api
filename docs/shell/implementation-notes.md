@@ -491,7 +491,8 @@ the modeler know the same key.
 **Guide [§5.8][guide-5.8].** Rule: in its own document the keys work wherever the focus is, except in
 text fields and while a dialog is open; embedded in a foreign page only while the focus is inside the
 modeler. In the web app Cmd/Ctrl + `+`, `-` and `0` zoom the diagram, not the page, except in text
-fields and dialogs.
+fields and dialogs. The shell reads "dialogs" as modal dialogs: a non-modal popover (the problems
+list) does not block the keys; whether §5.8 means that too is an open question for the guide.
 
 - Own document (VS Code webview, web app, iframe): one `keydown` listener on `document`, bubble
   phase. The diagram-js keyboard on the `<svg>` has run by then, so `defaultPrevented` tells the
@@ -505,8 +506,10 @@ fields and dialogs.
 - Foreign page (embedded without iframe): the listener sits on the shell root. `keydown` is
   dispatched to the focused element, so it only reaches the root while the focus is inside it.
 - Web app: call `preventDefault()` on Cmd/Ctrl + `+`, `-` and `0` unless the focus is in a text field
-  or a dialog, so the browser does not zoom the page. In text fields and dialogs do nothing: the
-  browser zooms the page. Zooming via the browser menu always stays possible.
+  or a modal dialog is open, so the browser does not zoom the page. In text fields and modal dialogs
+  do nothing: the browser zooms the page. Behind the start screen do nothing either: there is no
+  diagram to zoom, so Ctrl+ is the browser's (WCAG 1.4.4), and the diagram-js guard returns `false`
+  so diagram-js zooms nothing. Zooming via the browser menu always stays possible.
 - What the listener additionally stops in an IDE host: see
   [VS Code: key interception](#vs-code-key-interception).
 
@@ -966,15 +969,23 @@ with `lang="de"`.
 - Copyright, URLs and labels are the docs-site kit's (`miragon/legal.ts` in corporate-identity):
   `https://www.miragon.io/`, `/impressum/`, `/datenschutz/`, each `target="_blank"` with
   `rel="noopener noreferrer"`, separated by `aria-hidden` middle dots, in a `<nav aria-label>`.
+  Every link has `aria-describedby` on one hidden "Opens in a new tab" (technique G201). The kit
+  renders the copyright as plain text; the shell links it to the home page as the Wardley web app
+  does, which the product owner may still settle either way.
 - The guide places the zoom panel at `bottom: 12px` and the legal line at `bottom: 12px` and does
   not say what happens where they meet. With a GitHub link the line is about 391px wide, so they
   meet below about 600px. `zoomRowRaised` decides with the measured boxes (less than 8px between
   them) and the zoom panel then stands at `bottom: 40px` like the pill; the fit keeps 92px at the
   bottom, and up to 440px the legend's lowest position is 88px. The bottom-row tooltip moves with
   it (8px above the raised panel, 88px).
-- Up to 440px the line may still be wider than the container: it scrolls sideways without a
-  visible scrollbar instead of wrapping under the pill, with the focus ring inside (`-2px`, `-3px`
-  in high contrast) like every scrolling container (guide §5.14).
+- Where the line is wider than the container allows (`100cqw − 24px`; with a GitHub link below
+  about 415px), it wraps between its entries instead of scrolling: a scrolled line cut Datenschutz
+  mid-word at 320px and hid GitHub, with no visible way to scroll (WCAG 1.4.10; Datenschutz must be
+  reachable anyway). Each separator travels with the link after it. The line grows upwards from
+  `bottom: 12px`; the shell measures its height in whole lines (`legalLineHeight`) into
+  `--modeler-shell-legal-height` on the root, and the pill, the problems popover, the legend, the
+  raised zoom panel and the fit's bottom (`FitLayout.legalHeight`) stand on it. The kit checks at
+  320px that every link lies whole inside the line.
 
 ### Toasts
 
@@ -983,18 +994,28 @@ the newest at the bottom; about 2.8s, errors about 5s, paused while hovered or f
 action never closes by itself; layer 60.
 
 - Layer 60 loses against a `showModal()` dialog, which lives in the top layer. The stack is
-  therefore a `popover="manual"` in the web host, hidden and shown again with every toast: a popover
-  shown later stacks above a modal opened earlier. Re-showing drops the focus of a toast that held
-  it, so the toaster puts it back. Everything outside a modal dialog is inert, the top layer
+  therefore a `popover="manual"` in the web host, hidden and shown again with a toast that arrives
+  while a modal dialog is open: a popover shown later stacks above a modal opened earlier. Without a
+  modal it is not re-shown, which would take every shown toast out of the accessibility tree and put
+  it back. Re-showing drops the focus of a toast that held it, so the toaster puts it back. Everything outside a modal dialog is inert, the top layer
   included: a toast above a dialog is visible, but its buttons react only after the dialog closed.
   The kit therefore checks the stacking (the stack's `toggle` after the dialog opened and
   `:popover-open`), not a click.
 - In the embedded host the stack is absolute inside the root (a foreign page's top layer is not the
   modeler's to use).
-- `toastStackBottom` keeps the centred column 8px above a zoom panel, legal line or pill it would
-  come closer than 8px to horizontally, and 12px otherwise (guide §8 does not settle the collision).
-  It is recomputed in the layout pass and whenever the pill, the inspector (a bottom sheet hides
-  zoom panel and pill) or the start screen changes.
+- `toastStackBottom` keeps the centred column of the widest card 8px above a zoom panel, legal
+  line or pill it would come closer than 8px to horizontally, and 12px otherwise (guide §8 does not
+  settle the collision). The column is the card's, not the stack's 480px: at 1280px with a GitHub
+  link the legal line ends 7.5px before the stack, and testing the stack lifted every toast to 40
+  although "Link copied" (146px) stands far from the line. It is recomputed in the layout pass,
+  whenever a toast comes or goes, and whenever the pill, the inspector (a bottom sheet hides zoom
+  panel and pill) or the start screen changes.
+- Screen readers hear toasts through two live regions in the root, rendered from mount on and
+  visually hidden: `role="status"` (polite) and `role="alert"`. A live region inserted together
+  with its text is often not announced (NVDA with Chrome, VoiceOver with Safari), and the stack is
+  `display: none` and a closed popover while empty, so the cards cannot be the live regions. The
+  text arrives 100ms after the region was emptied, which also announces a repeated toast; the cards
+  carry no live role, so nothing is read twice. Each Close button is described by its toast's text.
 - A repeated request (same status and text) restarts the shown toast and takes the new request's
   action and lifetime, so a second "Board replaced · Undo" undoes the latest replacement, not the
   first one.
@@ -1013,7 +1034,12 @@ it, `role="dialog"` without `aria-modal`, titled "Problems"; a click on a row se
 - It is a non-modal dialog in the shell's layer, so the zoom keys keep working; like the menu it
   stops Enter, Space, Delete, Backspace and printable keys, so a modeler's document keyboard
   (Event Storming deletes the selection on Delete) never acts on them, and ↑/↓/Home/End move
-  between the row buttons.
+  between the rows.
+- Rows without an element are text, but they take the focus (`tabindex="-1"`): with only buttons
+  focusable, a list of line findings (Event Storming's parser names lines, not elements) left the
+  focus on the popover, whose keys were consumed, so a keyboard could not read past the visible
+  rows (WCAG 2.1.1). The focused row scrolls into the list by adjusting the list's `scrollTop` only:
+  `focus()` and `scrollIntoView()` would also scroll the `overflow: hidden` shell root.
 - Tab from the last row closes the popover onto the pill without preventing the browser's Tab,
   which then moves on from the pill; Shift+Tab from the first row is prevented and lands on the
   pill.
@@ -1031,7 +1057,16 @@ work chrome; only the card and the legal line are visible; once someone starts, 
 - The work chrome (menu trigger, primary action, palette, zoom panel, pill, legend, status box, hint,
   inspector) gets `visibility: hidden`, which also removes it from the tab order and the
   accessibility tree; the canvas slot gets `inert`, so neither a click nor Tab reaches the diagram.
-  The chrome keys stay prevented, so the browser does not zoom the page, but act on nothing.
+  The chrome keys go to the browser: with no diagram to zoom, a swallowed Ctrl+ would leave a
+  low-vision user without page zoom and without a way to reset a stored one with Ctrl+0.
+- The menu is hidden and a drop needs a pointer, so the hint ends in a text link to the File
+  group's "Open…" (with its shortcut chip and `aria-keyshortcuts`): the keyboard's way to a file on
+  the start screen. It is part of the hint, not a third action beside the two buttons of §8, and it
+  leaves the card up until the modeler's import ends the start screen (a cancelled file picker
+  changes nothing).
+- A closing toast that held the focus on the start screen hands it to "New diagram": the canvas is
+  inert and the menu trigger `visibility: hidden`, so both `focus()` calls failed silently and the
+  focus fell to `<body>`. The fallback now checks that a target really took the focus.
 - When the card hides through one of its buttons, the focus goes to the canvas `<svg>` before the
   handler runs. When the card shows while the focus is in the work chrome or the canvas, the focus
   goes to "New diagram"; a focus on the legal line or a toast stays where it is.

@@ -205,6 +205,7 @@ interface FitLayout {
   paletteRow: PaletteRow;
   problemsVisible: boolean;
   zoomRaised?: boolean; // web: the zoom panel stands above the legal line (zoomRowRaised)
+  legalHeight?: number; // web: the legal line's measured height, 20 per line (default one line)
   legendWidth?: number; // open legend's rendered width, undefined when closed/absent
   inspector?: { sheetTop?: number }; // present = open; sheetTop measured when it is a bottom sheet
 }
@@ -227,7 +228,9 @@ function easeStandard(progress: number): number; // cubic-bezier(0.4, 0, 0.2, 1)
   the other dimension. An axis whose insets leave no room (a container lower or narrower than its
   chrome) centres in the whole container.
 - `fitInsets` (§5.9): top 88, 140 in the second row; left and right 24; bottom 64, in the `web` host
-  with a visible pill or with the zoom panel raised above the legal line (`zoomRaised`) 92; right 324 (12 + 288 + 24) with an open side inspector (container wider
+  with a visible pill or with the zoom panel raised above the legal line (`zoomRaised`) 92, plus 20
+  for every extra line of a wrapped legal line (`legalHeight`); right 324 (12 + 288 + 24) with an
+  open side inspector (container wider
   than 760); left 12 + legend width + 24 with an open legend in containers wider than 440
   (`legendWidth <= 0` counts as closed); bottom `container.height − sheetTop + 12` with an open
   bottom sheet (up to 760). The sheet hides zoom panel, pill and legend (§5.11), so while it is open
@@ -286,6 +289,7 @@ interface KeyContext {
   dialogOpen: boolean; // any shown [role="dialog"], [role="alertdialog"] or <dialog open>, modal or not
   modalOpen: boolean; // one of them with aria-modal="true" or :modal
   defaultPrevented: boolean; // the canvas or the modeler handled the key
+  startScreen?: boolean; // web: the start screen shows; the chrome keys go to the browser
 }
 type KeyAction = ChromeKey | "closeMenu";
 interface KeyDecision {
@@ -304,6 +308,7 @@ function detectPlatform(navigator?: NavigatorLike): Platform;
 function shortcutLabel(key: ChromeKey, platform: Platform, keyNames: ShellMessages["keyNames"]): string;
 function ariaKeyShortcuts(key: ChromeKey, platform: Platform): string;
 function ariaKeyShortcutsFromLabel(label: string): string | undefined;
+function commandKeyLabel(key: string, platform: Platform, keyNames: { ctrl: string }): string; // "⌘O", "Ctrl+O"
 ```
 
 `matchChromeKey` (§5.8) — Cmd/Ctrl is `metaKey || ctrlKey` on every platform, nothing matches with
@@ -323,6 +328,7 @@ it. `stopPropagation` is only ever `true` in the `ide` host.
 | --------------------------------------------------------- | ----------- | -------------- | ----------------------- |
 | Escape (no modifier), menu open, not composing            | `closeMenu` | yes            | yes                     |
 | Escape, popover or dialog open, or menu open while IME    | —           | no             | yes                     |
+| zoom key or Shift+1 behind the web app's start screen     | —           | no             | — (web only)            |
 | zoom key, not composing, not in a text field, no modal    | the key     | yes            | yes                     |
 | zoom key while composing, in a text field or with a modal | —           | no             | yes                     |
 | Shift+1, not composing, not in a text field, no modal     | `fit`       | yes            | yes                     |
@@ -413,6 +419,7 @@ interface ShellMessages {
   share: string; // "Share": default label of the primary action
   legal: string; // "Legal": aria-label of the legal line's <nav>
   copyright(year: number): string; // "© 2026 Miragon GmbH"
+  opensInNewTab: string; // "Opens in a new tab": the legal links' description for screen readers
   newDiagram: string; // "New diagram": File group and the empty state's primary button
   openFile: string; // "Open…"
   showExample: string; // "Show example": File group and the empty state's ghost button
@@ -428,6 +435,7 @@ interface ShellMessages {
   dropForbidden(reason: DropForbiddenReason): string;
   // "Drop one file at a time", "This modeler can't open this file type", "Close the dialog to drop a file"
   dropHint: string; // "Or drop a file here"
+  openFileLink: string; // "Open a file…": the start screen's link to the File group's Open…
   cannotOpenFile(name: string, accepted: string): string;
   // "Couldn't open “map.png”. Drop a .storm, .json, or .txt file." (accepted: Intl.ListFormat disjunction)
 }
@@ -923,28 +931,29 @@ own around the canvas (no `tabindex` on `.djs-container`). Islands that are not 
 | `drop-zone`        | drop overlay (web)            | only with `dropZone`, during a file drag   |
 | `problems-popover` | problems list (web, embedded) | in the layer, opened by the pill           |
 
-| Class                                                                                                                                                                                                                      | Part                                       |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `cd-shell`, `cd-shell-document`, `cd-shell-canvas`, `cd-shell-layer`                                                                                                                                                       | root, own document, canvas slot, layer     |
-| `cd-shell-island`, `cd-shell-target`                                                                                                                                                                                       | glass island, 32px target in an island     |
-| `cd-shell-menu-trigger`, `cd-shell-menu`, `cd-shell-menu-item`, `cd-shell-menu-item-icon`, `cd-shell-menu-item-label`, `cd-shell-menu-item-end`, `cd-shell-menu-separator`, `cd-shell-menu-heading`, `cd-shell-menu-group` | menu                                       |
-| `cd-shell-menu-shortcut`, `cd-shell-menu-check`                                                                                                                                                                            | shortcut text and check mark of an entry   |
-| `cd-shell-tooltip`, `cd-shell-tooltip-label`, `cd-shell-kbd`                                                                                                                                                               | tooltip and shortcut chip                  |
-| `cd-shell-zoom`, `cd-shell-zoom-readout`, `cd-shell-zoom-separator`                                                                                                                                                        | zoom panel                                 |
-| `cd-shell-problems`, `cd-shell-problems-icon`, `cd-shell-problems-text`                                                                                                                                                    | pill                                       |
-| `cd-shell-status`, `cd-shell-status-icon`, `cd-shell-status-text`                                                                                                                                                          | status box (bar as `::before`)             |
-| `cd-shell-hint`, `cd-shell-hint-text`, `cd-shell-hint-action`                                                                                                                                                              | empty-file hint                            |
-| `cd-shell-legend`, `cd-shell-legend-header`, `cd-shell-legend-title`, `cd-shell-legend-close`, `cd-shell-legend-body`                                                                                                      | legend card                                |
-| `cd-shell-legend-row`, `cd-shell-legend-preview`, `cd-shell-legend-separator`                                                                                                                                              | rows the modeler renders into the body     |
-| `cd-shell-inspector`                                                                                                                                                                                                       | inspector                                  |
-| `cd-shell-no-transition`                                                                                                                                                                                                   | on `<html>` for one frame of a mode switch |
-| `cd-shell-button` (`data-variant="primary"` / `"ghost"`)                                                                                                                                                                   | buttons of the web chrome (0.2)            |
-| `cd-shell-primary`, `cd-shell-primary-label`                                                                                                                                                                               | primary action (0.2)                       |
-| `cd-shell-legal`                                                                                                                                                                                                           | legal line (0.2)                           |
-| `cd-shell-empty-state`, `cd-shell-empty-state-mark`, `cd-shell-empty-state-title`, `cd-shell-empty-state-text`, `cd-shell-empty-state-actions`, `cd-shell-empty-state-hint`                                                | empty-state card (0.2)                     |
-| `cd-shell-drop-zone`, `cd-shell-drop-zone-chip`                                                                                                                                                                            | drop zone (0.2)                            |
-| `cd-shell-toasts`, `cd-shell-toast`, `cd-shell-toast-dot`, `cd-shell-toast-text`, `cd-shell-toast-action`, `cd-shell-toast-close`                                                                                          | toasts (0.2)                               |
-| `cd-shell-problems-popover`, `cd-shell-problems-popover-title`, `cd-shell-problems-list`, `cd-shell-problem`, `cd-shell-problem-icon`, `cd-shell-problem-message`, `cd-shell-problem-location`                             | problems popover (0.2)                     |
+| Class                                                                                                                                                                                                                                                                  | Part                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `cd-shell`, `cd-shell-document`, `cd-shell-canvas`, `cd-shell-layer`                                                                                                                                                                                                   | root, own document, canvas slot, layer      |
+| `cd-shell-island`, `cd-shell-target`                                                                                                                                                                                                                                   | glass island, 32px target in an island      |
+| `cd-shell-menu-trigger`, `cd-shell-menu`, `cd-shell-menu-item`, `cd-shell-menu-item-icon`, `cd-shell-menu-item-label`, `cd-shell-menu-item-end`, `cd-shell-menu-separator`, `cd-shell-menu-heading`, `cd-shell-menu-group`                                             | menu                                        |
+| `cd-shell-menu-shortcut`, `cd-shell-menu-check`                                                                                                                                                                                                                        | shortcut text and check mark of an entry    |
+| `cd-shell-tooltip`, `cd-shell-tooltip-label`, `cd-shell-kbd`                                                                                                                                                                                                           | tooltip and shortcut chip                   |
+| `cd-shell-zoom`, `cd-shell-zoom-readout`, `cd-shell-zoom-separator`                                                                                                                                                                                                    | zoom panel                                  |
+| `cd-shell-problems`, `cd-shell-problems-icon`, `cd-shell-problems-text`                                                                                                                                                                                                | pill                                        |
+| `cd-shell-status`, `cd-shell-status-icon`, `cd-shell-status-text`                                                                                                                                                                                                      | status box (bar as `::before`)              |
+| `cd-shell-hint`, `cd-shell-hint-text`, `cd-shell-hint-action`                                                                                                                                                                                                          | empty-file hint                             |
+| `cd-shell-legend`, `cd-shell-legend-header`, `cd-shell-legend-title`, `cd-shell-legend-close`, `cd-shell-legend-body`                                                                                                                                                  | legend card                                 |
+| `cd-shell-legend-row`, `cd-shell-legend-preview`, `cd-shell-legend-separator`                                                                                                                                                                                          | rows the modeler renders into the body      |
+| `cd-shell-inspector`                                                                                                                                                                                                                                                   | inspector                                   |
+| `cd-shell-no-transition`                                                                                                                                                                                                                                               | on `<html>` for one frame of a mode switch  |
+| `cd-shell-button` (`data-variant="primary"` / `"ghost"`)                                                                                                                                                                                                               | buttons of the web chrome (0.2)             |
+| `cd-shell-primary`, `cd-shell-primary-label`                                                                                                                                                                                                                           | primary action (0.2)                        |
+| `cd-shell-legal`, `cd-shell-legal-item`                                                                                                                                                                                                                                | legal line, a separator with its link (0.2) |
+| `cd-shell-empty-state`, `cd-shell-empty-state-mark`, `cd-shell-empty-state-title`, `cd-shell-empty-state-text`, `cd-shell-empty-state-actions`, `cd-shell-empty-state-hint`, `cd-shell-empty-state-open-item`, `cd-shell-empty-state-open`, `cd-shell-empty-state-key` | empty-state card (0.2)                      |
+| `cd-shell-drop-zone`, `cd-shell-drop-zone-chip`                                                                                                                                                                                                                        | drop zone (0.2)                             |
+| `cd-shell-toasts`, `cd-shell-toast`, `cd-shell-toast-dot`, `cd-shell-toast-text`, `cd-shell-toast-action`, `cd-shell-toast-close`                                                                                                                                      | toasts (0.2)                                |
+| `cd-shell-live`, `cd-shell-live-region` (`data-live="polite"` / `"assertive"`)                                                                                                                                                                                         | the toasts' live regions (0.2)              |
+| `cd-shell-problems-popover`, `cd-shell-problems-popover-title`, `cd-shell-problems-list`, `cd-shell-problem`, `cd-shell-problem-icon`, `cd-shell-problem-message`, `cd-shell-problem-location`                                                                         | problems popover (0.2)                      |
 
 Internal attributes: `data-severity` on pill and status box, `data-danger` on a dangerous menu
 entry, `data-menu-id` on entries and radio groups (the shell's Legend entry is `data-menu-id="legend"`,
@@ -977,12 +986,12 @@ The web column adds (see [Web host](#web-host-02)):
 | Island             | Box (web host)                                                                                                                |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | `primary`          | 40 high at `top: 12px; right: 12px`; 40 wide while `data-primary="collapsed"`, else icon, gap and label with padding `0 16px` |
-| `legal`            | 20 high at `left: 12px; bottom: 12px`                                                                                         |
+| `legal`            | 20 high at `left: 12px; bottom: 12px`, at most `100cqw − 24px` wide; wrapped 20 per line, the stack above rising with it      |
 | `problems`         | `left: 12px; bottom: 40px` (0.1)                                                                                              |
 | `legend`           | `bottom: 40px`, with pill `88px` (0.1); up to 440px width at least `60px`, `88px` with `data-zoom-row="raised"`               |
 | `zoom`             | `right: 12px; bottom: 12px`; `bottom: 40px` with `data-zoom-row="raised"`                                                     |
 | `problems-popover` | `left: 12px`, its bottom 8px above the pill's top (`bottom: 88px`), `min(320px, 100cqw − 24px)` wide, at most 320 high        |
-| `toasts`           | centred, `min(480px, 100cqw − 24px)` wide, `bottom: toastStackBottom(…)` (12px unless the bottom row is in the way)           |
+| `toasts`           | centred, `min(480px, 100cqw − 24px)` wide, `bottom: toastStackBottom(…)` (12px unless its widest card meets the bottom row)   |
 | `empty-state`      | centred in the container (`centerX`, `centerY`), `min(400px, 100cqw − 24px)` wide                                             |
 | `drop-zone`        | `inset: 12px` while a file drag is on the page                                                                                |
 
@@ -1042,8 +1051,8 @@ modeler shows as well (§5.2: until the contract has a channel for messages to t
     >
       <svg … /><span class="cd-shell-primary-label">Share</span>
     </button>
-    <div class="cd-shell-canvas" [inert]>…</div>
-    <!-- inert behind the start screen -->
+    <div class="cd-shell-canvas" role="main" [inert]>…</div>
+    <!-- the page's main landmark; inert behind the start screen -->
     <div class="cd-shell-status" data-chrome="status" …>…</div>
     <div class="cd-shell-hint">…</div>
     <section
@@ -1083,6 +1092,11 @@ modeler shows as well (§5.2: until the contract has a channel for messages to t
       </div>
       <div class="cd-shell-drop-zone" data-chrome="drop-zone" aria-hidden="true" hidden>…</div>
     </div>
+    <div class="cd-shell-live">
+      <!-- visually hidden, always rendered: the toasts' live regions -->
+      <div class="cd-shell-live-region" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div class="cd-shell-live-region" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    </div>
     <div class="cd-shell-toasts" data-chrome="toasts" popover="manual">…</div>
     <!-- z 60; embedded: no popover -->
   </div>
@@ -1091,7 +1105,9 @@ modeler shows as well (§5.2: until the contract has a channel for messages to t
 
 Tab order (§5.14): menu trigger, primary action, palette, canvas, status box, hint, empty-state card,
 inspector, pill, legend, legal line, zoom panel, then the toasts' buttons. Each 0.2 island has its
-`data-chrome` so the kit measures it; ids count on the page-global mount counter as in 0.1.
+`data-chrome` so the kit measures it; ids count on the page-global mount counter as in 0.1. The
+canvas slot is the page's `main` landmark (`role="main"`, unless it already has a role; the web host
+only: a foreign page has its own).
 
 ### Primary action (§5.7, §5.15)
 
@@ -1159,19 +1175,22 @@ interface LegalLineOptions {
 
 ```html
 <nav class="cd-shell-legal" data-chrome="legal" aria-label="Legal">
-  <a href="https://www.miragon.io/" target="_blank" rel="noopener noreferrer">© 2026 Miragon GmbH</a>
-  <span aria-hidden="true">·</span>
-  <a href="https://www.miragon.io/impressum/" lang="de" target="_blank" rel="noopener noreferrer"
-    >Impressum</a
-  >
-  <span aria-hidden="true">·</span>
-  <a href="https://www.miragon.io/datenschutz/" lang="de" target="_blank" rel="noopener noreferrer"
-    >Datenschutz</a
-  >
-  <span aria-hidden="true">·</span>
-  <a href="https://github.com/Miragon/event-storming-modeler" target="_blank" rel="noopener noreferrer"
-    >GitHub</a
-  >
+  <a href="https://www.miragon.io/" … aria-describedby="cd-shell-legal-1-new-tab">© 2026 Miragon GmbH</a>
+  <span class="cd-shell-legal-item">
+    <span aria-hidden="true">·</span>
+    <a href="https://www.miragon.io/impressum/" lang="de" target="_blank" rel="noopener noreferrer" …
+      >Impressum</a
+    >
+  </span>
+  <span class="cd-shell-legal-item">
+    <span aria-hidden="true">·</span>
+    <a href="https://www.miragon.io/datenschutz/" lang="de" …>Datenschutz</a>
+  </span>
+  <span class="cd-shell-legal-item">
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/Miragon/event-storming-modeler" …>GitHub</a>
+  </span>
+  <span id="cd-shell-legal-1-new-tab" hidden>Opens in a new tab</span>
 </nav>
 ```
 
@@ -1182,18 +1201,27 @@ interface LegalLineOptions {
 - One line, 13px, line height 20px, at `left: 12px; bottom: 12px`, glass (§5.3) without border and
   shadow, padding `0 8px`, radius `sm`, links `--cd-ui-link` (underlined on hover and focus, always
   in high contrast and forced colours), separators `--cd-ui-text-leise`, layer 20. Pill and legend
-  stand above it (0.1: pill `bottom: 40px`, legend 40/88px).
-- Up to 440px container width the line is at most `100cqw − 24px` wide and scrolls sideways without
-  a visible scrollbar, its focus ring inside (§5.14); with a GitHub link it is about 391px wide.
+  stand above it (0.1: pill `bottom: 40px`, legend 40/88px). Every link opens a new tab and says so
+  to screen readers through `aria-describedby` (`messages.opensInNewTab`, "Opens in a new tab").
+- **Narrow containers.** The line is at most `100cqw − 24px` wide; where it does not fit (with a
+  GitHub link it is about 391px wide, so below about 415px) it wraps between its entries, each
+  separator staying with the link after it, and grows upwards from `bottom: 12px`. Nothing is cut
+  off or scrolled away (Datenschutz must stay reachable; WCAG 1.4.10 at 320 CSS px). The shell
+  measures the line's height in whole lines (`legalLineHeight`) into `--modeler-shell-legal-height`
+  on the root, and everything stacked on it rises with it: the pill and the problems popover, the
+  legend, the raised zoom panel and the fit's bottom (`FitLayout.legalHeight`; 112 instead of 92 on
+  two lines).
 - **Bottom-row collision.** In a narrow container the legal line and the zoom panel meet:
   `zoomRowRaised` (`./core`) is true when the zoom panel at `right: 12px` would keep less than 8px to
   the legal line's measured right edge. The root then carries `data-zoom-row="raised"`, the zoom
-  panel stands above the legal line at `bottom: 40px` like the pill, the fit keeps 92px at the bottom
-  (`FitLayout.zoomRaised`), and up to 440px the legend's lowest position is 88px. §5.10 and §5.15
-  do not settle this case; it is the shell's rule until the guide does.
+  panel stands above the legal line at `bottom: 40px` like the pill (8px above a wrapped line), the
+  fit keeps 92px at the bottom (`FitLayout.zoomRaised`), and up to 440px the legend's lowest position
+  is 88px. §5.10 and §5.15 do not settle this case; it is the shell's rule until the guide does.
 
 ```ts
 // ./core
+const LEGAL_LINE_HEIGHT = 20; // one line of the legal line
+function legalLineHeight(measured: number | undefined): number; // whole lines, at least one: 20, 40, …
 interface BottomRowInput {
   containerWidth: number;
   legalRight?: number; // measured, relative to the root; absent while not shown
@@ -1207,7 +1235,7 @@ function zoomRowRaised(input: BottomRowInput): boolean;
 ```ts
 interface FileMenuAction {
   onSelect(): void;
-  shortcut?: string; // chip, e.g. "⌘O", also on a dialog entry; the web app binds the key itself
+  shortcut?: string; // chip, e.g. commandKeyLabel("O", platform, keyNames); the web app binds the key itself
   dialog?: boolean; // kind "dialog": it opens an in-page dialog, not the browser's file picker
   disabled?: () => boolean;
 }
@@ -1228,7 +1256,16 @@ interface FileMenuOptions {
 
 - The File group comes first, the shell builds it in this order from what the modeler gives; labels
   and icons are the shared terms of §2 and the common set of §5.14, not the modeler's. Entries are
-  `action`s (`dialog` with `FileMenuAction.dialog`), never locked on a read-only canvas.
+  `action`s (`dialog` with `FileMenuAction.dialog`), never locked on a read-only canvas. `open` also
+  becomes the start screen's text link (see [Empty state](#empty-state-8)).
+- The chip of a Cmd/Ctrl key the app binds itself comes from `./core`, so it reads the same in every
+  modeler and on every platform:
+
+  ```ts
+  function commandKeyLabel(key: string, platform: Platform, keyNames: { ctrl: string }): string;
+  // commandKeyLabel("O", "mac", messages.keyNames) → "⌘O"; "other" → "Ctrl+O" (German "Strg+O")
+  ```
+
 - The **Appearance** group is a radio group (`data-menu-id="appearance"`, heading and `aria-label`
   "Appearance", options `system`, `light`, `dark`: "System", "Light", "Dark") between Export and
   Help. The shell renders it only when `themes` includes `"dark"`; a light-only modeler has no
@@ -1344,10 +1381,13 @@ function problemSummary(items: readonly ProblemItem[]): {
   below it the location.
 - A row with an `elementId` is a button: a click closes the popover, puts the focus on the canvas and
   then calls `problems.onSelectItem(item)`, where the modeler selects the element. Rows without one
-  are text. The icon carries the severity's name for screen readers (`role="img"`,
-  `messages.problemSeverity`), so the shape and colour are not its only signal (§12).
-- Opening focuses the first row button (else the popover); ↑/↓/Home/End move between the row
-  buttons. Escape and Tab out close it with the focus back on the pill (Tab from the last row then
+  are text that still takes the focus (`<div tabindex="-1">`), so the keyboard reads every row of a
+  list longer than its 320px (WCAG 2.1.1); Enter and Space act on row buttons only. The icon carries
+  the severity's name for screen readers (`role="img"`, `messages.problemSeverity`), so the shape and
+  colour are not its only signal (§12).
+- Opening focuses the first row (else the popover, with an inset focus ring); ↑/↓/Home/End move
+  between all rows and scroll the focused one into the list (only the list scrolls, never the
+  root). Escape and Tab out close it with the focus back on the pill (Tab from the last row then
   moves on from the pill, Shift+Tab from the first stays on it); an outside `pointerdown` and the
   window's blur close it without moving the focus, as for the menu. Not modal: the zoom keys keep
   working. Like the menu it stops Enter, Space, Delete, Backspace and printable keys, so a modeler's
@@ -1388,6 +1428,7 @@ interface BottomObstacle {
 interface ToastStackInput {
   containerWidth: number;
   obstacles: readonly BottomObstacle[];
+  cardWidth?: number; // the widest card's measured width; absent = the whole stack width
 }
 function toastStackWidth(containerWidth: number): number; // min(480, width − 24)
 function toastStackBottom(input: ToastStackInput): number;
@@ -1405,26 +1446,37 @@ interface ToastHandle {
   dot in `--cd-ui-<status>` (a dot, not an icon: the common set has no success or info icon, §5.14),
   text 13px/1.5 `--cd-ui-text`, radius `md`, `shadow-3`, at least 40px high, padding `4px 4px 4px
 16px`, 8px gap; the action as a 32px ghost button, then Close as a 32 × 32 ghost icon button
-  (Lucide `x`, `aria-label` "Close"). `role="alert"` for danger, `role="status"` otherwise (its
-  implicit `aria-live="polite"`). Slide and fade in from `translateY(8px)` over 250ms, out the same
-  way; none under reduced motion. A card is as wide as its content, at most the stack's width, as in
-  the Wardley and Team Topologies web apps.
+  (Lucide `x`, `aria-label` "Close", `aria-describedby` the toast's text, so three Close buttons
+  are told apart). Slide and fade in from `translateY(8px)` over 250ms, out the same way; none under
+  reduced motion. A card is as wide as its content, at most the stack's width, as in the Wardley and
+  Team Topologies web apps (§8's `min(480px, 100% − 24px)` read as the maximum).
+- **Screen readers** (§8, §12): two live regions in the root, rendered from mount on and visually
+  hidden (`.cd-shell-live`): `role="status"` with `aria-live="polite"`, and `role="alert"`. A toast's
+  text goes into the alert region for danger, else into the status region, 100ms after the region
+  was emptied (`TOAST_ANNOUNCE_DELAY_MS`), so a repeated toast ("Link copied" twice) is announced
+  again; the region empties when its toast closes. A live region created together with its text is
+  often not announced, which is why the regions never come and go with the stack. The cards carry no
+  live role, so nothing is read twice.
 - **Stack**: centred, `toastStackWidth`, column with 8px gap, the newest at the bottom, at most three;
   a fourth evicts per `toastToEvict` (the oldest without action that is not engaged first). A
   request equal to a shown toast (status and text) restarts that toast's time instead of stacking,
   and takes the newer request's action and lifetime (a repeated "Board replaced · Undo" undoes the
-  latest replacement). Layer 60; in the web host the stack is a `popover="manual"` shown again with
-  every toast, so it stays above a `showModal()` dialog in the top layer (visible, but inert like
-  everything outside a modal until the dialog closes); in the embedded host it is absolute inside
-  the root and never leaves its box.
+  latest replacement). Layer 60; in the web host the stack is a `popover="manual"`, shown with the
+  first toast and shown again with a toast that arrives while a modal dialog is open, so it stays
+  above a `showModal()` dialog in the top layer (visible, but inert like everything outside a modal
+  until the dialog closes); without a modal it is not hidden and re-shown, which would rebuild it for
+  screen readers. In the embedded host it is absolute inside the root and never leaves its box.
 - **Time**: `toastLifetime` (about 2.8s, errors about 5s, §8; a warning, a sentence to act on, gets
   the error's 5s), paused while hovered or focused and resumed with at least 1.5s left; a toast with
   an action never closes by itself. A closing toast that held the focus hands it to the next
-  toast's Close button, else to the canvas.
-- **Bottom row**: the stack sits at `bottom: 12px` (§8) unless its column comes closer than 8px
-  horizontally to a visible zoom panel, legal line or pill; then it stands 8px above the highest of
-  those (`toastStackBottom`, recomputed in the layout pass and whenever the pill, the inspector or
-  the start screen changes; a bottom sheet hides zoom panel and pill). §8 does not settle this case; it is the shell's rule until the guide does.
+  toast's Close button, else to the canvas; on the start screen to its "New diagram" (the canvas and
+  the menu trigger cannot take it there), never silently to `<body>`.
+- **Bottom row**: the stack sits at `bottom: 12px` (§8) unless the centred column of its widest card
+  comes closer than 8px horizontally to a visible zoom panel, legal line or pill; then it stands 8px
+  above the highest of those (`toastStackBottom` with `cardWidth`, recomputed in the layout pass,
+  whenever a toast comes or goes, and whenever the pill, the inspector or the start screen changes;
+  a bottom sheet hides zoom panel and pill). At 1280px with a GitHub link the legal line ends 7.5px
+  before the 480px column, so "Link copied" (146px) stays at 12 while a full-width card rises to 40. §8 does not settle this case; it is the shell's rule until the guide does.
 
 ### Empty state (§8)
 
@@ -1442,18 +1494,30 @@ interface EmptyStateOptions {
 - `shell.setEmptyState(true)` shows the card; the modeler calls it on a fresh start (no document in
   the URL, nothing restored). While it shows (`data-empty-state="shown"` on the root) the work chrome
   is hidden (`visibility: hidden`): menu trigger, primary action, palette, zoom panel, pill, legend,
-  status box, hint and inspector; the canvas slot is `inert`, the chrome keys stay prevented (no page
-  zoom) but do nothing, menu and popover close. Visible: the card, the legal line, toasts and the drop
-  zone (§8: "sichtbar sind nur die Karte und die Zeile Rechtliches").
+  status box, hint and inspector; the canvas slot is `inert`, menu and popover close. The chrome keys
+  (Cmd/Ctrl + `+`/`−`/`0`, Shift+1) go to the browser unprevented, which zooms the page: there is no
+  diagram to zoom, and a low-vision user's Ctrl+ must not be swallowed (WCAG 1.4.4); the shell's
+  diagram-js guard returns `false` for them meanwhile, so diagram-js zooms nothing either. Visible:
+  the card, the legal line, toasts and the drop zone (§8: "sichtbar sind nur die Karte und die Zeile
+  Rechtliches").
 - The card: centred in the container, `min(400px, 100cqw − 24px)` wide, glass (§5.3), `shadow-2`,
   radius `lg`, padding `32px 40px`, content centred with 16px gaps: the Komet at 64px (`alt=""`), the
   title as `<h1>` (21px/600), the help line (16px/1.6, `--cd-ui-text-leise`), the two 36px buttons
   side by side with 8px gap, primary first, then the drop hint (13px, `--cd-ui-text-leise`). Layer 20.
+  In high contrast its border is `--cd-ui-linie` through the role like every other island (§5.3).
+- **Open on the start screen.** The start screen hides the menu, and a drop needs a pointer; so with
+  `file.open` the hint ends in a text link "Open a file…" (`messages.openFileLink`, `--cd-ui-link`,
+  `aria-keyshortcuts` and a Geist Mono chip from `file.open.shortcut`, the two never parted by a
+  line break): "Or drop a .storm file here
+  · Open a file… ⌘O". It is part of the hint, not a third action (§8 keeps exactly two buttons), and
+  runs `file.open.onSelect` without leaving the start screen: the modeler ends it once the file has
+  loaded.
 - Either button hides the card (`setEmptyState(false)`), moves the focus to the canvas `<svg>` and
   then runs its handler. `setEmptyState(true)` while the focus is in the work chrome or the canvas
   moves it to "New diagram"; a focus on the legal line or a toast stays. The Komet is not draggable
-  (an image drag can carry a file and would open the drop zone). Any other start (Open…, a dropped file, a shared link, the first edit) is the
-  modeler's to end with `setEmptyState(false)`; the card does not come back in the session.
+  (an image drag can carry a file and would open the drop zone). Any other start (Open…, a dropped
+  file, a shared link, the first edit) is the modeler's to end with `setEmptyState(false)`; the card
+  does not come back in the session.
 - The IDE and embedded hosts have no start screen; they use the empty-file hint (§13.5).
 
 ### Drop zone (§9)
@@ -1603,7 +1667,10 @@ registers one internal didi service named `modelerShell` (a modeler does not reu
 - `paletteTooltip: ["value", null]` replaces diagram-js's (and a renderer's) palette tooltip; the
   chrome tooltip takes over with `title` and `shortcut` from `palette.getEntries()`.
 - Palette skin: on `palette.create` it sets `data-chrome="palette"` and moves the container in front
-  of the canvas `<svg>` (`canvas.getContainer()`'s child), so tab order puts the palette first. After
+  of the canvas `<svg>` (`canvas.getContainer()`'s child), so tab order puts the palette first. A
+  renderer's export (`saveSVG`) must therefore take the container's own `<svg>` child, not the
+  first `<svg>` it finds (`container.querySelector("svg")` now gets a palette icon), and strip the
+  `tabindex`, `role="application"` and `aria-label` the live canvas carries from its copy. After
   every `palette.changed` it re-applies `role="toolbar"` and `aria-label` (`messages.tools`) on
   `.djs-palette-entries`, `role="button"` on every entry, `aria-keyshortcuts` from the entry's
   `ariaKeyShortcuts` or `ariaKeyShortcutsFromLabel(shortcut)` (§5.6; split the shortcut off the
@@ -1629,7 +1696,8 @@ registers one internal didi service named `modelerShell` (a modeler does not reu
   `KeyboardBindings` and the modeler's keyboard modules (priority 1000) never act on them; the
   shell's `keydown` listener executes them exactly once. It returns `false` (stops them without
   `preventDefault`) for a chrome key from a text field inside the `<svg>`, which stays the field's,
-  and, while the attached shell's host is `ide`, for undo and redo (`isUndoRedoKey`): the canvas
+  for a chrome key while the web app's start screen shows (the browser zooms the page), and, while
+  the attached shell's host is `ide`, for undo and redo (`isUndoRedoKey`): the canvas
   `commandStack` never takes them, VS Code undoes the document (§13.5). A modeler's own DOM undo
   binding must go in the IDE host as well; the kit's `keys` case checks it.
 - Keys the canvas uses beyond the chrome keys are the modeler's (§13.5). Cmd/Ctrl+A on the focused
@@ -2012,7 +2080,8 @@ interface ShowHooks<P extends PageLike = PageLike> {
   toast?(page: P, toast: ToastFixture): Promise<void>; // 0.2, web and embedded: through shell.toast
 }
 type ShowHook = keyof ShowHooks; // … | "emptyState" | "toast"
-type AbsentFeature = ShowHook | "drop";
+// "problemSelection": the modeler's problems never point at an element (only at lines), so no row selects
+type AbsentFeature = ShowHook | "drop" | "problemSelection";
 interface ToastFixture {
   status: ToastStatus;
   text: string;
@@ -2088,6 +2157,7 @@ interface ChromeMeasurement {
     primaryCollapsed: boolean; // 0.2: data-primary="collapsed"
     zoomRaised: boolean; // 0.2: data-zoom-row="raised"
   };
+  toastCardWidth?: number; // 0.2: the widest visible toast card; absent without a toast
 }
 interface ExpectedBox {
   left?: number;
@@ -2125,16 +2195,16 @@ Cases (each named `shell conformance: <name>`; failures throw plain `Error`s lis
 `cleanup` (`createWebCases` in `src/testing/web-cases.ts`). Each runs in every host; outside the
 hosts it applies to it asserts that nothing of it shows and passes.
 
-| Case / extension        | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `geometry` (extended)   | web: `primary` at 12/12, 40 high, 40 wide while collapsed; the palette keeping 16px to the primary action in the top row; `legal` at 12/12, 20 high; pill, legend and zoom panel per `open.zoomRaised`; the popover above the pill (after a click on it); toasts at `toastStackBottom` recomputed from the measured bottom row; `empty-state` centred after `show.emptyState`; IDE and embedded: `primary`, `legal`, `empty-state`, `drop-zone` never visible                            |
-| `aria` (extended)       | web: tab order menu trigger, primary action, palette, canvas; the primary action's `aria-label` in both states; the legal `<nav aria-label>`, Impressum and Datenschutz with `lang="de"`, `rel="noopener noreferrer"`; the File group first with its ids and icons, the Appearance group (dark-capable only) between Export and Help with `aria-checked`; the pill's `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`                                                          |
-| `appearance` (extended) | web, with `emulateMedia`: light-only: `<html data-cd-theme="light">` under a dark system, no Appearance group, `data-cd-kontrast="hoch"` under `prefers-contrast: more`; dark-capable: `system` follows the system, choosing Dark writes `miragon.darstellung=dark`, `data-cd-theme="dark"`, `color-scheme` and both `theme-color` metas in one frame, System removes the entry; never half-dark                                                                                         |
-| `webChrome`             | primary action: label collapse before the palette moves (widths stepped from wide to narrow), tooltip only while collapsed, `onSelect` on click and on Enter; legal line content and links; the raised zoom row where legal line and zoom panel meet; File entries run their handlers and close the menu, never locked under `show.invalid`                                                                                                                                              |
-| `emptyState`            | after `show.emptyState`: the card centred, `min(400px, 100cqw − 24px)`, Komet 64px with `alt=""`, `<h1>`, primary "New diagram" before ghost "Show example", both 36px; the work chrome `visibility: hidden`, the canvas `inert`, Tab reaching only the card and the legal links, chrome keys prevented without zooming; "New diagram" hides it, shows the chrome and focuses the canvas `<svg>`                                                                                         |
-| `toasts`                | through `show.toast`: role by status, Close named "Close", at most three (the fourth evicts the oldest without action), the newest at the bottom, a repeated text not stacked, closing after `toastLifetime` (with a margin) unless hovered or focused, a toast with an action never; web: shown again in the top layer after a `showModal()` stand-in opened (everything outside a modal is inert, so the kit checks the stacking, not a click); IDE: no hook and no toast element ever |
-| `problemsList`          | web (embedded when the pill opens it): after `show.problems`, a click on the pill opens `role="dialog"` titled "Problems" with the rows, Escape returns the focus to the pill, an outside click closes without moving it, a row with an element closes it and focuses the canvas; geometry left 12, 8px above the pill, at most 320 wide and high                                                                                                                                        |
-| `dropZone`              | web with `harness.drop`: synthetic file drags (a `DataTransfer` built in the page) show `data-drop="over"` with the §9 colours and the 12px inset; two files (unless `drop.multiple`) and a modal stand-in show `forbidden`; a drag without files changes nothing; dropping `accepted` on the start screen opens it, `rejected` opens nothing and shows a danger toast; skips with `hook: "drop"` without the fixtures unless `absent` lists `"drop"`                                    |
+| Case / extension        | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geometry` (extended)   | web: `primary` at 12/12, 40 high, 40 wide while collapsed; the palette keeping 16px to the primary action in the top row; `legal` at 12/12, 20 high per line and at most `100cqw − 24px` wide; pill, legend and zoom panel per `open.zoomRaised` on the legal line's measured lines; the popover above the pill (after a click on it); toasts at `toastStackBottom` recomputed from the measured bottom row and the widest card (`toastCardWidth`); `empty-state` centred after `show.emptyState`; IDE and embedded: `primary`, `legal`, `empty-state`, `drop-zone` never visible                                                             |
+| `aria` (extended)       | web: tab order menu trigger, primary action, palette, canvas; the primary action's `aria-label` in both states; the legal `<nav aria-label>`, Impressum and Datenschutz with `lang="de"`, `rel="noopener noreferrer"`; the File group first with its ids and icons, the Appearance group (dark-capable only) between Export and Help with `aria-checked`; the pill's `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`                                                                                                                                                                                                               |
+| `appearance` (extended) | web, with `emulateMedia`: light-only: `<html data-cd-theme="light">` under a dark system, no Appearance group, `data-cd-kontrast="hoch"` under `prefers-contrast: more`; dark-capable: `system` follows the system, choosing Dark writes `miragon.darstellung=dark`, `data-cd-theme="dark"`, `color-scheme` and both `theme-color` metas in one frame, System removes the entry; never half-dark                                                                                                                                                                                                                                              |
+| `webChrome`             | primary action: label collapse before the palette moves (widths stepped from wide to narrow), tooltip only while collapsed, `onSelect` on click and on Enter (so a real app runs its own handler, a Share without clipboard permission shows its danger toast meanwhile); legal line content and links, at 320px every link whole inside the wrapped line (WCAG 1.4.10); the raised zoom row where legal line and zoom panel meet; File entries run their handlers and close the menu, never locked under `show.invalid`                                                                                                                      |
+| `emptyState`            | after `show.emptyState`: the card centred, `min(400px, 100cqw − 24px)`, Komet 64px with `alt=""`, `<h1>`, primary "New diagram" before ghost "Show example", both 36px (a text link in the hint is no action); the work chrome `visibility: hidden`, the canvas `inert`, Tab reaching only the card and the legal links, chrome keys reaching the browser unprevented without zooming the diagram; with `show.toast`, closing a focused toast puts the focus on the card; "New diagram" hides it, shows the chrome and focuses the canvas `<svg>`                                                                                             |
+| `toasts`                | through `show.toast`: a `role="status"` and a `role="alert"` live region in the root before the first toast, the toast's text arriving in the one of its status, no live role on the card; Close named "Close", at most three (the fourth evicts the oldest without action), the newest at the bottom, a repeated text not stacked, closing after `toastLifetime` (with a margin) unless hovered or focused, a toast with an action never; web: shown again in the top layer after a `showModal()` stand-in opened (everything outside a modal is inert, so the kit checks the stacking, not a click); IDE: no hook and no toast element ever |
+| `problemsList`          | web (embedded when the pill opens it): after `show.problems`, a click on the pill opens `role="dialog"` titled "Problems" with the rows, Escape returns the focus to the pill, an outside click closes without moving it; Enter on the pill and then ↓ to the last row, Home and End reach every row, text rows included, each scrolled into the list (WCAG 2.1.1); a row with an element closes it and focuses the canvas (skipped with `hook: "problems"` when no item has an `elementId`, unless `absent` lists `"problemSelection"`); geometry left 12, 8px above the pill, at most 320 wide and high                                     |
+| `dropZone`              | web with `harness.drop`: synthetic file drags (a `DataTransfer` built in the page) show `data-drop="over"` with the §9 colours and the 12px inset; two files (unless `drop.multiple`) and a modal stand-in show `forbidden`; a drag without files changes nothing; dropping `accepted` on the start screen opens it, `rejected` opens nothing and shows a danger toast; skips with `hook: "drop"` without the fixtures unless `absent` lists `"drop"`                                                                                                                                                                                         |
 
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in
@@ -2570,143 +2640,187 @@ dark-mode release, so its `index.html` is static and its head carries the contra
 </html>
 ```
 
-`src/main.ts`:
+`src/main.ts`, shortened to what touches the shell (the real file is
+`apps/webapp/src/main.ts` in Miragon/event-storming-modeler):
 
 ```ts
 import "@fontsource-variable/geist/wght.css";
 import "@fontsource-variable/geist-mono/wght.css";
-import { Modeler, type BoardBounds, type ImportWarning } from "@miragon/event-storming-renderer";
-import "@miragon/event-storming-renderer/assets/event-storming.css"; // brings diagram-js.css and the tokens
-import "@miragon/modeler-shell/shell.css";
-import { mountShell, problemSummary, type ProblemItem } from "@miragon/modeler-shell";
+import "@miragon/event-storming-renderer/assets/event-storming.css"; // the tokens, diagram-js.css
+import "@miragon/modeler-shell/shell.css"; // last
+import {
+  Modeler,
+  boardMenu,
+  createShortcutsDialog,
+  importWarningText,
+  type ImportWarning,
+} from "@miragon/event-storming-renderer";
+import {
+  commandKeyLabel,
+  defaultMessages,
+  detectPlatform,
+  mountShell,
+  problemSummary,
+} from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
-import kometUrl from "./assets/miragon-komet-blau.svg?url"; // vendored unchanged from corporate-identity
-import { boardMenu } from "./menu"; // Model and Export groups, as in the webview, plus JSON and .storm
-import { readHashMap, shareUrl, writeHashMap } from "./share";
-import { downloadBoard, openFile } from "./io";
+import { copyTextWhenReady } from "./clipboard"; // ClipboardItem with a promise: Safari keeps the gesture
+import { hashHoldsBoard, readHashMap, shareUrl, writeHashMap } from "./share";
 import { THEMES } from "./themes"; // ["light"]
 
 // 1. The diagram first (its keyboard listens on document); the web app keeps the canvas undo keys.
 const modeler = new Modeler({
+  width: "100%",
+  height: "100%",
   additionalModules: [shellModule],
-  freeRectInsets: () => shell.fitInsets(),
+  freeRectInsets: () => shell.fitInsets(), // keyboard creation lands in the free rectangle
 });
 modeler.get("canvas");
-const boardBounds = modeler.get<BoardBounds>("boardBounds");
-const selection = modeler.get<{ select(element: unknown): void }>("selection");
-const registry = modeler.get<{
-  get(id: string): unknown;
-  getAll(): Array<{ parent?: unknown; waypoints?: unknown }>;
-}>("elementRegistry");
-const isEmpty = () => !registry.getAll().some((element) => element.parent && !element.waypoints);
+const platform = detectPlatform(navigator);
+const openKey = commandKeyLabel("O", platform, defaultMessages.keyNames); // "⌘O" / "Ctrl+O"
+const saveKey = commandKeyLabel("S", platform, defaultMessages.keyNames);
 
 // 2. The chrome, the whole web column.
 const shell = mountShell(document.getElementById("app")!, {
   host: "web",
   canvas: modeler.container,
   lang: "en",
+  platform,
   themes: THEMES,
   messages: { canvas: "Event Storming board" },
-  primary: { onSelect: () => void share() }, // "Share", share-2
+  primary: { onSelect: () => share() }, // "Share", share-2
   legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/event-storming-modeler" }] },
   file: {
-    newDiagram: { onSelect: () => void replaceBoard(() => modeler.importMap(emptyBoard())) },
-    open: { onSelect: pickFile, shortcut: "⌘O" },
-    showExample: { onSelect: () => void replaceBoard(() => modeler.importDSL(EXAMPLE_BOARD)) },
+    newDiagram: { onSelect: () => void newDiagram() },
+    open: { onSelect: () => pickFile(), shortcut: openKey }, // also the start screen's "Open a file…"
+    showExample: { onSelect: () => void showExample() },
   },
-  menu: boardMenu({ modeler, toast: (request) => shell.toast(request) }),
-  problems: {
-    onSelectItem: (item) => {
-      const element = item.elementId && registry.get(item.elementId);
-      if (element) selection.select(element);
+  // Model (level, type captions), Export and Help: the same entries the VS Code webview shows.
+  menu: boardMenu({
+    levels,
+    typeCaptions,
+    exports: {
+      png: { onSelect: () => void exportPicture("png") },
+      svg: { onSelect: () => void exportPicture("svg") },
+      transparentPng: { onSelect: () => void exportPicture("png-transparent") },
+      json: { onSelect: () => exportBoardText("json") },
+      storm: { onSelect: () => exportBoardText("storm"), shortcut: saveKey },
     },
-  },
+    showKeyboardShortcuts: () => shortcutsDialog.open(),
+  }),
+  problems: { onSelectItem: (item) => selectElement(item.elementId) },
   emptyState: {
     title: "Event Storming Modeler",
     text: "Start a new diagram, or explore the example.",
-    komet: kometUrl,
-    onNewDiagram: () => {}, // the canvas is already empty: leaving the card is the start
-    onShowExample: () => void replaceBoard(() => modeler.importDSL(EXAMPLE_BOARD)),
-    dropHint: "Or drop a .storm or .json file here",
+    komet: "/miragon-komet-blau.svg", // vendored unchanged from corporate-identity
+    onNewDiagram: () => void newDiagram(),
+    onShowExample: () => void showExample(),
+    dropHint: "Or drop a .storm, .json, or .txt file here", // the types the reject toast names
   },
   dropZone: {
     accept: [".storm", ".json", ".txt", "application/json", "text/plain"],
     onDrop: ([file]) => file && void openBoardFile(file),
   },
 });
+const shortcutsDialog = createShortcutsDialog(shell, { fileKeys: true });
 
 // 3. Viewport, palette, keys.
-const connection = connectDiagramJs(shell, modeler, {
+const { viewport } = connectDiagramJs(shell, modeler, {
   isEmpty,
   contentBounds: () => (isEmpty() ? undefined : boardBounds.contentBounds(0)),
 });
-const { viewport } = connection;
 
 // 4. Every new document opens like the first (§5.9); the start screen goes with it.
-async function openDocument(load: () => Promise<{ warnings: ImportWarning[] }>): Promise<void> {
+async function openDocument(load: () => Promise<readonly ImportWarning[]>, announce: boolean) {
   viewport.newDocument();
-  const { warnings } = await load();
-  viewport.afterImport();
+  let warnings: readonly ImportWarning[];
+  try {
+    warnings = await load();
+  } finally {
+    viewport.afterImport();
+  }
   shell.setEmptyState(false);
   shell.menu.refresh();
-  reportWarnings(warnings);
-}
-
-/** Replacing a board is undoable through a toast instead of a confirm() (guide §9). */
-async function replaceBoard(load: () => Promise<{ warnings: ImportWarning[] }>): Promise<void> {
-  const previous = isEmpty() ? undefined : modeler.exportDSL();
-  await openDocument(load);
-  if (previous !== undefined) {
+  updateDocumentTitle(); // "Order Checkout · Event Storming Modeler" (§5.4)
+  // The parser names lines: "Line 4 · A -> Nowhere" below the message, no element to select.
+  shell.setProblems(problemSummary(problemItems(warnings)));
+  for (const warning of warnings) console.warn(importWarningText(warning));
+  // A toast only after an import the user started, with the count (§9), never on a restore.
+  if (announce && warnings.length > 0) {
+    const pill = shell.messages.problems(warnings.length, String(warnings.length));
     shell.toast({
-      status: "info",
-      text: "Board replaced",
-      action: { label: "Undo", onSelect: () => void openDocument(() => modeler.importDSL(previous)) },
+      status: "warning",
+      text: `Imported with ${warnings.length} warnings. Details under “${pill}” bottom left.`,
     });
   }
 }
 
-function reportWarnings(warnings: readonly ImportWarning[]): void {
-  const items: ProblemItem[] = warnings.map((warning) => ({
-    severity: "warning",
-    message: warning.message,
-    ...(warning.elementId ? { elementId: warning.elementId } : {}),
-  }));
-  shell.setProblems(problemSummary(items));
-  if (items.length > 0) {
-    const count = shell.messages.problems(items.length, String(items.length));
-    shell.toast({ status: "warning", text: `Imported with warnings. Details under “${count}” bottom left.` });
-  }
+// Replacing a board clears the canvas history, so instead of confirm() it offers the board back
+// (§9 asks for a confirmation; the undo toast is the open guide question): "Board replaced · Undo",
+// also on Cmd/Ctrl+Z while the canvas has nothing else to undo. An edit withdraws the offer.
+async function replaceBoard(load: () => Promise<readonly ImportWarning[]>) {
+  const previous = boardIsEmpty() ? undefined : modeler.exportDSL();
+  await openDocument(load, true);
+  withdrawReplaceUndo();
+  if (previous === undefined || previous === modeler.exportDSL()) return;
+  const undo = () => void openDocument(async () => (await modeler.importDSL(previous)).warnings, false);
+  replaceUndo = {
+    toast: shell.toast({ status: "info", text: "Board replaced", action: { label: "Undo", onSelect: undo } }),
+    undo,
+  };
 }
 
-async function share(): Promise<void> {
-  try {
-    const dsl = modeler.exportDSL();
-    await writeHashMap(dsl);
-    await navigator.clipboard.writeText(await shareUrl(dsl));
-    shell.toast({ status: "success", text: "Link copied" });
-  } catch {
-    shell.toast({ status: "danger", text: "Couldn't copy the link. Copy it from the address bar instead." });
-  }
+// Copy inside the click: Safari drops the user activation at the first await before writeText.
+function share(): void {
+  const dsl = modeler.exportDSL();
+  const copied = copyTextWhenReady(shareUrl(dsl));
+  void (async () => {
+    try {
+      await writeHashMap(dsl);
+      await copied;
+      shell.toast({ status: "success", text: "Link copied" });
+    } catch {
+      shell.toast({
+        status: "danger",
+        text: "Couldn't copy the link. Copy it from the address bar instead.",
+      });
+    }
+  })();
 }
+
+// The app's own keys: Cmd/Ctrl+O opens a file, Cmd/Ctrl+S exports the .storm file (never the
+// browser's dialogs, also not over a modal dialog; on the start screen there is nothing to save).
+window.addEventListener("keydown", onAppKey);
+
+modeler.on("commandStack.changed", (event: { trigger?: string }) => {
+  if (event.trigger !== "clear") {
+    shell.setEmptyState(false); // the first edit is a start as well
+    withdrawReplaceUndo(); // an edit makes the undo offer stale
+  }
+  shell.menu.refresh(); // the level is undoable
+  updateDocumentTitle();
+});
 
 // 5. Start: the board from the link, else the start screen on an empty board.
 const linked = await readHashMap();
-if (linked) await openDocument(() => modeler.importDSL(linked));
+if (linked !== null) await openDocument(async () => (await modeler.importDSL(linked)).warnings, true);
 else {
-  await modeler.importMap(emptyBoard());
+  await modeler.importMap(createEmptyBoard("New board"));
   viewport.afterImport(); // an empty board at 100 %
   shell.setEmptyState(true);
+  if (hashHoldsBoard())
+    shell.toast({
+      status: "danger",
+      text: "Couldn't read the board in this link. Check that you copied the whole link.",
+    });
 }
-modeler.on("commandStack.changed", () => {
-  shell.setEmptyState(false); // the first edit is a start as well
-  shell.menu.refresh(); // level undo/redo
-});
 ```
 
-`openBoardFile(file)` is `openDocument(() => openFile(file, modeler))` behind `replaceBoard`, with
-a danger toast "Couldn't read “name”. Check that it contains a valid Event Storming board." on a
-parse error; `pickFile` opens the hidden file input with the same `accept`. The web app's own
-`style.css`, `toast.ts` and the hand-written menu, zoom, fit and legal markup go away.
+`openBoardFile(file)` reads the file before the canvas is touched and then runs `replaceBoard`; a
+parse error shows the danger toast "Couldn't read “name”. Check that it contains a valid Event
+Storming board." and keeps the board. `pickFile` opens the hidden file input with the same
+`accept`. The JSON export writes `JSON.stringify(modeler.exportMap(), null, 2)`, the board's own
+element order (the importer stacks overlapping stickies by it). The web app's own `style.css`,
+`toast.ts` and the hand-written menu, zoom, fit and legal markup go away.
 
 ## Out of scope for 0.2
 

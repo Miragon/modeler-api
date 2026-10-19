@@ -249,12 +249,19 @@ const modePlugin = {
 
 ```ts
 // src/main.ts
-import { mountShell, problemSummary } from "@miragon/modeler-shell";
+import {
+  commandKeyLabel,
+  defaultMessages,
+  detectPlatform,
+  mountShell,
+  problemSummary,
+} from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
 
 // The diagram first: a modeler keyboard on document must run before the shell's key listener.
 const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: [shellModule] });
 modeler.get("canvas");
+const platform = detectPlatform(navigator);
 const shell = mountShell(document.getElementById("app")!, {
   host: "web",
   canvas: modeler.container,
@@ -264,7 +271,8 @@ const shell = mountShell(document.getElementById("app")!, {
   legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/…" }] },
   file: {
     newDiagram: { onSelect: newDiagram },
-    open: { onSelect: pickFile, shortcut: "⌘O" },
+    // ⌘O or Ctrl+O; also the start screen's "Open a file…" link
+    open: { onSelect: pickFile, shortcut: commandKeyLabel("O", platform, defaultMessages.keyNames) },
     showExample: { onSelect: example },
   },
   menu: { model: [/* … */], export: [/* … */], help: [/* Keyboard shortcuts… */] },
@@ -300,8 +308,9 @@ shell.toast({ status: "success", text: "Link copied" }); // after a share
 The `web` host renders the whole web column of guide §5.2: the primary action at the top right,
 the legal line at the bottom left with pill and legend above it, the File group first and, for a
 dark-capable modeler, the Appearance group in the menu, the problems list above the pill, toasts at
-the bottom centre, the start screen and a page-wide drop zone. It prevents the browser's page zoom
-for the chrome keys (outside text fields and dialogs) and fits with the web insets. The web app's
+the bottom centre (announced through two live regions), the start screen and a page-wide drop zone.
+It prevents the browser's page zoom for the chrome keys (outside text fields, modal dialogs and the
+start screen) and fits with the web insets. The web app's
 own menu, zoom, fit, toast, legal and empty-state markup goes away; what stays the modeler's is its
 content: the share link, file reading, examples, the Model and Export entries and the shortcuts
 dialog. See [API.md][api], "Web host (0.2)", and the complete Event Storming example there.
@@ -550,7 +559,8 @@ MIT. The inlined Lucide icons are ISC (© Lucide Icons and Contributors), and `c
 Lucide's LICENSE lists them; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). `dist` keeps that
 notice as a legal comment in the chunk with the icons, but a bundler's `legalComments` setting may
 drop it: a VSIX or a web bundle that contains the shell carries the Lucide and Feather notices of
-THIRD_PARTY_NOTICES.md itself.
+THIRD_PARTY_NOTICES.md itself. Vite 8 (Rolldown with the Oxc minifier) drops legal comments by
+default; `build.rolldownOptions.output.comments.legal: true` keeps the notice in the bundle.
 
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
 [notes]: https://github.com/Miragon/modeler-api/blob/main/docs/shell/implementation-notes.md
