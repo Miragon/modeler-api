@@ -559,8 +559,8 @@ export interface MenuEntryFacts {
   /** `data-menu-id` of the item or its radio group. */
   menuId: string | null;
   disabled: boolean;
-  /** 0 for the first group, +1 after each separator (the shell's Model, Export, Help). */
-  segment: number;
+  /** `data-menu-group` of the item or its radio group: the shell's `model`, `export` or `help`. */
+  group: string | null;
 }
 
 export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] | null => {
@@ -571,21 +571,16 @@ export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] |
     : undefined;
   if (!menu) return null;
   const entries: MenuEntryFacts[] = [];
-  let segment = 0;
-  const selector = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="separator"]';
+  const selector = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
   for (const element of menu.querySelectorAll(selector)) {
     const role = element.getAttribute("role") ?? "";
-    if (role === "separator") {
-      if (entries.length > 0) segment += 1;
-      continue;
-    }
     if (!tools.visible(element)) continue;
     entries.push({
       name: (element.getAttribute("aria-label") ?? element.textContent ?? "").replace(/\s+/g, " ").trim(),
       role,
       menuId: element.closest("[data-menu-id]")?.getAttribute("data-menu-id") ?? null,
       disabled: element.getAttribute("aria-disabled") === "true",
-      segment,
+      group: element.closest("[data-menu-group]")?.getAttribute("data-menu-group") ?? null,
     });
   }
   return entries;

@@ -779,7 +779,7 @@ export function readOnlyMenuProblems(
       problems.push(
         "menu: the Legend toggle is aria-disabled on the read-only canvas; a view-only toggle stays usable (guide §13.5)",
       );
-    } else if (entry.segment > 0 && enabledBefore.has(key(entry))) {
+    } else if (entry.group !== "model" && enabledBefore.has(key(entry))) {
       problems.push(
         `menu: "${entry.name}" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)`,
       );

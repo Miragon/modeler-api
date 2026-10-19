@@ -854,8 +854,9 @@ own around the canvas (no `tabindex` on `.djs-container`). Islands that are not 
 
 Internal attributes: `data-severity` on pill and status box, `data-danger` on a dangerous menu
 entry, `data-menu-id` on entries and radio groups (the shell's Legend entry is `data-menu-id="legend"`,
-so a modeler does not use the id `legend`), `data-menu-value` on radio options, `data-zoom` on the
-zoom buttons.
+so a modeler does not use the id `legend`), `data-menu-group` (`model`, `export`, `help`) on entries
+and radio groups, which the kit's `readOnly` case reads, `data-menu-value` on radio options,
+`data-zoom` on the zoom buttons.
 
 Modelers style only their own content (legend rows, inspector fields); every other class is
 internal to the shell CSS and may change in a minor release.

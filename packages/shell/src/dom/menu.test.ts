@@ -135,6 +135,10 @@ describe("menu: ARIA and structure (guide §5.4)", () => {
     expect(svg?.querySelector(".cd-shell-menu-item-end")?.textContent).toBe("⌘E");
     expect(shortcuts?.getAttribute("aria-haspopup")).toBe("dialog");
     for (const item of items(dropdown)) expect(item.getAttribute("tabindex")).toBe("-1");
+    expect(group?.getAttribute("data-menu-group")).toBe("model");
+    expect(
+      items(dropdown).map((item) => item.closest("[data-menu-group]")?.getAttribute("data-menu-group")),
+    ).toEqual(["model", "model", "model", "export", "export", "help"]);
   });
 
   it("keeps a 16px icon column for every entry, with an icon only where given", () => {

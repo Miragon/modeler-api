@@ -387,23 +387,25 @@ describe("probes in a page", () => {
     await expect(inPage(page, readOnlyStateProbe, { root: ".nothing" })).resolves.toBeNull();
   });
 
-  it("lists the open menu's entries by group, the separators counting", async () => {
+  it("lists the open menu's entries with the group the shell wrote on them", async () => {
     const root = buildShell();
     await expect(inPage(page, menuEntriesProbe, { root: ".nothing" })).resolves.toBeNull();
     const menu = root.querySelector('[role="menu"]')!;
     menu.innerHTML = `
-      <div role="group" aria-label="Level" data-menu-id="level"><div role="menuitemradio" aria-checked="true">Big picture</div></div>
-      <button role="menuitemcheckbox" data-menu-id="legend" aria-checked="true">Legend</button>
+      <div role="group" aria-label="Level" data-menu-id="level" data-menu-group="model"><div role="menuitemradio" aria-checked="true">Big picture</div></div>
+      <button role="menuitemcheckbox" data-menu-id="legend" data-menu-group="model" aria-checked="true">Legend</button>
       <div role="separator"></div>
-      <button role="menuitem" data-menu-id="export-png" aria-disabled="true">Export as PNG</button>
+      <button role="menuitem" data-menu-id="export-png" data-menu-group="export" aria-disabled="true">Export as PNG</button>
       <div role="separator"></div>
-      <button role="menuitem" data-menu-id="shortcuts">Keyboard shortcuts…</button>`;
+      <button role="menuitem" data-menu-id="shortcuts" data-menu-group="help">Keyboard shortcuts…</button>
+      <button role="menuitem">Foreign</button>`;
     for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
     await expect(inPage(page, menuEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
-      { name: "Big picture", role: "menuitemradio", menuId: "level", disabled: false, segment: 0 },
-      { name: "Legend", role: "menuitemcheckbox", menuId: "legend", disabled: false, segment: 0 },
-      { name: "Export as PNG", role: "menuitem", menuId: "export-png", disabled: true, segment: 1 },
-      { name: "Keyboard shortcuts…", role: "menuitem", menuId: "shortcuts", disabled: false, segment: 2 },
+      { name: "Big picture", role: "menuitemradio", menuId: "level", disabled: false, group: "model" },
+      { name: "Legend", role: "menuitemcheckbox", menuId: "legend", disabled: false, group: "model" },
+      { name: "Export as PNG", role: "menuitem", menuId: "export-png", disabled: true, group: "export" },
+      { name: "Keyboard shortcuts…", role: "menuitem", menuId: "shortcuts", disabled: false, group: "help" },
+      { name: "Foreign", role: "menuitem", menuId: null, disabled: false, group: null },
     ]);
   });
 });

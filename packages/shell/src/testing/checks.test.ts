@@ -974,7 +974,7 @@ describe("read-only checks", () => {
 
   const item = (
     name: string,
-    segment: number,
+    group: "model" | "export" | "help",
     disabled: boolean,
     menuId: string | null = null,
   ): MenuEntryFacts => ({
@@ -982,28 +982,40 @@ describe("read-only checks", () => {
     role: menuId === "legend" ? "menuitemcheckbox" : "menuitem",
     menuId,
     disabled,
-    segment,
+    group,
   });
 
   it("keeps the Legend toggle, export and help usable; Model entries may lock", () => {
     const before = [
-      item("Snap to grid", 0, false, "snap"),
-      item("Legend", 0, false, "legend"),
-      item("Export as PNG", 1, false, "export-png"),
-      item("Export as SVG", 1, true, "export-svg"),
-      item("Keyboard shortcuts…", 2, false, "shortcuts"),
+      item("Snap to grid", "model", false, "snap"),
+      item("Legend", "model", false, "legend"),
+      item("Export as PNG", "export", false, "export-png"),
+      item("Export as SVG", "export", true, "export-svg"),
+      item("Keyboard shortcuts…", "help", false, "shortcuts"),
     ];
     const locked = [
-      item("Snap to grid", 0, true, "snap"),
-      item("Legend", 0, false, "legend"),
-      item("Export as PNG", 1, false, "export-png"),
-      item("Export as SVG", 1, true, "export-svg"),
-      item("Keyboard shortcuts…", 2, false, "shortcuts"),
+      item("Snap to grid", "model", true, "snap"),
+      item("Legend", "model", false, "legend"),
+      item("Export as PNG", "export", false, "export-png"),
+      item("Export as SVG", "export", true, "export-svg"),
+      item("Keyboard shortcuts…", "help", false, "shortcuts"),
     ];
     expect(readOnlyMenuProblems(before, locked)).toEqual([]);
     const overLocked = locked.map((entry) => ({ ...entry, disabled: true }));
     expect(readOnlyMenuProblems(before, overLocked)).toEqual([
       "menu: the Legend toggle is aria-disabled on the read-only canvas; a view-only toggle stays usable (guide §13.5)",
+      'menu: "Export as PNG" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
+      'menu: "Keyboard shortcuts…" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
+    ]);
+  });
+
+  it("tells the groups apart by name, also when the menu has no Model group", () => {
+    const before = [
+      item("Export as PNG", "export", false, "export-png"),
+      item("Keyboard shortcuts…", "help", false, "shortcuts"),
+    ];
+    const overLocked = before.map((entry) => ({ ...entry, disabled: true }));
+    expect(readOnlyMenuProblems(before, overLocked)).toEqual([
       'menu: "Export as PNG" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
       'menu: "Keyboard shortcuts…" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
     ]);

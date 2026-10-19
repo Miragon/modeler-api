@@ -126,6 +126,7 @@ export function createMenu(context: MenuContext): MenuController {
         checked,
       });
       element.dataset.menuId = entry.id;
+      element.dataset.menuGroup = group;
       return {
         key: entry.id,
         element,
@@ -143,6 +144,7 @@ export function createMenu(context: MenuContext): MenuController {
         : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;
+    element.dataset.menuGroup = group;
     if (entry.kind === "action") {
       const keyShortcuts =
         entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
@@ -171,7 +173,13 @@ export function createMenu(context: MenuContext): MenuController {
     const container = createElement(
       ownerDocument,
       "div",
-      { class: "cd-shell-menu-group", role: "group", "aria-label": entry.label, "data-menu-id": entry.id },
+      {
+        class: "cd-shell-menu-group",
+        role: "group",
+        "aria-label": entry.label,
+        "data-menu-id": entry.id,
+        "data-menu-group": group,
+      },
       // The group's aria-label carries the heading; a menu holds no loose text.
       createElement(
         ownerDocument,
