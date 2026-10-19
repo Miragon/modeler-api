@@ -155,7 +155,7 @@ const shell = mountVsCodeShell(document.getElementById("app")!, {
   menu: {
     model: [/* Level; Type captions with keepEnabledWhenReadOnly, a view toggle */],
     export: [/* Export as PNG, SVG */],
-    help: [/* Keyboard shortcuts… (the modeler's dialog in 0.1) */],
+    help: [/* Keyboard shortcuts… (the modeler's own dialog) */],
   },
   legend: {
     render: renderLegend,
@@ -226,46 +226,85 @@ resize, delete, paste or label editor. Content the modeler adds to `shell.root` 
 shortcuts…" dialog) is the modeler's too: it removes it in its own teardown, for example on
 `diagram.destroy`, since `shell.destroy()` removes only what the shell added. The complete Event
 Storming example, including the export notification, is in [API.md][api]. Document sync, undo through
-the document and diagnostics stay in the modeler for 0.1.
+the document and diagnostics stay in the modeler for now.
 
 ## Usage in a web app
 
+The page's head writes the mode before the first paint. A light-only modeler keeps
+`<html lang="en" data-cd-theme="light">` static and lets the build put the metas and the contrast
+line in place of a marker in `index.html`:
+
 ```ts
-import { mountShell } from "@miragon/modeler-shell";
+// vite.config.ts
+import { webHeadMarkup } from "@miragon/modeler-shell/core";
+import tokens from "./src/theme/cd-tokens.generated.json" with { type: "json" };
+
+const themeColors = { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] };
+const modePlugin = {
+  name: "miragon-mode",
+  transformIndexHtml: (html: string) =>
+    html.replace("<!-- miragon-mode -->", webHeadMarkup({ themes: ["light"], themeColors })),
+};
+```
+
+```ts
+// src/main.ts
+import { mountShell, problemSummary } from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
 
-// index.html carries <html lang="en" data-cd-theme="light"> statically while the modeler is light-only
+// The diagram first: a modeler keyboard on document must run before the shell's key listener.
 const modeler = new Modeler({ width: "100%", height: "100%", additionalModules: [shellModule] });
+modeler.get("canvas");
 const shell = mountShell(document.getElementById("app")!, {
   host: "web",
   canvas: modeler.container,
-  themes: ["light"],
-  primary: { onSelect: share }, // "Share", top right
+  lang: "en",
+  themes: ["light"], // with "dark": also appearance: { themeColors }, and the menu gets Appearance
+  primary: { onSelect: share }, // "Share", top right; the label collapses before the palette moves
   legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/…" }] },
   file: {
     newDiagram: { onSelect: newDiagram },
-    open: { onSelect: pickFile },
+    open: { onSelect: pickFile, shortcut: "⌘O" },
     showExample: { onSelect: example },
   },
-  menu: { export: [/* … */], help: [/* Keyboard shortcuts… */] },
+  menu: { model: [/* … */], export: [/* … */], help: [/* Keyboard shortcuts… */] },
+  problems: { onSelectItem: (item) => selectElement(item.elementId) },
   legend: { render: renderLegend, open: storedLegendOpen(), onToggle: storeLegendOpen },
-  emptyState: { title: "…", text: "…", komet: kometUrl, onNewDiagram, onShowExample: example },
-  dropZone: { accept: [".bpmn", "application/xml"], onDrop: ([file]) => openFile(file) },
+  emptyState: {
+    title: "BPMN Modeler",
+    text: "Start a new diagram, or explore the example.",
+    komet: kometUrl, // the vendored, unchanged miragon-komet-blau.svg
+    onNewDiagram: newDiagram,
+    onShowExample: example,
+  },
+  dropZone: { accept: [".bpmn", "application/xml", "text/xml"], onDrop: ([file]) => openFile(file) },
 });
 const { viewport } = connectDiagramJs(shell, modeler, { contentBounds: () => elementBounds() });
-viewport.newDocument(); // every new document opens like the first
-await modeler.importXML(xml);
-viewport.afterImport();
-shell.toast({ status: "success", text: "Link copied" });
+
+// Every new document opens like the first, and the start screen goes with it.
+async function openDocument(xml: string): Promise<void> {
+  viewport.newDocument();
+  const { warnings } = await modeler.importXML(xml);
+  viewport.afterImport();
+  shell.setEmptyState(false);
+  shell.setProblems(
+    problemSummary(warnings.map((warning) => ({ severity: "warning", message: warning.message }))),
+  );
+}
+
+// A fresh visit without a document in the link shows the start screen.
+if (!linkedDocument) shell.setEmptyState(true);
+shell.toast({ status: "success", text: "Link copied" }); // after a share
 ```
 
-The `web` host prevents the browser's page zoom for the chrome keys (outside text fields and
-dialogs), fits with the web insets and renders the whole web column of guide §5.2: the primary
-action at the top right (its label collapses before the palette moves), the legal line at the
-bottom left with pill and legend above it, the File group first and, for a dark-capable modeler,
-the Appearance group in the menu, the problems list above the pill, toasts at the bottom centre,
-the start screen and a page-wide drop zone. The page's head writes the mode before the first paint
-(`webHeadMarkup` from `./core`). See `API.md`, "Web host (0.2)".
+The `web` host renders the whole web column of guide §5.2: the primary action at the top right,
+the legal line at the bottom left with pill and legend above it, the File group first and, for a
+dark-capable modeler, the Appearance group in the menu, the problems list above the pill, toasts at
+the bottom centre, the start screen and a page-wide drop zone. It prevents the browser's page zoom
+for the chrome keys (outside text fields and dialogs) and fits with the web insets. The web app's
+own menu, zoom, fit, toast, legal and empty-state markup goes away; what stays the modeler's is its
+content: the share link, file reading, examples, the Model and Export entries and the shortcuts
+dialog. See [API.md][api], "Web host (0.2)", and the complete Event Storming example there.
 
 ## Usage in a foreign page
 
@@ -275,8 +314,9 @@ modeler, and the page's `<html>` stays untouched. Until the `@miragon/modeler-ap
 its `appearance` surface (a later 1.x minor), an embedded modeler has no appearance channel, so the
 root carries its own `data-cd-theme` (the first of `themes`, light) and stays light inside a dark
 host page; it takes the page's `data-cd-kontrast="hoch"` over from the nearest mode carrier above
-it. The page's element styles
-(`button { text-transform: uppercase }`) do not reach the chrome.
+it. The page's element styles (`button { text-transform: uppercase }`) do not reach the chrome.
+Toasts show at the bottom centre of the modeler, and the pill opens the problems list unless the
+modeler passes `problems.onActivate` (an embedding host with a list of its own).
 
 ## The conformance kit
 
@@ -285,7 +325,9 @@ the geometry of every island (±1px), ARIA and the keyboard models, that every c
 once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that
 nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
 Enter on a creating palette entry adds one selected element, that an invalid file locks the canvas,
-and that `destroy()` leaves nothing behind.
+and that `destroy()` leaves nothing behind. Five more cases cover the web column (`webChrome`,
+`emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded hosts they assert that
+none of it shows.
 
 For the `ide` host the suite serves a test page that puts a stand-in for VS Code around the
 modeler's webview code: VS Code's default webview styles, `<html>` as `renderWebviewHtml` writes it,
@@ -368,6 +410,60 @@ test.describe("shell conformance", () => {
 });
 ```
 
+A web app's harness opens its page and adds the web column's hooks and the files to drop. The kit
+emulates the system's colour scheme and contrast (`page.emulateMedia`) before every `open`, so the
+page loads without a stored mode choice:
+
+```ts
+// e2e/shell-conformance.spec.ts of a web app
+registerShellConformance(
+  {
+    host: "web",
+    themes: ["light"],
+    absent: ["inspector", "invalid"],
+    async open(page, { size }) {
+      await page.setViewportSize(size);
+      await page.goto("/?example");
+      await page.waitForFunction(() => window.appReady === true);
+    },
+    async destroy(page) {
+      await page.evaluate(() => window.app.destroy());
+    },
+    show: {
+      async legend(page) {
+        /* … */
+      },
+      async problems(page) {
+        /* setProblems with items, so the list has rows */
+      },
+      async status(page) {
+        /* … */
+      },
+      async emptyState(page) {
+        /* the start screen of a fresh visit */
+      },
+      async toast(page, toast) {
+        await page.evaluate(
+          ({ status, text, actionLabel }) =>
+            window.app.shell.toast({
+              status,
+              text,
+              ...(actionLabel ? { action: { label: actionLabel, onSelect() {} } } : {}),
+            }),
+          toast,
+        );
+      },
+    },
+    drop: {
+      accepted: { name: "board.json", type: "application/json", text: EXAMPLE_JSON },
+      rejected: { name: "notes.md", type: "", text: "# Notes" },
+    },
+  },
+  test,
+  { onSkip: failOnSkips },
+);
+```
+
 The harness opens the modeler with the appearance the kit requests, the way its host would; for
 the `embedded` host the kit puts the foreign page itself in that mode. A skip names the harness
 field it misses (`{ hook: "legend", reason }`; `hook: "destroy"` without a `destroy`; `hook: "open"`
@@ -415,23 +511,32 @@ host requests (`theme`, `kontrast=hoch`; embedded: the foreign page's own mode),
 inside the stub of `./testing/vscode-stub`, and keeps view and legend state through
 `acquireVsCodeApi()`.
 
+The web demo (`/web.html`) is the same modeler as a Miragon web app passes it to `mountShell`: the
+whole web column, the head markup of `webHeadMarkup` through the Vite config, and `window.__webDemo`
+for the harness. Its query parameters: `themes=light,dark`, `empty` (the start screen of a fresh
+visit), `legend` (`legend=open`), `inspector`, `problems` (the pill with its list) and `invalid`.
+
 The e2e suite runs the conformance kit for the `ide`, `web` and `embedded` hosts with a light-only
 and a dark-capable modeler, switches VS Code themes and the `colorTheme` setting at runtime, checks
 VS Code's reduce motion, the chrome's typography against VS Code's default styles and a hostile
-foreign page, the canvas slot's paint and focus ring, and proves with saboteurs that every case of
-the kit fails when its rule is broken.
+foreign page, the canvas slot's paint and focus ring, the web chrome's colours, radii and states
+(primary action, legal line, toasts, drop zone, empty state, high contrast and forced colours) and
+the web demo's own handlers, and proves with saboteurs that every case of the kit fails when its
+rule is broken.
 
-| Directory                   | Module                                                             |
-| --------------------------- | ------------------------------------------------------------------ |
-| `src/core`                  | DOM-free: fit math, keymap, zoom readout, appearance, sizes, texts |
-| `src/dom`                   | `mountShell`: menu, zoom panel, tooltip, pill, status, slots, keys |
-| `src/diagram-js`            | `shellModule`, viewport, `connectDiagramJs`, palette skin          |
-| `src/vscode`                | extension side (HTML, theme bridge) and webview side               |
-| `src/testing`               | the Playwright-driven conformance kit and the VS Code stub         |
-| `src/*.ts`, `src/shell.css` | the entry points                                                   |
-| `test/`                     | package boundaries, token drift, the unit tests' helpers           |
-| `demo/`, `e2e/`             | the demo modeler and the e2e suite                                 |
-| `fixtures/tokens`           | the token files, vendored unchanged for the tests and the demo     |
+| Directory                               | Module                                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/core`                              | DOM-free: fit math, keymap, zoom readout, appearance, sizes, texts                         |
+| `src/dom`                               | `mountShell`: menu, zoom panel, tooltip, pill, status, slots, keys                         |
+| `src/dom/web`, `src/core/web-chrome`    | web column: primary action, legal line, File and Appearance groups, empty state, drop zone |
+| `src/dom/feedback`, `src/core/feedback` | toasts, problems popover, the web app's mode                                               |
+| `src/diagram-js`                        | `shellModule`, viewport, `connectDiagramJs`, palette skin                                  |
+| `src/vscode`                            | extension side (HTML, theme bridge) and webview side                                       |
+| `src/testing`                           | the Playwright-driven conformance kit and the VS Code stub                                 |
+| `src/*.ts`, `src/shell.css`             | the entry points                                                                           |
+| `test/`                                 | package boundaries, token drift, the unit tests' helpers                                   |
+| `demo/`, `e2e/`                         | the demo modeler and the e2e suite                                                         |
+| `fixtures/tokens`                       | the token files, vendored unchanged for the tests and the demo                             |
 
 A module imports another one only through its `index.ts`; `src/core` imports nothing outside
 itself and compiles without the DOM library. `test/package-boundaries.test.ts` enforces this, the
