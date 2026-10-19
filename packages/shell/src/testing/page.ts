@@ -6,6 +6,12 @@ export interface PageLike {
   evaluate<R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg): Promise<R>;
   setViewportSize(size: { width: number; height: number }): Promise<void>;
   keyboard: { press(key: string): Promise<void> };
-  mouse: { click(x: number, y: number): Promise<void>; move(x: number, y: number): Promise<void> };
+  mouse: {
+    click(x: number, y: number): Promise<void>;
+    dblclick(x: number, y: number): Promise<void>;
+    move(x: number, y: number): Promise<void>;
+    down(): Promise<void>;
+    up(): Promise<void>;
+  };
   waitForTimeout(timeout: number): Promise<void>;
 }

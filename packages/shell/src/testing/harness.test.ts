@@ -5,6 +5,7 @@ import {
   shellConformanceCases,
   type OpenContext,
   type ShellConformanceHarness,
+  type ShellSkip,
 } from "./harness.js";
 import type { PageLike } from "./page.js";
 
@@ -14,7 +15,13 @@ function emptyPage(): PageLike {
     evaluate: async <R>() => null as R,
     setViewportSize: async () => {},
     keyboard: { press: async () => {} },
-    mouse: { click: async () => {}, move: async () => {} },
+    mouse: {
+      click: async () => {},
+      dblclick: async () => {},
+      move: async () => {},
+      down: async () => {},
+      up: async () => {},
+    },
     waitForTimeout: async () => {},
   };
 }
@@ -25,18 +32,23 @@ function harness(overrides: Partial<ShellConformanceHarness> = {}): ShellConform
 
 type Body = (fixtures: { page: PageLike }) => Promise<void>;
 
-function register(subject: ShellConformanceHarness, onSkip?: (name: string, reason: string) => void) {
+function register(
+  subject: ShellConformanceHarness,
+  onSkip?: (name: string, skips: readonly ShellSkip[]) => void,
+) {
   const tests = new Map<string, Body>();
   registerShellConformance(subject, (name, body) => tests.set(name, body), onSkip ? { onSkip } : undefined);
   return tests;
 }
 
 describe("shellConformanceCases", () => {
-  it("are geometry, aria, keys, appearance and cleanup", () => {
+  it("are geometry, aria, keys, create, readOnly, appearance and cleanup", () => {
     expect(shellConformanceCases().map((conformanceCase) => conformanceCase.name)).toEqual([
       "geometry",
       "aria",
       "keys",
+      "create",
+      "readOnly",
       "appearance",
       "cleanup",
     ]);
@@ -57,23 +69,70 @@ describe("registerShellConformance", () => {
       "shell conformance: geometry",
       "shell conformance: aria",
       "shell conformance: keys",
+      "shell conformance: create",
+      "shell conformance: readOnly",
       "shell conformance: appearance",
       "shell conformance: cleanup",
     ]);
   });
 
-  it("reports a case the harness cannot feed through onSkip", async () => {
+  it("reports what the harness cannot feed through onSkip, one entry per missing field", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});
-    await register(harness({ open }), onSkip).get("shell conformance: cleanup")!({ page: emptyPage() });
-    expect(onSkip).toHaveBeenCalledWith(
-      "cleanup",
-      "harness.destroy is undefined: the cleanup after destroy was not verified",
+    const tests = register(harness({ open }), onSkip);
+    await tests.get("shell conformance: cleanup")!({ page: emptyPage() });
+    await tests.get("shell conformance: readOnly")!({ page: emptyPage() });
+    expect(onSkip.mock.calls).toEqual([
+      [
+        "cleanup",
+        [
+          {
+            hook: "destroy",
+            reason: "harness.destroy is undefined: the cleanup after destroy was not verified",
+          },
+        ],
+      ],
+      [
+        "readOnly",
+        [
+          {
+            hook: "invalid",
+            reason: "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
+          },
+        ],
+      ],
+    ]);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("does not report a hook the harness declares absent", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    await register(harness({ open, absent: ["invalid"] }), onSkip).get("shell conformance: readOnly")!({
+      page: emptyPage(),
+    });
+    expect(onSkip).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("fails a harness that gives a hook it declares absent, before opening anything", async () => {
+    const open = vi.fn(async () => {});
+    const legend = async () => {};
+    const tests = register(
+      harness({ open, absent: ["legend", "invalid"], show: { legend, invalid: legend } }),
+    );
+    for (const name of ["geometry", "aria"]) {
+      await expect(tests.get(`shell conformance: ${name}`)!({ page: emptyPage() })).rejects.toThrow(
+        `@miragon/modeler-shell conformance: ${name} (ide host)\n- harness: absent lists "legend", but show.legend is given`,
+      );
+    }
+    await expect(tests.get("shell conformance: readOnly")!({ page: emptyPage() })).rejects.toThrow(
+      'harness: absent lists "invalid", but show.invalid is given',
     );
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("warns on the console by default", async () => {
+  it("warns on the console by default, the skips of a case on one line", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await register(harness()).get("shell conformance: cleanup")!({ page: emptyPage() });
     expect(warn).toHaveBeenCalledWith(

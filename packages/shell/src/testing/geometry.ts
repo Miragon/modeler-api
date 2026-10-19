@@ -3,6 +3,7 @@ import {
   PALETTE_CLEARANCE,
   SHELL,
   type ChromeIsland,
+  type Insets,
   type PaletteRow,
   type ShellHost,
   type Size,
@@ -340,6 +341,58 @@ export function geometryProblems(
   state("inspector", open.inspector, 'data-inspector="open"', false);
 
   return problems;
+}
+
+/**
+ * The fit insets of guide §5.9 for what was measured, recomputed from the guide's table: top 88
+ * (second row 140), sides 24, bottom 64 (web app with the pill 92); right 12 + 288 + 24 with a side
+ * inspector; left 12 + legend width + 24 with an open legend in a container wider than 440px; with
+ * a bottom sheet the bottom is the distance to its top edge plus 12, and the legend does not count.
+ */
+export function expectedFitInsets(measurement: ChromeMeasurement, host: ShellHost): Insets {
+  const { container, islands, open, paletteRow } = measurement;
+  const insets: Insets = {
+    top: paletteRow === "second-row" ? SHELL.fitInsetTopSecondRow : SHELL.fitInsetTop,
+    right: SHELL.fitInsetSide,
+    bottom: host === "web" && open.problems ? SHELL.fitInsetBottomWeb : SHELL.fitInsetBottom,
+    left: SHELL.fitInsetSide,
+  };
+  if (sheetOpen(measurement)) {
+    const sheet = islands.inspector;
+    insets.bottom = sheet ? container.height - sheet.top + SHELL.edge : SHELL.fitInsetBottom;
+    return insets;
+  }
+  if (open.inspector) insets.right = SHELL.edge + SHELL.inspectorWidth + SHELL.fitInsetSide;
+  const legend = islands.legend;
+  if (open.legend && legend && legend.width > 0 && container.width > SHELL.veryNarrow) {
+    insets.left = SHELL.edge + legend.width + SHELL.fitInsetSide;
+  }
+  return insets;
+}
+
+/** A rectangle relative to the shell root's padding box, by its edges. */
+export interface Rectangle {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * The free rectangle of guide §5.9: the container minus `expectedFitInsets`. Where the insets
+ * leave no room on an axis, that axis spans the whole container (as the fit centres there).
+ */
+export function freeRectangle(measurement: ChromeMeasurement, host: ShellHost): Rectangle {
+  const { container } = measurement;
+  const insets = expectedFitInsets(measurement, host);
+  const horizontal = container.width - insets.left - insets.right > 0;
+  const vertical = container.height - insets.top - insets.bottom > 0;
+  return {
+    left: horizontal ? insets.left : 0,
+    top: vertical ? insets.top : 0,
+    right: horizontal ? container.width - insets.right : container.width,
+    bottom: vertical ? container.height - insets.bottom : container.height,
+  };
 }
 
 /** Where the dropdown opens (guide §5.4): under the trigger, at least 248px, inside the container. */

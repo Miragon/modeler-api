@@ -8,6 +8,8 @@ export type {
   ShellConformanceCase,
   ShellConformanceHarness,
   ShellConformanceTest,
+  ShellSkip,
+  ShowHook,
   ShowHooks,
 } from "./harness.js";
 export { registerShellConformance, shellConformanceCases, vsCodeStubSearch } from "./harness.js";

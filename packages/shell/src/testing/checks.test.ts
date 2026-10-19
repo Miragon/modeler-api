@@ -1,22 +1,46 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  absentIslandProblems,
+  absentIslands,
   afterDestroyKeyProblem,
   appearanceProblems,
   ariaProblems,
+  createProblems,
   expectedAppearance,
   expectedKeyShortcuts,
+  harnessHookProblems,
+  isToolEntry,
   keyReachProblem,
   leftoverProblems,
+  lockedShapeProblems,
   menuClosedProblems,
   menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  paletteColorProblems,
   paletteShortcutProblems,
+  readOnlyMenuProblems,
+  readOnlyPaletteProblems,
+  readOnlyStateProblems,
+  surroundProblems,
   tabSequenceProblems,
+  type CreateFacts,
   type KeyReach,
+  type LockedShapeFacts,
 } from "./checks.js";
-import type { AppearanceFacts, AriaFacts, MenuFacts, ModeFacts } from "./facts.js";
+import type {
+  AppearanceFacts,
+  AriaFacts,
+  CanvasStateFacts,
+  MenuEntryFacts,
+  MenuFacts,
+  ModeFacts,
+  PaletteColorEntry,
+  PaletteColorFacts,
+  PaletteEntryState,
+  ShapeFacts,
+} from "./facts.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
 
 function element(tag: string, attributes: Record<string, string> = {}, text = ""): ElementFacts {
@@ -679,5 +703,345 @@ describe("afterDestroyKeyProblem", () => {
     expect(afterDestroyKeyProblem("Control+Equal", recorded(false))).toBeUndefined();
     expect(afterDestroyKeyProblem("Control+Equal", recorded(true))).toMatch(/still installed/);
     expect(afterDestroyKeyProblem("Control+Equal", [])).toMatch(/still stops it/);
+  });
+});
+
+describe("absent islands and the harness's own consistency", () => {
+  it("names only the islands of absent, never its invalid state", () => {
+    expect(absentIslands(["invalid", "inspector", "legend"])).toEqual(["legend", "inspector"]);
+    expect(absentIslands(undefined)).toEqual([]);
+  });
+
+  it("reports an absent island that shows anyway", () => {
+    expect(absentIslandProblems(new Set(["menu", "palette", "legend"]), ["legend", "inspector"])).toEqual([
+      "legend: visible, but harness.absent says the modeler has no legend",
+    ]);
+    expect(absentIslandProblems(new Set(["legend"]), undefined)).toEqual([]);
+  });
+
+  it("reports a hook the harness both gives and declares absent", () => {
+    const hook = async () => {};
+    const harness = {
+      host: "ide" as const,
+      themes: ["light" as const],
+      open: hook,
+      show: { legend: hook, invalid: hook },
+      absent: ["legend", "inspector", "invalid"] as const,
+    };
+    expect(harnessHookProblems(harness, ["legend", "inspector", "problems", "status"])).toEqual([
+      'harness: absent lists "legend", but show.legend is given',
+    ]);
+    expect(harnessHookProblems(harness, ["invalid"])).toEqual([
+      'harness: absent lists "invalid", but show.invalid is given',
+    ]);
+  });
+});
+
+describe("surroundProblems", () => {
+  const grund = "rgb(249, 247, 247)";
+
+  it("accepts a surround painted in --cd-ui-grund", () => {
+    expect(
+      surroundProblems({
+        container: true,
+        painted: { description: "div.cd-shell-canvas", color: grund },
+        grund,
+      }),
+    ).toEqual([]);
+  });
+
+  it("names the painting element and both colours when the surround leaves the mode", () => {
+    expect(
+      surroundProblems({
+        container: true,
+        painted: { description: "div.djs-container", color: "rgb(8, 10, 32)" },
+        grund,
+      }),
+    ).toEqual([
+      "canvas surround: div.djs-container paints rgb(8, 10, 32), but --cd-ui-grund resolves to rgb(249, 247, 247); the surround follows the mode (guide §10.1)",
+    ]);
+  });
+
+  it("wants something to paint the surround, and a canvas to check", () => {
+    expect(surroundProblems({ container: true, painted: null, grund })).toEqual([
+      expect.stringMatching(/nothing from \.djs-container out to the root paints a background colour/),
+    ]);
+    expect(surroundProblems({ container: false, painted: null, grund })).toEqual([
+      "canvas surround: no .djs-container in the root to check",
+    ]);
+  });
+});
+
+const ROLES = { text: "rgb(29, 29, 29)", interaktion: "rgb(51, 93, 229)", textLeise: "rgb(107, 102, 102)" };
+
+function colorEntry(overrides: Partial<PaletteColorEntry> = {}): PaletteColorEntry {
+  return {
+    action: "lasso-tool",
+    group: "tools",
+    pressed: false,
+    disabled: false,
+    hovered: false,
+    color: ROLES.text,
+    icon: { kind: "svg", color: ROLES.text },
+    ...overrides,
+  };
+}
+
+function colors(entries: PaletteColorEntry[]): PaletteColorFacts {
+  return { roles: ROLES, entries };
+}
+
+describe("paletteColorProblems", () => {
+  it("tells tools from notation previews by group and action", () => {
+    expect(isToolEntry({ action: "lasso-tool", group: "tools" })).toBe(true);
+    expect(isToolEntry({ action: "space-tool", group: "edit" })).toBe(true);
+    expect(isToolEntry({ action: "drawing", group: "tools" })).toBe(true);
+    expect(isToolEntry({ action: "create.box", group: "shapes" })).toBe(false);
+  });
+
+  it("accepts text at rest and pressed, interaktion hovered, text-leise disabled", () => {
+    expect(
+      paletteColorProblems(
+        colors([
+          colorEntry(),
+          colorEntry({ action: "hand-tool", pressed: true }),
+          colorEntry({
+            action: "space-tool",
+            hovered: true,
+            color: ROLES.interaktion,
+            icon: { kind: "::before", color: ROLES.interaktion },
+          }),
+          colorEntry({
+            action: "drawing-tool",
+            pressed: true,
+            hovered: true,
+            color: ROLES.interaktion,
+            icon: { kind: "svg", color: ROLES.interaktion },
+          }),
+          colorEntry({
+            action: "connect-tool",
+            disabled: true,
+            hovered: true,
+            color: ROLES.textLeise,
+            icon: null,
+          }),
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("exempts notation previews, which keep their colours", () => {
+    expect(
+      paletteColorProblems(
+        colors([colorEntry({ action: "create.box", group: "shapes", color: "rgb(255, 0, 0)", icon: null })]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports a renderer colour on the armed tool's icon and on a hovered entry", () => {
+    expect(
+      paletteColorProblems(
+        colors([
+          colorEntry({ pressed: true, icon: { kind: "svg", color: "rgb(29, 30, 33)" } }),
+          colorEntry({ action: "hand-tool", hovered: true, color: ROLES.text, icon: null }),
+          colorEntry({
+            action: "space-tool",
+            disabled: true,
+            icon: { kind: "::before", color: ROLES.textLeise },
+          }),
+        ]),
+      ),
+    ).toEqual([
+      'palette: the <svg> icon of tool "lasso-tool" pressed has color rgb(29, 30, 33), expected --cd-ui-text (rgb(29, 29, 29)); a renderer rule overrides the skin (guide §5.5)',
+      'palette: tool "hand-tool" hovered has color rgb(29, 29, 29), expected --cd-ui-interaktion (rgb(51, 93, 229)) (guide §5.5)',
+      'palette: tool "space-tool" aria-disabled has color rgb(29, 29, 29), expected --cd-ui-text-leise (rgb(107, 102, 102)) (guide §5.5)',
+    ]);
+  });
+});
+
+function shape(id: string, overrides: Partial<ShapeFacts> = {}): ShapeFacts {
+  return {
+    id,
+    selected: false,
+    transform: "matrix(1 0 0 1 100 100)",
+    size: { width: 120, height: 80 },
+    box: { left: 580, top: 410, width: 120, height: 80 },
+    client: { x: 640, y: 450 },
+    hit: true,
+    ...overrides,
+  };
+}
+
+const CANVAS: CanvasStateFacts = {
+  focusInCanvas: true,
+  focused: "svg",
+  contextPadEntries: [],
+  textFields: [],
+};
+
+function created(overrides: Partial<CreateFacts> = {}): CreateFacts {
+  return {
+    entry: "create.box",
+    before: [shape("a")],
+    after: [shape("a"), shape("b", { selected: true })],
+    canvas: CANVAS,
+    free: { left: 24, top: 88, right: 1256, bottom: 836 },
+    ...overrides,
+  };
+}
+
+describe("createProblems", () => {
+  it("accepts one selected element centred in the free rectangle, the canvas focused", () => {
+    expect(createProblems(created())).toEqual([]);
+  });
+
+  it("reports an Enter that places nothing, or more than one element", () => {
+    expect(createProblems(created({ after: [shape("a")] }))).toEqual([
+      'create: Enter on palette entry "create.box" added no element; Enter on a creating entry places it in the centre of the free rectangle (guide §5.5)',
+    ]);
+    expect(createProblems(created({ after: [shape("a"), shape("b"), shape("c")] }))).toEqual([
+      'create: Enter on palette entry "create.box" added 2 elements (b, c), expected exactly one',
+    ]);
+  });
+
+  it("wants the new element selected, the canvas focused and the centre in the free rectangle", () => {
+    expect(
+      createProblems(
+        created({
+          after: [shape("a"), shape("b", { box: { left: 0, top: 0, width: 40, height: 40 } })],
+          canvas: { ...CANVAS, focusInCanvas: false, focused: 'div.entry[data-action="create.box"]' },
+        }),
+      ),
+    ).toEqual([
+      'create: the new element "b" is not selected (guide §5.5)',
+      'create: after Enter on palette entry "create.box" the focus is on div.entry[data-action="create.box"], expected the canvas (its <svg> or the label editor, guide §5.5)',
+      'create: the new element "b" is centred at (20, 20)px, outside the free rectangle 24–1256 × 88–836px (guide §5.5, §5.9)',
+    ]);
+  });
+
+  it("allows the geometry tolerance at the free rectangle's edge", () => {
+    const atEdge = shape("b", { selected: true, box: { left: 3, top: 67, width: 40, height: 40 } });
+    expect(createProblems(created({ after: [shape("a"), atEdge] }))).toEqual([]);
+  });
+});
+
+describe("read-only checks", () => {
+  const status = (role: string, visible = true): ElementFacts => ({
+    ...element("div", { "data-chrome": "status", role, "data-severity": "danger" }),
+    visible,
+  });
+
+  it("wants data-readonly on the root and the status box as an alert", () => {
+    expect(readOnlyStateProblems({ readOnly: true, status: status("alert") })).toEqual([]);
+    expect(readOnlyStateProblems({ readOnly: false, status: status("status") })).toEqual([
+      "read-only: the root has no data-readonly 800ms after show.invalid",
+      'read-only: the status box of an invalid file has role "status", expected "alert" (guide §13.5)',
+    ]);
+    expect(readOnlyStateProblems({ readOnly: true, status: null })).toEqual([
+      "read-only: the status box is not visible 800ms after show.invalid (guide §5.12)",
+    ]);
+  });
+
+  const entry = (action: string, disabled: boolean, group = "tools"): PaletteEntryState => ({
+    action,
+    group,
+    pressed: false,
+    disabled,
+    client: { x: 0, y: 0 },
+  });
+
+  it("wants every palette entry aria-disabled but Lasso and Hand", () => {
+    expect(
+      readOnlyPaletteProblems([
+        entry("lasso-tool", false),
+        entry("hand-tool", false),
+        entry("space-tool", true),
+        entry("create.box", true, "shapes"),
+      ]),
+    ).toEqual([]);
+    expect(
+      readOnlyPaletteProblems([
+        entry("lasso-tool", true),
+        entry("space-tool", false),
+        entry("create.box", false, "shapes"),
+      ]),
+    ).toEqual([
+      'palette: "lasso-tool" is aria-disabled on the read-only canvas; Lasso and Hand stay active (guide §13.5)',
+      'palette: "space-tool" is not aria-disabled on the read-only canvas (guide §13.5)',
+      'palette: "create.box" is not aria-disabled on the read-only canvas (guide §13.5)',
+    ]);
+  });
+
+  const item = (
+    name: string,
+    segment: number,
+    disabled: boolean,
+    menuId: string | null = null,
+  ): MenuEntryFacts => ({
+    name,
+    role: menuId === "legend" ? "menuitemcheckbox" : "menuitem",
+    menuId,
+    disabled,
+    segment,
+  });
+
+  it("keeps the Legend toggle, export and help usable; Model entries may lock", () => {
+    const before = [
+      item("Snap to grid", 0, false, "snap"),
+      item("Legend", 0, false, "legend"),
+      item("Export as PNG", 1, false, "export-png"),
+      item("Export as SVG", 1, true, "export-svg"),
+      item("Keyboard shortcuts…", 2, false, "shortcuts"),
+    ];
+    const locked = [
+      item("Snap to grid", 0, true, "snap"),
+      item("Legend", 0, false, "legend"),
+      item("Export as PNG", 1, false, "export-png"),
+      item("Export as SVG", 1, true, "export-svg"),
+      item("Keyboard shortcuts…", 2, false, "shortcuts"),
+    ];
+    expect(readOnlyMenuProblems(before, locked)).toEqual([]);
+    const overLocked = locked.map((entry) => ({ ...entry, disabled: true }));
+    expect(readOnlyMenuProblems(before, overLocked)).toEqual([
+      "menu: the Legend toggle is aria-disabled on the read-only canvas; a view-only toggle stays usable (guide §13.5)",
+      'menu: "Export as PNG" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
+      'menu: "Keyboard shortcuts…" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)',
+    ]);
+  });
+
+  const locked = (overrides: Partial<LockedShapeFacts> = {}): LockedShapeFacts => ({
+    contextPadEntries: [],
+    dragged: { before: shape("a"), after: shape("a", { client: { x: 700, y: 450 } }) },
+    textFields: [],
+    kept: { Delete: true, Backspace: true },
+    ...overrides,
+  });
+
+  it("accepts a shape that only gets selected, also when the canvas pans", () => {
+    expect(lockedShapeProblems(locked())).toEqual([]);
+  });
+
+  it("reports the context pad, a move, a resize, a label editor and a delete", () => {
+    expect(
+      lockedShapeProblems(
+        locked({
+          contextPadEntries: ["delete"],
+          dragged: {
+            before: shape("a"),
+            after: shape("a", { transform: "matrix(1 0 0 1 140 100)", size: { width: 160, height: 80 } }),
+          },
+          textFields: ["div.djs-direct-editing-content"],
+          kept: { Delete: false, Backspace: true },
+        }),
+      ),
+    ).toEqual([
+      'read-only: selecting "a" shows the context pad (delete) (guide §13.5)',
+      'read-only: a 40px drag changed "a" (transform "matrix(1 0 0 1 100 100)" → "matrix(1 0 0 1 140 100)", 120 × 80 → 160 × 80) (guide §13.5)',
+      'read-only: a double-click on "a" opens a text field (div.djs-direct-editing-content) (guide §13.5)',
+      'read-only: Delete on the canvas deleted "a" (guide §13.5)',
+    ]);
+    expect(lockedShapeProblems(locked({ dragged: { before: shape("a"), after: undefined } }))).toEqual([
+      'read-only: a 40px drag removed "a" from the canvas (guide §13.5)',
+    ]);
   });
 });

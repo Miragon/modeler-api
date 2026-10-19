@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import type { Appearance, ShellHost, Theme } from "../src/index.js";
-import { vsCodeStubSearch, type ShellConformanceHarness } from "../src/testing.js";
+import { vsCodeStubSearch, type ShellConformanceHarness, type ShowHooks } from "../src/testing.js";
 import { colorThemeKindOf } from "../src/testing-vscode-stub.js";
 
 /**
@@ -18,13 +18,19 @@ export interface DemoHarnessOptions {
    * at runtime, so the mode arrives through the theme bridge instead of the initial HTML.
    */
   switchAtRuntime?: boolean;
+  /**
+   * Slots the demo modeler leaves out, as a modeler without a legend or an inspector: the page
+   * mounts neither, the harness drops their show hooks and declares them `absent`.
+   */
+  without?: ReadonlyArray<"legend" | "inspector">;
 }
 
 const LIGHT: Appearance = { theme: "light" };
 
 /**
  * The kit's harness for the demo page, as a modeler's e2e suite writes it for its webview: the
- * demo mounts legend and inspector slots, the show hooks open them through `window.__demo.shell`.
+ * demo mounts legend and inspector slots, the show hooks open them through `window.__demo.shell`,
+ * and `invalid` puts the demo into its invalid-file state as a failed import would.
  */
 export function demoHarness(
   host: ShellHost,
@@ -32,6 +38,28 @@ export function demoHarness(
 ): ShellConformanceHarness<Page> {
   const themes = options.themes ?? ["light"];
   const switchAtRuntime = options.switchAtRuntime === true && host === "ide";
+  const without = options.without ?? [];
+  const show: ShowHooks<Page> = {
+    async problems(page) {
+      await page.evaluate(() => window.__demo?.shell.setProblems({ count: 2, errors: 1 }));
+    },
+    async status(page) {
+      await page.evaluate(() => {
+        const shell = window.__demo?.shell;
+        shell?.setStatus({ severity: "danger", text: shell.messages.invalidFile("demo diagram") });
+      });
+    },
+    async legend(page) {
+      await page.evaluate(() => window.__demo?.shell.legend?.setOpen(true));
+    },
+    async inspector(page) {
+      await page.evaluate(() => window.__demo?.shell.inspector?.open());
+    },
+    async invalid(page) {
+      await page.evaluate(() => window.__demo?.setInvalid(true));
+    },
+  };
+  for (const slot of without) delete show[slot];
   return {
     host,
     themes,
@@ -43,8 +71,9 @@ export function demoHarness(
       const query = new URLSearchParams(vsCodeStubSearch(initial));
       query.set("host", host);
       query.set("themes", themes.join(","));
-      query.set("legend", "");
-      query.set("inspector", "");
+      for (const slot of ["legend", "inspector"] as const) {
+        if (!without.includes(slot)) query.set(slot, "");
+      }
       await page.goto(`/?${query.toString()}`);
       await page.waitForFunction(() => window.__demo?.ready === true);
       if (!switchAtRuntime) return;
@@ -61,22 +90,7 @@ export function demoHarness(
     async destroy(page) {
       await page.evaluate(() => window.__demo?.destroy());
     },
-    show: {
-      async problems(page) {
-        await page.evaluate(() => window.__demo?.shell.setProblems({ count: 2, errors: 1 }));
-      },
-      async status(page) {
-        await page.evaluate(() => {
-          const shell = window.__demo?.shell;
-          shell?.setStatus({ severity: "danger", text: shell.messages.invalidFile("demo diagram") });
-        });
-      },
-      async legend(page) {
-        await page.evaluate(() => window.__demo?.shell.legend?.setOpen(true));
-      },
-      async inspector(page) {
-        await page.evaluate(() => window.__demo?.shell.inspector?.open());
-      },
-    },
+    show,
+    absent: without,
   };
 }

@@ -3,8 +3,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ariaProbe,
   appearanceProbe,
+  canvasStateProbe,
+  menuEntriesProbe,
   menuProbe,
+  paletteColorProbe,
+  paletteEntriesProbe,
   paletteFocusProbe,
+  readOnlyStateProbe,
+  shapesProbe,
+  surroundProbe,
   zoomButtonsProbe,
   MODE_ROLES,
 } from "./facts.js";
@@ -39,7 +46,7 @@ function serializingPage(): PageLike & { evaluated: number } {
     },
     async setViewportSize() {},
     keyboard: { async press() {} },
-    mouse: { async click() {}, async move() {} },
+    mouse: { async click() {}, async dblclick() {}, async move() {}, async down() {}, async up() {} },
     async waitForTimeout() {},
   };
   return page;
@@ -317,5 +324,86 @@ describe("probes in a page", () => {
       rootAttributes: ["class", "data-palette", "data-legend", "data-problems", "style"],
       errors: ["boom"],
     });
+  });
+
+  it("reads the surround, the palette's entries and colours, shapes and the canvas state", async () => {
+    const root = buildShell();
+    root.style.setProperty("--cd-ui-grund", "rgb(249, 247, 247)");
+    root.style.setProperty("--cd-ui-text", "rgb(29, 29, 29)");
+    root.querySelector<HTMLElement>(".cd-shell-canvas")!.style.backgroundColor = "rgb(249, 247, 247)";
+    const lasso = root.querySelector<HTMLElement>('[data-action="lasso-tool"]')!;
+    lasso.setAttribute("aria-pressed", "true");
+    lasso.innerHTML = '<svg viewBox="0 0 20 20"></svg>';
+    const svg = root.querySelector(".djs-container > svg")!;
+    svg.innerHTML =
+      '<g class="djs-element djs-shape selected" data-element-id="shape_1" transform="matrix(1 0 0 1 20 50)"><g class="djs-visual"><rect width="160" height="100"></rect></g></g>';
+    place(svg.querySelector(".djs-shape")!, 141, 141, 160, 100);
+    place(svg.querySelector(".djs-visual")!, 141, 141, 160, 100);
+    const pad = document.createElement("div");
+    pad.className = "djs-context-pad";
+    pad.innerHTML = '<div class="entry" data-action="delete"></div>';
+    root.querySelector(".djs-container")!.append(pad);
+    place(pad.firstElementChild!, 300, 141, 20, 20);
+    (svg as SVGElement).focus();
+
+    const surround = await inPage(page, surroundProbe, { root: ".cd-shell" });
+    expect(surround?.container).toBe(true);
+    expect(surround?.painted?.description).toBe("div.cd-shell-canvas");
+    expect(root.querySelector("[data-modeler-shell-conformance]")).toBeNull();
+
+    await expect(inPage(page, paletteEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
+      { action: "lasso-tool", group: "tools", pressed: true, disabled: false, client: { x: 341, y: 125 } },
+      { action: "hand-tool", group: "tools", pressed: false, disabled: false, client: { x: 375, y: 125 } },
+    ]);
+    const colors = await inPage(page, paletteColorProbe, { root: ".cd-shell" });
+    expect(colors?.entries.map((entry) => [entry.action, entry.pressed, entry.icon?.kind ?? null])).toEqual([
+      ["lasso-tool", true, "svg"],
+      ["hand-tool", false, null],
+    ]);
+    expect(Object.keys(colors?.roles ?? {})).toEqual(["text", "interaktion", "textLeise"]);
+    expect(root.querySelector("[data-modeler-shell-conformance]")).toBeNull();
+
+    const [shape] = await inPage(page, shapesProbe, { root: ".cd-shell" });
+    expect(shape).toMatchObject({
+      id: "shape_1",
+      selected: true,
+      transform: "matrix(1 0 0 1 20 50)",
+      box: { left: 100, top: 100, width: 160, height: 100 },
+      client: { x: 221, y: 191 },
+    });
+    await expect(inPage(page, canvasStateProbe, { root: ".cd-shell" })).resolves.toEqual({
+      focusInCanvas: true,
+      focused: "svg",
+      contextPadEntries: ["delete"],
+      textFields: [],
+    });
+
+    root.setAttribute("data-readonly", "");
+    root.querySelector('[data-chrome="status"]')!.removeAttribute("hidden");
+    await expect(inPage(page, readOnlyStateProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      readOnly: true,
+      status: { attributes: { role: "alert" }, visible: true },
+    });
+    await expect(inPage(page, readOnlyStateProbe, { root: ".nothing" })).resolves.toBeNull();
+  });
+
+  it("lists the open menu's entries by group, the separators counting", async () => {
+    const root = buildShell();
+    await expect(inPage(page, menuEntriesProbe, { root: ".nothing" })).resolves.toBeNull();
+    const menu = root.querySelector('[role="menu"]')!;
+    menu.innerHTML = `
+      <div role="group" aria-label="Level" data-menu-id="level"><div role="menuitemradio" aria-checked="true">Big picture</div></div>
+      <button role="menuitemcheckbox" data-menu-id="legend" aria-checked="true">Legend</button>
+      <div role="separator"></div>
+      <button role="menuitem" data-menu-id="export-png" aria-disabled="true">Export as PNG</button>
+      <div role="separator"></div>
+      <button role="menuitem" data-menu-id="shortcuts">Keyboard shortcuts…</button>`;
+    for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
+    await expect(inPage(page, menuEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
+      { name: "Big picture", role: "menuitemradio", menuId: "level", disabled: false, segment: 0 },
+      { name: "Legend", role: "menuitemcheckbox", menuId: "legend", disabled: false, segment: 0 },
+      { name: "Export as PNG", role: "menuitem", menuId: "export-png", disabled: true, segment: 1 },
+      { name: "Keyboard shortcuts…", role: "menuitem", menuId: "shortcuts", disabled: false, segment: 2 },
+    ]);
   });
 });

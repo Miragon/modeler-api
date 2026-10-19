@@ -17,6 +17,37 @@ function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page
   return found.run(page, harness);
 }
 
+/** Runs every case; the failure (or skips) of each case that did not pass, by case name. */
+async function failures(page: Page, harness: ShellConformanceHarness<Page>): Promise<Map<string, string>> {
+  const failed = new Map<string, string>();
+  for (const conformanceCase of shellConformanceCases()) {
+    try {
+      const outcome = await conformanceCase.run(page, harness);
+      const skipped = outcome?.skipped ?? [];
+      if (skipped.length > 0) {
+        failed.set(conformanceCase.name, `skipped: ${skipped.map((skip) => skip.reason).join("; ")}`);
+      }
+    } catch (error) {
+      failed.set(conformanceCase.name, String(error));
+    }
+  }
+  return failed;
+}
+
+/** The saboteur breaks exactly one rule: `caseName` fails with every pattern, all other cases pass. */
+async function expectOnlyCaseFails(
+  page: Page,
+  harness: ShellConformanceHarness<Page>,
+  caseName: string,
+  patterns: readonly RegExp[],
+): Promise<void> {
+  const failed = await failures(page, harness);
+  expect([...failed.entries()].filter(([name]) => name !== caseName)).toEqual([]);
+  const failure = failed.get(caseName);
+  expect(failure, `"${caseName}" passed the saboteur`).toBeDefined();
+  for (const pattern of patterns) expect(failure).toMatch(pattern);
+}
+
 /** The demo harness with `sabotage` applied right after every open. */
 function sabotaged(
   sabotage: () => void,
@@ -35,6 +66,124 @@ function sabotaged(
 
 test.describe("saboteurs", () => {
   test.describe.configure({ timeout: 60_000 });
+
+  test.describe("that break one rule and fail only its case", () => {
+    test.describe.configure({ timeout: 150_000 });
+
+    test("create fails when Enter on a creating palette entry places nothing", async ({ page }) => {
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.noKeyboardCreate = true;
+      });
+      await expectOnlyCaseFails(page, harness, "create", [
+        /create: Enter on palette entry "create\.box" added no element/,
+      ]);
+    });
+
+    test("readOnly fails when the lock leaves the canvas editable", async ({ page }) => {
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.canvasUnlocked = true;
+      });
+      await expectOnlyCaseFails(page, harness, "readOnly", [
+        /read-only: selecting "[^"]+" shows the context pad/,
+        /read-only: a 40px drag changed "[^"]+"/,
+        /read-only: Delete on the canvas deleted "[^"]+"/,
+      ]);
+    });
+
+    test("keys fails in the IDE host when Cmd/Ctrl+A on the canvas goes on to VS Code", async ({ page }) => {
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.noSelectAll = true;
+      });
+      await expectOnlyCaseFails(page, harness, "keys", [
+        /Control\+KeyA on the canvas \(select all acts on the canvas only\) reached a keydown listener on window/,
+        /Meta\+KeyA on the canvas \(select all acts on the canvas only\) reached a keydown listener on window/,
+      ]);
+    });
+
+    test("appearance fails for a canvas surround painted outside the mode", async ({ page }) => {
+      // Event Storming's `style dark` board: navy around a light modeler
+      const harness = sabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = ".cd-shell-canvas, .djs-container { background-color: #080A20 !important; }";
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "appearance", [
+        /\[requested dark\] canvas surround: div\.djs-container\S* paints rgb\(8, 10, 32\), but --cd-ui-grund resolves to rgb\(/,
+      ]);
+    });
+
+    test("appearance fails for a renderer colour on the armed tool's icon", async ({ page }) => {
+      // the lasso icon of Event Storming computed to rgb(29, 30, 33) from a renderer rule
+      const harness = sabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent =
+          '.djs-palette .entry[aria-pressed="true"] svg { color: rgb(29, 30, 33) !important; }';
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "appearance", [
+        /palette: the <svg> icon of tool "lasso-tool" pressed has color rgb\(29, 30, 33\), expected --cd-ui-text/,
+      ]);
+    });
+  });
+
+  test("readOnly fails for a creating entry the lock does not mark", async ({ page }) => {
+    const harness = sabotaged(() => {
+      const unmark = () => {
+        for (const entry of document.querySelectorAll('[data-action="create.box"][aria-disabled]')) {
+          entry.removeAttribute("aria-disabled");
+        }
+      };
+      new MutationObserver(unmark).observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["aria-disabled"],
+      });
+    });
+    await expect(runCase("readOnly", page, harness)).rejects.toThrow(
+      /palette: "create\.box" is not aria-disabled on the read-only canvas/,
+    );
+  });
+
+  test("readOnly fails for view toggles and export disabled on the read-only canvas", async ({ page }) => {
+    const harness = sabotaged(() => {
+      const disable = () => {
+        if (!document.querySelector(".cd-shell[data-readonly]")) return;
+        for (const item of document.querySelectorAll(
+          '[data-menu-id="legend"], [data-menu-id="export-png"]',
+        )) {
+          if (item.getAttribute("aria-disabled") !== "true") item.setAttribute("aria-disabled", "true");
+        }
+      };
+      new MutationObserver(disable).observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+      });
+    });
+    const failure = await runCase("readOnly", page, harness).then(
+      () => "passed",
+      (error: unknown) => String(error),
+    );
+    expect(failure).toMatch(/menu: the Legend toggle is aria-disabled on the read-only canvas/);
+    expect(failure).toMatch(/menu: "Export as PNG" is aria-disabled on the read-only canvas/);
+  });
+
+  test("geometry and aria fail for an island the harness declares absent", async ({ page }) => {
+    const base = demoHarness("ide");
+    const harness: ShellConformanceHarness<Page> = {
+      ...base,
+      sizes: WIDE_ONLY,
+      show: { ...base.show, legend: undefined },
+      absent: ["legend"],
+    };
+    await expect(runCase("geometry", page, harness)).rejects.toThrow(
+      /\[1280 × 900, as opened\] legend: visible, but harness\.absent says the modeler has no legend/,
+    );
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /legend: visible, but harness\.absent says the modeler has no legend/,
+    );
+  });
 
   test("geometry fails for an island 2px off its anchor", async ({ page }) => {
     const harness = sabotaged(() => {

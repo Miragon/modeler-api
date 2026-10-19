@@ -6,16 +6,26 @@ import {
   type Size,
 } from "../core/index.js";
 import {
+  absentIslandProblems,
   afterDestroyKeyProblem,
   appearanceProblems,
   ariaProblems,
+  createProblems,
+  harnessHookProblems,
+  isToolEntry,
   keyReachProblem,
   leftoverProblems,
+  lockedShapeProblems,
   menuClosedProblems,
   menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  paletteColorProblems,
   paletteShortcutProblems,
+  readOnlyMenuProblems,
+  readOnlyPaletteProblems,
+  readOnlyStateProblems,
+  surroundProblems,
   tabSequenceProblems,
   type KeyReach,
   type PaletteShortcutFacts,
@@ -26,16 +36,28 @@ import {
   activeStopProbe,
   appearanceProbe,
   ariaProbe,
+  canvasStateProbe,
+  menuEntriesProbe,
   menuProbe,
+  paletteColorProbe,
+  paletteEntriesProbe,
   paletteFocusProbe,
   paletteShortcutProbe,
+  readOnlyStateProbe,
+  shapesProbe,
+  surroundProbe,
   zoomButtonsProbe,
   type AppearanceFacts,
+  type AriaFacts,
+  type MenuEntryFacts,
   type MenuFacts,
+  type PaletteEntryState,
+  type ShapeFacts,
 } from "./facts.js";
 import {
   DEFAULT_ROOT,
   dropdownProblems,
+  freeRectangle,
   geometryProblems,
   measureChrome,
   tooltipProblems,
@@ -46,6 +68,8 @@ import type {
   ShellCaseOutcome,
   ShellConformanceCase,
   ShellConformanceHarness,
+  ShellSkip,
+  ShowHook,
   ShowHooks,
 } from "./harness.js";
 import type { PageLike } from "./page.js";
@@ -81,6 +105,20 @@ const LIGHT: Appearance = { theme: "light" };
 const SHOWN_ISLANDS = ["legend", "problems", "status", "inspector"] as const satisfies ReadonlyArray<
   keyof ShowHooks
 >;
+
+/** How far the read-only case drags a shape (guide §13.5: no move). */
+const LOCKED_DRAG_PX = 40;
+
+/** Room for a modeler that places, selects or re-renders a frame or two after Enter. */
+const CREATE_WAIT_MS = 1000;
+
+/** Room after `INVALID_STATUS_DELAY_MS` for the read-only marks and the status box to show. */
+const READ_ONLY_WAIT_MS = 1000;
+
+/** Room for the palette's 150ms colour transition (`--cd-motion-fast`) and a frame on either side. */
+const COLOR_WAIT_MS = 600;
+
+const POLL_MS = 50;
 
 /** Requested from the modeler by the appearance case (VS Code Dark, High Contrast, High Contrast Light). */
 const REQUESTED_APPEARANCES: readonly Appearance[] = [
@@ -134,17 +172,56 @@ function finish(
   caseName: string,
   host: ShellHost,
   problems: readonly string[],
-  skipped: Iterable<string>,
+  skipped: Iterable<ShellSkip>,
 ): ShellCaseOutcome | void {
   if (problems.length > 0) fail(caseName, host, problems);
-  const reasons = [...new Set(skipped)];
-  return reasons.length > 0 ? { skipped: reasons.join("; ") } : undefined;
+  const seen = new Set<string>();
+  const unique = [...skipped].filter((skip) => !seen.has(skip.reason) && seen.add(skip.reason));
+  return unique.length > 0 ? { skipped: unique } : undefined;
 }
 
-function missingHooks<P extends PageLike>(harness: ShellConformanceHarness<P>, what: string): string[] {
-  return SHOWN_ISLANDS.filter((island) => !harness.show?.[island]).map(
-    (island) => `show.${island} is undefined: ${what} of the ${island} island not verified`,
-  );
+/** A harness that gives a hook it also declares absent contradicts itself: fail before opening anything. */
+function assertHooksConsistent<P extends PageLike>(
+  caseName: string,
+  harness: ShellConformanceHarness<P>,
+  hooks: readonly ShowHook[],
+): void {
+  const problems = harnessHookProblems(harness, hooks);
+  if (problems.length > 0) fail(caseName, harness.host, problems);
+}
+
+/** A hook that is neither given nor declared absent. */
+function unfed<P extends PageLike>(harness: ShellConformanceHarness<P>, hook: ShowHook): boolean {
+  return !harness.show?.[hook] && !harness.absent?.includes(hook);
+}
+
+function missingHooks<P extends PageLike>(harness: ShellConformanceHarness<P>, what: string): ShellSkip[] {
+  return SHOWN_ISLANDS.filter((island) => unfed(harness, island)).map((island) => ({
+    hook: island,
+    reason: `show.${island} is undefined: ${what} of the ${island} island not verified`,
+  }));
+}
+
+/** Reads until `done` holds or `timeoutMs` passed; the last value either way. */
+async function pollUntil<T>(
+  page: PageLike,
+  read: () => Promise<T>,
+  done: (value: T) => boolean,
+  timeoutMs: number,
+): Promise<T> {
+  let value = await read();
+  for (let waited = 0; !done(value) && waited < timeoutMs; waited += POLL_MS) {
+    await page.waitForTimeout(POLL_MS);
+    value = await read();
+  }
+  return value;
+}
+
+/** The visible islands of an ARIA snapshot that a harness may declare absent. */
+function visibleIslands(facts: AriaFacts): Set<string> {
+  const islands = new Set<string>();
+  for (const island of SHOWN_ISLANDS) if (facts[island]?.visible) islands.add(island);
+  return islands;
 }
 
 /** Hovers `target` long enough for its chrome tooltip; the hovered control, `null` when there is none. */
@@ -217,6 +294,7 @@ async function popupGeometry(
 const geometryCase: ShellConformanceCase = {
   name: "geometry",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    assertHooksConsistent("geometry", harness, SHOWN_ISLANDS);
     const root = harness.root ?? DEFAULT_ROOT;
     const problems: string[] = [];
     for (const size of harness.sizes ?? DEFAULT_SIZES) {
@@ -226,7 +304,10 @@ const geometryCase: ShellConformanceCase = {
       const check = async (state: string): Promise<ChromeMeasurement> => {
         const measurement = await measureChrome(page, root);
         problems.push(
-          ...geometryProblems(measurement, harness.host).map((problem) => `[${at}, ${state}] ${problem}`),
+          ...[
+            ...geometryProblems(measurement, harness.host),
+            ...absentIslandProblems(new Set(Object.keys(measurement.islands)), harness.absent),
+          ].map((problem) => `[${at}, ${state}] ${problem}`),
         );
         return measurement;
       };
@@ -410,6 +491,7 @@ async function zoomLimitProblems(page: PageLike, root: string): Promise<string[]
 const ariaCase: ShellConformanceCase = {
   name: "aria",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    assertHooksConsistent("aria", harness, SHOWN_ISLANDS);
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
     await harness.open(page, { size, requested: LIGHT });
@@ -430,10 +512,12 @@ const ariaCase: ShellConformanceCase = {
       await show(page);
       shown.add(island);
     }
+    let final: AriaFacts = facts;
     if (shown.size > 0) {
       await settle(page);
       const withIslands = await inPage(page, ariaProbe, { root });
       if (withIslands) {
+        final = withIslands;
         problems.push(...optionalIslandProblems(withIslands, shown));
         const known = new Set(problems);
         problems.push(
@@ -443,6 +527,7 @@ const ariaCase: ShellConformanceCase = {
         );
       }
     }
+    problems.push(...absentIslandProblems(visibleIslands(final), harness.absent));
     return finish("aria", harness.host, problems, missingHooks(harness, "the roles and names"));
   },
 };
@@ -535,6 +620,11 @@ const keysCase: ShellConformanceCase = {
         await press(key, "free", undefined, "on the canvas (undo and redo belong to the VS Code document)");
       }
     }
+    // Guide §13.5: keys the canvas uses act on the canvas only, select all included; in VS Code an
+    // unhandled Cmd/Ctrl+A would select the webview's text instead.
+    for (const key of ["Control+KeyA", "Meta+KeyA"]) {
+      await press(key, "canvas", undefined, "on the canvas (select all acts on the canvas only)");
+    }
 
     await press("Control+Equal", "handled", ONE_STEP_UP);
     for (const [kind, field] of TEXT_FIELDS) {
@@ -599,6 +689,50 @@ async function appearanceFacts(page: PageLike, root: string): Promise<Appearance
   };
 }
 
+/** The palette's tool colours in the current state, read until a running colour transition is done. */
+async function paletteColors(page: PageLike, root: string): Promise<string[]> {
+  const read = async () => {
+    const facts = await inPage(page, paletteColorProbe, { root });
+    return facts ? paletteColorProblems(facts) : [];
+  };
+  return pollUntil(page, read, (problems) => problems.length === 0, COLOR_WAIT_MS);
+}
+
+/**
+ * Guide §5.5: every tool entry at rest, hovered in turn, and the first tool armed by a click
+ * (pressed and hovered, then pressed with the pointer away), Escape afterwards.
+ */
+async function paletteColorWalk(page: PageLike, root: string): Promise<string[]> {
+  const problems: string[] = [];
+  await page.mouse.move(PARK.x, PARK.y);
+  problems.push(...(await paletteColors(page, root)));
+  const tools = (await inPage(page, paletteEntriesProbe, { root })).filter(
+    (entry) => isToolEntry(entry) && !entry.disabled,
+  );
+  for (const tool of tools) {
+    await page.mouse.move(tool.client.x, tool.client.y);
+    problems.push(...(await paletteColors(page, root)));
+    await page.mouse.move(PARK.x, PARK.y);
+  }
+  const armed =
+    tools.find((tool) => tool.action === "lasso-tool") ?? tools.find((tool) => tool.action.endsWith("-tool"));
+  if (armed) {
+    await page.mouse.click(armed.client.x, armed.client.y);
+    await settle(page);
+    const pressed = (await inPage(page, paletteEntriesProbe, { root })).find(
+      (entry) => entry.action === armed.action,
+    );
+    if (!pressed?.pressed) {
+      problems.push(`palette: clicking tool "${armed.action}" does not set aria-pressed="true" (guide §5.5)`);
+    }
+    problems.push(...(await paletteColors(page, root)));
+    await page.mouse.move(PARK.x, PARK.y);
+    problems.push(...(await paletteColors(page, root)));
+    await closeByEscape(page);
+  }
+  return [...new Set(problems)];
+}
+
 const appearanceCase: ShellConformanceCase = {
   name: "appearance",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
@@ -623,8 +757,202 @@ const appearanceCase: ShellConformanceCase = {
       }
       const verdict = appearanceProblems(facts, harness.host, requested, harness.themes);
       problems.push(...verdict.problems.map((problem) => `${at} ${problem}`));
+      const surround = await inPage(page, surroundProbe, { root });
+      if (surround) problems.push(...surroundProblems(surround).map((problem) => `${at} ${problem}`));
+      problems.push(...(await paletteColorWalk(page, root)).map((problem) => `${at} ${problem}`));
     }
     return finish("appearance", harness.host, problems, []);
+  },
+};
+
+/** The visible shapes on the canvas. */
+function shapes(page: PageLike, root: string): Promise<ShapeFacts[]> {
+  return inPage(page, shapesProbe, { root });
+}
+
+/** Moves the palette's roving focus by keyboard to `action`; `false` when it cannot get there. */
+async function focusPaletteEntry(page: PageLike, root: string, action: string): Promise<boolean> {
+  const before = await inPage(page, paletteFocusProbe, { root });
+  if (!before || !before.entries.includes(action)) return false;
+  if (!(await focusTarget(page, root, "palette-tab-stop"))) return false;
+  await page.keyboard.press("Home");
+  for (let step = 0; step <= before.entries.length; step++) {
+    if ((await inPage(page, paletteFocusProbe, { root }))?.active === action) return true;
+    await page.keyboard.press("ArrowRight");
+  }
+  return false;
+}
+
+/** The first entry that creates something: outside the tools group and not a tool. */
+function firstCreatingEntry(entries: readonly PaletteEntryState[]): PaletteEntryState | undefined {
+  return entries.find((entry) => !isToolEntry(entry));
+}
+
+/** Enter on `entry`; the shapes once a new one appeared or `CREATE_WAIT_MS` passed. */
+async function enterOnEntry(
+  page: PageLike,
+  root: string,
+  entry: string,
+  before: readonly ShapeFacts[],
+): Promise<ShapeFacts[] | undefined> {
+  if (!(await focusPaletteEntry(page, root, entry))) return undefined;
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const known = new Set(before.map((shape) => shape.id));
+  return pollUntil(
+    page,
+    () => shapes(page, root),
+    (after) => after.some((shape) => !known.has(shape.id)),
+    CREATE_WAIT_MS,
+  );
+}
+
+const createCase: ShellConformanceCase = {
+  name: "create",
+  async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    const root = harness.root ?? DEFAULT_ROOT;
+    const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
+    await harness.open(page, { size, requested: LIGHT });
+    await settle(page);
+    const entry = firstCreatingEntry(await inPage(page, paletteEntriesProbe, { root }));
+    // A notation whose palette only switches tools has nothing to place.
+    if (!entry) return undefined;
+    await page.mouse.move(PARK.x, PARK.y);
+    const free = freeRectangle(await measureChrome(page, root), harness.host);
+    const before = await shapes(page, root);
+    const after = await enterOnEntry(page, root, entry.action, before);
+    if (!after) {
+      fail("create", harness.host, [`create: the palette's roving focus does not reach "${entry.action}"`]);
+    }
+    const canvas = await inPage(page, canvasStateProbe, { root });
+    const problems = createProblems({ entry: entry.action, before, after, canvas, free });
+    await closeByEscape(page);
+    return finish("create", harness.host, problems, []);
+  },
+};
+
+/** The open menu's entries, opened by a click and closed again by Escape. */
+async function menuEntries(page: PageLike, root: string): Promise<MenuEntryFacts[]> {
+  if (!(await openMenuByClick(page, root))) return [];
+  const entries = (await inPage(page, menuEntriesProbe, { root })) ?? [];
+  await closeByEscape(page);
+  return entries;
+}
+
+/** A shape whose centre a pointer reaches (no chrome above it), found again by its id. */
+async function reachableShape(page: PageLike, root: string, id?: string): Promise<ShapeFacts | undefined> {
+  const all = await shapes(page, root);
+  return id === undefined ? all.find((shape) => shape.hit) : all.find((shape) => shape.id === id);
+}
+
+/** Guide §13.5, "Was der Schreibschutz sperrt", on one shape: select, drag, double-click, delete. */
+async function lockedShapeChecks(page: PageLike, root: string, shape: ShapeFacts): Promise<string[]> {
+  await page.mouse.click(shape.client.x, shape.client.y);
+  await settle(page);
+  const selected = await inPage(page, canvasStateProbe, { root });
+
+  const before = (await reachableShape(page, root, shape.id)) ?? shape;
+  await page.mouse.move(before.client.x, before.client.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 4; step++) {
+    await page.mouse.move(before.client.x + (LOCKED_DRAG_PX * step) / 4, before.client.y);
+  }
+  await page.mouse.up();
+  await settle(page);
+  const dragged = await reachableShape(page, root, shape.id);
+
+  const target = dragged ?? before;
+  await page.mouse.dblclick(target.client.x, target.client.y);
+  await settle(page);
+  const { textFields } = await inPage(page, canvasStateProbe, { root });
+  await closeByEscape(page);
+
+  const kept = { Delete: true, Backspace: true };
+  for (const key of ["Delete", "Backspace"] as const) {
+    const current = await reachableShape(page, root, shape.id);
+    if (!current) break;
+    // a key that deletes the selection must not miss it; a click on a selected shape deselects it
+    if (!current.selected) await page.mouse.click(current.client.x, current.client.y);
+    await focusTarget(page, root, "canvas");
+    await page.keyboard.press(key);
+    await settle(page);
+    kept[key] = (await reachableShape(page, root, shape.id)) !== undefined;
+  }
+  await page.mouse.move(PARK.x, PARK.y);
+  return lockedShapeProblems({
+    contextPadEntries: selected.contextPadEntries,
+    dragged: { before, after: dragged },
+    textFields,
+    kept,
+  });
+}
+
+const readOnlyCase: ShellConformanceCase = {
+  name: "readOnly",
+  async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    assertHooksConsistent("readOnly", harness, ["invalid"]);
+    const invalid = harness.show?.invalid;
+    if (!invalid) {
+      if (harness.absent?.includes("invalid")) return undefined;
+      return {
+        skipped: [
+          {
+            hook: "invalid",
+            reason: "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
+          },
+        ],
+      };
+    }
+    const root = harness.root ?? DEFAULT_ROOT;
+    const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
+    const problems: string[] = [];
+    const skipped: ShellSkip[] = [];
+    await harness.open(page, { size, requested: LIGHT });
+    await settle(page);
+    const menuBefore = await menuEntries(page, root);
+
+    await invalid(page);
+    await page.waitForTimeout(INVALID_STATUS_DELAY_MS);
+    const state = await pollUntil(
+      page,
+      () => inPage(page, readOnlyStateProbe, { root }),
+      (facts) => facts === null || readOnlyStateProblems(facts).length === 0,
+      READ_ONLY_WAIT_MS,
+    );
+    if (!state) fail("readOnly", harness.host, [`no element matches the shell root selector "${root}"`]);
+    await settle(page);
+    problems.push(...readOnlyStateProblems(state));
+
+    const entries = await inPage(page, paletteEntriesProbe, { root });
+    problems.push(...readOnlyPaletteProblems(entries));
+    problems.push(...(await paletteColors(page, root)));
+    const creating = firstCreatingEntry(entries);
+    if (creating) {
+      const before = await shapes(page, root);
+      const after = await enterOnEntry(page, root, creating.action, before);
+      const known = new Set(before.map((shape) => shape.id));
+      const added = (after ?? []).filter((shape) => !known.has(shape.id));
+      if (added.length > 0) {
+        problems.push(
+          `read-only: Enter on palette entry "${creating.action}" added ${added.map((shape) => `"${shape.id}"`).join(", ")} (guide §13.5)`,
+        );
+      }
+      await closeByEscape(page);
+    }
+
+    problems.push(...readOnlyMenuProblems(menuBefore, await menuEntries(page, root)));
+
+    const shape = await reachableShape(page, root);
+    if (shape) {
+      problems.push(...(await lockedShapeChecks(page, root, shape)));
+    } else {
+      skipped.push({
+        hook: "open",
+        reason:
+          "the opened document shows no shape a pointer reaches: context pad, move, delete and label editor of the read-only canvas not verified",
+      });
+    }
+    return finish("readOnly", harness.host, problems, skipped);
   },
 };
 
@@ -632,7 +960,14 @@ const cleanupCase: ShellConformanceCase = {
   name: "cleanup",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
     if (!harness.destroy) {
-      return { skipped: "harness.destroy is undefined: the cleanup after destroy was not verified" };
+      return {
+        skipped: [
+          {
+            hook: "destroy",
+            reason: "harness.destroy is undefined: the cleanup after destroy was not verified",
+          },
+        ],
+      };
     }
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
@@ -673,5 +1008,5 @@ const cleanupCase: ShellConformanceCase = {
 };
 
 export function createCases(): ShellConformanceCase[] {
-  return [geometryCase, ariaCase, keysCase, appearanceCase, cleanupCase];
+  return [geometryCase, ariaCase, keysCase, createCase, readOnlyCase, appearanceCase, cleanupCase];
 }

@@ -8,6 +8,8 @@ import {
   chromeExpectations,
   dropdownProblems,
   expectedChromeBoxes,
+  expectedFitInsets,
+  freeRectangle,
   geometryProblems,
   limitViolations,
   tooltipProblems,
@@ -377,5 +379,58 @@ describe("tooltipProblems", () => {
     expect(tooltipProblems({ ...tooltip, top: 852 }, zoomIn, "bottom", WIDE)).toEqual([
       "tooltip: bottom is 20px, expected 60px (±1px)",
     ]);
+  });
+});
+
+describe("expectedFitInsets and freeRectangle", () => {
+  it("are the guide's table in the top row and the second row", () => {
+    expect(expectedFitInsets(measurement(), "ide")).toEqual({ top: 88, right: 24, bottom: 64, left: 24 });
+    expect(freeRectangle(measurement(), "ide")).toEqual({ left: 24, top: 88, right: 1256, bottom: 836 });
+    expect(expectedFitInsets(measurement({ container: NARROW }), "embedded")).toEqual({
+      top: 140,
+      right: 24,
+      bottom: 64,
+      left: 24,
+    });
+  });
+
+  it("count the web app's pill, never another host's", () => {
+    const withPill = measurement({ open: { problems: true } });
+    expect(expectedFitInsets(withPill, "web").bottom).toBe(92);
+    expect(expectedFitInsets(withPill, "ide").bottom).toBe(64);
+  });
+
+  it("count an open legend above 440px and a side inspector", () => {
+    const legend = anchored(WIDE, { width: 200, height: 120 }, { left: 12, bottom: 12 });
+    const inspector = anchored(WIDE, { width: 288, height: 700 }, { right: 12, top: 64 });
+    expect(
+      expectedFitInsets(
+        measurement({ open: { legend: true, inspector: true }, islands: { legend, inspector } }),
+        "ide",
+      ),
+    ).toEqual({ top: 88, right: 324, bottom: 64, left: 236 });
+    const narrowLegend = anchored(VERY_NARROW, { width: 200, height: 120 }, { left: 12, bottom: 64 });
+    expect(
+      expectedFitInsets(
+        measurement({ container: VERY_NARROW, open: { legend: true }, islands: { legend: narrowLegend } }),
+        "ide",
+      ).left,
+    ).toBe(24);
+  });
+
+  it("end at the bottom sheet's top edge plus 12, where the legend does not count", () => {
+    const sheet = anchored(NARROW, { width: 696, height: 300 }, { left: 12, bottom: 12 });
+    const legend = anchored(NARROW, { width: 200, height: 120 }, { left: 12, bottom: 12 });
+    const facts = measurement({
+      container: NARROW,
+      open: { inspector: true, legend: true },
+      islands: { inspector: sheet, legend },
+    });
+    expect(expectedFitInsets(facts, "ide")).toEqual({ top: 140, right: 24, bottom: 324, left: 24 });
+  });
+
+  it("span the whole container on an axis the insets leave no room on", () => {
+    const low = measurement({ container: { width: 1280, height: 120 } });
+    expect(freeRectangle(low, "ide")).toEqual({ left: 24, top: 0, right: 1256, bottom: 120 });
   });
 });

@@ -1,6 +1,23 @@
-import type { Appearance, ShellHost, Theme } from "../core/index.js";
-import { DOM_ORDER, type AppearanceFacts, type AriaFacts, type MenuFacts, type ZoomButton } from "./facts.js";
+import { INVALID_STATUS_DELAY_MS, type Appearance, type ShellHost, type Theme } from "../core/index.js";
+import {
+  DOM_ORDER,
+  type AppearanceFacts,
+  type AriaFacts,
+  type CanvasStateFacts,
+  type MenuEntryFacts,
+  type MenuFacts,
+  type PaletteColorEntry,
+  type PaletteColorFacts,
+  type PaletteEntryState,
+  type ReadOnlyStateFacts,
+  type ShapeFacts,
+  type SurroundFacts,
+  type ZoomButton,
+} from "./facts.js";
+import { GEOMETRY_TOLERANCE_PX, type Rectangle } from "./geometry.js";
+import type { ShellConformanceHarness, ShowHook } from "./harness.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
+import type { PageLike } from "./page.js";
 
 /*
  * The judgements of the cases, as pure functions of what the probes saw. Each returns readable
@@ -564,4 +581,252 @@ export function afterDestroyKeyProblem(press: string, recorded: readonly Recorde
     return `${press} after destroy arrived prevented: a shell listener is still installed`;
   }
   return undefined;
+}
+
+/** The islands a harness may list as `absent`, as far as `geometry` and `aria` see them. */
+export type AbsentIsland = Extract<ShowHook, "legend" | "inspector" | "problems" | "status">;
+
+const ABSENT_ISLANDS: readonly AbsentIsland[] = ["legend", "inspector", "problems", "status"];
+
+/** The islands of `absent` (its state `invalid` has no island). */
+export function absentIslands(absent: readonly ShowHook[] | undefined): AbsentIsland[] {
+  return ABSENT_ISLANDS.filter((island) => absent?.includes(island));
+}
+
+/** An island the harness declares absent must never show. */
+export function absentIslandProblems(
+  visible: ReadonlySet<string>,
+  absent: readonly ShowHook[] | undefined,
+): string[] {
+  return absentIslands(absent)
+    .filter((island) => visible.has(island))
+    .map((island) => `${island}: visible, but harness.absent says the modeler has no ${island}`);
+}
+
+/** A hook the harness both gives and lists as absent is a contradiction in the harness itself. */
+export function harnessHookProblems<P extends PageLike>(
+  harness: ShellConformanceHarness<P>,
+  hooks: readonly ShowHook[],
+): string[] {
+  return hooks
+    .filter((hook) => harness.absent?.includes(hook) && harness.show?.[hook])
+    .map((hook) => `harness: absent lists "${hook}", but show.${hook} is given`);
+}
+
+/** Guide §10.1: the surround of the canvas is a container painted in `--cd-ui-grund`, in both modes. */
+export function surroundProblems(facts: SurroundFacts): string[] {
+  if (!facts.container) return ["canvas surround: no .djs-container in the root to check"];
+  if (!facts.painted) {
+    return [
+      "canvas surround: nothing from .djs-container out to the root paints a background colour; the surround is var(--cd-ui-grund) (guide §10.1)",
+    ];
+  }
+  if (facts.painted.color === facts.grund) return [];
+  return [
+    `canvas surround: ${facts.painted.description} paints ${facts.painted.color}, but --cd-ui-grund resolves to ${facts.grund}; the surround follows the mode (guide §10.1)`,
+  ];
+}
+
+/** Lasso, Hand and the other tools of the `tools` group; every other entry is a notation preview. */
+export function isToolEntry(entry: Pick<PaletteEntryState, "action" | "group">): boolean {
+  return entry.group === "tools" || entry.action.endsWith("-tool");
+}
+
+function paletteEntryState(entry: PaletteColorEntry): string {
+  if (entry.disabled) return "aria-disabled";
+  if (entry.hovered) return entry.pressed ? "pressed and hovered" : "hovered";
+  return entry.pressed ? "pressed" : "at rest";
+}
+
+/**
+ * Guide §5.5 and §13.5: a tool entry and its icon (`currentColor`) show `--cd-ui-text` at rest and
+ * while pressed, `--cd-ui-interaktion` while hovered and `--cd-ui-text-leise` while aria-disabled.
+ * Notation previews keep their own colours and are exempt.
+ */
+export function paletteColorProblems(facts: PaletteColorFacts): string[] {
+  const problems: string[] = [];
+  for (const entry of facts.entries) {
+    if (!isToolEntry(entry)) continue;
+    const [role, value] = entry.disabled
+      ? (["--cd-ui-text-leise", facts.roles.textLeise] as const)
+      : entry.hovered
+        ? (["--cd-ui-interaktion", facts.roles.interaktion] as const)
+        : (["--cd-ui-text", facts.roles.text] as const);
+    const state = paletteEntryState(entry);
+    if (entry.color !== value) {
+      problems.push(
+        `palette: tool "${entry.action}" ${state} has color ${entry.color}, expected ${role} (${value}) (guide §5.5)`,
+      );
+    }
+    if (entry.icon && entry.icon.color !== value) {
+      const icon = entry.icon.kind === "svg" ? "<svg> icon" : "::before icon";
+      problems.push(
+        `palette: the ${icon} of tool "${entry.action}" ${state} has color ${entry.icon.color}, expected ${role} (${value}); a renderer rule overrides the skin (guide §5.5)`,
+      );
+    }
+  }
+  return problems;
+}
+
+export interface CreateFacts {
+  /** `data-action` of the entry the kit pressed Enter on. */
+  entry: string;
+  before: readonly ShapeFacts[];
+  after: readonly ShapeFacts[];
+  canvas: CanvasStateFacts;
+  /** The free rectangle when Enter was pressed (guide §5.9). */
+  free: Rectangle;
+}
+
+const round = (value: number): number => Math.round(value * 10) / 10;
+
+/**
+ * Guide §5.5: Enter on a creating entry places exactly one element in the centre of the free
+ * rectangle, selects it and puts the focus on the canvas (its `<svg>` or the label editor).
+ */
+export function createProblems(facts: CreateFacts): string[] {
+  const known = new Set(facts.before.map((shape) => shape.id));
+  const added = facts.after.filter((shape) => !known.has(shape.id));
+  const pressed = `Enter on palette entry "${facts.entry}"`;
+  if (added.length === 0) {
+    return [
+      `create: ${pressed} added no element; Enter on a creating entry places it in the centre of the free rectangle (guide §5.5)`,
+    ];
+  }
+  if (added.length > 1) {
+    return [
+      `create: ${pressed} added ${added.length} elements (${added.map((shape) => shape.id).join(", ")}), expected exactly one`,
+    ];
+  }
+  const [shape] = added as [ShapeFacts];
+  const problems: string[] = [];
+  if (!shape.selected) problems.push(`create: the new element "${shape.id}" is not selected (guide §5.5)`);
+  if (!facts.canvas.focusInCanvas) {
+    problems.push(
+      `create: after ${pressed} the focus is on ${facts.canvas.focused}, expected the canvas (its <svg> or the label editor, guide §5.5)`,
+    );
+  }
+  const centre = { x: shape.box.left + shape.box.width / 2, y: shape.box.top + shape.box.height / 2 };
+  const { free } = facts;
+  const tolerance = GEOMETRY_TOLERANCE_PX + 1e-6;
+  const inside =
+    centre.x >= free.left - tolerance &&
+    centre.x <= free.right + tolerance &&
+    centre.y >= free.top - tolerance &&
+    centre.y <= free.bottom + tolerance;
+  if (!inside) {
+    problems.push(
+      `create: the new element "${shape.id}" is centred at (${round(centre.x)}, ${round(centre.y)})px, outside the free rectangle ${round(free.left)}–${round(free.right)} × ${round(free.top)}–${round(free.bottom)}px (guide §5.5, §5.9)`,
+    );
+  }
+  return problems;
+}
+
+/** The read-only marks once the invalid-file state shows (guide §5.12, §13.5). */
+export function readOnlyStateProblems(facts: ReadOnlyStateFacts): string[] {
+  const problems: string[] = [];
+  const after = `${INVALID_STATUS_DELAY_MS}ms after show.invalid`;
+  if (!facts.readOnly) problems.push(`read-only: the root has no data-readonly ${after}`);
+  const status = facts.status;
+  if (!status?.visible) {
+    problems.push(`read-only: the status box is not visible ${after} (guide §5.12)`);
+  } else if (status.attributes.role !== "alert") {
+    problems.push(
+      `read-only: the status box of an invalid file has role "${status.attributes.role ?? ""}", expected "alert" (guide §13.5)`,
+    );
+  }
+  return problems;
+}
+
+/** The palette entries that stay active on a read-only canvas (guide §13.5), named independently of the shell. */
+export const READ_ONLY_PALETTE_ACTIONS: readonly string[] = ["lasso-tool", "hand-tool"];
+
+/** Guide §13.5: every palette entry that changes something is aria-disabled, Lasso and Hand stay active. */
+export function readOnlyPaletteProblems(entries: readonly PaletteEntryState[]): string[] {
+  return entries.flatMap((entry) => {
+    const staysActive = READ_ONLY_PALETTE_ACTIONS.includes(entry.action);
+    if (staysActive && entry.disabled) {
+      return [
+        `palette: "${entry.action}" is aria-disabled on the read-only canvas; Lasso and Hand stay active (guide §13.5)`,
+      ];
+    }
+    if (!staysActive && !entry.disabled) {
+      return [`palette: "${entry.action}" is not aria-disabled on the read-only canvas (guide §13.5)`];
+    }
+    return [];
+  });
+}
+
+/** The shell's own Legend toggle in the Model group. */
+const LEGEND_MENU_ID = "legend";
+
+/**
+ * Guide §13.5 and the product decision on view toggles: on a read-only canvas the Legend toggle,
+ * export and help stay usable. The shell renders its `MenuGroups` as Model, Export, Help, empty
+ * groups left out, so only the first group can be Model: an entry in a later one that read-only
+ * newly disabled is a problem.
+ */
+export function readOnlyMenuProblems(
+  before: readonly MenuEntryFacts[],
+  after: readonly MenuEntryFacts[],
+): string[] {
+  const problems: string[] = [];
+  const key = (entry: MenuEntryFacts) => `${entry.menuId ?? ""}\u0000${entry.name}`;
+  const enabledBefore = new Set(before.filter((entry) => !entry.disabled).map(key));
+  for (const entry of after) {
+    if (!entry.disabled) continue;
+    if (entry.menuId === LEGEND_MENU_ID && entry.role === "menuitemcheckbox") {
+      problems.push(
+        "menu: the Legend toggle is aria-disabled on the read-only canvas; a view-only toggle stays usable (guide §13.5)",
+      );
+    } else if (entry.segment > 0 && enabledBefore.has(key(entry))) {
+      problems.push(
+        `menu: "${entry.name}" is aria-disabled on the read-only canvas; export and help stay usable (guide §13.5)`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** What the read-only lock must keep from a shape (guide §13.5): no context pad, move, resize, delete or label editor. */
+export interface LockedShapeFacts {
+  /** Context-pad entries visible after clicking the shape. */
+  contextPadEntries: readonly string[];
+  /** The shape before and after a 40px drag (`undefined`: gone). */
+  dragged: { before: ShapeFacts; after: ShapeFacts | undefined };
+  /** Text fields inside `.djs-container` after a double-click on the shape. */
+  textFields: readonly string[];
+  /** Whether the shape is still there after Delete, then after Backspace. */
+  kept: { Delete: boolean; Backspace: boolean };
+}
+
+export function lockedShapeProblems(facts: LockedShapeFacts): string[] {
+  const problems: string[] = [];
+  const { before, after } = facts.dragged;
+  if (facts.contextPadEntries.length > 0) {
+    problems.push(
+      `read-only: selecting "${before.id}" shows the context pad (${facts.contextPadEntries.join(", ")}) (guide §13.5)`,
+    );
+  }
+  if (!after) {
+    problems.push(`read-only: a 40px drag removed "${before.id}" from the canvas (guide §13.5)`);
+  } else if (
+    after.transform !== before.transform ||
+    Math.abs(after.size.width - before.size.width) > 0.5 ||
+    Math.abs(after.size.height - before.size.height) > 0.5
+  ) {
+    problems.push(
+      `read-only: a 40px drag changed "${before.id}" (transform "${before.transform}" → "${after.transform}", ${round(before.size.width)} × ${round(before.size.height)} → ${round(after.size.width)} × ${round(after.size.height)}) (guide §13.5)`,
+    );
+  }
+  if (facts.textFields.length > 0) {
+    problems.push(
+      `read-only: a double-click on "${before.id}" opens a text field (${facts.textFields.join(", ")}) (guide §13.5)`,
+    );
+  }
+  for (const key of ["Delete", "Backspace"] as const) {
+    if (!facts.kept[key])
+      problems.push(`read-only: ${key} on the canvas deleted "${before.id}" (guide §13.5)`);
+  }
+  return problems;
 }

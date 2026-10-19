@@ -1,4 +1,4 @@
-import type { ElementFacts, ToolWindow } from "./page-tools.js";
+import type { ElementFacts, RelativeBox, ToolWindow } from "./page-tools.js";
 
 /*
  * Snapshots the cases judge in Node (`checks.ts`). Each probe runs in the page and must stay
@@ -339,4 +339,254 @@ export const paletteShortcutProbe = ({
     chip: (chip?.textContent ?? "").trim(),
     keyShortcuts: active.getAttribute("aria-keyshortcuts"),
   };
+};
+
+/** The canvas surround (guide §10.1) and the role it must show. */
+export interface SurroundFacts {
+  /** Whether the root holds a `.djs-container`. */
+  container: boolean;
+  /** The first element from `.djs-container` out to the root that paints a background colour. */
+  painted: { description: string; color: string } | null;
+  /** `--cd-ui-grund` resolved to a computed colour inside the root. */
+  grund: string;
+}
+
+export const surroundProbe = ({ root }: { root: string }): SurroundFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector<HTMLElement>(root);
+  if (!rootElement) return null;
+  const transparent = (color: string): boolean => {
+    if (color === "" || color === "transparent") return true;
+    const legacy = /^rgba\([^)]*,\s*([\d.]+)\)$/.exec(color);
+    if (legacy) return Number(legacy[1]) === 0;
+    const modern = /\/\s*([\d.]+)%?\s*\)$/.exec(color);
+    return modern ? Number(modern[1]) === 0 : false;
+  };
+  const start = rootElement.querySelector(".djs-container");
+  let painted: SurroundFacts["painted"] = null;
+  for (let node: Element | null = start; node && !painted; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    if (!transparent(color)) painted = { description: tools.describe(node), color };
+    if (node === rootElement) break;
+  }
+  const probe = document.createElement("span");
+  probe.setAttribute("data-modeler-shell-conformance", "role-probe");
+  probe.style.cssText = "position:absolute;visibility:hidden;background-color:var(--cd-ui-grund);";
+  rootElement.append(probe);
+  const grund = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return { container: start !== null, painted, grund };
+};
+
+/** One visible palette entry, as the keyboard walk and the read-only lock read it. */
+export interface PaletteEntryState {
+  action: string;
+  /** `data-group` of the enclosing `.group`; `null` outside one. */
+  group: string | null;
+  pressed: boolean;
+  disabled: boolean;
+  /** Viewport coordinates of the centre, for `page.mouse`. */
+  client: { x: number; y: number };
+}
+
+export const paletteEntriesProbe = ({ root }: { root: string }): PaletteEntryState[] => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const palette = document.querySelector(root)?.querySelector('[data-chrome="palette"]');
+  if (!palette) return [];
+  return [...palette.querySelectorAll("[data-action]")]
+    .filter((entry) => tools.visible(entry))
+    .map((entry) => {
+      const rect = entry.getBoundingClientRect();
+      return {
+        action: entry.getAttribute("data-action") ?? "",
+        group: entry.closest("[data-group]")?.getAttribute("data-group") ?? null,
+        pressed: entry.getAttribute("aria-pressed") === "true",
+        disabled: entry.getAttribute("aria-disabled") === "true",
+        client: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      };
+    });
+};
+
+/** The computed colours of one visible palette entry and of its icon. */
+export interface PaletteColorEntry extends Omit<PaletteEntryState, "client"> {
+  hovered: boolean;
+  color: string;
+  /** The entry's `<svg>`, else its `::before` when that has content; `null` for an image or a text entry. */
+  icon: { kind: "svg" | "::before"; color: string } | null;
+}
+
+export interface PaletteColorFacts {
+  /** The roles of guide §5.5 and §13.5, resolved to computed colours inside the palette. */
+  roles: { text: string; interaktion: string; textLeise: string };
+  entries: PaletteColorEntry[];
+}
+
+export const paletteColorProbe = ({ root }: { root: string }): PaletteColorFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const palette = document.querySelector(root)?.querySelector('[data-chrome="palette"]');
+  if (!palette) return null;
+  const resolve = (role: string): string => {
+    const probe = document.createElement("span");
+    probe.setAttribute("data-modeler-shell-conformance", "role-probe");
+    probe.style.cssText = `position:absolute;visibility:hidden;color:var(${role});`;
+    palette.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  };
+  const iconOf = (entry: Element): PaletteColorEntry["icon"] => {
+    const svg = entry.querySelector("svg");
+    if (svg) return { kind: "svg", color: getComputedStyle(svg).color };
+    const before = getComputedStyle(entry, "::before");
+    if (before.content && before.content !== "none" && before.content !== "normal") {
+      return { kind: "::before", color: before.color };
+    }
+    return null;
+  };
+  return {
+    roles: {
+      text: resolve("--cd-ui-text"),
+      interaktion: resolve("--cd-ui-interaktion"),
+      textLeise: resolve("--cd-ui-text-leise"),
+    },
+    entries: [...palette.querySelectorAll("[data-action]")]
+      .filter((entry) => tools.visible(entry))
+      .map((entry) => ({
+        action: entry.getAttribute("data-action") ?? "",
+        group: entry.closest("[data-group]")?.getAttribute("data-group") ?? null,
+        pressed: entry.getAttribute("aria-pressed") === "true",
+        disabled: entry.getAttribute("aria-disabled") === "true",
+        hovered: entry.matches(":hover"),
+        color: getComputedStyle(entry).color,
+        icon: iconOf(entry),
+      })),
+  };
+};
+
+/** One diagram-js shape on the canvas (`.djs-shape[data-element-id]`). */
+export interface ShapeFacts {
+  id: string;
+  /** diagram-js's selection marker on the shape's `<g>`. */
+  selected: boolean;
+  /** The `<g>`'s `transform` (its position in the diagram, unaffected by panning). */
+  transform: string;
+  /** Size of its `.djs-visual` in diagram units. */
+  size: { width: number; height: number };
+  /** Its `.djs-visual` relative to the root's padding box. */
+  box: RelativeBox;
+  /** Viewport coordinates of the centre, for `page.mouse`. */
+  client: { x: number; y: number };
+  /** Whether a pointer at the centre reaches the shape and not chrome above it. */
+  hit: boolean;
+}
+
+export const shapesProbe = ({ root }: { root: string }): ShapeFacts[] => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector<HTMLElement>(root);
+  if (!rootElement) return [];
+  return [...rootElement.querySelectorAll<SVGGraphicsElement>(".djs-container .djs-shape[data-element-id]")]
+    .filter((shape) => tools.visible(shape))
+    .map((shape) => {
+      const visual = shape.querySelector<SVGGraphicsElement>(".djs-visual") ?? shape;
+      const rect = visual.getBoundingClientRect();
+      const client = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const local = typeof visual.getBBox === "function" ? visual.getBBox() : rect;
+      const hitElement = document.elementFromPoint(client.x, client.y);
+      return {
+        id: shape.getAttribute("data-element-id") ?? "",
+        selected: shape.classList.contains("selected"),
+        transform: shape.getAttribute("transform") ?? "",
+        size: { width: local.width, height: local.height },
+        box: tools.box(visual, rootElement),
+        client,
+        hit: hitElement !== null && shape.contains(hitElement),
+      };
+    });
+};
+
+/** What the canvas offers at the moment: focus, context pad, open text fields. */
+export interface CanvasStateFacts {
+  /** The focus is inside `.djs-container` (the `<svg>` or a label editor). */
+  focusInCanvas: boolean;
+  focused: string;
+  /** Visible entries of a diagram-js context pad. */
+  contextPadEntries: string[];
+  /** Visible text fields inside `.djs-container` (a label editor), the kit's stand-ins aside. */
+  textFields: string[];
+}
+
+export const canvasStateProbe = ({ root }: { root: string }): CanvasStateFacts => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const container = document.querySelector(root)?.querySelector(".djs-container");
+  const active = document.activeElement;
+  const ours = (element: Element) => element.closest("[data-modeler-shell-conformance]") !== null;
+  const visibleIn = (selector: string) =>
+    container
+      ? [...container.querySelectorAll(selector)].filter(
+          (element) => !ours(element) && tools.visible(element),
+        )
+      : [];
+  return {
+    focusInCanvas: Boolean(container && active && container.contains(active)),
+    focused: !active || active === document.body ? "<body>" : tools.describe(active),
+    contextPadEntries: visibleIn(".djs-context-pad .entry").map(
+      (entry) => entry.getAttribute("data-action") ?? tools.describe(entry),
+    ),
+    textFields: visibleIn('input, textarea, [contenteditable]:not([contenteditable="false"])').map((field) =>
+      tools.describe(field),
+    ),
+  };
+};
+
+/** The read-only marks of the root and the status box (guide §5.12, §13.5). */
+export interface ReadOnlyStateFacts {
+  readOnly: boolean;
+  status: ElementFacts | null;
+}
+
+export const readOnlyStateProbe = ({ root }: { root: string }): ReadOnlyStateFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector(root);
+  if (!rootElement) return null;
+  const status = rootElement.querySelector('[data-chrome="status"]');
+  return { readOnly: rootElement.hasAttribute("data-readonly"), status: status ? tools.facts(status) : null };
+};
+
+/** One item of the open menu with the group it stands in, counted by the separators. */
+export interface MenuEntryFacts {
+  name: string;
+  role: string;
+  /** `data-menu-id` of the item or its radio group. */
+  menuId: string | null;
+  disabled: boolean;
+  /** 0 for the first group, +1 after each separator (the shell's Model, Export, Help). */
+  segment: number;
+}
+
+export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector(root);
+  const menu = rootElement
+    ? [...rootElement.querySelectorAll('[role="menu"]')].find((element) => tools.visible(element))
+    : undefined;
+  if (!menu) return null;
+  const entries: MenuEntryFacts[] = [];
+  let segment = 0;
+  const selector = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="separator"]';
+  for (const element of menu.querySelectorAll(selector)) {
+    const role = element.getAttribute("role") ?? "";
+    if (role === "separator") {
+      if (entries.length > 0) segment += 1;
+      continue;
+    }
+    if (!tools.visible(element)) continue;
+    entries.push({
+      name: (element.getAttribute("aria-label") ?? element.textContent ?? "").replace(/\s+/g, " ").trim(),
+      role,
+      menuId: element.closest("[data-menu-id]")?.getAttribute("data-menu-id") ?? null,
+      disabled: element.getAttribute("aria-disabled") === "true",
+      segment,
+    });
+  }
+  return entries;
 };
