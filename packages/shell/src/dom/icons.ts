@@ -8,7 +8,9 @@
 
 /*
  * The common Lucide set of the chrome (guide §5.14), inlined so the package has no icon runtime
- * dependency, copied unchanged from `icon-nodes.json`. The comment above is a legal comment, so
+ * dependency, copied unchanged from `icon-nodes.json`. One exception: `line-segment` (Draw) is
+ * Lucide's `spline` with a straight segment between its end points, because the curve read as a
+ * telephone receiver at 20px. The comment above is a legal comment, so
  * esbuild keeps it in the bundle chunk that carries this geometry.
  */
 
@@ -33,7 +35,7 @@ export type ShellIconName =
   | "triangle-alert"
   | "square-dashed-mouse-pointer"
   | "hand"
-  | "spline"
+  | "line-segment"
   | "unfold-horizontal"
   | "workflow";
 
@@ -161,10 +163,10 @@ export const ICONS: Readonly<Record<ShellIconName, IconNode>> = {
       },
     ],
   ],
-  spline: [
+  "line-segment": [
     ["circle", { cx: "19", cy: "5", r: "2" }],
     ["circle", { cx: "5", cy: "19", r: "2" }],
-    ["path", { d: "M5 17A12 12 0 0 1 17 5" }],
+    ["path", { d: "M6.5 17.5 17.5 6.5" }],
   ],
   "unfold-horizontal": [
     ["path", { d: "M16 12h6" }],

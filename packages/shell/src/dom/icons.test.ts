@@ -27,7 +27,7 @@ const COMMON_SET: readonly ShellIconName[] = [
   "triangle-alert",
   "square-dashed-mouse-pointer",
   "hand",
-  "spline",
+  "line-segment",
   "unfold-horizontal",
   "workflow",
 ];
@@ -55,6 +55,14 @@ describe("ICONS", () => {
     expect(ICONS.check).toEqual([["path", { d: "M20 6 9 17l-5-5" }]]);
     expect(ICONS["share-2"][3]).toEqual(["line", { x1: "8.59", x2: "15.42", y1: "13.51", y2: "17.49" }]);
     expect(ICONS.workflow[0]).toEqual(["rect", { width: "8", height: "8", x: "3", y: "3", rx: "2" }]);
+  });
+
+  it("draws the Draw tool as Lucide's spline end points joined by a straight segment", () => {
+    expect(ICONS["line-segment"]).toEqual([
+      ["circle", { cx: "19", cy: "5", r: "2" }],
+      ["circle", { cx: "5", cy: "19", r: "2" }],
+      ["path", { d: "M6.5 17.5 17.5 6.5" }],
+    ]);
   });
 });
 

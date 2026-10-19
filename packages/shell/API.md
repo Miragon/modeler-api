@@ -765,10 +765,10 @@ type ShellIconName =
   | "triangle-alert"
   | "square-dashed-mouse-pointer"
   | "hand"
-  | "spline"
+  | "line-segment"
   | "unfold-horizontal"
   | "workflow";
-const ICONS: Readonly<Record<ShellIconName, IconNode>>; // lucide-static 1.59.0, unchanged (ISC)
+const ICONS: Readonly<Record<ShellIconName, IconNode>>; // lucide-static 1.59.0, unchanged (ISC); line-segment = spline with a straight segment
 interface IconOptions {
   size?: number; // default 16
   strokeWidth?: number; // default 2.5
