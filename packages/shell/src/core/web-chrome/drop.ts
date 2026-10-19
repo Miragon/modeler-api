@@ -20,6 +20,28 @@ export interface DragContext {
 export type DragVerdict =
   { state: "none" } | { state: "over" } | { state: "forbidden"; reason: DropForbiddenReason };
 
+interface AcceptEntries {
+  extensions: readonly string[];
+  mimeTypes: readonly string[];
+}
+
+/** `<input accept>` tokens: trimmed, lower case, blanks dropped; "." starts an extension, "/" marks a MIME type. */
+function acceptEntries(accept: readonly string[]): AcceptEntries {
+  const entries = accept.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry !== "");
+  return {
+    extensions: entries.filter((entry) => entry.startsWith(".")),
+    mimeTypes: entries.filter((entry) => !entry.startsWith(".") && entry.includes("/")),
+  };
+}
+
+function matchesMimeType(type: string, mimeTypes: readonly string[]): boolean {
+  const normalized = type.trim().toLowerCase();
+  if (normalized === "") return false;
+  return mimeTypes.some((entry) =>
+    entry.endsWith("/*") ? normalized.startsWith(entry.slice(0, -1)) : normalized === entry,
+  );
+}
+
 /**
  * The drop zone's state for a drag (guide §9, Drag-over and Drop forbidden):
  *
@@ -32,9 +54,15 @@ export type DragVerdict =
  * - `over` otherwise.
  */
 export function dragVerdict(items: readonly DragItemLike[], context: DragContext): DragVerdict {
-  // TODO(web-chrome): the forbidden reasons above, in this order.
-  void context;
-  return items.some((item) => item.kind === "file") ? { state: "over" } : { state: "none" };
+  const files = items.filter((item) => item.kind === "file");
+  if (files.length === 0) return { state: "none" };
+  if (context.dialogOpen) return { state: "forbidden", reason: "dialog" };
+  if (files.length > 1 && !context.multiple) return { state: "forbidden", reason: "multiple" };
+  const { mimeTypes } = acceptEntries(context.accept);
+  const foreignType = (item: DragItemLike) =>
+    item.type.trim() !== "" && !matchesMimeType(item.type, mimeTypes);
+  if (mimeTypes.length > 0 && files.every(foreignType)) return { state: "forbidden", reason: "type" };
+  return { state: "over" };
 }
 
 /**
@@ -43,8 +71,8 @@ export function dragVerdict(items: readonly DragItemLike[], context: DragContext
  * empty `accept` matches every file.
  */
 export function acceptsFile(file: { name: string; type: string }, accept: readonly string[]): boolean {
-  // TODO(web-chrome): extension and MIME matching above.
-  void file;
-  void accept;
-  return true;
+  const { extensions, mimeTypes } = acceptEntries(accept);
+  if (extensions.length === 0 && mimeTypes.length === 0) return true;
+  const name = file.name.toLowerCase();
+  return extensions.some((extension) => name.endsWith(extension)) || matchesMimeType(file.type, mimeTypes);
 }

@@ -1,4 +1,4 @@
-import { decidePaletteRow } from "../layout.js";
+import { PALETTE_CLEARANCE, decidePaletteRow } from "../layout.js";
 import { SHELL } from "../sizes.js";
 import type { PaletteRow } from "../types.js";
 
@@ -42,12 +42,25 @@ export interface TopRow {
  * Up to `SHELL.narrow` the palette is always in the second row (step 4).
  */
 export function decideTopRow(input: TopRowInput): TopRow {
-  // TODO(web-chrome): steps 2 to 4; until then the label always shows and decidePaletteRow
-  // sees the labelled width, which is the right answer whenever the top row has room.
   const { containerWidth, paletteWidth, menuRight, primary } = input;
-  const primaryLeft = primary ? containerWidth - SHELL.edge - primary.withLabel : undefined;
+  if (!primary) {
+    return {
+      paletteRow: decidePaletteRow({ containerWidth, paletteWidth, menuRight }),
+      primaryLabel: "shown",
+    };
+  }
+  const paletteRowBeside = (primaryWidth: number): PaletteRow =>
+    decidePaletteRow({
+      containerWidth,
+      paletteWidth,
+      menuRight,
+      primaryLeft: containerWidth - SHELL.edge - primaryWidth,
+    });
+  if (paletteRowBeside(primary.withLabel) === "top") return { paletteRow: "top", primaryLabel: "shown" };
+  if (paletteRowBeside(primary.iconOnly) === "top") return { paletteRow: "top", primaryLabel: "collapsed" };
+  const labelledLeft = containerWidth - SHELL.edge - primary.withLabel;
   return {
-    paletteRow: decidePaletteRow({ containerWidth, paletteWidth, menuRight, primaryLeft }),
-    primaryLabel: "shown",
+    paletteRow: "second-row",
+    primaryLabel: menuRight + PALETTE_CLEARANCE <= labelledLeft ? "shown" : "collapsed",
   };
 }

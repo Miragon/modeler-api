@@ -1,3 +1,5 @@
+import { SHELL } from "../sizes.js";
+
 export interface BottomRowInput {
   containerWidth: number;
   /** Measured right edge of the legal line relative to the shell root; absent while it is not shown. */
@@ -15,7 +17,8 @@ export interface BottomRowInput {
  * False when either of the two is not shown.
  */
 export function zoomRowRaised(input: BottomRowInput): boolean {
-  // TODO(web-chrome): legalRight + SHELL.gap > containerWidth − SHELL.edge − zoomWidth.
-  void input;
-  return false;
+  const { containerWidth, legalRight, zoomWidth } = input;
+  if (legalRight === undefined || zoomWidth === undefined) return false;
+  const zoomLeft = containerWidth - SHELL.edge - zoomWidth;
+  return legalRight + SHELL.gap > zoomLeft;
 }
