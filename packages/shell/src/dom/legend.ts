@@ -1,18 +1,13 @@
 import type { ShellMessages } from "../core/index.js";
-import { createElement, toggleAttribute } from "./element.js";
+import { createElement } from "./element.js";
 import { iconElement } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
-import type { LegendHandle, LegendOptions, PaletteReadOnlyState } from "./types.js";
+import type { LegendHandle, LegendOptions } from "./types.js";
 
 export interface LegendController extends LegendHandle {
   /** The start state once the container height is known; never reported through `onToggle`. */
   start(open: boolean): void;
   isStarted(): boolean;
-  /**
-   * Read-only canvas: the menu's Legend checkbox is disabled (guide §13.5), so the close button
-   * must not close a legend nobody could reopen. `locked` ignores its clicks, `shown` marks it.
-   */
-  setReadOnly(state: PaletteReadOnlyState): void;
   destroy(): void;
 }
 
@@ -54,7 +49,6 @@ export function createLegend(context: LegendContext): LegendController {
 
   let open = false;
   let started = false;
-  let locked = false;
   const detachTooltip = tooltip.attach(close, { label: messages.closeLegend });
 
   function apply(next: boolean): boolean {
@@ -71,9 +65,7 @@ export function createLegend(context: LegendContext): LegendController {
     if (apply(next)) options.onToggle?.(next);
   }
 
-  close.addEventListener("click", () => {
-    if (!locked) setOpen(false);
-  });
+  close.addEventListener("click", () => setOpen(false));
 
   return {
     element,
@@ -85,10 +77,6 @@ export function createLegend(context: LegendContext): LegendController {
       if (!started) apply(initial);
     },
     isStarted: () => started,
-    setReadOnly(state) {
-      locked = state.locked;
-      toggleAttribute(close, "aria-disabled", state.locked && state.shown && "true");
-    },
     destroy() {
       detachTooltip();
       element.remove();

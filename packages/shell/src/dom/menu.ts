@@ -79,8 +79,8 @@ export function createMenu(context: MenuContext): MenuController {
     if (trigger.hidden) close();
   }
 
-  // Guide §13.5: on a read-only canvas every Model entry is aria-disabled, the Legend toggle too;
-  // an entry that is pure view state may opt out.
+  // Guide §13.5: on a read-only canvas the Model entries that change the document are aria-disabled.
+  // View-only toggles (the shell's Legend, a modeler's Type captions) opt out and stay usable.
   function isDisabled(entry: MenuEntry, group: GroupName): boolean {
     if (group === "model" && context.isReadOnly() && entry.keepEnabledWhenReadOnly !== true) return true;
     return entry.disabled?.() ?? false;

@@ -148,6 +148,7 @@ function renderShell(
           label: messages.legend,
           checked: () => legend.isOpen(),
           onToggle: (checked) => legend.setOpen(checked),
+          keepEnabledWhenReadOnly: true,
         }
       : undefined;
   const shellModelEntries: readonly MenuCheckboxEntry[] = legendEntry ? [legendEntry] : [];
@@ -299,7 +300,6 @@ function renderShell(
   function applyReadOnly(): void {
     setState("data-readonly", readOnlyShown ? "" : null);
     palette?.registration.setReadOnly(readOnlyState());
-    legend?.setReadOnly(readOnlyState());
     menu.refresh();
   }
 

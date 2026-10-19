@@ -347,12 +347,21 @@ describe("menu: activation", () => {
     expect(document.activeElement).toBe(item());
   });
 
-  it("read-only disables every Model entry including the Legend toggle, the rest stay", () => {
+  it("read-only disables the Model entries but keeps the Legend toggle, Export and Help enabled", () => {
     const { shell } = mount({ menu: groups(), legend: { render() {}, open: true } });
     shell.setReadOnly(true);
     shell.menu.open();
     const disabled = items(shell.menu.dropdown).map((item) => item.getAttribute("aria-disabled") === "true");
-    expect(disabled).toEqual([true, true, true, true, false, false, false]);
+    expect(labels(shell.menu.dropdown)).toEqual([
+      "Big picture",
+      "Process modelling",
+      "Type captions",
+      "Legend",
+      "Export as PNG",
+      "Export as SVG",
+      "Keyboard shortcuts…",
+    ]);
+    expect(disabled).toEqual([true, true, true, false, false, false, false]);
     shell.setReadOnly(false);
     expect(items(shell.menu.dropdown).some((item) => item.hasAttribute("aria-disabled"))).toBe(false);
   });

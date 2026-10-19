@@ -68,8 +68,9 @@ interface MenuItemBase {
   /** Read whenever the menu opens or `refresh()` runs; disabled entries stay focusable. */
   disabled?: (() => boolean) | undefined;
   /**
-   * A Model entry that stays enabled on a read-only canvas (pure view state that never touches the
-   * document). Default `false`: guide §13.5 disables every Model entry.
+   * A Model entry that stays enabled on a read-only canvas: a view-only toggle that never touches
+   * the document (Legend, Type captions). Default `false`: the entry is aria-disabled while the
+   * canvas is read-only (guide §13.5). The shell's own Legend checkbox sets it.
    */
   keepEnabledWhenReadOnly?: boolean | undefined;
 }
@@ -184,7 +185,8 @@ export interface ShellHandle {
   setEmptyHint(visible: boolean): void;
   /**
    * Read-only canvas (invalid file, guide §13.5). `true` locks at once: `isReadOnly()`, the palette
-   * veto (every entry but Lasso and Hand) and the Model entries of the menu. `data-readonly` and the
+   * veto (every entry but Lasso and Hand) and the Model entries of the menu without
+   * `keepEnabledWhenReadOnly`; the legend and its Legend checkbox stay usable. `data-readonly` and the
    * `aria-disabled` palette entries show after `delayMs` (default 0; an invalid file passes
    * `INVALID_STATUS_DELAY_MS`, as for `setStatus`), so typing in the text editor does not flicker.
    * Repeated calls while the delay runs keep the first timer; `false` unlocks and hides at once.

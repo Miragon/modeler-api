@@ -712,13 +712,6 @@ html.cd-shell-document kbd {
   background: var(--cd-ui-hover);
 }
 
-.cd-shell-legend-close[aria-disabled="true"],
-.cd-shell-legend-close[aria-disabled="true"]:hover {
-  color: var(--cd-ui-text-leise);
-  background: transparent;
-  cursor: not-allowed;
-}
-
 .cd-shell-legend-body {
   display: flex;
   flex-direction: column;
@@ -913,7 +906,7 @@ html.cd-shell-no-transition *::after {
     outline-color: Highlight;
   }
 
-  .cd-shell :is(.cd-shell-target, .cd-shell-menu-item, .cd-shell-legend-close)[aria-disabled="true"] {
+  .cd-shell :is(.cd-shell-target, .cd-shell-menu-item)[aria-disabled="true"] {
     color: GrayText;
   }
 }

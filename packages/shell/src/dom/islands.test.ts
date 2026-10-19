@@ -167,22 +167,25 @@ describe("legend (guide §5.10)", () => {
   });
 });
 
-describe("legend on a read-only canvas (guide §13.5)", () => {
-  it("cannot be closed from its card while the Legend checkbox is locked, and marks it with the delay", () => {
+describe("legend on a read-only canvas (view-only, stays usable)", () => {
+  it("closes from its card and reopens from the menu checkbox, never aria-disabled", () => {
     vi.useFakeTimers();
-    const { shell, root } = mount({ legend: { render() {}, open: true } });
+    const onToggle = vi.fn();
+    const { shell, root } = mount({ legend: { render() {}, open: true, onToggle } });
     const close = chrome(root, "legend").querySelector<HTMLButtonElement>(".cd-shell-legend-close");
     shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
-    expect(close?.hasAttribute("aria-disabled")).toBe(false);
-    close?.click();
-    expect(shell.legend?.isOpen()).toBe(true);
     vi.advanceTimersByTime(INVALID_STATUS_DELAY_MS);
-    expect(close?.getAttribute("aria-disabled")).toBe("true");
-
-    shell.setReadOnly(false);
+    expect(root.hasAttribute("data-readonly")).toBe(true);
     expect(close?.hasAttribute("aria-disabled")).toBe(false);
     close?.click();
     expect(shell.legend?.isOpen()).toBe(false);
+
+    shell.menu.open();
+    const checkbox = shell.menu.dropdown.querySelector<HTMLElement>('[data-menu-id="legend"]');
+    expect(checkbox?.hasAttribute("aria-disabled")).toBe(false);
+    checkbox?.click();
+    expect(shell.legend?.isOpen()).toBe(true);
+    expect(onToggle.mock.calls).toEqual([[false], [true]]);
   });
 });
 
