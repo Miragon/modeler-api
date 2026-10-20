@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.2.1...renderer-v0.3.0) (2026-10-19)
+
+
+### Features
+
+* run Context Maps on @miragon/modeler-api and @miragon/modeler-shell in VS Code and the web app ([#64](https://github.com/Miragon/context-maps-modeler/issues/64)) ([be9a0e3](https://github.com/Miragon/context-maps-modeler/commit/be9a0e3616600712fa68aebefaaf6695df2159b3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-schema-model bumped from 0.2.1 to 0.3.0
+
 ## [0.2.1](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.2.0...renderer-v0.2.1) (2026-09-22)
 
 

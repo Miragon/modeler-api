@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.6.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.5.0...vscode-v0.6.0) (2026-10-19)
+
+
+### Features
+
+* run Context Maps on @miragon/modeler-api and @miragon/modeler-shell in VS Code and the web app ([#64](https://github.com/Miragon/context-maps-modeler/issues/64)) ([be9a0e3](https://github.com/Miragon/context-maps-modeler/commit/be9a0e3616600712fa68aebefaaf6695df2159b3))
+
+
+### Bug Fixes
+
+* **vscode:** keep the webview chrome light in dark VS Code themes ([#61](https://github.com/Miragon/context-maps-modeler/issues/61)) ([63dd5f1](https://github.com/Miragon/context-maps-modeler/commit/63dd5f16ec536ca6d201b72cb3aa990d056b13b6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-cml bumped from 0.1.3 to 0.1.4
+    * @miragon/context-maps-renderer bumped from 0.2.1 to 0.3.0
+    * @miragon/context-maps-schema-model bumped from 0.2.1 to 0.3.0
+
 ## [0.5.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.4.0...vscode-v0.5.0) (2026-10-10)
 
 
