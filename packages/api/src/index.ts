@@ -270,19 +270,23 @@ export type FreeArea =
   | { center: () => DiagramPoint | undefined; insets?: never };
 
 /**
- * The options every renderer's contract factory takes under THESE names
- * (1.2), so a host feeds every notation the same object instead of one
- * spelling per renderer. A renderer extends the type with its own options
- * (diagram-js `additionalModules`); the contract fixes names, meaning and
- * defaults. A viewer factory takes the same type and ignores what has no
- * meaning without editing (`undoRedoKeys`).
+ * The options a renderer's contract factory takes under THESE names once it
+ * implements contract 1.2, so a host feeds every notation the same object
+ * instead of one spelling per renderer. A renderer extends the type with its
+ * own options (diagram-js `additionalModules`); the contract fixes names,
+ * meaning and defaults. A viewer factory takes the same type and ignores
+ * what has no meaning without editing (`undoRedoKeys`).
  *
- * The names renderers shipped before 1.2 stay accepted as DEPRECATED
- * aliases for one minor release of each renderer, then go:
- * `freeRectInsets` (Wardley, Event Storming, Context Maps) is
- * `freeArea: { insets }`, `freeRectCenter` (Team Topologies, Value Chain) is
- * `freeArea: { center }`, and Wardley's `keyboard: { undoRedo }` is
- * `undoRedoKeys`. Given both, the aligned name wins.
+ * Each renderer adopts them in its own release, as part of its move to 1.2:
+ * `meta.apiVersion` follows the pinned package and no kit case checks the
+ * options, so the version alone does not tell a host they are honoured.
+ * Until a renderer ships them, a host passes the renderer's own names, or
+ * both. Those names then stay accepted as DEPRECATED aliases for one minor
+ * release of that renderer, then go: `freeRectInsets` (Wardley, Event
+ * Storming, Context Maps) is `freeArea: { insets }`, `freeRectCenter` (Team
+ * Topologies, Value Chain) is `freeArea: { center }`, and Wardley's
+ * `keyboard: { undoRedo }` is `undoRedoKeys`. Given both, the aligned name
+ * wins.
  */
 export interface CollaborativeModelerOptions {
   /** where the host's chrome leaves the canvas free; default: the whole container */

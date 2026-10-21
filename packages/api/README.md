@@ -100,11 +100,16 @@ would have written without the view change.
 
 ## Factory options
 
-Since 1.2 every renderer's contract factory (`createCollaborativeModeler`,
-`createCollaborativeViewer`) takes the options a host has to feed it under
-the same names, `CollaborativeModelerOptions`, so a host passes every
-notation one object. A renderer adds its own next to them (diagram-js
-`additionalModules`).
+`CollaborativeModelerOptions` (1.2) names the options a host has to feed a
+renderer's contract factory (`createCollaborativeModeler`,
+`createCollaborativeViewer`), the same for every notation, so a host can pass
+every notation one object. The contract defines them; each renderer adopts
+them in its own release, next to its own options (diagram-js
+`additionalModules`). Adopting them is part of moving a renderer to contract
+1.2: `meta.apiVersion` follows the `@miragon/modeler-api` version the renderer
+pins, and no kit case checks the options (the harness's `create()` builds the
+instance), so a renderer that reports 1.2.0 without them silently ignores a
+host's aligned options.
 
 | Option         | Meaning                                                                                                                                                                                                                                                           | Default             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
@@ -122,15 +127,17 @@ const options: CollaborativeModelerOptions = {
 };
 ```
 
-The names the renderers shipped before 1.2 stay accepted as DEPRECATED
-aliases for one minor release of each renderer, then go: `freeRectInsets`
+Until a renderer ships the aligned names, a host keeps passing that
+renderer's own names, or passes both: a renderer that accepts the aligned
+names takes them over its own. Its own names then stay accepted as DEPRECATED
+aliases for one minor release of that renderer, then go: `freeRectInsets`
 (Wardley, Event Storming, Context Maps) is `freeArea: { insets }`,
 `freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
-Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. Given both, the aligned
-name wins. A renderer given only `center` that needs the rectangle itself (a
-pan constraint) treats the whole container as free. A viewer factory takes the
-same type and ignores `undoRedoKeys`. The kit's `create()` keeps `fitOnImport`
-at its default: L5 checks the modeler's own fit.
+Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. A renderer given only
+`center` that needs the rectangle itself (a pan constraint) treats the whole
+container as free. A viewer factory takes the same type and ignores
+`undoRedoKeys`. The kit's `create()` keeps `fitOnImport` at its default: L5
+checks the modeler's own fit.
 
 ## The conformance kit
 
