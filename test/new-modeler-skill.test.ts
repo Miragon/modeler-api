@@ -78,11 +78,17 @@ const TEMPLATE_TOKENS = join(TEMPLATE, "packages/renderer/src/theme/cd-tokens.ge
 const VENDORED_TOKENS = join(ROOT, "packages/shell/fixtures/tokens/cd-tokens.generated.json");
 
 /**
- * Build-tool configs are left out: they import the template's own tooling (vite-plugin-dts,
- * @vitest/browser-playwright), which this workspace does not install.
+ * Template files that import tooling this workspace does not install, with that tooling; the
+ * template's own `npm run lint` checks them. Every other TypeScript file of the template is checked
+ * here, the build configs included (the web app's Vite config calls the shell's `webHeadMarkup`).
  */
+const NOT_TYPE_CHECKED_HERE = new Map([
+  ["packages/renderer/vite.config.ts", "vite-plugin-dts"],
+  ["vitest.config.ts", "@vitest/browser-playwright"],
+]);
+const fromTemplate = (path: string): string => relative(TEMPLATE, path).split(sep).join("/");
 const typeCheckedTemplateFiles = templateFiles.filter(
-  (file) => file.endsWith(".ts") && !/\.config\.ts$/.test(file),
+  (file) => file.endsWith(".ts") && !NOT_TYPE_CHECKED_HERE.has(fromTemplate(file)),
 );
 
 function templateProgram(): ts.Program {
@@ -98,6 +104,8 @@ function templateProgram(): ts.Program {
   const { options, errors } = ts.convertCompilerOptionsFromJson(
     {
       ...base.compilerOptions,
+      // the web app's Vite config imports `./src/themes.ts`, as its tsconfig.config.json allows
+      allowImportingTsExtensions: true,
       lib: ["ES2022", "DOM", "DOM.Iterable"],
       types: ["node", "vscode"],
       noEmit: true,
@@ -127,6 +135,8 @@ interface ApiIndex {
   allExports: Set<string>;
   /** every property and method name of the exported types and values, nested ones included */
   members: Set<string>;
+  /** property name → the member names of its object type (`legend` → `render`, `open`, `onToggle`) */
+  shapes: Map<string, Set<string>>;
 }
 
 let cachedIndex: ApiIndex | undefined;
@@ -136,6 +146,7 @@ function apiIndex(): ApiIndex {
   const checker = program().getTypeChecker();
   const exports = new Map<string, Set<string>>();
   const members = new Set<string>();
+  const shapes = new Map<string, Set<string>>();
   const visited = new Set<ts.Type>();
   const fromWorkspace = (type: ts.Type) =>
     (type.getSymbol() ?? type.aliasSymbol)?.declarations?.some((declaration) =>
@@ -164,7 +175,17 @@ function apiIndex(): ApiIndex {
       for (const property of part.getProperties()) {
         members.add(property.getName());
         const declaration = property.valueDeclaration ?? property.declarations?.[0];
-        if (declaration) collect(checker.getTypeOfSymbolAtLocation(property, declaration), depth + 1);
+        if (!declaration) continue;
+        const propertyType = checker.getTypeOfSymbolAtLocation(property, declaration);
+        const objectParts = (propertyType.isUnion() ? propertyType.types : [propertyType]).filter(
+          (candidate) => fromWorkspace(candidate) && candidate.getCallSignatures().length === 0,
+        );
+        for (const objectPart of objectParts) {
+          const shape = shapes.get(property.getName()) ?? new Set<string>();
+          for (const member of objectPart.getProperties()) shape.add(member.getName());
+          if (shape.size > 0) shapes.set(property.getName(), shape);
+        }
+        collect(propertyType, depth + 1);
       }
     }
   };
@@ -189,6 +210,7 @@ function apiIndex(): ApiIndex {
     exports,
     allExports: new Set([...exports.values()].flatMap((names) => [...names])),
     members,
+    shapes,
   };
   return cachedIndex;
 }
@@ -691,6 +713,25 @@ function namesIn(span: string): string[] {
   );
 }
 
+/** The keys of an object literal's body without nested braces: `render, open: true, onToggle()`. */
+function objectLiteralKeys(body: string): string[] {
+  const entries: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const character of body) {
+    if (character === "(" || character === "[") depth++;
+    if (character === ")" || character === "]") depth--;
+    if (character === "," && depth === 0) {
+      entries.push(current);
+      current = "";
+    } else current += character;
+  }
+  entries.push(current);
+  return entries
+    .map((entry) => /^\s*([A-Za-z_$][\w$]*)\s*(?::|\(|$)/.exec(entry)?.[1])
+    .filter((key): key is string => key !== undefined);
+}
+
 describe("the API names the skill mentions", () => {
   it("are imported in code blocks only from the entry point that exports them", () => {
     const { exports } = apiIndex();
@@ -741,6 +782,23 @@ describe("the API names the skill mentions", () => {
     }
     expect(unknown).toEqual([]);
   });
+
+  it("name in an `option: { … }` span only members of that option (`legend: { render, open, onToggle }`)", () => {
+    const { shapes } = apiIndex();
+    const misplaced: string[] = [];
+    for (const file of skillDocuments) {
+      const prose = readText(file).replace(FENCE, "");
+      for (const [, raw] of prose.matchAll(/`([^`\n]+)`/g)) {
+        for (const [shape, owner, body] of raw!.matchAll(/([A-Za-z_$][\w$]*)\s*:\s*\{([^{}]*)\}/g)) {
+          const known = shapes.get(owner!);
+          for (const key of objectLiteralKeys(body!)) {
+            if (!known?.has(key)) misplaced.push(`${fromRoot(file)}: ${key} in \`${shape}\``);
+          }
+        }
+      }
+    }
+    expect(misplaced).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -749,6 +807,9 @@ describe("the API names the skill mentions", () => {
 
 describe("the template's TypeScript", () => {
   it("type-checks against the current @miragon/modeler-api and @miragon/modeler-shell sources", () => {
+    expect(
+      [...NOT_TYPE_CHECKED_HERE.keys()].filter((file) => !templateFiles.includes(join(TEMPLATE, file))),
+    ).toEqual([]);
     const checked = program();
     const files = typeCheckedTemplateFiles.map((file) => checked.getSourceFile(file)!);
     const diagnostics = [

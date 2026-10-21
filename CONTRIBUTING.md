@@ -105,9 +105,11 @@ a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `
   or left unfilled, when the plugin or marketplace manifest is invalid or sets a `version`,
   when a link of the plugin does not resolve (its links to this repository on GitHub are checked
   against this checkout), when the skill names an identifier that neither package exports (foreign
-  names are listed in the test, each with its origin), and when the template's TypeScript does not
-  type-check against the packages' current sources. `zod` is a root devDependency for that last
-  check only (the template's schema model uses it).
+  names are listed in the test, each with its origin) or, in an `option: { … }` span, a member that
+  option does not have, and when the template's TypeScript, its build configs included, does not
+  type-check against the packages' current sources (only the two configs that import tooling this
+  workspace does not install are left to the template's own lint). `zod` is a root devDependency
+  for that last check only (the template's schema model uses it).
 - **The template itself** builds and passes both conformance kits once instantiated: run the script
   into an empty directory outside this repository, copy the design-system files in (see the
   skill), then `npm install` and the template's checks. `claude plugin validate .` checks the
