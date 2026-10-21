@@ -1,7 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 
 /** One read of the file between two `stat` calls. */
-interface FileSample {
+export interface FileSample {
   text: string;
   size: number;
   mtimeMs: number;
@@ -20,6 +20,8 @@ export interface SavedTextOptions<T> {
   intervalMs?: number | undefined;
   /** How long a text the parser rejects has to stay unchanged before it counts as the saved one; default 1 s. */
   settleMs?: number | undefined;
+  /** One read of `file`; the default reads it from disk between two `stat` calls. Tests pass their own. */
+  readSample?: ((file: string) => Promise<FileSample | undefined>) | undefined;
 }
 
 /**
@@ -88,8 +90,9 @@ export async function waitForSavedText<T>(options: SavedTextOptions<T>): Promise
   let changed = false;
   let latest: FileSample | undefined;
   let rejected: { text: string; error: unknown; since: number } | undefined;
+  const readSample = options.readSample ?? sampleFile;
   for (;;) {
-    const sample = await sampleFile(options.file);
+    const sample = await readSample(options.file);
     if (sample && sample.text !== options.previous) changed = true;
     const now = performance.now();
     if (sameSample(sample, latest) && sample.text !== options.previous) {

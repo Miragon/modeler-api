@@ -178,26 +178,23 @@ describe("waitForSavedText", () => {
   });
 
   it("reports a file that never holds still as unsettled", async () => {
-    const file = await fixtureFile(PREVIOUS);
-    let writing = true;
-    const keepWriting = async () => {
-      for (let index = 0; writing; index++) {
-        await writeFile(file, `${SAVED}${" ".repeat(index)}`);
-        await delay(2);
-      }
-    };
-    const writer = keepWriting();
+    // every read sees a newer write, whatever the runner's timing: no two reads ever match
+    let writes = 0;
     const outcome = await waitForSavedText({
-      file,
+      file: "board.json",
       previous: PREVIOUS,
       parse: () => 1,
-      intervalMs: 40,
-      settleMs: 400,
-      timeoutMs: 400,
+      intervalMs: 1,
+      settleMs: 50,
+      timeoutMs: 50,
+      readSample: async () => {
+        writes++;
+        const text = `${SAVED}${" ".repeat(writes)}`;
+        return { text, size: text.length, mtimeMs: writes, consistent: true };
+      },
     });
-    writing = false;
-    await writer;
     expect(outcome.status).toBe("unsettled");
+    expect(writes).toBeGreaterThan(1);
   });
 });
 
