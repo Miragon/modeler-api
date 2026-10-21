@@ -37,6 +37,8 @@ const KEYBOARD_CREATE_OFFSET = 24;
 
 export interface CmPaletteConfig {
   freeRectInsets?: (() => FreeRectInsets) | undefined;
+  /** The free rectangle's centre in diagram coordinates, when the host knows it better. */
+  freeRectCenter?: (() => Point | undefined) | undefined;
 }
 
 function entryHtml(icon: string, draggable: boolean): string {
@@ -123,7 +125,8 @@ export default class CmPaletteProvider implements PaletteProvider {
    */
   private placeInFreeRect(shape: CmContext): void {
     if (this.readOnly.isReadOnly()) return;
-    const centre = this.freeRectCentre();
+    const named = this.config?.freeRectCenter?.();
+    const centre = named ? { x: named.x, y: named.y } : this.freeRectCentre();
     const taken = (point: Point): boolean =>
       this.elementRegistry
         .filter((element) => isCmContext(element))

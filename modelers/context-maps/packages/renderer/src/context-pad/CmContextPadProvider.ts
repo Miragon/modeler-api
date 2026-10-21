@@ -106,6 +106,24 @@ function padEntryHtml(
   return `<div class="entry cm-pad-entry${danger}"${draggable} title="${label}" aria-label="${label}">${icon}</div>`;
 }
 
+/**
+ * Beside the pad entry that opened the card, kept on screen when the entry sits at a viewport
+ * edge: no room on the right → flip to the entry's left, bottom → shift up.
+ */
+function placePromptBeside(card: HTMLElement, anchor: HTMLElement): void {
+  const bounds = anchor.getBoundingClientRect();
+  card.style.left = `${bounds.right + MENU_GAP}px`;
+  card.style.top = `${bounds.top}px`;
+  const cardBounds = card.getBoundingClientRect();
+  const margin = 8;
+  if (cardBounds.right > window.innerWidth - margin) {
+    card.style.left = `${Math.max(margin, bounds.left - cardBounds.width - MENU_GAP)}px`;
+  }
+  if (cardBounds.bottom > window.innerHeight - margin) {
+    card.style.top = `${Math.max(margin, window.innerHeight - margin - cardBounds.height)}px`;
+  }
+}
+
 export default class CmContextPadProvider implements ContextPadProvider {
   static $inject = [
     "contextPad",
@@ -509,12 +527,9 @@ export default class CmContextPadProvider implements ContextPadProvider {
     this.activePrompt?.cancel();
     const anchor = ((event as { delegateTarget?: EventTarget }).delegateTarget ??
       event.target) as HTMLElement;
-    const bounds = anchor.getBoundingClientRect();
 
     const card = document.createElement("div");
     card.className = "cm-pad-prompt";
-    card.style.left = `${bounds.right + MENU_GAP}px`;
-    card.style.top = `${bounds.top}px`;
 
     const field = document.createElement(config.multiline ? "textarea" : "input") as
       HTMLInputElement | HTMLTextAreaElement;
@@ -533,16 +548,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
     }
 
     this.canvas.getContainer().appendChild(card);
-    // Keep the card on screen when the pad entry sits at a viewport edge:
-    // no room on the right → flip to the entry's left, bottom → shift up.
-    const cardBounds = card.getBoundingClientRect();
-    const margin = 8;
-    if (cardBounds.right > window.innerWidth - margin) {
-      card.style.left = `${Math.max(margin, bounds.left - cardBounds.width - MENU_GAP)}px`;
-    }
-    if (cardBounds.bottom > window.innerHeight - margin) {
-      card.style.top = `${Math.max(margin, window.innerHeight - margin - cardBounds.height)}px`;
-    }
+    placePromptBeside(card, anchor);
     field.focus();
     if (field instanceof HTMLTextAreaElement) {
       // Select-all in a filled textarea makes the first keystroke wipe the
@@ -552,16 +558,22 @@ export default class CmContextPadProvider implements ContextPadProvider {
       field.select();
     }
 
-    // The card is viewport-anchored — commit before the canvas moves away
-    // underneath it (mirrors the direct-editing guard).
-    const onViewboxChanging = (): void => commit();
-    this.eventBus.on("canvas.viewbox.changing", onViewboxChanging);
+    // A pan or zoom moves the pad, also one the host makes (setViewState, a fit): the card follows
+    // its entry and keeps the typed text instead of committing it (mirrors the label editor).
+    // After the pad's own position update and clamp, which are scheduled at a higher priority.
+    const followPad = (): void => {
+      void this.scheduler.schedule(() => {
+        if (anchor.isConnected) placePromptBeside(card, anchor);
+      }, "cmContextPad#placePrompt");
+    };
+    this.eventBus.on("canvas.viewbox.changed", 200, followPad);
 
     let done = false;
     const cleanup = (): void => {
       if (done) return;
       done = true;
-      this.eventBus.off("canvas.viewbox.changing", onViewboxChanging);
+      this.eventBus.off("canvas.viewbox.changed", followPad);
+      this.scheduler.cancel("cmContextPad#placePrompt");
       card.remove();
       this.activePrompt = undefined;
       (this.canvas as { restoreFocus?: () => void }).restoreFocus?.();

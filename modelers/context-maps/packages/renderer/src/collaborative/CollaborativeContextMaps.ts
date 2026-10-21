@@ -1,6 +1,8 @@
 import {
   MODELER_API_VERSION,
   type CollaborativeModeler,
+  type CollaborativeModelerOptions,
+  type ElementBounds,
   type ElementInfo,
   type ElementsSurface,
   type ImportResult,
@@ -12,6 +14,7 @@ import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type Selection from "diagram-js/lib/features/selection/Selection";
 import type { Element } from "diagram-js/lib/model/Types";
+import { getBBox } from "diagram-js/lib/util/Elements";
 import type { CmViewerOptions, FreeRectInsets } from "../CmBaseViewer.js";
 import { Modeler } from "../Modeler.js";
 import { NavigatedViewer } from "../NavigatedViewer.js";
@@ -20,18 +23,20 @@ import { isCmElement, type CmElement } from "../model/di-types.js";
 /** Stable notation id in `meta.notation` of the collaborative-modeler contract. */
 export const CONTEXT_MAPS_NOTATION = "context-maps";
 
-export interface CollaborativeContextMapsOptions {
+/**
+ * The contract's factory options (`freeArea`, `fitOnImport`, `undoRedoKeys`, see
+ * `CmViewerOptions`) and the renderer's own. The viewer ignores `undoRedoKeys`.
+ */
+export interface CollaborativeContextMapsOptions extends CollaborativeModelerOptions {
   /** Appended to the renderer's own modules (e.g. a host's chrome module). */
   additionalModules?: ModuleDeclaration[] | undefined;
-  /** See `CmViewerOptions.undoRedoKeys` (default true). */
-  undoRedoKeys?: boolean | undefined;
-  /** See `CmViewerOptions.freeRectInsets`. */
+  /** @deprecated Use `freeArea: { insets }`; accepted through the 0.4 releases, ignored next to it. */
   freeRectInsets?: (() => FreeRectInsets) | undefined;
 }
 
 /** The contract surface plus the wrapped diagram for host-specific wiring. */
 export interface CollaborativeContextMapsModeler extends CollaborativeModeler {
-  readonly elements: ElementsSurface;
+  readonly elements: ElementsSurface & { bounds(id: string): ElementBounds | undefined };
   readonly diagram: Modeler | NavigatedViewer;
 }
 
@@ -50,32 +55,27 @@ export function createCollaborativeModeler(
   options: CollaborativeContextMapsOptions = {},
 ): CollaborativeContextMapsModeler {
   return collaborative(
-    new Modeler({
-      ...diagramOptions(options),
-      undoRedoKeys: options.undoRedoKeys ?? true,
-      freeRectInsets: options.freeRectInsets,
-    }),
+    new Modeler({ ...diagramOptions(options), undoRedoKeys: options.undoRedoKeys ?? true }),
     true,
   );
 }
 
 /** The read-only mount (`meta.editable: false`): imports, exports and reveals, never edits. */
 export function createCollaborativeViewer(
-  options: Omit<CollaborativeContextMapsOptions, "undoRedoKeys"> = {},
+  options: CollaborativeContextMapsOptions = {},
 ): CollaborativeContextMapsModeler {
-  return collaborative(
-    new NavigatedViewer({
-      ...diagramOptions(options),
-      freeRectInsets: options.freeRectInsets,
-    }),
-    false,
-  );
+  return collaborative(new NavigatedViewer(diagramOptions(options)), false);
 }
 
-function diagramOptions(
-  options: Pick<CollaborativeContextMapsOptions, "additionalModules">,
-): CmViewerOptions {
-  return { width: "100%", height: "100%", additionalModules: options.additionalModules ?? [] };
+function diagramOptions(options: CollaborativeContextMapsOptions): CmViewerOptions {
+  return {
+    width: "100%",
+    height: "100%",
+    additionalModules: options.additionalModules ?? [],
+    freeArea: options.freeArea,
+    freeRectInsets: options.freeRectInsets,
+    fitOnImport: options.fitOnImport,
+  };
 }
 
 function collaborative(
@@ -104,9 +104,14 @@ function collaborative(
     });
   }
 
-  const elements: ElementsSurface = {
+  const elements: CollaborativeContextMapsModeler["elements"] = {
     list: () =>
       destroyed ? [] : (elementRegistry.getAll() as unknown[]).filter(isCmElement).map(elementInfo),
+    bounds(id) {
+      if (destroyed) return undefined;
+      const element = elementRegistry.get(id);
+      return isCmElement(element) ? boundsOf(element) : undefined;
+    },
     reveal(id) {
       if (destroyed) return false;
       const element = elementRegistry.get(id);
@@ -176,6 +181,12 @@ function collaborative(
 
 function elementIds(elements: readonly unknown[]): string[] {
   return elements.filter(isCmElement).map((element) => element.id);
+}
+
+/** The shape's box, or the box around a relationship's waypoints, in diagram coordinates. */
+function boundsOf(element: CmElement): ElementBounds {
+  const { x, y, width, height } = getBBox(element as unknown as Element);
+  return { x, y, width, height };
 }
 
 function elementInfo(element: CmElement): ElementInfo {

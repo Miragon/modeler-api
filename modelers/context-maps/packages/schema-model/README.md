@@ -158,7 +158,7 @@ console.log(SAMPLE_DOCUMENT.title);
 | `serializeDocument()`, `canonicalize()`                                                       | Deterministic JSON serialization (sorted, rounded, fixed key order). |
 | `DOCUMENT_KEYS`, `CONTEXT_KEYS`, `RELATIONSHIP_KEYS`, `foreignFields()`                       | The keys this version knows; every other key is kept as it is.       |
 | `MAX_COORDINATE`                                                                              | The largest coordinate or size a document may hold (1,000,000 px).   |
-| `DIAGRAM_ROOT_ID`, `isReservedId()`                                                           | The ids the canvas keeps for its own root elements.                  |
+| `DIAGRAM_ROOT_ID`, `isReservedId()`, `reservedIdProblem()`                                    | The ids no context or relationship may take, and why.                |
 | `emptyDocument()`, `createBoundedContext()`, `createRelationship()`, `newId()`                | Factories with notation defaults + id generation.                    |
 | `SAMPLE_DOCUMENT`                                                                             | A complete example context map.                                      |
 | `DOCUMENT_VERSION`                                                                            | The current document version (`1`).                                  |
@@ -177,8 +177,14 @@ console.log(SAMPLE_DOCUMENT.title);
   `version`). `1` is the first version, so this mainly coerces loosely-shaped input (e.g. a
   hand-written file) into the expected `{ contexts, relationships }` container. A document of a
   newer `version` is rejected rather than rewritten as version 1, and so is a coordinate or size
-  beyond `MAX_COORDINATE` and a context or relationship id the canvas keeps for itself
-  (`isReservedId()`: `cm-root` and `__implicitroot…`).
+  beyond `MAX_COORDINATE` and a context or relationship id the canvas cannot draw: one it keeps for
+  itself (`cm-root`, `__implicitroot…`), the name of a built-in object property (`constructor`,
+  `toString`, `__proto__`, …; `isReservedId()` and `reservedIdProblem()` name both), and an id an
+  earlier context or relationship already uses. Each issue carries the path of the offending value
+  (`["contexts", 2, "id"]` for a repeated id: the repeat, not the first use). "Earlier" follows the
+  file, so a hand-written file that lists its relationships first gets the repeat on the copy it
+  writes second. Repeated ids are reported in the same round as every other issue, in document
+  order, so fixing the others never brings up a repeat as a new error.
 
 ## Development
 

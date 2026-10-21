@@ -60,7 +60,7 @@ test("an import erases the undo history without a change event", () => {
   }
 });
 
-test("a document with a duplicate or reserved id is rejected before anything changes", () => {
+test("a document with a duplicate, reserved or built-in id is rejected before anything changes", () => {
   const modeler = mountModeler();
   try {
     modeler.importDocument(SAMPLE_DOCUMENT);
@@ -73,6 +73,12 @@ test("a document with a duplicate or reserved id is rejected before anything cha
     const reserved = twoContexts();
     reserved.contexts[0]!.id = "cm-root";
     expect(() => modeler.importDocument(reserved)).toThrow(/reserved/);
+
+    for (const builtIn of ["constructor", "__proto__", "toString"]) {
+      const named = twoContexts();
+      named.contexts[1]!.id = builtIn;
+      expect(() => modeler.importDocument(named)).toThrow(/built-in property/);
+    }
 
     expect(modeler.exportText()).toBe(before);
   } finally {

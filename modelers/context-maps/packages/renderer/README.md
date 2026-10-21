@@ -70,17 +70,27 @@ new Modeler({
   height?: number | string,          // canvas height (default "100%", or "600px" with no container)
   additionalModules?: ModuleDeclaration[], // extra diagram-js modules
   undoRedoKeys?: boolean,            // bind Cmd/Ctrl+Z, Shift+Z, Y to the canvas (default true)
-  freeRectInsets?: () => { top: number; right: number; bottom: number; left: number },
+  freeArea?:                         // where the host's chrome leaves the canvas free
+    | { insets: () => { top: number; right: number; bottom: number; left: number } }
+    | { center: () => { x: number; y: number } | undefined },
+  fitOnImport?: boolean,             // fit the content after every import (default true)
 });
 ```
 
 - `undoRedoKeys: false` leaves the undo and redo keys unbound and unprevented, for a host whose
   document owns the history (the VS Code extension).
-- `freeRectInsets` are the margins of the container a host's chrome covers. The fit after an import
-  centres the content in what is left, and Enter or Space on a palette entry (a click with
-  `detail === 0`) places the new context in its centre, 24px further down and right while that spot
-  is taken, selected and with its name editor open. Without it the renderer keeps room for its own
-  palette.
+- `freeArea` names the part of the container a host's chrome leaves free, with the names of the
+  `@miragon/modeler-api` 1.2 factory options: `{ insets }` are the margins the chrome covers (the
+  modeler shell's `shell.fitInsets()`), `{ center }` is the free rectangle's centre in diagram
+  coordinates (`viewport.freeRectCenter()`). Enter or Space on a palette entry (a click with
+  `detail === 0`) places the new context in that centre, 24px further down and right while that
+  spot is taken, selected and with its name editor open, and the fit after an import centres the
+  content in what the insets leave. Without it, and for the fit when only `center` is given, the
+  renderer keeps room for its own palette.
+- `fitOnImport: false` leaves the view to a host whose chrome fits the content itself after every
+  import, so the view changes once per import.
+- `freeRectInsets` (the insets function itself) is the deprecated name of `freeArea: { insets }`.
+  It is accepted through the 0.4 releases and ignored when `freeArea` is given.
 
 ### Shared methods (`Viewer` / `NavigatedViewer` / `Modeler`)
 
@@ -99,10 +109,16 @@ new Modeler({
 
 An import is **silent**: the previous document's undo history goes without a
 `commandStack.changed`, so a host that saves on every change never writes an import back. It
-**rejects without a trace**: a document with a duplicate id or an id of the engine's roots throws
-before anything is removed. It is **lossless**: keys the model does not know and relationships whose
-ends are not on the map come back on export. A label edit open during an import is taken down and
-reopened on the element with the same id, with the typed text.
+**rejects without a trace**: a document with a duplicate id, an id of the engine's roots or the
+name of a built-in object property as an id throws before anything is removed. It is **lossless**:
+keys the model does not know and relationships whose ends are not on the map come back on export. A
+label edit open during an import is taken down and reopened on the element with the same id, with
+the typed text.
+
+A **view change never commits** an open label edit or description prompt: a pan or zoom, the user's
+or the host's (`canvas.viewbox(…)`, `setViewState`, a fit), keeps it open with the typed text and
+moves it with its element or pad entry. Only the user's own gestures commit it: Enter, leaving the
+field, or starting a drag.
 
 ### Modeler-only
 
@@ -120,12 +136,16 @@ modeler.onContentChanged(() => save(modeler.exportText()));
 ```
 
 `createCollaborativeModeler` and `createCollaborativeViewer` implement the `CollaborativeModeler`
-contract of `@miragon/modeler-api` 1.1 (`meta.notation` is `"context-maps"`): the canonical JSON text
+contract of `@miragon/modeler-api` 1.2 (`meta.notation` is `"context-maps"`): the canonical JSON text
 as the text lane, `onContentChanged` for every user-visible change (element commands, the title,
-undo, redo) and never for an import, the viewbox as view state, and the `elements` surface over the
-context and relationship ids (their labels as names). `modeler.diagram` is the wrapped `Modeler` or
-`NavigatedViewer`. The contract's conformance kit runs in this package's browser tests, every case
-and every hook, without a skip or an advisory.
+undo, redo) and never for an import or a view change, the viewbox as view state, and the `elements`
+surface over the context and relationship ids (their labels as names). `elements.bounds(id)` reads
+an element's box from the live canvas in diagram coordinates (a relationship: the box around its
+waypoints), `undefined` for an id `elements.list()` does not report. Both factories take the
+contract's `CollaborativeModelerOptions` (`freeArea`, `fitOnImport`, `undoRedoKeys`, which the
+viewer ignores) next to `additionalModules` and the deprecated `freeRectInsets`. `modeler.diagram`
+is the wrapped `Modeler` or `NavigatedViewer`. The contract's conformance kit runs in this package's
+browser tests, every case and every hook, without a skip or an advisory.
 
 ## Around the canvas
 

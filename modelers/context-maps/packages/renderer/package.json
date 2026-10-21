@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@miragon/context-maps-schema-model": "0.3.0",
-    "@miragon/modeler-api": "1.1.0",
+    "@miragon/modeler-api": "1.2.0",
     "diagram-js-direct-editing": "3.6.0"
   },
   "peerDependencies": {

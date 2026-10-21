@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isReservedId, parseDocument, validateDocument } from "./schema";
+import {
+  isReservedId,
+  parseDocument,
+  parseDocumentText,
+  reservedIdProblem,
+  validateDocument,
+} from "./schema";
 import { SAMPLE_DOCUMENT } from "./sample";
 import { emptyDocument } from "./factory";
 import type { CmDocument, Relationship } from "./types";
@@ -76,6 +82,109 @@ describe("parseDocument", () => {
       ]);
     }
     expect(isReservedId("cm-root-billing")).toBe(false);
+  });
+
+  it("rejects an id that names a built-in object property, at that id", () => {
+    for (const id of ["constructor", "toString", "__proto__", "valueOf", "hasOwnProperty"]) {
+      const doc = structuredClone(SAMPLE_DOCUMENT) as CmDocument;
+      doc.relationships[2]!.id = id;
+      const result = parseDocument(doc);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues).toEqual([
+          {
+            path: ["relationships", 2, "id"],
+            message: `the id "${id}" is reserved: it names a built-in property of JavaScript objects`,
+          },
+        ]);
+      }
+      expect(isReservedId(id)).toBe(true);
+    }
+    expect(reservedIdProblem("constructor_billing")).toBeUndefined();
+    expect(reservedIdProblem("Constructor")).toBeUndefined();
+  });
+
+  it("rejects a repeated id at the path of the repeat, across contexts and relationships", () => {
+    const doc = structuredClone(SAMPLE_DOCUMENT) as CmDocument;
+    doc.contexts[3]!.id = "ctx_auth";
+    doc.relationships[4]!.id = "ctx_cfp";
+    const result = parseDocument(doc);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toEqual([
+        {
+          path: ["contexts", 3, "id"],
+          message: 'duplicate id "ctx_auth"; ids must be unique across contexts and relationships',
+        },
+        {
+          path: ["relationships", 4, "id"],
+          message: 'duplicate id "ctx_cfp"; ids must be unique across contexts and relationships',
+        },
+      ]);
+      expect(result.error).toMatch(/^contexts\.3\.id: duplicate id "ctx_auth"/);
+    }
+  });
+
+  it("reports a repeated id in the same round as the other errors, in document order", () => {
+    const doc = structuredClone(SAMPLE_DOCUMENT) as CmDocument;
+    doc.contexts[0]!.position.x = Number.NaN;
+    doc.contexts[2]!.id = "ctx_auth";
+    doc.contexts[4]!.id = "cm-root";
+    doc.relationships[0]!.pattern = "bogus" as Relationship["pattern"];
+    doc.relationships[1]!.id = "ctx_auth";
+    const result = parseDocument(doc);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues?.map((issue) => issue.path.join("."))).toEqual([
+        "contexts.0.position.x",
+        "contexts.2.id",
+        "contexts.4.id",
+        "relationships.0.pattern",
+        "relationships.1.id",
+      ]);
+    }
+  });
+
+  it("follows the file's order when its relationships come before its contexts", () => {
+    const { version, title, contexts, relationships } = structuredClone(SAMPLE_DOCUMENT);
+    contexts[0]!.id = relationships[0]!.id;
+    contexts[2]!.position.x = Number.NaN;
+    relationships[1]!.pattern = "bogus" as Relationship["pattern"];
+    const text = JSON.stringify({ version, title, relationships, contexts });
+    const result = parseDocumentText(text);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues?.map((issue) => issue.path.join("."))).toEqual([
+        "relationships.1.pattern",
+        "contexts.0.id",
+        "contexts.2.position.x",
+      ]);
+      expect(result.issues?.[1]?.message).toBe(
+        `duplicate id "${relationships[0]!.id}"; ids must be unique across contexts and relationships`,
+      );
+    }
+  });
+
+  it("reports a reserved id that repeats as reserved only, and skips ids that are no string", () => {
+    const result = parseDocument({
+      title: "x",
+      contexts: [
+        { id: "valueOf", label: "A", position: { x: 0, y: 0 }, size: { width: 10, height: 10 } },
+        { id: "valueOf", label: "B", position: { x: 0, y: 0 }, size: { width: 10, height: 10 } },
+        { id: 7, label: "C", position: { x: 0, y: 0 }, size: { width: 10, height: 10 } },
+        { id: 7, label: "D", position: { x: 0, y: 0 }, size: { width: 10, height: 10 } },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues?.map((issue) => issue.path.join("."))).toEqual([
+        "contexts.0.id",
+        "contexts.1.id",
+        "contexts.2.id",
+        "contexts.3.id",
+      ]);
+      expect(result.issues?.some((issue) => issue.message.startsWith("duplicate"))).toBe(false);
+    }
   });
 });
 

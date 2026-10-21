@@ -33,7 +33,7 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
 ## Contract and chrome
 
 - **Contract.** The renderer implements the collaborative-modeler contract of
-  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) (1.1):
+  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) (1.2):
   `createCollaborativeModeler` / `createCollaborativeViewer` in
   [`packages/renderer/src/collaborative/`](packages/renderer/src/collaborative), the text lane being
   the canonical JSON of a `.cm` file (`serializeDocumentText`, ends in one line break). Its
@@ -41,7 +41,8 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   ([`conformance.browser.test.ts`](packages/renderer/test/browser/conformance.browser.test.ts)) with
   every hook filled; a skip or an advisory fails it. Imports are silent (the history goes without an
   event), reject without a trace (ids, coordinates, newer versions checked first) and keep unknown
-  keys.
+  keys. A host's view change (`setViewState`, a fit) never commits an open editor, and
+  `elements.bounds(id)` gives an element's live box.
 - **Chrome.** Both apps mount [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)
   with `themes: ["light"]`: the VS Code webview on the `ide` host (menu, palette skin, zoom panel and
   keys, fit, legend slot, problems pill, status box, empty-file hint), the web app on the `web` host
@@ -50,7 +51,8 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   stylesheet or chrome markup of its own. The renderer **never imports the shell** (ESLint and
   dependency-cruiser enforce it); it hands the chrome structurally typed parts: `contextMapMenu`,
   `createShortcutsDialog`, `createTitleDialog`, `renderLegend`, the `cmReadOnly` canvas lock,
-  keyboard creation (`freeRectInsets`) and `undoRedoKeys: false` for hosts that own the history.
+  keyboard creation in the free area (`freeArea: { insets }`; `freeRectInsets` stays a deprecated
+  alias for one minor), `fitOnImport` and `undoRedoKeys: false` for hosts that own the history.
   `cmLegendModule` and the renderer's own palette rules stay for hosts that embed the renderer
   without the shell. The DOM-free packages take only types from `@miragon/modeler-api`.
 - **Kit.** `e2e/` runs the shell's conformance kit against the real webview in the shell's VS Code

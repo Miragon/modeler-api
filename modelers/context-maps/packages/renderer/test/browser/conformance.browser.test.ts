@@ -66,6 +66,13 @@ function renameMap(modeler: CollaborativeModeler): void {
   diagramOf(modeler).setMeta({ title: `Renamed map ${renamed}` });
 }
 
+function labelEditorField(modeler: CollaborativeModeler): HTMLElement | null {
+  return diagramOf(modeler)
+    .get<Canvas>("canvas")
+    .getContainer()
+    .querySelector<HTMLElement>(".djs-direct-editing-content");
+}
+
 /** The canonical text with one fragment replaced by what a peer typed so far. */
 function typedHalfway(fragment: string, typedSoFar: string): string {
   if (!conferencePlanner.includes(fragment)) throw new Error(`the fixture lost "${fragment}"`);
@@ -92,6 +99,7 @@ const harness: ConformanceHarness = {
     '{ "version": 2, "title": "From the future", "contexts": [], "relationships": [] }',
     typedHalfway('"id": "ctx_cfp"', '"id": "ctx_auth"'),
     typedHalfway('"id": "ctx_cfp"', '"id": "cm-root"'),
+    typedHalfway('"id": "ctx_cfp"', '"id": "constructor"'),
     typedHalfway('"x": 340', '"x": 1e38'),
     typedHalfway('"pattern": "shared-kernel"', '"pattern": "shared'),
   ],
@@ -117,22 +125,31 @@ const harness: ConformanceHarness = {
   configMutations: [{ name: "title", run: renameMap }],
   undo: (modeler) => diagramOf(modeler).get<CommandStack>("commandStack").undo(),
   redo: (modeler) => diagramOf(modeler).get<CommandStack>("commandStack").redo(),
+  moveElement(modeler) {
+    const diagram = diagramOf(modeler);
+    const context = diagram.get<ElementRegistry>("elementRegistry").get("ctx_cfp");
+    if (!context) throw new Error("the imported map has no context ctx_cfp to move");
+    diagram.get<Modeling>("modeling").moveElements([context as Shape], { x: 160, y: 96 });
+    return "ctx_cfp";
+  },
   settle: () => new Promise((resolve) => setTimeout(resolve, 30)),
   openInteraction(modeler) {
     const diagram = diagramOf(modeler);
     const context = diagram.get<ElementRegistry>("elementRegistry").get("ctx_cfp");
     if (!context) throw new Error("the imported map has no context ctx_cfp to rename");
     diagram.get<CmLabelEditing>("cmLabelEditing").activate(context as unknown as CmContext);
-    const field = diagram
-      .get<Canvas>("canvas")
-      .getContainer()
-      .querySelector<HTMLElement>(".djs-direct-editing-content");
+    const field = labelEditorField(modeler);
     if (!field) throw new Error("no label editor opened");
     field.innerText = "typed, not committed";
   },
   interactionState(modeler) {
     const edit = diagramOf(modeler).get<CmLabelEditing>("cmLabelEditing").openEdit();
     return edit && { elementId: edit.elementId, text: edit.text };
+  },
+  commitInteraction(modeler) {
+    const field = labelEditorField(modeler);
+    if (!field) throw new Error("no label editor open to commit");
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 13, bubbles: true }));
   },
 };
 
@@ -154,8 +171,8 @@ describe("Context Maps implements the collaborative-modeler contract", () => {
     },
   });
 
-  // Random ids (ctx_<nanoid>) never collide across peers, and a label edit survives a re-import:
-  // the kit's recommendations are all met.
+  // Random ids (ctx_<nanoid>) never collide across peers, and a label edit survives a re-import
+  // and a host's view change: the kit's recommendations are all met.
   afterAll(() => {
     expect(advisories).toEqual([]);
   });

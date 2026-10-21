@@ -5,11 +5,13 @@
  * spot and size it is rendered (Shift+Enter inserts a line break the renderer
  * preserves). The owning-team caption edits the same way: the pad's team
  * action (or a double-click on the caption) opens the box right over it.
- * Enter/blur commits through `cmModeling` (undoable), Escape cancels;
- * panning/zooming or starting a drag completes the edit. The edited text is
- * hidden behind an element marker while the box is open so nothing doubles up.
- * An import never commits an open edit: it is taken down before and reopened
- * on the element with the same id afterwards, with the text typed so far.
+ * Enter/blur commits through `cmModeling` (undoable), Escape cancels, and
+ * starting a drag completes the edit. A pan or zoom keeps the box open and
+ * moves it with its element. The edited text is hidden behind an element
+ * marker while the box is open so nothing doubles up. Neither an import nor
+ * a view change commits an open edit: an import takes it down before and
+ * reopens it on the element with the same id afterwards, with the text typed
+ * so far.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -111,9 +113,11 @@ export default class CmLabelEditing {
       },
     );
 
-    // The edit box is viewport-anchored — complete before the canvas moves
-    // away underneath it (complete() is a no-op while inactive).
-    eventBus.on(["canvas.viewbox.changing", "drag.init"], () => directEditing.complete());
+    // Only the user's own gestures commit (Enter, blur, a drag): diagram-js cannot tell a wheel
+    // zoom from a host's setViewState or fit, and a commit there would write half-typed text into
+    // the document every peer shares.
+    eventBus.on("drag.init", () => directEditing.complete());
+    eventBus.on("canvas.viewbox.changed", () => this.placeOpenEdit());
 
     eventBus.on("directEditing.activate", (event: { active?: { element?: Element } }) => {
       const element = event.active?.element;
@@ -142,8 +146,8 @@ export default class CmLabelEditing {
 
   /**
    * Takes an open edit down WITHOUT committing it, for an import that replaces the elements: a
-   * commit (the import's viewbox change triggers one) would land on a removed shape and be wiped
-   * with the history. `resumeAfterImport` brings the editor back with the typed text.
+   * later commit (Enter, blur) would land on a removed shape and be wiped with the history.
+   * `resumeAfterImport` brings the editor back with the typed text.
    */
   suspend(): void {
     clearTimeout(this.resumeTimer);
@@ -159,8 +163,8 @@ export default class CmLabelEditing {
 
   /**
    * Reopens a suspended edit on the element with the same id, if the imported document still has
-   * it. Deferred to the next task, after the host has restored its viewbox around the import (a
-   * viewbox change commits an open editor).
+   * it. Deferred to the next task, after the host has restored its viewbox and selection around the
+   * import, so the editor opens where the element ends up.
    */
   resumeAfterImport(): void {
     clearTimeout(this.resumeTimer);
@@ -177,6 +181,25 @@ export default class CmLabelEditing {
     const element = this.activeMarker?.element;
     if (!this.directEditing.isActive() || !element) return undefined;
     return { elementId: element.id, text: this.directEditing.getValue() };
+  }
+
+  /** The open box follows its element through a pan or zoom: same text, caret and focus. */
+  private placeOpenEdit(): void {
+    const element = this.activeMarker?.element;
+    const textbox = this.directEditing.$textbox;
+    if (!this.directEditing.isActive() || !element || !textbox) return;
+    const context = this.activationContext(element);
+    if (!context) return;
+    const { x, y, width, height } = context.bounds;
+    Object.assign(textbox.style, {
+      left: `${x}px`,
+      top: `${y}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    });
+    const content = textbox.querySelector<HTMLElement>("[contenteditable]");
+    const fontSize = context.style?.fontSize;
+    if (content && fontSize !== undefined) content.style.fontSize = String(fontSize);
   }
 
   private resume(edit: SuspendedEdit): void {

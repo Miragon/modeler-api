@@ -26,13 +26,15 @@ function span(node: Node | undefined, text: string): { start: number; end: numbe
   return { start: target.offset, end: target.offset + target.length };
 }
 
-/** The objects of a top-level array (`contexts`, `relationships`) by their `id`. */
-function objectsById(tree: Node, array: "contexts" | "relationships"): Array<[string, Node]> {
-  const list = findNodeAtLocation(tree, [array]);
-  return (list?.children ?? []).flatMap((child): Array<[string, Node]> => {
-    const id = findNodeAtLocation(child, ["id"])?.value;
-    return typeof id === "string" ? [[id, child]] : [];
-  });
+/** The relationship objects of the map text by their `id`. */
+function relationshipsById(tree: Node): Map<string, Node> {
+  const list = findNodeAtLocation(tree, ["relationships"]);
+  return new Map(
+    (list?.children ?? []).flatMap((child): Array<[string, Node]> => {
+      const id = findNodeAtLocation(child, ["id"])?.value;
+      return typeof id === "string" ? [[id, child]] : [];
+    }),
+  );
 }
 
 function semanticProblems(
@@ -41,28 +43,18 @@ function semanticProblems(
   findings: SemanticFinding[],
   severity: MapProblem["severity"],
 ): MapProblem[] {
-  const relationships = objectsById(tree, "relationships");
-  const contexts = objectsById(tree, "contexts");
-  const problems: MapProblem[] = [];
-  for (const finding of findings) {
-    let node: Node | undefined;
-    if (finding.relationshipId !== undefined) {
-      const matches = relationships.filter(([id]) => id === finding.relationshipId);
-      // A duplicate is reported on the copy, not on the element it repeats.
-      node = (finding.rule === "unique-ids" ? matches.at(-1) : matches[0])?.[1];
-    } else if (finding.rule === "unique-ids") {
-      const id = /"(.*)"/.exec(finding.message)?.[1];
-      node = contexts.filter(([candidate]) => candidate === id).at(-1)?.[1];
-    }
-    problems.push({ severity, message: finding.message, rule: finding.rule, ...span(node, text) });
-  }
-  return problems;
+  const relationships = relationshipsById(tree);
+  return findings.map((finding) => {
+    const node =
+      finding.relationshipId === undefined ? undefined : relationships.get(finding.relationshipId);
+    return { severity, message: finding.message, rule: finding.rule, ...span(node, text) };
+  });
 }
 
 /**
- * Every problem of a map text: JSON syntax errors, structural errors at the offending value, and
- * the semantic rules (relationship findings on the relationship's object). An empty text is an
- * empty map, without problems.
+ * Every problem of a map text: JSON syntax errors, structural errors at the offending value (a
+ * repeated id at the repeat), and the semantic rules (relationship findings on the relationship's
+ * object). An empty text is an empty map, without problems.
  */
 export function mapProblems(text: string): MapProblem[] {
   if (text.trim() === "") return [];

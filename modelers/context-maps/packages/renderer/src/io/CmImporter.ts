@@ -10,11 +10,15 @@ import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type { Root } from "diagram-js/lib/model/Types";
 import type { Point } from "diagram-js/lib/util/Types";
-import { DOCUMENT_KEYS, foreignFields } from "@miragon/context-maps-schema-model";
+import {
+  DOCUMENT_KEYS,
+  foreignFields,
+  reservedIdProblem,
+} from "@miragon/context-maps-schema-model";
 import type { CmDocument, Relationship } from "@miragon/context-maps-schema-model";
 import type CmElementFactory from "../model/CmElementFactory.js";
 import type { CmContext } from "../model/di-types.js";
-import { ROOT_ID, isReservedId, type ImportWarning, type RootBusinessObject } from "./types.js";
+import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./types.js";
 
 type RootWithMeta = Root & { businessObject?: RootBusinessObject };
 
@@ -54,14 +58,16 @@ export default class CmImporter {
   ) {}
 
   /**
-   * Throws when `doc` cannot be drawn: diagram-js keeps one element per id, so a duplicate or an id
-   * of its own roots would throw halfway through the import, after the previous document was
-   * cleared. Checked before anything is removed, so a rejected import leaves no trace.
+   * Throws when `doc` cannot be drawn: diagram-js keeps one element per id in a plain object, so a
+   * duplicate, an id of its own roots or the name of a built-in object property would throw halfway
+   * through the import, after the previous document was cleared. Checked before anything is
+   * removed, so a rejected import leaves no trace.
    */
   assertImportable(doc: CmDocument): void {
     const seen = new Set<string>();
     for (const { id } of [...doc.contexts, ...doc.relationships]) {
-      if (isReservedId(id)) throw new Error(`The id "${id}" is reserved for the diagram itself.`);
+      const reserved = reservedIdProblem(id);
+      if (reserved) throw new Error(`Cannot draw the map: ${reserved}.`);
       if (seen.has(id)) throw new Error(`The id "${id}" is used more than once.`);
       seen.add(id);
     }

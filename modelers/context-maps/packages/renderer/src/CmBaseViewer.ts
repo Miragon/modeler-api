@@ -12,6 +12,8 @@ import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type { Root } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import type { FreeArea } from "@miragon/modeler-api";
 import { parseDocumentText, serializeDocumentText } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { saveSVG } from "./io/saveSvg.js";
@@ -43,12 +45,21 @@ export interface CmViewerOptions {
    */
   undoRedoKeys?: boolean | undefined;
   /**
-   * The margins of the container the host's chrome covers (palette row, zoom panel, legend). The
-   * fit after an import centres the content in what is left, and an element created from the
-   * palette with Enter or Space lands in its centre (guide §5.5, §5.9). Default: room for the
-   * renderer's own palette.
+   * The part of the container the host's chrome (palette row, zoom panel, legend) leaves free, under
+   * its `@miragon/modeler-api` name: `{ insets }`, the margins the chrome covers, or `{ center }`,
+   * the free rectangle's centre in diagram coordinates. An element created from the palette with
+   * Enter or Space lands in that centre, and the fit after an import centres the content in what
+   * the insets leave (guide §5.5, §5.9). Default: room for the renderer's own palette, which the
+   * fit also keeps when only `center` is given.
    */
+  freeArea?: FreeArea | undefined;
+  /** @deprecated Use `freeArea: { insets }`; accepted through the 0.4 releases, ignored next to it. */
   freeRectInsets?: (() => FreeRectInsets) | undefined;
+  /**
+   * Fit the content into the view after every import (default true). Pass false when the host's
+   * chrome fits the content itself, so the view changes once per import.
+   */
+  fitOnImport?: boolean | undefined;
 }
 
 export type EventCallback<T = unknown> = (event: T) => void;
@@ -100,7 +111,7 @@ export abstract class CmBaseViewer {
         canvas: { container: this._container },
         modules,
         cmKeyboard: { undoRedoKeys: this._options.undoRedoKeys ?? true },
-        cmPalette: { freeRectInsets: this.freeRectInsets },
+        cmPalette: { freeRectInsets: this.freeRectInsets, freeRectCenter: this.freeRectCenter },
       });
     }
     return this._diagram;
@@ -112,8 +123,14 @@ export abstract class CmBaseViewer {
   }
 
   /** The margins the host's chrome covers right now. */
-  private readonly freeRectInsets = (): FreeRectInsets =>
-    this._options.freeRectInsets?.() ?? DEFAULT_FREE_RECT_INSETS;
+  private readonly freeRectInsets = (): FreeRectInsets => {
+    const { freeArea, freeRectInsets } = this._options;
+    const insets = freeArea ? freeArea.insets?.() : freeRectInsets?.();
+    return insets ?? DEFAULT_FREE_RECT_INSETS;
+  };
+
+  /** The free rectangle's centre when the host names it, else the palette derives it. */
+  private readonly freeRectCenter = (): Point | undefined => this._options.freeArea?.center?.();
 
   /** A service only some of the viewers have (the Modeler's editing services), else null. */
   private _optional<T>(name: string): T | null {
@@ -139,8 +156,8 @@ export abstract class CmBaseViewer {
     const importer = diagram.get<CmImporter>("cmImporter");
     importer.assertImportable(doc);
     const labelEditing = this._optional<CmLabelEditing>("cmLabelEditing");
-    // An edit in progress belongs to an element the import is about to replace: a commit (the
-    // fit below changes the viewbox, which commits) would land on a removed shape.
+    // An edit in progress belongs to an element the import is about to replace: a commit after it
+    // (Enter, blur) would land on a removed shape.
     labelEditing?.suspend();
     this._optional<ContextPadPrompt>("cmContextPadProvider")?.cancelPrompt();
     this._optional<PopupMenu>("popupMenu")?.close();
@@ -149,7 +166,7 @@ export abstract class CmBaseViewer {
     // The previous document's history would undo onto elements that are gone (or, by id
     // coincidence, onto re-imported ones). Only the editors have a command stack.
     this._optional<CommandStack>("commandStack")?.clear(false);
-    this._fit();
+    if (this._options.fitOnImport ?? true) this._fit();
     eventBus.fire("import.done", { warnings });
     labelEditing?.resumeAfterImport();
     return { warnings };
