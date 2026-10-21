@@ -63,7 +63,8 @@ known version), and the new repository's Dependabot moves them on.
    `npx playwright install chromium` and `npm run format` (the placeholders changed line lengths).
 4. Run every check once: `npm run lint`, `npm run format:check`, `npm run depcruise`,
    `npm run build`, `npm test`, `npm run test:browser`, `npm run test:e2e`, `npm run build:webapp`,
-   `npm run build:vscode`. All green before the first commit, which is signed
+   `npm run build:vscode` and, from modeler-shell 0.3.0, `npm run test:vscode-smoke` (a real VS
+   Code opens; the first run downloads it). All green before the first commit, which is signed
    (`git commit -S -m "feat: …"`).
 5. **GitHub**: the environments `npm` and `vscode-marketplace`, the secrets `VSCE_PUBLISH` and
    `OVSX_PUBLISH` (in `vscode-marketplace`), the release-please app (`RELEASE_PLEASE_APP_CLIENT_ID`,
@@ -84,7 +85,8 @@ known version), and the new repository's Dependabot moves them on.
    `createCollaborativeViewer`; the conformance kit runs in `npm run test:browser` with every hook
    filled, so a skip or an advisory fails. See [contract](references/contract.md).
 3. **Apps on the shell.** The web app on the `web` host, the VS Code webview on the `ide` host,
-   both through the contract factory; the shell's kit runs in `e2e` against both. See
+   both through the contract factory; the shell's kit runs in `e2e` against both, and from
+   modeler-shell 0.3.0 a smoke test opens the built extension in a real VS Code. See
    [shell](references/shell.md).
 4. **Design system.** Vendored tokens in a cascade layer, roles only, light until the joint
    dark-mode release. See [design system](references/design-system.md).
@@ -98,6 +100,9 @@ known version), and the new repository's Dependabot moves them on.
 - CI is green: lint, format, depcruise, pin check, unit tests, `test:browser` with zero skips and
   zero advisories of the contract kit, `test:e2e` with both shell kits and the CSP smoke test of
   the production webview bundle, the web app's `check:build`.
+- From modeler-shell 0.3.0, `npm run test:vscode-smoke` passes: edit, save, undo and VS Code's
+  four default themes in a real VS Code
+  ([shell](references/shell.md#the-vs-code-smoke-test-from-modeler-shell-030)).
 - The renderer's `meta.apiVersion` is the pinned `MODELER_API_VERSION`, and the factories accept
   the 1.2 options `freeArea`, `fitOnImport` and `undoRedoKeys`.
 - Neither app has chrome of its own: menu, palette skin, zoom, keys, problems, status, empty state

@@ -9,8 +9,10 @@ npm run build
 ```
 
 The Husky pre-commit hook runs lint-staged and `npm run lint` only; run `npm test`,
-`npm run test:browser` and `npm run depcruise` before you push. Every commit is signed
-(`git commit -S`).
+`npm run test:browser` and `npm run depcruise` before you push, and after a change to the
+extension or the webview `npm run build:vscode && npm run test:vscode-smoke`, which opens the
+built extension in a real VS Code (CI runs it when a pull request has the label `vscode-smoke`).
+Every commit is signed (`git commit -S`).
 
 ## Commits and releases
 

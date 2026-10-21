@@ -28,9 +28,11 @@ resolve them through `node_modules` to `dist`, so `npm run build` comes first.
 `build`, `build:webapp`, `build:vscode`, `typecheck` (every tsconfig: root, the web app's Vite
 config, `apps/vscode`, `e2e`), `lint` (ESLint, then `typecheck`), `format`, `format:check`, `test`
 (Vitest project `unit`), `test:browser` (Vitest project `browser`, Chromium through
-`@vitest/browser-playwright`), `test:e2e`, `depcruise`, `dev:webapp` (Portless; `dev:webapp:plain`
-for plain Vite on 5180), `dev:vscode`. The Husky pre-commit hook runs lint-staged and `npm run lint`
-only.
+`@vitest/browser-playwright`), `test:e2e`, `test:vscode-smoke` (the built extension in a real VS
+Code, from modeler-shell 0.3.0, see
+[shell](shell.md#the-vs-code-smoke-test-from-modeler-shell-030)), `depcruise`, `dev:webapp`
+(Portless; `dev:webapp:plain` for plain Vite on 5180), `dev:vscode`. The Husky pre-commit hook
+runs lint-staged and `npm run lint` only.
 
 ## The DOM boundary
 
@@ -81,8 +83,10 @@ on the major `typescript-eslint` accepts (Dependabot ignores the next major).
 `test-browser` and `e2e` in the `mcr.microsoft.com/playwright:v<version>-noble` image whose version
 `playwright-version` reads from the root `devDependencies` (bump image and `playwright` together;
 `npx playwright install --with-deps chromium` in a plain runner works as well),
-`pin-check`, `dependency-review`. A shared setup action installs the Node version of `engines` and
-runs `npm ci`. Every `uses:` is pinned to a commit SHA with the tag as a comment.
+`pin-check`, `dependency-review`, and `vscode-smoke` (a real VS Code under `xvfb-run -a`, on a
+manual run and on pull requests labelled `vscode-smoke`). A shared setup action installs the Node
+version of `engines` and runs `npm ci`. Every `uses:` is pinned to a commit SHA with the tag as a
+comment.
 
 [`codeql.yml`](../assets/template/.github/workflows/codeql.yml) runs CodeQL's
 `javascript-typescript` analysis from source (`build-mode: none`) on pull requests, on pushes to

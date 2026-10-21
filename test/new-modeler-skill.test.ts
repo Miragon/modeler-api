@@ -69,6 +69,33 @@ const workspacePackages: WorkspacePackage[] = ["packages/api", "packages/shell"]
 });
 const workspacePackage = (name: string) => workspacePackages.find((pkg) => pkg.name === name);
 
+/** `a` before `b` (< 0), equal (0) or after (> 0), for plain `x.y.z` versions. */
+function compareVersions(a: string, b: string): number {
+  const [left, right] = [a, b].map((version) => version.split(".").map(Number));
+  const index = left!.findIndex((part, position) => part !== right![position]);
+  return index === -1 ? 0 : left![index]! - right![index]!;
+}
+
+/**
+ * The template's VS Code smoke step runs on the shell's `./testing/vscode-electron` entry, which
+ * modeler-shell 0.3.0 releases. While this workspace's shell is older, the template pins a shell
+ * without that entry, so the step's files, its import and the driver's names in the skill are not
+ * checked yet; from the release on (its release PR rewrites the template pins to 0.3.0) they are
+ * checked like everything else.
+ */
+const SMOKE_DRIVER_SINCE = "0.3.0";
+const SMOKE_DRIVER_ENTRY = "@miragon/modeler-shell/testing/vscode-electron";
+const SMOKE_DRIVER_PEERS = ["playwright-core", "@vscode/test-electron"];
+const SMOKE_DRIVER_NAMES = new Set([
+  "runVsCodeSmoke",
+  "createFromPalette",
+  "undoSteps",
+  "keepTemporaryFiles",
+]);
+const SMOKE_STEP = "apps/vscode/test-smoke/";
+const shellVersion = workspacePackage("@miragon/modeler-shell")!.version;
+const smokeDriverReleased = compareVersions(shellVersion, SMOKE_DRIVER_SINCE) >= 0;
+
 // ---------------------------------------------------------------------------------------------
 // One TypeScript program: the template's sources against the workspace's sources
 // ---------------------------------------------------------------------------------------------
@@ -88,7 +115,10 @@ const NOT_TYPE_CHECKED_HERE = new Map([
 ]);
 const fromTemplate = (path: string): string => relative(TEMPLATE, path).split(sep).join("/");
 const typeCheckedTemplateFiles = templateFiles.filter(
-  (file) => file.endsWith(".ts") && !NOT_TYPE_CHECKED_HERE.has(fromTemplate(file)),
+  (file) =>
+    file.endsWith(".ts") &&
+    !NOT_TYPE_CHECKED_HERE.has(fromTemplate(file)) &&
+    (smokeDriverReleased || !fromTemplate(file).startsWith(SMOKE_STEP)),
 );
 
 function templateProgram(): ts.Program {
@@ -663,6 +693,7 @@ const NON_API_NAMES = new Map<string, string>([
   ["Intl", "JavaScript"],
   ["comments.legal", "Vite's build options"],
   ["legalComments", "esbuild"],
+  ["fileParallelism", "Vitest"],
   ["assetNames", "esbuild"],
   ["devDependencies", "package.json"],
   ["devDependency", "package.json"],
@@ -762,6 +793,7 @@ describe("the API names the skill mentions", () => {
                 .trim(),
             )
             .filter(Boolean)) {
+            if (!smokeDriverReleased && specifier === SMOKE_DRIVER_ENTRY) continue;
             if (!exports.get(specifier!)?.has(name))
               wrong.push(`${fromRoot(file)}: ${name} from ${specifier}`);
           }
@@ -776,6 +808,7 @@ describe("the API names the skill mentions", () => {
     const known = (name: string) => allExports.has(name) || members.has(name);
     const exists = (path: string): boolean => {
       if (NON_API_NAMES.has(path)) return true;
+      if (!smokeDriverReleased && SMOKE_DRIVER_NAMES.has(path)) return true;
       const [first, ...rest] = path.split(".");
       return rest.length === 0
         ? known(first!)
@@ -811,6 +844,53 @@ describe("the API names the skill mentions", () => {
     }
     expect(misplaced).toEqual([]);
   });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The VS Code smoke step
+// ---------------------------------------------------------------------------------------------
+
+describe(`the template's VS Code smoke step (from modeler-shell ${SMOKE_DRIVER_SINCE}, this workspace is at ${shellVersion})`, () => {
+  const vscodeApp = readJson<Manifest>(join(TEMPLATE, "apps/vscode/package.json"));
+  const smokeFiles = templateFiles.filter((file) => fromTemplate(file).startsWith(SMOKE_STEP));
+
+  it("stays out of the VSIX and out of `npm test`, and runs Playwright's version", () => {
+    expect(smokeFiles.map(fromTemplate).sort()).toEqual([
+      `${SMOKE_STEP}vitest.config.ts`,
+      `${SMOKE_STEP}vscode-smoke.test.ts`,
+    ]);
+    expect(readText(join(TEMPLATE, "apps/vscode/.vscodeignore")).split("\n")).toContain("test-smoke/**");
+    expect(readText(join(TEMPLATE, "vitest.config.ts"))).not.toContain("test-smoke");
+    const root = readJson<Manifest>(join(TEMPLATE, "package.json"));
+    expect(root.scripts).toMatchObject({
+      "test:vscode-smoke": `vitest run --config ${SMOKE_STEP}vitest.config.ts`,
+    });
+    expect(vscodeApp.devDependencies?.["playwright-core"]).toBe(root.devDependencies?.playwright);
+  });
+
+  it.runIf(smokeDriverReleased)("imports an entry the shell exports, and is type-checked against it", () => {
+    expect([...workspacePackage("@miragon/modeler-shell")!.entries.keys()]).toContain(SMOKE_DRIVER_ENTRY);
+    expect(
+      smokeFiles
+        .filter((file) => file.endsWith(".ts"))
+        .every((file) => typeCheckedTemplateFiles.includes(file)),
+    ).toBe(true);
+  });
+
+  it.runIf(smokeDriverReleased)(
+    "pins the driver's optional peers in apps/vscode, exactly and inside the shell's ranges",
+    () => {
+      const shellPeers = readJson<Manifest>(join(ROOT, "packages/shell/package.json")).peerDependencies ?? {};
+      for (const name of SMOKE_DRIVER_PEERS) {
+        const range = shellPeers[name];
+        const pin = vscodeApp.devDependencies?.[name];
+        expect(
+          range && pin && EXACT_VERSION.test(pin) && satisfies(pin, range),
+          `${name} ${pin} in ${range}`,
+        ).toBe(true);
+      }
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------------------------

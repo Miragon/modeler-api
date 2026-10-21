@@ -1,6 +1,7 @@
 # Only dist/ and the manifest go into the VSIX.
 src/**
 test/**
+test-smoke/**
 node_modules/**
 esbuild.config.mjs
 tsconfig.json

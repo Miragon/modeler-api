@@ -115,6 +115,37 @@ creation, the read-only lock, the web column and a clean `destroy`.
   `shellSizesFromTokens` and `SHELL_TOKENS`
   ([`tokens.sync.test.ts`](../assets/template/apps/vscode/test/tokens.sync.test.ts)).
 
+## The VS Code smoke test (from modeler-shell 0.3.0)
+
+The kit's `ide` host is a stand-in for VS Code. `runVsCodeSmoke` from
+`@miragon/modeler-shell/testing/vscode-electron` (from modeler-shell 0.3.0) starts the real one: it
+downloads VS Code, starts it with the built extension on a throwaway profile, opens a fixture in
+the custom editor, edits through the canvas, saves (the file on disk changes and the modeler's
+parser accepts it), undoes (the canvas and, saved again, the file are the fixture again) and
+switches through VS Code's four default themes, where the webview has to show what the theme
+bridge resolves for the modeler's `themes`, with a screenshot each. Template:
+[`vscode-smoke.test.ts`](../assets/template/apps/vscode/test-smoke/vscode-smoke.test.ts), run by
+`npm run test:vscode-smoke` after `npm run build` and `npm run build:vscode`.
+
+- Its two peers, `playwright-core` and `@vscode/test-electron` 3.1.0 or later (earlier releases
+  cannot start a current VS Code on macOS), are exact devDependencies of `apps/vscode`; nothing
+  else installs them. `test-smoke/**` is in `.vscodeignore`, so the VSIX does not ship it.
+- It has its own Vitest config with `fileParallelism: false`, outside `npm test`: it needs a
+  display and the built extension, and a window opens for a few seconds. The first run downloads
+  VS Code (about 350 MB) into the OS's cache directory, outside the repository and shared by every
+  modeler on the machine, so neither `.gitignore` nor ESLint needs an entry.
+- CI runs it in the job `vscode-smoke` under `xvfb-run -a`, on a manual run and on pull requests
+  with the label `vscode-smoke`, and uploads the screenshots.
+- The default edit, `createFromPalette`, presses Enter on the first creating palette entry and then
+  Escape. A notation without such an entry passes its own `edit` (locators on `webview`, keys on
+  `page`), and one whose edit takes more than one undo step sets `undoSteps`. A failed check is in
+  `failures`, never thrown; `keepTemporaryFiles` keeps VS Code's logs for a failure to read.
+
+What each step checks and every option are in the shell's
+[README](https://github.com/Miragon/modeler-api/blob/main/packages/shell/README.md) (section "Smoke
+tests in a real VS Code") and [API.md](https://github.com/Miragon/modeler-api/blob/main/packages/shell/API.md)
+(`./testing/vscode-electron`).
+
 ## Upgrades
 
 The shell is on 0.x: a minor may change the chrome. Dependabot proposes `@miragon/modeler-*` in a

@@ -96,6 +96,25 @@ jobs:
           path: e2e/playwright-report/
           retention-days: 7
 
+  # The built extension in a real VS Code (@miragon/modeler-shell/testing/vscode-electron): on a
+  # manual run and on pull requests labelled `vscode-smoke`, because every run downloads VS Code
+  # (about 350 MB) and needs an X server.
+  vscode-smoke:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'vscode-smoke')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: npm run build
+      - run: npm run build:vscode
+      - run: xvfb-run -a npm run test:vscode-smoke
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke
+          path: test-results/vscode-smoke/
+          retention-days: 7
+
   pin-check:
     runs-on: ubuntu-latest
     steps:
