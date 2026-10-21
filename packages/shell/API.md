@@ -2640,8 +2640,9 @@ function runVsCodeSmokeInDocker(options?: VsCodeSmokeDockerOptions): Promise<VsC
 
 // FROM node:<version>-bookworm-slim; apt-get install --no-install-recommends of the packages below
 function vsCodeSmokeDockerfile(nodeVersion: string): string;
-// "modeler-shell-vscode-smoke:node<version>-<first 12 hex of the Dockerfile's SHA-256>"
-function vsCodeSmokeDockerImage(nodeVersion: string): string;
+// "modeler-shell-vscode-smoke:node<version>-<first 12 hex of the Dockerfile's SHA-256>", with a
+// platform "-<platform, / as ->" at the end ("…-linux-amd64"): one tag holds one platform's image
+function vsCodeSmokeDockerImage(nodeVersion: string, platform?: string): string;
 // Xvfb, xauth, Electron's libraries (GTK 3, NSS, GBM, ALSA, libsecret, libxkbfile, …), fonts, unzip, git
 const VSCODE_SMOKE_DOCKER_PACKAGES: readonly string[];
 // shared by every run on the machine: VS Code's downloads (the container's ~/.cache) and npm's cache
@@ -2665,12 +2666,16 @@ A run of `runVsCodeSmokeInDocker`:
 1. **Docker.** `docker version` must answer, otherwise it throws "Docker is not available (<docker's
    message>): install and start Docker Desktop or Docker Engine". It throws as well without a
    `package-lock.json` in `cwd` or above and for a results directory outside the root or the root
-   itself.
-2. **Image.** Without `image`: `docker image inspect` of `vsCodeSmokeDockerImage(nodeVersion)`, and
-   when it is missing (or `rebuild`) `docker build --tag <image> -` with `vsCodeSmokeDockerfile` on
-   stdin; no build context. The hash in the tag builds a new image when a release changes the
-   recipe. A failed build names the base image `node:<version>-bookworm-slim` and `--node`, for a
-   Node version Docker Hub has no such image of.
+   itself, compared with its symlinks resolved (an absolute path through `/tmp`, which is
+   `/private/tmp` on macOS, is inside; a symlink in the repository that leads out of it is not).
+2. **Image.** Without `image`: `docker image inspect` of
+   `vsCodeSmokeDockerImage(nodeVersion, platform)`, and when it is missing (or `rebuild`)
+   `docker build [--platform <platform>] --tag <image> -` with `vsCodeSmokeDockerfile` on stdin; no
+   build context. The hash in the tag builds a new image when a release changes the recipe. A
+   `platform` gets an image of its own (the tag ends in `-linux-amd64`): a tag holds one platform's
+   image, and `docker run --platform` with a tag that holds another platform's tries to pull it. A
+   failed build names the base image `node:<version>-bookworm-slim` and `--node`, for a Node version
+   Docker Hub has no such image of.
 3. **Results directory.** The default `test-results/vscode-smoke`, the smoke test's own, is emptied,
    as are directories an earlier run created (they hold the marker `.modeler-shell-vscode-docker`); a
    missing or empty one is created with the marker; any other directory with files is left as it is
@@ -2690,8 +2695,11 @@ A run of `runVsCodeSmokeInDocker`:
 
 The driver needs nothing special in the container: Linux keys (`Control+s`), its default cache path
 under `~/.cache` (the volume), VS Code's `linux-arm64` or `linux-x64` build by the container's
-architecture. A test that sets `cachePath` to a directory inside the repository downloads VS Code on
-every run, because the copy starts without it.
+architecture. Keep that default `cachePath` for Docker runs. The copy leaves out only
+`.vscode-test`: a test with its `cachePath` there downloads VS Code on every run, because the copy
+starts without it. Any other `cachePath` inside the repository is copied in on every run with the
+host's VS Code builds (about 1 GB per version), and the container still downloads its Linux build
+into the copy, which the run then throws away.
 
 ## `./shell.css`
 

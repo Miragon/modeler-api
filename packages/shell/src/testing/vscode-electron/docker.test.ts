@@ -8,6 +8,7 @@ import {
   readdirSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -78,6 +79,13 @@ describe("vsCodeSmokeDockerImage", () => {
     );
     expect(vsCodeSmokeDockerImage("22.22.2")).toBe(vsCodeSmokeDockerImage("22.22.2"));
     expect(vsCodeSmokeDockerImage("24.15.0")).not.toBe(vsCodeSmokeDockerImage("22.22.2"));
+  });
+
+  it("ends the tag with a requested platform, so the native and the emulated image never share one", () => {
+    const native = vsCodeSmokeDockerImage("22.22.2");
+    expect(vsCodeSmokeDockerImage("22.22.2", "linux/amd64")).toBe(`${native}-linux-amd64`);
+    expect(vsCodeSmokeDockerImage("22.22.2", "linux/arm/v7")).toBe(`${native}-linux-arm-v7`);
+    expect(vsCodeSmokeDockerImage("22.22.2", "")).toBe(native);
   });
 });
 
@@ -354,7 +362,8 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
       `printf '%s\\n' "$*" >> "${calls}"`,
       'case "$1" in',
       '  version) [ -n "$STUB_NO_DOCKER" ] && { echo "Cannot connect to the Docker daemon" >&2; exit 1; }; echo "29.0.0 arm64";;',
-      '  image) [ -n "$STUB_IMAGE_EXISTS" ] || exit 1;;',
+      // STUB_IMAGE_EXISTS: 1 for every image, or the one tag that exists
+      '  image) [ "$STUB_IMAGE_EXISTS" = 1 ] || [ "$STUB_IMAGE_EXISTS" = "$3" ] || exit 1;;',
       `  build) cat > "${stdinCopy}";;`,
       '  run) exit "${STUB_RUN_EXIT:-0}";;',
       "esac",
@@ -450,6 +459,63 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
     expect(called).toContain(" mine:1 bash -c ");
     expect(called.trim()).toMatch(/npm run test:vscode-smoke$/);
     expect(own).toMatchObject({ exitCode: 0, image: "mine:1", results: join(root, "out") });
+  });
+
+  it("builds and runs an image of its own for a requested platform, next to the native one", async () => {
+    process.env.STUB_IMAGE_EXISTS = vsCodeSmokeDockerImage("22.22.2");
+    const root = repository();
+    const result = await runVsCodeSmokeInDocker({
+      cwd: root,
+      docker: stub,
+      nodeVersion: "22.22.2",
+      platform: "linux/amd64",
+      command: ["uname", "-m"],
+      log,
+    });
+    const amd64 = vsCodeSmokeDockerImage("22.22.2", "linux/amd64");
+    expect(result.image).toBe(amd64);
+    const called = readFileSync(calls, "utf8").trim().split("\n");
+    expect(called.slice(1, 3)).toEqual([
+      `image inspect ${amd64}`,
+      `build --platform linux/amd64 --tag ${amd64} -`,
+    ]);
+    expect(called[3]).toContain("--platform linux/amd64");
+    expect(called[3]).toContain(` ${amd64} bash -c `);
+    rmSync(calls);
+    await runVsCodeSmokeInDocker({ cwd: root, docker: stub, nodeVersion: "22.22.2", log });
+    expect(readFileSync(calls, "utf8")).not.toContain("build");
+    expect(readFileSync(calls, "utf8")).toContain(` ${vsCodeSmokeDockerImage("22.22.2")} bash -c `);
+  });
+
+  it("takes an absolute results directory through a symlink to the repository", async () => {
+    process.env.STUB_IMAGE_EXISTS = "1";
+    const root = repository();
+    const linked = join(freshDirectory(), "linked");
+    symlinkSync(root, linked);
+    const result = await runVsCodeSmokeInDocker({
+      cwd: join(linked, "apps", "vscode"),
+      docker: stub,
+      nodeVersion: "22.22.2",
+      results: join(linked, "out", "smoke"),
+      log,
+    });
+    expect(result).toMatchObject({ root, results: join(root, "out", "smoke") });
+    const called = readFileSync(calls, "utf8");
+    expect(called).toContain(`--volume ${join(root, "out", "smoke")}:/results`);
+    expect(called).toContain("SMOKE_RESULTS=out/smoke");
+    expect(called).toContain("SMOKE_WORKDIR=apps/vscode");
+    expect(readdirSync(join(root, "out", "smoke"))).toEqual([DOCKER_RESULTS_MARKER]);
+  });
+
+  it("rejects a results directory that a symlink inside the repository leads out of it", async () => {
+    process.env.STUB_IMAGE_EXISTS = "1";
+    const root = repository();
+    const elsewhere = freshDirectory();
+    symlinkSync(elsewhere, join(root, "escape"));
+    await expect(
+      runVsCodeSmokeInDocker({ cwd: root, docker: stub, results: "escape/smoke", log }),
+    ).rejects.toThrow("has to be a directory inside");
+    expect(readdirSync(elsewhere)).toEqual([]);
   });
 
   it("explains a Docker that does not answer, a directory without a lockfile and results outside the repository", async () => {

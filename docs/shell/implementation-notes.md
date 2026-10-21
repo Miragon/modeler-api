@@ -1632,7 +1632,12 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
     same for every modeler; the modeler adds one script line. The Dockerfile is generated from
     `vsCodeSmokeDockerfile`, so it is unit-tested, versioned with the shell and in the image's tag
     (the first 12 hex digits of its SHA-256): a release that changes it builds a new image, an
-    unchanged one is reused.
+    unchanged one is reused. A `--platform` ends the tag (`-linux-amd64`): a tag holds one
+    platform's image, so with the native image under the plain tag,
+    `docker run --platform linux/amd64` found no amd64 image locally, tried to pull the local-only
+    tag and failed. Now the amd64 image builds next to the native one (75 s under Docker Desktop's
+    emulation on Apple silicon) and `uname -m` in it says `x86_64`; the smoke test itself has not
+    run there.
   - _Official Node image on bookworm._ `node:<version>-bookworm-slim` with the Node version the
     command runs with, so the container installs with the same Node and npm major as the host's
     run. The Debian release is fixed because trixie renamed Electron's libraries (`libasound2t64`,

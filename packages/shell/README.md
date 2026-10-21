@@ -653,11 +653,12 @@ What it does:
 1. **Image.** Once per Node version and recipe it builds the local image
    `modeler-shell-vscode-smoke:node<version>-<hash>` (about 0.9 GB): the official
    `node:<version>-bookworm-slim` with Xvfb, `xauth`, the libraries Electron needs, fonts, `unzip`
-   and `git` (Dockerfile: `vsCodeSmokeDockerfile`, in [API.md][api]). The Node version is the one that runs the command
-   (`--node` picks another), the architecture the Docker host's (`linux/arm64` on Apple silicon, where
-   VS Code's `linux-arm64` build runs; `--platform linux/amd64` asks for x64, which Docker Desktop
-   emulates there, not validated). The hash in
-   the tag builds a new image when a shell release changes the recipe; `--rebuild` builds it again.
+   and `git` (Dockerfile: `vsCodeSmokeDockerfile`, in [API.md][api]). The Node version is the one
+   that runs the command (`--node` picks another), the architecture the Docker host's (`linux/arm64`
+   on Apple silicon, where VS Code's `linux-arm64` build runs). `--platform linux/amd64` asks for x64
+   in an image of its own (its tag ends in `-linux-amd64`), which Docker Desktop emulates on Apple
+   silicon; the smoke test itself is not validated there. The hash in the tag builds a new image when
+   a shell release changes the recipe; `--rebuild` builds it again.
 2. **Repository.** The repository root (the nearest directory upwards with a `package-lock.json`) is
    mounted read-only at `/repo` and copied into the container without `node_modules`, `.git`,
    `.vscode-test` and the results directory. `npm ci` installs there, so the container gets the Linux
@@ -666,7 +667,9 @@ What it does:
    command instead) runs under `xvfb-run -a` in the directory the command was started in, with
    `HUSKY=0` and the variables of `--env`. VS Code's download and npm's cache live in two named
    volumes, `modeler-shell-vscode-cache` (the container's `~/.cache`, where the driver keeps VS Code)
-   and `modeler-shell-npm-cache`, shared by every modeler on the machine.
+   and `modeler-shell-npm-cache`, shared by every modeler on the machine. A test with a `cachePath`
+   of its own inside the repository downloads VS Code on every run in the container (see
+   [API.md][api]); the default needs nothing.
 4. **Results.** `test-results/vscode-smoke` (`--results` for another directory inside the
    repository) comes back to the host, with VS Code's logs in `vscode-logs/` when the test kept its
    temporary files (`keepTemporaryFiles`). Each run empties `test-results/vscode-smoke` first, as the

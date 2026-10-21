@@ -2,7 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { constants } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
  * What VS Code needs on a Debian bookworm without a desktop: an X server for `xvfb-run` (with
@@ -69,10 +69,15 @@ export function vsCodeSmokeDockerfile(nodeVersion: string): string {
   ].join("\n");
 }
 
-/** The local image's tag; the hash of the Dockerfile in it builds a new image when the recipe changes. */
-export function vsCodeSmokeDockerImage(nodeVersion: string): string {
+/**
+ * The local image's tag; the hash of the Dockerfile in it builds a new image when the recipe changes.
+ * A `platform` (`linux/amd64`) ends the tag (`-linux-amd64`): a tag holds one platform's image, so
+ * the native and the emulated image need one each.
+ */
+export function vsCodeSmokeDockerImage(nodeVersion: string, platform?: string): string {
   const hash = createHash("sha256").update(vsCodeSmokeDockerfile(nodeVersion)).digest("hex").slice(0, 12);
-  return `modeler-shell-vscode-smoke:node${nodeVersion}-${hash}`;
+  const suffix = platform ? `-${platform.replace(/[^A-Za-z0-9_.-]+/g, "-")}` : "";
+  return `modeler-shell-vscode-smoke:node${nodeVersion}-${hash}${suffix}`;
 }
 
 /**
@@ -189,6 +194,22 @@ export function pathInside(root: string, path: string): string | undefined {
   return inside.split(sep).join("/");
 }
 
+/**
+ * `path` with the symlinks of its longest existing part resolved and the missing rest appended, so
+ * a path through a symlink (`/tmp` on macOS is `/private/tmp`) compares with a real root.
+ */
+export function realPathOf(path: string): string {
+  const missing: string[] = [];
+  let existing = resolve(path);
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    if (parent === existing) break;
+    missing.unshift(basename(existing));
+    existing = parent;
+  }
+  return join(realpathSync(existing), ...missing);
+}
+
 /** Marks a results directory this command created, so the next run may empty it. */
 export const DOCKER_RESULTS_MARKER = ".modeler-shell-vscode-docker";
 
@@ -224,7 +245,7 @@ export interface VsCodeSmokeDockerOptions {
   env?: Readonly<Record<string, string>> | undefined;
   /** An image of one's own instead of the one built from `vsCodeSmokeDockerfile`. */
   image?: string | undefined;
-  /** `docker --platform`; default the Docker host's. */
+  /** `docker --platform`, with an image of its own; default the Docker host's. */
   platform?: string | undefined;
   /** Builds the image even when it exists. */
   rebuild?: boolean | undefined;
@@ -286,7 +307,7 @@ export async function runVsCodeSmokeInDocker(
     throw new Error(`no package-lock.json in ${cwd} or above: run it inside the modeler's repository`);
   const root = realpathSync(found);
   const workdir = pathInside(root, realpathSync(cwd)) ?? "";
-  const results = pathInside(root, options.results ?? DEFAULT_DOCKER_RESULTS);
+  const results = pathInside(root, realPathOf(resolve(root, options.results ?? DEFAULT_DOCKER_RESULTS)));
   if (!results) throw new Error(`the results directory has to be a directory inside ${root}, not the root`);
 
   const server = spawnSync(docker, ["version", "--format", "{{.Server.Version}} {{.Server.Arch}}"], {
@@ -299,7 +320,7 @@ export async function runVsCodeSmokeInDocker(
   log(`[vscode-docker] Docker ${server.stdout.trim()}`);
 
   const nodeVersion = options.nodeVersion ?? process.versions.node;
-  const image = options.image ?? vsCodeSmokeDockerImage(nodeVersion);
+  const image = options.image ?? vsCodeSmokeDockerImage(nodeVersion, options.platform);
   const imageStarted = performance.now();
   if (!options.image) {
     const exists = spawnSync(docker, ["image", "inspect", image], { stdio: "ignore" }).status === 0;
