@@ -277,8 +277,8 @@ rewrites the constant on every release (`extra-files`) and a test pins it to
 Releases are tagged `modeler-api-vX.Y.Z`.
 
 Hosts bind from the package root, which carries no kit code (since 1.2;
-`@miragon/modeler-api/conformance` re-exports the same function, so 1.1 imports
-keep working):
+`@miragon/modeler-api/conformance` re-exports `apiVersionsCompatible`, so 1.1
+imports keep working):
 
 ```ts
 import { apiVersionsCompatible, MODELER_API_VERSION } from "@miragon/modeler-api";
