@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.0...modeler-shell-v0.3.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **shell:** wait for a complete save and run the VS Code smoke test in Docker ([#29](https://github.com/Miragon/modeler-api/issues/29)) ([41163fc](https://github.com/Miragon/modeler-api/commit/41163fc85e18d622e4d1af7d9e84115c759870d9))
+
 ## [0.3.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.2...modeler-shell-v0.3.0) (2026-10-21)
 
 
