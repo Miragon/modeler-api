@@ -88,9 +88,13 @@ a new modeler repository starts from (`assets/template/`, placeholders `__NOTATI
 (`scripts/new-modeler.mjs`). It lives outside `packages/`, so release-please releases nothing for
 a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `fix(plugin): …`).
 
-- **Versions.** Installed plugins update only when the version changes: bump `version` in
-  `plugins/modeler-kit/.claude-plugin/plugin.json` and in its entry in
-  `.claude-plugin/marketplace.json` together with every change of the skill or the template.
+- **No version.** Neither `plugins/modeler-kit/.claude-plugin/plugin.json` nor its entry in
+  `.claude-plugin/marketplace.json` sets `version`, and the drift test fails when one does. Claude
+  Code then versions the plugin by the commit of its directory, so every merged change, the
+  template pins release-please rewrites in its release commit included, reaches installed copies
+  on their next update.
+  A fixed version would hold installed copies until someone bumped it, and no one bumps it for
+  release-please's rewrite.
 - **Pins.** The template's `@miragon/modeler-api` and `@miragon/modeler-shell` pins follow the
   releases: each package's `extra-files` in `release-please-config.json` names the template's
   `package.json` fields it rewrites (root-relative paths, leading `/`). A new pin in the template
@@ -98,7 +102,7 @@ a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `
 - **The drift test** (`test/new-modeler-skill.test.ts`, `npm run test:plugin`, part of `npm test`)
   fails when the template's platform pins differ from the workspace versions or lack their
   `extra-files` entry, when the template pins anything loosely, when a placeholder is undocumented
-  or left unfilled, when the plugin or marketplace manifest is invalid or their versions differ,
+  or left unfilled, when the plugin or marketplace manifest is invalid or sets a `version`,
   when a link of the plugin does not resolve (its links to this repository on GitHub are checked
   against this checkout), when the skill names an identifier that neither package exports (foreign
   names are listed in the test, each with its origin), and when the template's TypeScript does not
@@ -106,8 +110,9 @@ a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `
   check only (the template's schema model uses it).
 - **The template itself** builds and passes both conformance kits once instantiated: run the script
   into an empty directory outside this repository, copy the design-system files in (see the
-  skill), then `npm install` and the template's checks. `claude plugin validate --strict .` checks
-  the manifests against Claude Code itself.
+  skill), then `npm install` and the template's checks. `claude plugin validate .` checks the
+  manifests against Claude Code itself; it passes with one warning, the missing `version`, which is
+  intended (so not `--strict`, which fails on any warning).
 
 ## Checks
 

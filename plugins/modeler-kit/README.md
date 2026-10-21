@@ -27,7 +27,12 @@ the template falls behind the packages: the template's `@miragon/modeler-api` an
 `@miragon/modeler-shell` pins against the workspace versions (release-please rewrites them on every
 release), every API name the skill mentions against the packages' exports, every link, the plugin
 and marketplace manifests, and a type check of the template's TypeScript against the current
-sources. Bump `version` in [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) and in the
-marketplace entry ([`.claude-plugin/marketplace.json`](https://github.com/Miragon/modeler-api/blob/main/.claude-plugin/marketplace.json))
-together whenever the skill or the template changes: installed plugins update only when the
-version does.
+sources.
+
+The plugin has no `version`, neither in [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
+nor in its marketplace entry ([`.claude-plugin/marketplace.json`](https://github.com/Miragon/modeler-api/blob/main/.claude-plugin/marketplace.json)),
+and the drift test keeps it that way. Claude Code then versions it by the commit of this
+directory, so every merged change reaches an installed copy on its next update
+(`/plugin marketplace update modeler-api` in a session, `claude plugin update modeler-kit@modeler-api`
+in the shell, or the marketplace's auto-update), the pins release-please rewrites in its release
+commit included. A fixed version would hold every installed copy until someone changed it.

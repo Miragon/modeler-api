@@ -11,7 +11,6 @@
       "name": "modeler-kit",
       "source": "./plugins/modeler-kit",
       "description": "The new-modeler skill: build a Miragon modeler end to end from a runnable template, on @miragon/modeler-api and @miragon/modeler-shell.",
-      "version": "0.1.0",
       "author": {
         "name": "Miragon",
         "url": "https://miragon.io"

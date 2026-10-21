@@ -487,7 +487,6 @@ const SKILL_KEYS = new Set(
   ),
 );
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const SEMVER = /^\d+\.\d+\.\d+$/;
 
 interface MarketplaceEntry extends Json {
   name: string;
@@ -528,9 +527,13 @@ describe("the plugin manifests", () => {
         expect(() => new URL(manifest.homepage ?? "")).not.toThrow();
       });
 
-      it("carries one version in plugin.json and in the marketplace entry", () => {
-        expect(manifest.version).toMatch(SEMVER);
-        expect(entry.version).toBe(manifest.version);
+      // A version holds every installed copy until someone changes it, and nobody changes it for
+      // the template pins release-please rewrites in its release commit. Without one, Claude Code
+      // versions a relative-path plugin by the commit of its directory, so every merged change
+      // reaches `/plugin update`.
+      it("has no version in plugin.json or in the marketplace entry, so installs follow the commits", () => {
+        expect(manifest.version).toBeUndefined();
+        expect(entry.version).toBeUndefined();
       });
 
       it("has skills with a valid SKILL.md each", () => {
