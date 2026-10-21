@@ -18,7 +18,13 @@ import {
   registerConformance,
 } from "../src/conformance.js";
 import * as root from "../src/index.js";
-import { type CollaborativeModeler, MODELER_API_VERSION } from "../src/index.js";
+import {
+  type CollaborativeModeler,
+  type CollaborativeModelerOptions,
+  type DiagramPoint,
+  type FreeAreaInsets,
+  MODELER_API_VERSION,
+} from "../src/index.js";
 import { createReferenceModeler, type Flaws, type ReferenceModeler } from "./reference-modeler.js";
 
 function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {}): ConformanceHarness {
@@ -484,4 +490,20 @@ describe("variants that miss a RECOMMENDATION fail nothing and advise exactly on
     expectAdvisoryOnly({ dropInteractionOnImport: true }, CASE.l1Interaction));
   test("a host's view change that drops the open label editor → an advisory from the L5 interaction case", () =>
     expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction));
+});
+
+describe("the aligned factory options (a type the renderers implement — tsc checks this block)", () => {
+  test("the free area takes insets or a centre, never both, next to fitOnImport and undoRedoKeys", () => {
+    const insets = (): FreeAreaInsets => ({ top: 88, right: 24, bottom: 64, left: 24 });
+    const center = (): DiagramPoint | undefined => ({ x: 400, y: 300 });
+    const options: CollaborativeModelerOptions[] = [
+      {},
+      { freeArea: { insets }, fitOnImport: false, undoRedoKeys: false },
+      { freeArea: { center } },
+      // @ts-expect-error — one form only: a renderer given both could not tell which one the host means
+      { freeArea: { insets, center } },
+    ];
+    const forms = options.map((o) => (o.freeArea ? ("insets" in o.freeArea ? "insets" : "center") : "none"));
+    expect(forms).toEqual(["none", "insets", "center", "insets"]);
+  });
 });

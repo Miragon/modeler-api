@@ -37,7 +37,8 @@ export interface ConformanceHarness {
    * document with a non-zero size (`attachedHost()` below) — diagram-js
    * engines compute viewboxes from the host's client size, so a detached
    * or 0×0 host yields NaN view state; they also need a real browser
-   * (vitest browser mode / Playwright), jsdom has no getBBox
+   * (vitest browser mode / Playwright), jsdom has no getBBox. Keep
+   * `fitOnImport` at its default: the L5 cases check the modeler's own fit
    */
   create(): Promise<CollaborativeModeler>;
   /** a fresh READ-ONLY instance (`meta.editable === false`) — the viewer

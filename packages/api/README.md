@@ -97,6 +97,40 @@ shared document for every peer. RECOMMENDED: the interaction stays open with
 its typed input, so the user's commit afterwards writes what it would have
 written without the view change.
 
+## Factory options
+
+Since 1.2 every renderer's contract factory (`createCollaborativeModeler`,
+`createCollaborativeViewer`) takes the options a host has to feed it under
+the same names, `CollaborativeModelerOptions`, so a host passes every
+notation one object. A renderer adds its own next to them (diagram-js
+`additionalModules`).
+
+| Option         | Meaning                                                                                                                                                                                                                                                           | Default             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `freeArea`     | the part of the canvas no host chrome covers — `{ insets }` (px from the container's edges, e.g. `shell.fitInsets()`) or `{ center }` (diagram coordinates, e.g. `viewport.freeRectCenter()`), each a function, never both; keyboard creation lands in its centre | the whole container |
+| `fitOnImport`  | fit the content after every import (the fitted view of L5); `false` when the host's chrome fits it itself                                                                                                                                                         | `true`              |
+| `undoRedoKeys` | bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history; `false` when the host owns the document's history (VS Code)                                                                                                                               | `true`              |
+
+```ts
+import type { CollaborativeModelerOptions } from "@miragon/modeler-api";
+
+const options: CollaborativeModelerOptions = {
+  freeArea: { insets: () => shell.fitInsets() }, // or { center: () => viewport.freeRectCenter() }
+  fitOnImport: false, // the shell's viewport fits after every import
+  undoRedoKeys: false, // VS Code owns the history
+};
+```
+
+The names the renderers shipped before 1.2 stay accepted as DEPRECATED
+aliases for one minor release of each renderer, then go: `freeRectInsets`
+(Wardley, Event Storming, Context Maps) is `freeArea: { insets }`,
+`freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
+Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. Given both, the aligned
+name wins. A renderer given only `center` that needs the rectangle itself (a
+pan constraint) treats the whole container as free. A viewer factory takes the
+same type and ignores `undoRedoKeys`. The kit's `create()` keeps `fitOnImport`
+at its default: L5 checks the modeler's own fit.
+
 ## The conformance kit
 
 ```ts

@@ -232,3 +232,74 @@ export interface CollaborativeModeler {
    *  behavior, but a second destroy() must not throw */
   destroy(): void;
 }
+
+/** px the host's chrome covers along the edges of the modeler's container */
+export interface FreeAreaInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/** a point in diagram coordinates */
+export interface DiagramPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * The FREE AREA: the part of the canvas no host chrome covers (Miragon
+ * guide §5.9). Keyboard creation places a new element in its centre (§5.5)
+ * and a renderer that constrains panning keeps the content reachable around
+ * it, so both agree with a host that fits into the same rectangle. A host
+ * passes ONE of two forms, each a function the renderer reads whenever it
+ * needs it (the chrome changes when an inspector or a legend opens):
+ *
+ *  - `insets`: what the chrome covers, in px from the container's edges
+ *    (the modeler shell's `shell.fitInsets()`); the renderer computes the
+ *    centre itself, the way a fit does;
+ *  - `center`: the centre itself, in diagram coordinates, `undefined` while
+ *    there is none (a 0×0 container) — the shell's `viewport.freeRectCenter()`.
+ *
+ * A renderer accepts both. One that needs the rectangle itself (a pan
+ * constraint) and is given only `center` treats the whole container as
+ * free, as it does without the option.
+ */
+export type FreeArea =
+  | { insets: () => FreeAreaInsets; center?: never }
+  | { center: () => DiagramPoint | undefined; insets?: never };
+
+/**
+ * The options every renderer's contract factory takes under THESE names
+ * (1.2), so a host feeds every notation the same object instead of one
+ * spelling per renderer. A renderer extends the type with its own options
+ * (diagram-js `additionalModules`); the contract fixes names, meaning and
+ * defaults. A viewer factory takes the same type and ignores what has no
+ * meaning without editing (`undoRedoKeys`).
+ *
+ * The names renderers shipped before 1.2 stay accepted as DEPRECATED
+ * aliases for one minor release of each renderer, then go:
+ * `freeRectInsets` (Wardley, Event Storming, Context Maps) is
+ * `freeArea: { insets }`, `freeRectCenter` (Team Topologies, Value Chain) is
+ * `freeArea: { center }`, and Wardley's `keyboard: { undoRedo }` is
+ * `undoRedoKeys`. Given both, the aligned name wins.
+ */
+export interface CollaborativeModelerOptions {
+  /** where the host's chrome leaves the canvas free; default: the whole container */
+  freeArea?: FreeArea | undefined;
+  /**
+   * fit the content into the view after every import — default true, the
+   * fitted view L5 defines. A host whose chrome fits the content itself
+   * (the modeler shell's viewport fits into the free area) passes false:
+   * the post-import view is then the host's to set, and L5's fit is the
+   * host's fit. The conformance kit runs with the default
+   */
+  fitOnImport?: boolean | undefined;
+  /**
+   * bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history —
+   * default true. A host that owns the document's history (VS Code) passes
+   * false, and the keys reach it unprevented; text fields keep their own
+   * undo either way
+   */
+  undoRedoKeys?: boolean | undefined;
+}

@@ -104,6 +104,14 @@ at `viewport.freeRectCenter()` (see [Palette](#palette)), the canvas lock of a r
 on the canvas (see [VS Code: key interception](#vs-code-key-interception)) and, until the shell has
 a dialog component, the "Keyboard shortcuts…" dialog itself (see [Modeler dialogs](#modeler-dialogs)).
 
+The host hands the shell's side to the renderer through the factory options the
+[`@miragon/modeler-api`](../../packages/api/README.md#factory-options) contract names since 1.2, the
+same for every notation: `freeArea: { insets: () => shell.fitInsets() }` or
+`freeArea: { center: () => viewport.freeRectCenter() }`, `fitOnImport: false` when the viewport fits
+after every import, and `undoRedoKeys: false` in the IDE host. The renderers' earlier names
+(`freeRectInsets`, `freeRectCenter`, Wardley's `keyboard: { undoRedo }`) stay deprecated aliases for
+one minor release of each renderer.
+
 The shell talks to diagram-js only through public services and events (`canvas`, `zoomScroll`,
 `keyboard`, `palette`, `eventBus`). It never reads private fields such as `palette._container`, which
 hosts still do today (Miragon/design-iq#136): the palette's container comes with the `palette.create`
@@ -307,9 +315,11 @@ tab order.
   of the container minus the fit insets, in diagram coordinates, as fit computes it), creates the
   shape there with `modeling.createShape`, selects it, calls `canvas.focus()` and opens its label
   editor. The provider is built before `connectDiagramJs`, so it receives a function and reads the
-  viewport when the entry fires. The 24px step is the provider's; a shared placement helper is a
-  later candidate. Shell conformance (`create`) presses Enter on the first creating entry and expects
-  exactly one new, selected shape whose centre lies in the free rectangle.
+  viewport when the entry fires (the factory option `freeArea`, see
+  [What a modeler hands to the shell](#what-a-modeler-hands-to-the-shell)). The 24px step is the
+  provider's; a shared placement helper is a later candidate. Shell conformance (`create`) presses
+  Enter on the first creating entry and expects exactly one new, selected shape whose centre lies in
+  the free rectangle.
 - **Read-only** (guide §13.5). Only Lasso and Hand stay active; every other entry changes the diagram
   and is vetoed, also tools of group `tools` such as draw, space or connect. `palette.trigger`
   carries the entry definition without its id, so the veto finds the entry element through the
@@ -1183,9 +1193,10 @@ selection; in text fields the field's own undo applies.
   where VS Code's webview host forwards them and VS Code undoes the document edit.
 - A modeler's own DOM binding must go in the webview as well. Event Storming's document keyboard
   calls `preventDefault()` and `commandStack.undo()` on Cmd+Z (also with an empty stack) unless the
-  webview creates it with `undoRedoKeys: false`. With the binding on, the shell stops the key as one
-  the canvas handled, VS Code never undoes, and since Event Storming clears its stack on every
-  import, Cmd+Z on the canvas does nothing at all after an external edit.
+  webview creates it with `undoRedoKeys: false` (the contract's name for every renderer since 1.2;
+  Wardley's `keyboard: { undoRedo: false }` is its deprecated alias). With the binding on, the shell
+  stops the key as one the canvas handled, VS Code never undoes, and since Event Storming clears its
+  stack on every import, Cmd+Z on the canvas does nothing at all after an external edit.
   Shell conformance presses Cmd/Ctrl+Z, Shift+Z and Ctrl+Y on the canvas in the IDE host and expects
   each on `window`, once and unprevented.
 - Each canvas change is written as one `WorkspaceEdit` with minimal line changes, applied with
