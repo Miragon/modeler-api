@@ -31,7 +31,7 @@ import {
   type VsCodeSmokeStep,
   type VsCodeSmokeThemeResult,
 } from "./result.js";
-import { waitForSavedText } from "./save.js";
+import { readSaveOnceClean } from "./save.js";
 import {
   VSCODE_COLOR_THEMES,
   WEBVIEW_THEME_BODY_CLASSES,
@@ -514,19 +514,17 @@ async function runSession(run: SessionRun): Promise<void> {
     edited &&
     (await step("save", async () => {
       await context.page.keyboard.press(context.keys.save);
-      // VS Code truncates the file before it writes it; the tab turns clean once the write is done.
-      const clean = await pollUntil(dirty, (value) => !value, timeoutMs);
-      // A tab that stayed dirty most likely saved nothing: one short look at the disk, not another timeout.
-      const diskTimeoutMs = clean.met ? timeoutMs : SAVE_SETTLE_MS;
-      const written = await waitForSavedText({
+      const { clean, diskTimeoutMs, written } = await readSaveOnceClean({
+        dirty,
         file: paths.file,
         previous: original,
         parse: options.parse,
-        timeoutMs: diskTimeoutMs,
+        timeoutMs,
+        intervalMs: POLL_INTERVAL_MS,
         settleMs: SAVE_SETTLE_MS,
       });
       if (written.status === "unchanged") throw new Error(`${context.keys.save} wrote nothing to disk`);
-      if (!clean.met) failures.add("save", "the editor is still dirty after the save");
+      if (!clean) failures.add("save", "the editor is still dirty after the save");
       if (written.status === "unsettled") {
         throw new Error(`the file was still changing ${diskTimeoutMs} ms after the save`);
       }

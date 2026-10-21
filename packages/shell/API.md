@@ -2527,8 +2527,11 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
 4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
 5. **save** (0.3.1): the platform's save key; the tab turns clean, then the driver reads the file
    until it holds still: a read counts once two reads 100 ms apart see the same size, mtime and text
-   and that text differs from the fixture (VS Code truncates the file before it writes it, so one read
-   can be empty or cut short). `parse` gets that text; a text it rejects is read again, and the step
+   and that text differs from the fixture. The clean tab is what makes the read complete: VS Code
+   truncates the file before it writes it, so a read during the write can be empty or cut short, and
+   it clears the dirty state only once the write has resolved. The two reads only add a margin (for a
+   save that reports success before its write is visible); on their own they cannot tell a pause
+   inside a write from its end. `parse` gets that text; a text it rejects is read again, and the step
    fails only when the rejected text stays unchanged for 1 s: "the saved text does not parse: <the
    parser's first line> (<bytes> bytes on disk, unchanged for <ms> ms)". A file that never changes
    fails with "<save key> wrote nothing to disk"; a tab that stays dirty adds "the editor is still

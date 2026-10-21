@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { waitForSavedText } from "./save.js";
+import { readSaveOnceClean, waitForSavedText } from "./save.js";
 
 const directory = mkdtempSync(join(tmpdir(), "modeler-shell-save-"));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -45,6 +45,20 @@ function recordingParse(): { parse: (text: string) => unknown; texts: string[] }
 }
 
 const fast = { intervalMs: 20, settleMs: 400, timeoutMs: 5_000 };
+
+// A line-based DSL, the kind the Wardley and Event Storming modelers save: every whole-line prefix parses.
+const MAP = "title Tea\ncomponent A [0.5, 0.5]\ncomponent B [0.4, 0.3]\nA -> B\n";
+const MAP_FIRST_PART = MAP.slice(0, MAP.indexOf("component B"));
+function lineParse(): { parse: (text: string) => string[]; texts: string[] } {
+  const texts: string[] = [];
+  return {
+    texts,
+    parse(text) {
+      texts.push(text);
+      return text.split("\n").filter(Boolean);
+    },
+  };
+}
 
 describe("waitForSavedText", () => {
   it("parses the complete text of a file written in two steps, not its first part", async () => {
@@ -184,5 +198,69 @@ describe("waitForSavedText", () => {
     writing = false;
     await writer;
     expect(outcome.status).toBe("unsettled");
+  });
+});
+
+describe("readSaveOnceClean", () => {
+  it("documents why: on its own, the hold-still check takes a pause inside the write for its end", async () => {
+    const file = await fixtureFile("title Tea\n");
+    const { parse } = lineParse();
+    const [outcome] = await Promise.all([
+      waitForSavedText({ file, previous: "title Tea\n", parse, ...fast }),
+      writeInTwoSteps(file, MAP_FIRST_PART, MAP.slice(MAP_FIRST_PART.length), 400),
+    ]);
+    expect(outcome).toMatchObject({ status: "parsed", text: MAP_FIRST_PART });
+  });
+
+  it("reads the disk only once the editor turned clean, so a pause inside the write is not its end", async () => {
+    const file = await fixtureFile("title Tea\n");
+    const { parse, texts } = lineParse();
+    let writing = true;
+    let cleanAt = Number.POSITIVE_INFINITY;
+    const parsedAt: number[] = [];
+    const dirtyChecks: boolean[] = [];
+    const save = async () => {
+      await writeInTwoSteps(file, MAP_FIRST_PART, MAP.slice(MAP_FIRST_PART.length), 400);
+      writing = false;
+    };
+    const [result] = await Promise.all([
+      readSaveOnceClean({
+        file,
+        previous: "title Tea\n",
+        parse: (text) => {
+          parsedAt.push(performance.now());
+          return parse(text);
+        },
+        dirty: async () => {
+          dirtyChecks.push(writing);
+          if (!writing) cleanAt = Math.min(cleanAt, performance.now());
+          return writing;
+        },
+        ...fast,
+      }),
+      save(),
+    ]);
+    expect(result).toMatchObject({ clean: true, diskTimeoutMs: fast.timeoutMs });
+    expect(result.written).toMatchObject({ status: "parsed", text: MAP });
+    expect(texts).toEqual([MAP]);
+    expect(parsedAt.every((at) => at >= cleanAt)).toBe(true);
+    expect(dirtyChecks.at(0)).toBe(true);
+    expect(dirtyChecks.at(-1)).toBe(false);
+  });
+
+  it("gives the disk settleMs, not another timeout, when the editor stays dirty", async () => {
+    const file = await fixtureFile(PREVIOUS);
+    const started = performance.now();
+    const result = await readSaveOnceClean({
+      file,
+      previous: PREVIOUS,
+      parse: (text) => JSON.parse(text) as unknown,
+      dirty: async () => true,
+      intervalMs: 20,
+      settleMs: 200,
+      timeoutMs: 300,
+    });
+    expect(result).toEqual({ clean: false, diskTimeoutMs: 200, written: { status: "unchanged" } });
+    expect(performance.now() - started).toBeLessThan(300 + 200 + 400);
   });
 });

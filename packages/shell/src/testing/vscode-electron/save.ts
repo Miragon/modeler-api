@@ -69,11 +69,16 @@ function sameSample(a: FileSample | undefined, b: FileSample | undefined): a is 
 }
 
 /**
- * Reads the file a save writes until it holds still, then parses it. VS Code truncates a file
- * before it writes the new text, so a single read after the save key can see nothing or the first
- * part. A read counts once two reads `intervalMs` apart see the same size, mtime and text, and the
- * text differs from `previous`. A text the parser rejects is read again: only when it stays
- * unchanged for `settleMs` is it the saved one.
+ * Reads the file a save writes until it holds still, then parses it. A read counts once two reads
+ * `intervalMs` apart see the same size, mtime and text, and the text differs from `previous`. A
+ * text the parser rejects is read again: only when it stays unchanged for `settleMs` is it the
+ * saved one.
+ *
+ * On its own this cannot tell a pause inside a write from its end: a write that stops for longer
+ * than `intervalMs` after a part the parser accepts (a line-based DSL accepts any whole lines)
+ * yields that part. A complete read needs the editor's clean state first, which
+ * `readSaveOnceClean` waits for; the two reads after it are a margin for a save that reports
+ * success before its write is visible.
  */
 export async function waitForSavedText<T>(options: SavedTextOptions<T>): Promise<SavedTextOutcome<T>> {
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
@@ -126,4 +131,39 @@ export async function waitForSavedText<T>(options: SavedTextOptions<T>): Promise
     latest = sample;
     await delay(intervalMs);
   }
+}
+
+export interface SaveReadBackOptions<T> extends SavedTextOptions<T> {
+  /** Whether the saved editor still has unsaved changes. */
+  dirty: () => Promise<boolean>;
+}
+
+export interface SaveReadBack<T> {
+  /** The editor turned clean within `timeoutMs`. */
+  clean: boolean;
+  /** How long the disk got: `timeoutMs` after a clean editor, `settleMs` after a dirty one. */
+  diskTimeoutMs: number;
+  written: SavedTextOutcome<T>;
+}
+
+/**
+ * After the save key: waits for the editor to turn clean, then reads the file with
+ * `waitForSavedText`. The order is what makes the read complete: VS Code truncates the file before
+ * it writes the new text and clears the dirty state only once the write has resolved. An editor
+ * that stays dirty most likely saved nothing, so the disk then gets `settleMs`, not another
+ * `timeoutMs`.
+ */
+export async function readSaveOnceClean<T>(options: SaveReadBackOptions<T>): Promise<SaveReadBack<T>> {
+  const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
+  const settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
+  const deadline = performance.now() + options.timeoutMs;
+  let clean = false;
+  for (;;) {
+    clean = !(await options.dirty());
+    if (clean || performance.now() >= deadline) break;
+    await delay(intervalMs);
+  }
+  const diskTimeoutMs = clean ? options.timeoutMs : settleMs;
+  const written = await waitForSavedText({ ...options, timeoutMs: diskTimeoutMs });
+  return { clean, diskTimeoutMs, written };
 }
