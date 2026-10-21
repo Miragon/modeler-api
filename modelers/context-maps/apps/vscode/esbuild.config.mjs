@@ -24,17 +24,24 @@ const alias = {
   "@miragon/context-maps-cml": r("packages/cml/src/index.ts"),
 };
 
-/** @type {import('esbuild').BuildOptions} */
-const common = {
+/**
+ * @param {boolean} production
+ * @returns {import('esbuild').BuildOptions}
+ */
+const common = (production) => ({
   bundle: true,
   sourcemap: !production,
   minify: production,
   logLevel: "info",
-};
+});
 
-/** @type {import('esbuild').BuildOptions} */
-const host = {
-  ...common,
+/**
+ * The extension host; `production` is the bundle `vscode:prepublish` puts into the VSIX.
+ * @param {boolean} production
+ * @returns {import('esbuild').BuildOptions}
+ */
+export const hostOptions = (production) => ({
+  ...common(production),
   entryPoints: [resolve(here, "src/extension.ts")],
   outfile: resolve(here, "dist/extension.cjs"),
   platform: "node",
@@ -42,14 +49,21 @@ const host = {
   // VS Code 1.96 (engines) runs extensions on Node 20; the shell's createNonce needs its
   // globalThis.crypto.
   target: "node20",
+  // jsonc-parser's `main` is a UMD build whose inner requires esbuild can't follow: they would stay
+  // in the bundle and throw on load, as the VSIX ships no node_modules, so the extension would
+  // never activate.
+  mainFields: ["module", "main"],
   alias,
   // `vscode` is only available at runtime (from the host) and must not be bundled.
   external: ["vscode"],
-};
+});
 
-/** @type {import('esbuild').BuildOptions} */
-const web = {
-  ...common,
+/**
+ * @param {boolean} production
+ * @returns {import('esbuild').BuildOptions}
+ */
+export const webviewOptions = (production) => ({
+  ...common(production),
   entryPoints: [resolve(here, "src/webview/main.ts")],
   outfile: resolve(here, "dist/webview.js"),
   platform: "browser",
@@ -61,13 +75,17 @@ const web = {
   // renderWebviewHtml allows fonts from cspSource, and dist/ is the webview's resource root.
   loader: { ".woff2": "file", ".woff": "file", ".ttf": "file" },
   assetNames: "fonts/[name]-[hash]",
-};
+});
 
-if (watch) {
-  const ctxs = await Promise.all([esbuild.context(host), esbuild.context(web)]);
-  await Promise.all(ctxs.map((c) => c.watch()));
-  console.log("[context-maps-vscode] watching …");
-} else {
-  await Promise.all([esbuild.build(host), esbuild.build(web)]);
-  console.log("[context-maps-vscode] build done");
+// The bundle test imports the options; only a direct run builds.
+if (import.meta.main) {
+  const builds = [hostOptions(production), webviewOptions(production)];
+  if (watch) {
+    const ctxs = await Promise.all(builds.map((options) => esbuild.context(options)));
+    await Promise.all(ctxs.map((c) => c.watch()));
+    console.log("[context-maps-vscode] watching …");
+  } else {
+    await Promise.all(builds.map((options) => esbuild.build(options)));
+    console.log("[context-maps-vscode] build done");
+  }
 }
