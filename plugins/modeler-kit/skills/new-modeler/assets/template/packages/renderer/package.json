@@ -1,0 +1,59 @@
+{
+  "name": "@miragon/__NOTATION__-renderer",
+  "version": "0.0.0",
+  "description": "View and edit __DISPLAY_NAME__ diagrams in the browser: a diagram-js viewer and modeler implementing @miragon/modeler-api.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/__REPO__.git",
+    "directory": "packages/renderer"
+  },
+  "homepage": "https://github.com/Miragon/__REPO__/tree/main/packages/renderer#readme",
+  "bugs": "https://github.com/Miragon/__REPO__/issues",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assets/__NOTATION__.css": "./dist/__NOTATION__.css",
+    "./package.json": "./package.json"
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "npm --prefix ../.. run test",
+    "test:browser": "npm --prefix ../.. run test:browser"
+  },
+  "dependencies": {
+    "@miragon/__NOTATION__-dsl": "0.0.0",
+    "@miragon/__NOTATION__-schema-model": "0.0.0",
+    "@miragon/modeler-api": "1.2.0"
+  },
+  "peerDependencies": {
+    "diagram-js": "^15.28.0",
+    "didi": "^11.0.0 || ^12.0.0",
+    "tiny-svg": "^4.1.4",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "diagram-js": "15.28.1",
+    "didi": "12.0.0",
+    "tiny-svg": "4.1.4",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vite-plugin-dts": "5.1.2",
+    "vitest": "5.0.5",
+    "zod": "4.6.7"
+  }
+}

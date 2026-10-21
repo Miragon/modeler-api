@@ -1,0 +1,71 @@
+# Design system
+
+Every Miragon modeler follows the product design system of the `miragon-brand:modeler-tool-design`
+skill (install: `/plugin marketplace add Miragon/corporate-identity`, then
+`/plugin install miragon-brand@miragon`). Its guide says how the chrome looks and behaves; the shell
+implements it, so a modeler mostly has to keep the values in one place and not fight the shell.
+
+## Vendor the files
+
+Copy three files of the skill's `assets/` **unchanged** into `packages/renderer/src/theme/`:
+
+- `cd-tokens.generated.css`: the fixed `--cd-*` tokens, the `--cd-ui-*` roles per mode and the
+  `--cd-shell-*` chrome sizes;
+- `cd-tokens.generated.json`: the same as hex per mode (`hell`, `dunkel`, `hochkontrast`, `fest`,
+  `shell`) for TypeScript (canvas colours, the theme-color, drift tests);
+- `cd-canvas.css`: the mapping of diagram-js's variables onto the roles and the `cd-c-*` classes.
+
+Give the two CSS files one header line,
+`/* Vendored unchanged from Miragon/corporate-identity (design system 1.14.0, plugins/miragon-brand/skills/modeler-tool-design/assets). Do not edit; re-copy to update. */`,
+keep the JSON byte-identical, mark all three `linguist-generated` in `.gitattributes` and
+Prettier-ignore them. Never edit or reformat them, never fork a hex value: re-copy all three to
+update. Design system 1.13.0 and 1.14.0 ship identical token files (1.14.0 added the focus rule of
+§5.8 to the guide), so a modeler on either is current. The public copies of the two token files
+live at <https://corporate-identity.netlify.app/brand/>; `cd-canvas.css` comes from the skill.
+
+## Stylesheet rules
+
+The renderer's stylesheet
+([template](../assets/template/packages/renderer/src/assets/__NOTATION__.css)) starts with
+
+```css
+@import "../theme/cd-tokens.generated.css" layer(<notation>-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
+```
+
+- **Tokens in a cascade layer.** A host page's own `--cd-*` tokens are unlayered and therefore win
+  over this copy: Design IQ and a newer shell bring theirs, and an older vendored copy never
+  overrides them. `cd-canvas.css` stays unlayered after `diagram-js.css`, so its mapping beats
+  diagram-js's defaults.
+- **Roles only.** Every rule reads `--cd-ui-*` roles and the mode-independent tokens (radius,
+  shadow, motion), never a colour literal, never a fixed palette token. A drift test can grep for
+  it (Event Storming's `theme.sync.test.ts`).
+- **The canvas drawing stays light.** Shapes take literal light colours from the JSON's `hell` roles
+  as SVG presentation attributes (template:
+  [`styles.ts`](../assets/template/packages/renderer/src/draw/styles.ts)), never a `var()`, so an
+  export looks the same everywhere. A notation's own colours (Wardley's note colours) are frozen
+  as literals where the DSL stores them.
+- **One root class.** Every rule sits below the renderer's root class (`.<notation>-container`) or
+  its own classes, and nothing styles `html` or `body`: a host may prefix every rule with a
+  descendant selector (see [Design IQ](design-iq.md)).
+
+## Light until the joint dark-mode release
+
+All modelers declare `themes: ['light']` in both apps until they flip to `['light', 'dark']` on the
+same day. A light-only modeler stays light under a dark VS Code theme and a dark system setting
+(the shell resolves it, and its kit checks that nothing turns half-dark); high contrast passes
+through. A DSL directive such as `style dark` round-trips but renders nothing.
+
+## Type, icons, language
+
+- Geist and Geist Mono, bundled from `@fontsource-variable/*`; no font CDN (offline use, GDPR). SVG
+  text names the family itself, since it does not inherit the container's font.
+- Chrome icons come from the shell. Icons the renderer draws itself (palette tools, the dialog's
+  close button) are Lucide geometry copied into a module with its ISC (and Feather MIT) legal
+  comment, which the bundles keep (`comments.legal` in Vite 8, `legalComments` in esbuild). The VSIX
+  and the web bundle carry the Lucide and Feather notices.
+- The modeler's own icon (favicon, VS Code icon, file icons) comes from the `miragon-brand:icon-design`
+  skill.
+- The UI is English in every modeler (the design system's exception for modeler tools); numbers go
+  through `Intl`.

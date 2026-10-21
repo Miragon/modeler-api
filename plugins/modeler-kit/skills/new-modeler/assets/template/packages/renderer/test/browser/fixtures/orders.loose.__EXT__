@@ -1,0 +1,6 @@
+
+  node pay "Pay" [ 280 , 40 ]
+title   Orders
+
+node order   "Place order" [40,40]
+   node ship "Ship" [520, 40.4]   

@@ -1,0 +1,171 @@
+/* The design-system files are vendored unchanged (../theme/). The tokens sit in a cascade layer,
+   so a host page's own --cd-* tokens (unlayered) win over this copy. cd-canvas.css stays unlayered
+   and comes after diagram-js.css, so its mapping of diagram-js's variables onto the --cd-ui-* roles
+   wins. Every rule below reads the roles and the mode-independent tokens only, and sits below the
+   renderer's own root class or its own classes: a host may prefix every rule with a descendant
+   selector (Design IQ scopes renderer sheets that way), and the canvas drawing keeps its light SVG
+   attributes, so exports stay light. */
+@import '../theme/cd-tokens.generated.css' layer(__NOTATION__-tokens);
+@import 'diagram-js/assets/diagram-js.css';
+@import '../theme/cd-canvas.css';
+
+/* Guide §10.1: the surround in --cd-ui-grund with the dot grid in --cd-ui-linie. */
+.__NOTATION__-container {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--cd-ui-grund);
+  background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
+  background-size: 20px 20px;
+  font-family:
+    'Geist Variable',
+    'Geist',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.__NOTATION__-container svg text {
+  user-select: none;
+}
+
+/* Guide §10.4: hover and selection are a dashed outline in the interaction blue. */
+.__NOTATION__-container .djs-outline {
+  stroke: var(--cd-ui-interaktion);
+  stroke-dasharray: 3 3;
+}
+
+.__NOTATION__-container .djs-parent {
+  --element-selected-outline-stroke-color: var(--cd-ui-interaktion);
+}
+
+/* The renderer's own palette, where no host chrome skins it (the shell sets data-chrome). */
+.__NOTATION__-container .djs-palette:not([data-chrome='palette']) .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The label editor: an overlay on the canvas, at most at diagram-js's z-index 100 (§5.13). */
+.__NOTATION__-container .diagram-label-editor {
+  z-index: 100;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px;
+  resize: none;
+  overflow: hidden;
+  text-align: center;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-interaktion);
+  border-radius: var(--cd-radius-sm);
+  outline: none;
+}
+
+/* The "Keyboard shortcuts…" dialog (guide §8), in the shell root. */
+.diagram-shortcuts {
+  width: min(560px, 100cqw - 32px);
+  max-height: calc(100cqh - 32px);
+  padding: 0;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  font-family: inherit;
+}
+
+.diagram-shortcuts::backdrop {
+  background: var(--cd-ui-backdrop);
+  backdrop-filter: blur(3px) grayscale(1);
+}
+
+.diagram-shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px 24px;
+}
+
+.diagram-shortcuts-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.diagram-shortcuts-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--cd-ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  cursor: pointer;
+}
+
+.diagram-shortcuts-close:hover {
+  background: var(--cd-ui-hover);
+}
+
+.diagram-shortcuts-close:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.diagram-shortcuts-body {
+  padding: 0 24px 24px;
+  overflow: auto;
+}
+
+.diagram-shortcuts-group-title {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-ui-text-leise);
+}
+
+.diagram-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.diagram-shortcuts-action {
+  padding: 4px 0;
+  font-weight: normal;
+  text-align: left;
+}
+
+.diagram-shortcuts-keys {
+  text-align: right;
+}
+
+.diagram-shortcuts-key {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 6px;
+  font-family: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;
+  font-size: 12px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+}
+
+[data-cd-kontrast='hoch'] .diagram-shortcuts {
+  box-shadow: none;
+  border-color: var(--cd-ui-kontur);
+}
+
+@media (forced-colors: active) {
+  .diagram-shortcuts {
+    border-color: CanvasText;
+  }
+
+  .diagram-shortcuts-close:focus-visible {
+    outline-color: Highlight;
+  }
+}

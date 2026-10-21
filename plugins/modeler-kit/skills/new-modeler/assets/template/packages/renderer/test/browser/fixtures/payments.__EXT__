@@ -1,0 +1,3 @@
+title Payments
+node invoice "Send invoice" [40, 200]
+node remind "Remind \"late\" payers" [280, 200]

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "modeler-api",
+  "owner": {
+    "name": "Miragon",
+    "url": "https://miragon.io"
+  },
+  "description": "Claude Code plugins of the Miragon modeler platform (@miragon/modeler-api and @miragon/modeler-shell).",
+  "plugins": [
+    {
+      "name": "modeler-kit",
+      "source": "./plugins/modeler-kit",
+      "description": "The new-modeler skill: build a Miragon modeler end to end from a runnable template, on @miragon/modeler-api and @miragon/modeler-shell.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Miragon",
+        "url": "https://miragon.io"
+      },
+      "homepage": "https://github.com/Miragon/modeler-api/tree/main/plugins/modeler-kit#readme",
+      "repository": "https://github.com/Miragon/modeler-api",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["modeler", "diagram-js", "modeler-api", "modeler-shell", "template", "miragon"]
+    }
+  ]
+}

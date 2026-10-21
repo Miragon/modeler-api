@@ -1,0 +1,72 @@
+version: 2
+updates:
+  # npm (the workspaces resolve from the root): minor and patch arrive grouped, every major as a
+  # PR of its own.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    rebase-strategy: 'disabled'
+    labels:
+      - 'dependencies'
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 3
+    ignore:
+      # @types/vscode must stay <= engines.vscode (^1.96.0) or `vsce package` fails.
+      - dependency-name: '@types/vscode'
+        update-types:
+          - 'version-update:semver-minor'
+          - 'version-update:semver-major'
+      # typescript-eslint caps its typescript peer below the next major, which breaks `npm ci`.
+      - dependency-name: 'typescript'
+        update-types:
+          - 'version-update:semver-major'
+    groups:
+      # The shared contract and chrome change what users see and what the release says (a 0.x
+      # minor of @miragon/modeler-shell breaks the chrome): a PR of their own that is never
+      # auto-merged and lands as `fix(deps): adopt modeler-shell x.y`, which release-please releases.
+      modeler-platform:
+        applies-to: version-updates
+        patterns:
+          - '@miragon/modeler-*'
+      npm-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        exclude-patterns:
+          - '@miragon/modeler-*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - '*'
+
+  # github-actions: every `uses:` is SHA-pinned and CI-gated, so all update types come grouped.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    rebase-strategy: 'disabled'
+    labels:
+      - 'dependencies'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        update-types:
+          - 'patch'
+          - 'minor'
+          - 'major'
