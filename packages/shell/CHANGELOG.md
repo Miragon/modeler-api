@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.1...modeler-shell-v0.2.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **shell:** hand the keyboard focus to the canvas after a pointer click on chrome ([#22](https://github.com/Miragon/modeler-api/issues/22)) ([7874575](https://github.com/Miragon/modeler-api/commit/7874575e0196a898e6a1b1650483b0f4c52bd615))
+
 ## [0.2.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.0...modeler-shell-v0.2.1) (2026-10-19)
 
 
