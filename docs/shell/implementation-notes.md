@@ -1530,6 +1530,13 @@ Storming and Wardley Maps extensions on macOS.
   `spawn …/Contents/MacOS/Electron ENOENT`; 3.1.0 reads the name from the bundle's `Info.plist`.
   2.4.0, 2.5.2 and 3.0.0 failed that way with VS Code 1.143.0, so the peer range starts at 3.1.0,
   and the resolve step names the cause when the executable it got does not exist.
+- **Where the download goes.** `@vscode/test-electron` defaults to `.vscode-test` in the working
+  directory, that is the modeler's repository. ESLint's flat config does not read `.gitignore`, so
+  after one local run `eslint .` linted the unpacked VS Code (about 0.9 GB) and failed with 733
+  errors in the Wardley Maps repository, which blocks every commit behind its lint hook. The driver
+  passes `defaultVsCodeCachePath` instead, the OS's cache directory as Playwright uses it for its
+  browsers: outside every repository, kept across `npm ci`, shared by all modelers. It creates the
+  folder first, because `@vscode/test-electron` creates only its last segment.
 - **Opening the fixture.** The workspace folder and the fixture are the last command-line arguments,
   and `workbench.editorAssociations` maps the fixture's file name to the custom editor's view type.
   VS Code then opens the fixture in the custom editor at start, whatever the editor's `priority`; no

@@ -1,5 +1,5 @@
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { ProgressReport, ProgressReporter } from "@vscode/test-electron";
 import type { ElectronApplication, FrameLocator, Page } from "playwright-core";
@@ -7,6 +7,7 @@ import type { Appearance, ChromeIsland, Size, Theme } from "../../core/index.js"
 import {
   DEFAULT_WINDOW_SIZE,
   customEditorViewType,
+  defaultVsCodeCachePath,
   extensionIdOf,
   isPlainFileName,
   platformKeys,
@@ -100,7 +101,10 @@ export interface VsCodeSmokeOptions {
   viewType?: string | undefined;
   /** `stable`, `insiders` or `1.96.0`; default the newest stable release that satisfies `engines.vscode`. */
   vscodeVersion?: string | undefined;
-  /** Where `@vscode/test-electron` keeps its downloads; default `.vscode-test` in the working directory. */
+  /**
+   * Where `@vscode/test-electron` keeps its downloads; default `defaultVsCodeCachePath`, in the OS's
+   * cache directory.
+   */
   cachePath?: string | undefined;
   /** The window's content size; default 1280 × 800. */
   windowSize?: Size | undefined;
@@ -333,9 +337,14 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
         log(`resolve: ${messageOf(error)}`);
       },
     };
+    const cachePath = resolve(
+      options.cachePath ?? defaultVsCodeCachePath(process.platform, process.env, homedir()),
+    );
+    // @vscode/test-electron creates only the last directory of the path
+    await mkdir(cachePath, { recursive: true });
     const path = await peers.download({
       ...(options.vscodeVersion ? { version: options.vscodeVersion } : {}),
-      ...(options.cachePath ? { cachePath: resolve(options.cachePath) } : {}),
+      cachePath,
       extensionDevelopmentPath: extensionPath,
       reporter,
     });

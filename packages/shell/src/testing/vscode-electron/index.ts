@@ -4,6 +4,7 @@ export type { ExtensionManifest, PlatformKeys, UserSettingsOptions, VsCodeSmokeP
 export {
   DEFAULT_WINDOW_SIZE,
   customEditorViewType,
+  defaultVsCodeCachePath,
   extensionIdOf,
   matchesFilenamePattern,
   platformKeys,

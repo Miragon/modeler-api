@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { Size } from "../../core/index.js";
 
 /** The directories of one smoke run, all inside one throwaway directory. */
@@ -123,6 +124,25 @@ export function vsCodeEnvironment(
     result[name] = value;
   }
   return result;
+}
+
+/**
+ * Where VS Code's downloads go without a `cachePath`: the OS's cache directory, as Playwright keeps
+ * its browsers. Outside every repository, so no `eslint .`, Prettier or Git walks the unpacked VS Code
+ * (about 0.9 GB per version), it survives `npm ci`, and every modeler on the machine shares it.
+ */
+export function defaultVsCodeCachePath(
+  platform: string,
+  environment: Readonly<Record<string, string | undefined>>,
+  homeDirectory: string,
+): string {
+  const cacheDirectory =
+    platform === "darwin"
+      ? join(homeDirectory, "Library", "Caches")
+      : platform === "win32"
+        ? environment.LOCALAPPDATA || join(homeDirectory, "AppData", "Local")
+        : environment.XDG_CACHE_HOME || join(homeDirectory, ".cache");
+  return join(cacheDirectory, "miragon-modeler-shell", "vscode-test");
 }
 
 export function platformKeys(platform: string): PlatformKeys {

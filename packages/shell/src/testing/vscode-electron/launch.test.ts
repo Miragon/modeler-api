@@ -1,7 +1,9 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   customEditorViewType,
+  defaultVsCodeCachePath,
   extensionIdOf,
   isPlainFileName,
   matchesFilenamePattern,
@@ -107,6 +109,32 @@ describe("vsCodeEnvironment", () => {
         UNSET: undefined,
       }),
     ).toEqual({ PATH: "/usr/bin", HOME: "/home/ci" });
+  });
+});
+
+describe("defaultVsCodeCachePath", () => {
+  it("is in the OS's cache directory, outside every repository", () => {
+    expect(defaultVsCodeCachePath("darwin", {}, "/Users/dev")).toBe(
+      join("/Users/dev", "Library", "Caches", "miragon-modeler-shell", "vscode-test"),
+    );
+    expect(defaultVsCodeCachePath("linux", {}, "/home/ci")).toBe(
+      join("/home/ci", ".cache", "miragon-modeler-shell", "vscode-test"),
+    );
+    expect(
+      defaultVsCodeCachePath("win32", { LOCALAPPDATA: "/c/Users/dev/AppData/Local" }, "/c/Users/dev"),
+    ).toBe(join("/c/Users/dev/AppData/Local", "miragon-modeler-shell", "vscode-test"));
+  });
+
+  it("follows XDG_CACHE_HOME on Linux and falls back where a variable is empty", () => {
+    expect(defaultVsCodeCachePath("linux", { XDG_CACHE_HOME: "/var/cache/ci" }, "/home/ci")).toBe(
+      join("/var/cache/ci", "miragon-modeler-shell", "vscode-test"),
+    );
+    expect(defaultVsCodeCachePath("linux", { XDG_CACHE_HOME: "" }, "/home/ci")).toBe(
+      join("/home/ci", ".cache", "miragon-modeler-shell", "vscode-test"),
+    );
+    expect(defaultVsCodeCachePath("win32", {}, "/c/Users/dev")).toBe(
+      join("/c/Users/dev", "AppData", "Local", "miragon-modeler-shell", "vscode-test"),
+    );
   });
 });
 

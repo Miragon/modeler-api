@@ -569,14 +569,25 @@ edit: async ({ webview, page }) => {
 The result says what happened (`ok`, `failures`, `saved`, `undone`, `themes` with the observed
 appearance and the screenshot, `timings` per step); `runVsCodeSmoke` never throws for a failed
 check, only for options it cannot run with. Keep the smoke test out of the unit tests' project: it
-needs a display and the built extension, and two runs at once would share the download cache. Add
-`.vscode-test/` (the download cache) and the screenshot directory to `.gitignore`.
+needs a display and the built extension. Add the screenshot directory to `.gitignore`.
+
+**Where VS Code goes.** The driver keeps the download in the OS's cache directory, as Playwright
+keeps its browsers: `~/Library/Caches/miragon-modeler-shell/vscode-test` on macOS,
+`$XDG_CACHE_HOME/miragon-modeler-shell/vscode-test` (by default under `~/.cache`) on Linux and
+`%LOCALAPPDATA%\miragon-modeler-shell\vscode-test` on Windows. Every modeler on the machine shares
+it, `npm ci` does not delete it, and since it is outside the repository neither Git nor `eslint .`
+walks the unpacked VS Code. Two runs that download the same version at once would write into the
+same folder, so let the first download finish before starting a second run. A `cachePath` inside
+the repository (`.vscode-test`, the default of `@vscode/test-electron` itself) needs an entry in
+`.gitignore` and one in ESLint's `ignores` (`"**/.vscode-test/**"`): the flat config does not read
+`.gitignore`, so `eslint .` would lint the downloaded VS Code, fail with hundreds of errors and block
+every commit behind a lint hook.
 
 **macOS, locally.** Give the file a script of its own,
 `"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
-and run it; a VS Code window opens for a few seconds. The first run downloads VS Code (about 150 MB)
-into `.vscode-test/`; later runs reuse it. The driver dispatches keys by key code, so the run behaves
-the same on a QWERTZ or any other keyboard layout.
+and run it; a VS Code window opens for a few seconds. The first run downloads VS Code (about 150 MB);
+later runs reuse it. The driver dispatches keys by key code, so the run behaves the same on a QWERTZ
+or any other keyboard layout.
 
 ```sh
 npm run build && npm run build:vscode

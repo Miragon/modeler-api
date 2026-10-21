@@ -2398,7 +2398,7 @@ interface VsCodeSmokeOptions {
   name?: string; // default the extension's package.json name
   viewType?: string; // default the first custom editor whose filenamePattern matches fixture.fileName
   vscodeVersion?: string; // "stable", "insiders", "1.96.0"; default the newest stable satisfying engines.vscode
-  cachePath?: string; // @vscode/test-electron's download cache; default .vscode-test in the working directory
+  cachePath?: string; // @vscode/test-electron's download cache; default defaultVsCodeCachePath(…)
   windowSize?: Size; // the window's content size; default 1280 × 800
   timeoutMs?: number; // every single wait; default 30 000
   settings?: Record<string, unknown>; // more user settings, merged over the driver's
@@ -2477,6 +2477,13 @@ const DEFAULT_WINDOW_SIZE: Size; // 1280 × 800
 function vsCodeLaunchArgs(extensionPath: string, paths: VsCodeSmokePaths): string[];
 function vsCodeUserSettings(options: UserSettingsOptions): Record<string, unknown>;
 function vsCodeEnvironment(environment: Record<string, string | undefined>): Record<string, string>;
+// <OS cache directory>/miragon-modeler-shell/vscode-test: ~/Library/Caches on macOS,
+// $XDG_CACHE_HOME or ~/.cache on Linux, %LOCALAPPDATA% on Windows
+function defaultVsCodeCachePath(
+  platform: string,
+  environment: Record<string, string | undefined>,
+  homeDirectory: string,
+): string;
 function platformKeys(platform: string): PlatformKeys;
 function extensionIdOf(manifest: ExtensionManifest): string | undefined;
 function customEditorViewType(manifest: ExtensionManifest, fileName: string): string | undefined;
@@ -2485,8 +2492,10 @@ function matchesFilenamePattern(pattern: string, fileName: string): boolean; // 
 
 A run takes these steps, each timed; a failed step skips what depends on it, never the rest:
 
-1. **resolve**: `downloadAndUnzipVSCode` (cached in `cachePath`; without `vscodeVersion` the newest
-   stable release that satisfies the extension's `engines.vscode`).
+1. **resolve**: `downloadAndUnzipVSCode` (cached in `cachePath`, by default in the OS's cache
+   directory, outside the repository and shared by every modeler on the machine; without
+   `vscodeVersion` the newest stable release that satisfies the extension's `engines.vscode`). A
+   `cachePath` inside the repository needs entries in `.gitignore` and in ESLint's `ignores`.
 2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
    `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
    VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release
@@ -2562,7 +2571,7 @@ it("Event Storming in a real VS Code", { timeout: 600_000 }, async () => {
 
 Run it on its own (`vitest run --config apps/vscode/test-smoke/vitest.config.ts`, with
 `fileParallelism: false`), not in the unit project: it needs a display and the extension's build,
-and two runs at once share the download cache. Add `.vscode-test/` to `.gitignore`. How to run it on
+and two runs that download the same VS Code at once would write into the same cache. How to run it on
 macOS and in Linux CI, and why the driver works the way it does, is in the
 [README](README.md#smoke-tests-in-a-real-vs-code) and the
 [implementation notes](../../docs/shell/implementation-notes.md#vs-code-smoke-tests-in-a-real-vs-code).
