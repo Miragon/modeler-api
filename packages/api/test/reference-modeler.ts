@@ -12,8 +12,8 @@
  * variants are NOT flaws but legitimate implementation choices the kit must
  * accept (a diagram-js style enriched view-state readback, commands ignored
  * before the first import, an empty name that reads back absent) — they must
- * fail nothing. Two variants ignore a RECOMMENDATION — they must fail nothing
- * and advise once.
+ * fail nothing. Three variants ignore a RECOMMENDATION — they must fail
+ * nothing and advise once.
  */
 import type {
   CollaborativeModeler,
@@ -117,6 +117,13 @@ export interface Flaws {
   /** NOT a law violation, a missed recommendation: an import closes the open label editor and drops
    *  the typed input instead of reopening it on the element with the same id */
   dropInteractionOnImport?: boolean;
+  /** a host's view change commits the open label editor (diagram-js directEditing completing on
+   *  `canvas.viewbox.changing` — the Wardley 0.8 drift: a restore after a peer's re-import wrote the
+   *  half-typed label into the shared text) */
+  commitInteractionOnViewChange?: boolean;
+  /** NOT a law violation, a missed recommendation: a host's view change closes the open label editor
+   *  and drops the typed input */
+  dropInteractionOnViewChange?: boolean;
   /** NOT a flaw: a command before the first import does nothing — no element, no change event (a
    *  harness mutate that waits for that event never settles) */
   ignoresCommandsBeforeImport?: boolean;
@@ -404,6 +411,8 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     },
     setViewState(state) {
       if (flaws.viewStateEmits) emit();
+      if (flaws.commitInteractionOnViewChange) commitLabel();
+      if (flaws.dropInteractionOnViewChange) labelEditor = undefined;
       if (flaws.noopViewState) return;
       if (state !== null && typeof state === "object") {
         // the flawed setter only takes the literal shape, never its own readback

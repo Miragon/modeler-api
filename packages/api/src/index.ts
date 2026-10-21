@@ -170,6 +170,15 @@ export interface ElementsSurface {
  *     readback may be a NORMALISED form of what was set (a diagram-js
  *     viewbox comes back rounded, with scale/inner/outer) — what must hold
  *     is that setting a readback yields that readback again.
+ *     A view change the HOST makes — `setViewState`, or a fit its chrome
+ *     applies to the canvas — never commits an interaction in progress (an
+ *     open label editor, a popup with typed input): no change event, the
+ *     export unchanged. Hosts restore the viewport after every remote
+ *     re-import and refit when their chrome changes; a commit there writes
+ *     the half-typed input into the shared document for every peer.
+ *     RECOMMENDED: the interaction stays open with its typed input, so the
+ *     user's own commit afterwards writes what it would have written without
+ *     the view change.
  *  L6 EXPORT IS TOTAL AFTER IMPORT — after a successful import (and any
  *     sequence of user commands and undos), `exportText` succeeds. Foreign or
  *     auxiliary content the modeler does not understand is PRESERVED through

@@ -144,8 +144,12 @@ export interface ConformanceHarness {
    * open an INTERACTION on an element of `canonicalTexts[0]` (already
    * imported) the way a user does — its label editor, or a popup with an
    * input — and type input WITHOUT committing it (no Enter, no blur). The
-   * kit then imports over it, which must never commit it (L1). `undefined`
-   * = the L1 interaction case is reported as skipped
+   * kit then imports over it (L1) and changes the view over it (L5), and
+   * neither may commit it. Type the same input on every call, one the
+   * serializer writes verbatim: the L5 case looks for it in the export and
+   * compares what a commit writes with and without a view change in
+   * between. `undefined` = the L1 and L5 interaction cases are reported as
+   * skipped
    */
   openInteraction?(modeler: CollaborativeModeler): Promise<void> | void;
   /**
@@ -156,6 +160,15 @@ export interface ConformanceHarness {
    * of the L1 interaction case is reported as skipped
    */
   interactionState?(modeler: CollaborativeModeler): InteractionState | undefined;
+  /**
+   * commit the interaction `openInteraction` opened, the way a user does
+   * (Enter, or a click on the canvas). The L5 interaction case commits once
+   * without a view change, proving the typed input changes the document,
+   * and once after a host's view change, checking the RECOMMENDED keep-open
+   * (an advisory, never a failure). `undefined` = both halves are reported
+   * as skipped
+   */
+  commitInteraction?(modeler: CollaborativeModeler): Promise<void> | void;
 }
 
 /** an interaction in progress, as `ConformanceHarness.interactionState` reports it */
@@ -830,6 +843,101 @@ export function conformanceCases(): ConformanceCase[] {
               "view state did not survive re-import + restore (setting the modeler's own readback must yield that readback)",
             );
           }
+        } finally {
+          m.destroy();
+        }
+      },
+    },
+    {
+      name: "L5: a host's view change never commits an open interaction",
+      async run(h) {
+        if (!h.openInteraction) {
+          return skip(
+            "openInteraction is undefined — a host's view change over an open interaction (a label editor with typed input) was not verified",
+          );
+        }
+        if (h.viewState === undefined) {
+          return skip(
+            "viewState is undefined — a host's view change over an open interaction was not verified (supply a panned/zoomed state)",
+          );
+        }
+        const openInteraction = h.openInteraction;
+        const commitInteraction = h.commitInteraction;
+        const viewState = h.viewState;
+        const settle = h.settle ?? defaultSettle;
+        const first = h.canonicalTexts[0] ?? "";
+        const m = await h.create();
+        try {
+          await m.importText(first);
+          const doc = exportOrFail(m, "after importing canonicalTexts[0]");
+          const open = async (): Promise<InteractionState | undefined> => {
+            await openInteraction(m);
+            await settle();
+            const opened = h.interactionState?.(m);
+            if (h.interactionState && opened === undefined) {
+              fail("interactionState reports no interaction after openInteraction — the case proves nothing");
+            }
+            return opened;
+          };
+          // the document a commit writes WITHOUT a view change: proof that the
+          // typed input is real, and the oracle for the commit after one
+          let committed: string | undefined;
+          if (commitInteraction) {
+            const typed = (await open())?.text;
+            await commitInteraction(m);
+            await settle();
+            committed = exportOrFail(m, "after committing the interaction");
+            if (committed === doc || (typed && !committed.includes(typed))) {
+              fail(
+                "committing the interaction openInteraction opened did not write its typed input into the export — the case proves nothing (commitInteraction must commit the way a user does, openInteraction type input the serializer writes verbatim)",
+              );
+            }
+            await importOrFail(m, first, "re-importing canonicalTexts[0] after the commit rejected");
+          }
+          const opened = await open();
+          const view = m.getViewState();
+          const { calls } = await changeEvents(h, m, () => m.setViewState(viewState));
+          if (calls > 0) {
+            fail(
+              `setViewState over an open interaction fired onContentChanged ${calls}x — the host's view change committed it (L5; if every setViewState emits, see the L5 round-trip case first)`,
+            );
+          }
+          if (exportOrFail(m, "after setViewState over an open interaction") !== doc) {
+            fail(
+              "setViewState over an open interaction changed the export — the host's view change committed it (L5)",
+            );
+          }
+          if (same(m.getViewState(), view)) {
+            fail(
+              "setViewState(viewState) had no effect over an open interaction — the case proves nothing (supply a state that differs from the fitted view)",
+            );
+          }
+          const after = h.interactionState?.(m);
+          let advice: string | undefined;
+          if (
+            opened !== undefined &&
+            (after?.elementId !== opened.elementId || after?.text !== opened.text)
+          ) {
+            const input = opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
+            const what = after === undefined ? "closed it" : `left ${JSON.stringify(after)} open`;
+            advice = `an interaction on '${opened.elementId}'${input} did not survive a host's view change (setViewState ${what}) — RECOMMENDED: keep it open with its typed input, so the user's commit afterwards writes what it would have written without the view change`;
+          } else if (commitInteraction && committed !== undefined) {
+            await commitInteraction(m);
+            await settle();
+            const out = exportOrFail(m, "after committing the interaction after a view change");
+            if (out !== committed) {
+              advice = `committing an interaction after a host's view change wrote another document than committing it without one — RECOMMENDED: keep it open with its typed input across a view change (if openInteraction types different input per call, this advice is the harness's):\n--- committed without a view change\n${committed}\n--- committed after setViewState\n${out}`;
+            }
+          }
+          return {
+            ...(commitInteraction
+              ? {}
+              : {
+                  skipped:
+                    "commitInteraction is undefined — that the typed input changes the document (without it the case may prove nothing) and that it still commits after the view change were not checked (pass commitInteraction to check both)",
+                }),
+            ...(advice === undefined ? {} : { advisories: [advice] }),
+          };
         } finally {
           m.destroy();
         }

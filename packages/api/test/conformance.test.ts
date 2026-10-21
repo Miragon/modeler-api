@@ -49,6 +49,7 @@ function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {})
       (m as ReferenceModeler).editLabel(elementId, "typed, not committed");
     },
     interactionState: (m) => (m as ReferenceModeler).openLabelEditor(),
+    commitInteraction: (m) => (m as ReferenceModeler).commitLabel(),
     ...overrides,
   };
 }
@@ -70,6 +71,7 @@ const CASE = {
   l5Fresh: "L5: getViewState never throws before the first import",
   l5RoundTrip:
     "L5: view state round-trips across a re-import, an import fits the view — and none of it is document content",
+  l5Interaction: "L5: a host's view change never commits an open interaction",
   elements:
     "elements (when present): stable ids across re-imports and unrelated edits, reveal and selection semantics",
   elementsRoundTrip:
@@ -243,6 +245,7 @@ describe("the conforming reference modeler", () => {
           probeTexts: undefined,
           openInteraction: undefined,
           interactionState: undefined,
+          commitInteraction: undefined,
         },
       ),
     );
@@ -256,6 +259,7 @@ describe("the conforming reference modeler", () => {
         CASE.l3Undo,
         CASE.l4,
         CASE.l5RoundTrip,
+        CASE.l5Interaction,
         CASE.l6Foreign,
         CASE.l7NoTrace,
         CASE.l7Usable,
@@ -266,10 +270,19 @@ describe("the conforming reference modeler", () => {
     expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
     // bounds without a move: the listing, the new element and the view are verified, the move reports a skip
     expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([CASE.bounds]);
-    // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a skip
+    // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a
+    // skip; the L5 case checks the keep-open through the commit instead
     expect((await skippedCases(harness({}, { interactionState: undefined }))).skipped).toEqual([
       CASE.l1Interaction,
     ]);
+    // an interaction without a commit: the L5 no-commit half is verified, the commit halves report a skip
+    expect((await skippedCases(harness({}, { commitInteraction: undefined }))).skipped).toEqual([
+      CASE.l5Interaction,
+    ]);
+    // a view change needs a view to change to: without viewState the L5 interaction case skips too
+    expect((await skippedCases(harness({}, { viewState: undefined }))).skipped).toEqual(
+      [CASE.l5RoundTrip, CASE.l5Interaction, CASE.bounds].sort(),
+    );
     // one canonical text (L4 fails it anyway): the interaction case says which leg it could not run
     const interaction = conformanceCases().find((c) => c.name === CASE.l1Interaction);
     const single = await interaction?.run(harness({}, { canonicalTexts: ["alpha\nbeta\ngamma\n"] }));
@@ -360,8 +373,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ silentUndo: true }, [CASE.l3Undo]));
   test("silent redo → exactly the L3 undo/redo case", () =>
     expectFailures({ silentRedo: true }, [CASE.l3Undo]));
-  test("no-op setViewState → L5 round-trip and the viewer", () =>
-    expectFailures({ noopViewState: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("no-op setViewState → both L5 view cases (nothing to prove without a view change) and the viewer", () =>
+    expectFailures({ noopViewState: true }, [CASE.l5RoundTrip, CASE.l5Interaction, CASE.viewer]));
   test("an import that keeps the viewport instead of fitting → L5 round-trip and the viewer", () =>
     expectFailures({ noFitOnImport: true }, [CASE.l5RoundTrip, CASE.viewer]));
   test("a readback that setViewState does not accept → L5 round-trip and the viewer", () =>
@@ -378,8 +391,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ emitBeforeApply: true }, [CASE.l3Mutation]));
   test("silent element command → the L3 mutation case, L7 usable and the pre-import case (looks wedged)", () =>
     expectFailures({ silentMutation: true }, [CASE.l3Mutation, CASE.l7Usable, CASE.preImport]));
-  test("setViewState emits → L5 round-trip and the viewer", () =>
-    expectFailures({ viewStateEmits: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("setViewState emits → both L5 view cases and the viewer", () =>
+    expectFailures({ viewStateEmits: true }, [CASE.l5RoundTrip, CASE.l5Interaction, CASE.viewer]));
   test("invalid input resolves instead of rejecting → both L7 cases and the viewer", () =>
     expectFailures({ rejectResolves: true }, [CASE.l7NoTrace, CASE.l7Usable, CASE.viewer]));
   test("rejected import clears the document → L7 no-trace, the L7 probes (a rejecting probe) and the viewer", () =>
@@ -434,6 +447,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ boundsForUnknownIds: true }, [CASE.bounds]));
   test("bounds in screen coordinates (they move with zoom and scroll) → exactly the bounds case", () =>
     expectFailures({ boundsInViewCoordinates: true }, [CASE.bounds]));
+  test("a host's view change that commits the open label editor (the Wardley 0.8 drift) → exactly the L5 interaction case", () =>
+    expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
 
   test("the contract version constant IS the package version (one identity)", () => {
     expect(MODELER_API_VERSION).toBe(pkg.version);
@@ -467,4 +482,6 @@ describe("variants that miss a RECOMMENDATION fail nothing and advise exactly on
     expectAdvisoryOnly({ counterIds: true }, CASE.elementsCollision));
   test("an import that drops the open label editor instead of reopening it → an advisory from the L1 interaction case", () =>
     expectAdvisoryOnly({ dropInteractionOnImport: true }, CASE.l1Interaction));
+  test("a host's view change that drops the open label editor → an advisory from the L5 interaction case", () =>
+    expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction));
 });

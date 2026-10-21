@@ -673,6 +673,27 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
   `afterImport`, `restore`, `setState`): a modeler's bounds may be costly (Event Storming's
   `exportMap()` validates the whole board).
 
+### Fit and an open label editor
+
+**Contract L5 ([`@miragon/modeler-api`](../../packages/api/README.md) 1.2).** Rule: a view change the
+host makes never commits an open label editor or popup input; it should stay open with the typed
+text.
+
+- Every viewbox the shell writes without a gesture on the canvas is such a view change: the first
+  fit, the refit on resize (opening the inspector, a side bar or a bottom panel), `restore` after a
+  re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell
+  never commits or cancels an editor itself.
+- A renderer that completes direct editing on `canvas.viewbox.changing` (the pattern of bpmn-js's
+  `LabelEditingProvider`) commits half-typed input on each of them. Wardley 0.8 did so for labels and
+  links, so a host's restore after a peer's re-import wrote the half-typed label into the shared
+  document. diagram-js cannot tell a host's `canvas.viewbox(box)` from a wheel zoom, so the renderer
+  keeps the editor open across every viewbox change and places it again on `canvas.viewbox.changed`
+  (its geometry is the element's box through the new viewbox); it commits on the user's own gestures
+  only (Enter, blur, `element.mousedown`, `drag.init`).
+- The contract kit's L5 interaction case opens the editor, calls `setViewState` and expects no change
+  event and an unchanged export; the shell's fit and resize go through `canvas.viewbox`, so a later
+  shell conformance check can drive the same case through them.
+
 ## Legend state
 
 **Guide [§5.10][guide-5.10].** Rule: the host remembers whether the legend is open, in VS Code also
