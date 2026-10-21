@@ -470,6 +470,25 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ boundsUnplacedOnImport: true }, [CASE.bounds]));
   test("bounds with a negative width (spanned from the right edge) → exactly the bounds case", () =>
     expectFailures({ boundsSignedSize: true }, [CASE.bounds]));
+  test("bounds of the viewer's imported elements read before their layout placed them → exactly the bounds case", () =>
+    expectFailures({}, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({ boundsUnplacedOnImport: true }, false),
+    }));
+  // the kit names the cause here instead of tripping over an undefined box
+  const boundsCase = conformanceCases().find((c) => c.name === CASE.bounds);
+  test("a move that re-creates the element under a fresh id → exactly the bounds case, which says the element is gone", async () => {
+    await expectFailures({ moveChangesId: true }, [CASE.bounds]);
+    await expect(boundsCase?.run(harness({ moveChangesId: true }))).rejects.toThrow(
+      /is gone from elements\.list\(\) after moveElement moved it/,
+    );
+  });
+  test("a moveElement that returns an id the modeler never listed → exactly the bounds case, which blames the harness", async () => {
+    const neverListed = { moveElement: () => "__never_listed__" };
+    await expectFailures({}, [CASE.bounds], neverListed);
+    await expect(boundsCase?.run(harness({}, neverListed))).rejects.toThrow(
+      /moveElement returned '__never_listed__', an id elements\.list\(\) did not report/,
+    );
+  });
   test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
     expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
   test("a host's view change that commits the open label editor with its change events muted → exactly the L5 interaction case", () =>

@@ -148,6 +148,9 @@ export interface Flaws {
   boundsUnplacedOnImport?: boolean;
   /** elements.bounds spans the box from its right edge to its left one: a negative width */
   boundsSignedSize?: boolean;
+  /** a move re-creates the element under a fresh id (a delete + create pair), so a host loses the
+   *  element it outlined */
+  moveChangesId?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -521,7 +524,13 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       const before = entries;
       const reported = ids();
       entries = entries.map((e, i) =>
-        reported[i] === elementId ? { ...e, at: { x: (e.at?.x ?? 0) + dx, y: (e.at?.y ?? 0) + dy } } : e,
+        reported[i] === elementId
+          ? {
+              ...e,
+              ...(flaws.moveChangesId ? { id: `${e.id}_moved` } : {}),
+              at: { x: (e.at?.x ?? 0) + dx, y: (e.at?.y ?? 0) + dy },
+            }
+          : e,
       );
       const after = entries;
       undoStack.push({
