@@ -42,6 +42,10 @@ owns its `src/`, `test/`, `tsconfig.json`, `tsup.config.ts`, `README.md` and
 | `packages/api`   | `@miragon/modeler-api`   |
 | `packages/shell` | `@miragon/modeler-shell` |
 
+Next to the packages: `plugins/modeler-kit/`, the Claude Code plugin with the `new-modeler` skill
+(served by the marketplace in `.claude-plugin/marketplace.json`, see [Plugin](#plugin)), and
+`test/`, the repository-level checks that guard it.
+
 ## Releases
 
 release-please opens the release PR on every push to `main`; merging it tags,
@@ -76,6 +80,35 @@ E404 for a name npm has never seen. This is how `@miragon/modeler-api@1.0.0` was
 4. Re-run the failed publish job. It skips with "already published"; from the next release on it
    publishes without a token.
 
+## Plugin
+
+`plugins/modeler-kit/skills/new-modeler/` holds the skill (`SKILL.md`, `references/`), the template
+a new modeler repository starts from (`assets/template/`, placeholders `__NOTATION__`,
+`__DISPLAY_NAME__`, `__EXT__`, `__REPO__`) and the script that fills them
+(`scripts/new-modeler.mjs`). It lives outside `packages/`, so release-please releases nothing for
+a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `fix(plugin): …`).
+
+- **Versions.** Installed plugins update only when the version changes: bump `version` in
+  `plugins/modeler-kit/.claude-plugin/plugin.json` and in its entry in
+  `.claude-plugin/marketplace.json` together with every change of the skill or the template.
+- **Pins.** The template's `@miragon/modeler-api` and `@miragon/modeler-shell` pins follow the
+  releases: each package's `extra-files` in `release-please-config.json` names the template's
+  `package.json` fields it rewrites (root-relative paths, leading `/`). A new pin in the template
+  needs a new entry there.
+- **The drift test** (`test/new-modeler-skill.test.ts`, `npm run test:plugin`, part of `npm test`)
+  fails when the template's platform pins differ from the workspace versions or lack their
+  `extra-files` entry, when the template pins anything loosely, when a placeholder is undocumented
+  or left unfilled, when the plugin or marketplace manifest is invalid or their versions differ,
+  when a link of the plugin does not resolve (its links to this repository on GitHub are checked
+  against this checkout), when the skill names an identifier that neither package exports (foreign
+  names are listed in the test, each with its origin), and when the template's TypeScript does not
+  type-check against the packages' current sources. `zod` is a root devDependency for that last
+  check only (the template's schema model uses it).
+- **The template itself** builds and passes both conformance kits once instantiated: run the script
+  into an empty directory outside this repository, copy the design-system files in (see the
+  skill), then `npm install` and the template's checks. `claude plugin validate --strict .` checks
+  the manifests against Claude Code itself.
+
 ## Checks
 
 Run from the repository root; each script fans out to every workspace
@@ -84,7 +117,8 @@ Run from the repository root; each script fans out to every workspace
 ```sh
 npm ci
 npm run lint      # tsc in every package + prettier over the repo
-npm test          # the kit's own conformance suite (reference modeler + saboteurs)
+npm test          # the kit's own conformance suite (reference modeler + saboteurs),
+                  # the shell's unit tests, then the plugin's drift test
 npm run build     # tsup: dual ESM/CJS + d.ts
 npm run publint   # the published package shape (exports, types, files)
 npm run test:e2e  # Playwright suites (the shell's conformance kit against its demo);
