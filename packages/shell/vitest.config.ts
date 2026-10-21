@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -8,7 +8,7 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/core/**/*.test.ts", "test/**/*.test.ts"],
+          include: ["src/core/**/*.test.ts", "src/testing/vscode-electron/**/*.test.ts", "test/**/*.test.ts"],
         },
       },
       {
@@ -21,6 +21,7 @@ export default defineConfig({
             "src/vscode/**/*.test.ts",
             "src/testing/**/*.test.ts",
           ],
+          exclude: [...configDefaults.exclude, "src/testing/vscode-electron/**"],
         },
       },
     ],
