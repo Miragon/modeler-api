@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.7.0...vscode-v0.7.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **vscode:** bundle jsonc-parser's ESM build so the extension activates again ([#73](https://github.com/Miragon/context-maps-modeler/issues/73)) ([55d8dad](https://github.com/Miragon/context-maps-modeler/commit/55d8dad0ab584eb1aadb41507c8e764ce3830d9f))
+
 ## [0.7.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.6.0...vscode-v0.7.0) (2026-10-21)
 
 
