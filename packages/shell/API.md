@@ -2521,8 +2521,14 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    failure names the webview frames the workbench has, with a `screenshotDir`
    `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
 4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
-5. **save**: the platform's save key; the file on disk changes, the tab turns clean, and `parse`
-   accepts the saved text.
+5. **save** (0.3.1): the platform's save key; the tab turns clean, then the driver reads the file
+   until it holds still: a read counts once two reads 100 ms apart see the same size, mtime and text
+   and that text differs from the fixture (VS Code truncates the file before it writes it, so one read
+   can be empty or cut short). `parse` gets that text; a text it rejects is read again, and the step
+   fails only when the rejected text stays unchanged for 1 s: "the saved text does not parse: <the
+   parser's first line> (<bytes> bytes on disk, unchanged for <ms> ms)". A file that never changes
+   fails with "<save key> wrote nothing to disk"; a tab that stays dirty adds "the editor is still
+   dirty after the save" and the disk gets one more second instead of another `timeoutMs`.
 6. **undo**: the platform's undo key `undoSteps` times; the canvas shows what it showed before the
    edit (same shapes, connections and positions), and saved again, the file holds the fixture's
    exact text.

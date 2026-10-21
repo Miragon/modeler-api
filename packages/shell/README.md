@@ -509,12 +509,12 @@ The kit runs against a stand-in for VS Code. `@miragon/modeler-shell/testing/vsc
 the real one, from a plain Vitest or `node:test` file: it downloads VS Code with
 `@vscode/test-electron`, starts it through Playwright's Electron support with the modeler's built
 extension on a throwaway profile, opens a fixture in the custom editor, checks that the shell's
-chrome is there, makes an edit through the canvas, saves with the platform's save key (the file on
-disk changes and the modeler's parser accepts it), undoes with the platform's undo key (the canvas
-and, saved again, the file return), and switches through VS Code's four default themes (Default
-Light Modern, Default Dark Modern, Default High Contrast, Default High Contrast Light): the webview
-has to show what the theme bridge resolves for the modeler's `themes`, and every theme gets a
-screenshot. A run takes about 4 to 6 seconds once VS Code is downloaded.
+chrome is there, makes an edit through the canvas, saves with the platform's save key (the tab turns
+clean, the file on disk holds still and the modeler's parser accepts it), undoes with the platform's
+undo key (the canvas and, saved again, the file return), and switches through VS Code's four default
+themes (Default Light Modern, Default Dark Modern, Default High Contrast, Default High Contrast
+Light): the webview has to show what the theme bridge resolves for the modeler's `themes`, and every
+theme gets a screenshot. A run takes about 4 to 6 seconds once VS Code is downloaded.
 
 Its two dependencies are optional peers of the shell, so only a modeler that uses the entry installs
 them, next to the build of its extension. It needs `@vscode/test-electron` 3.1.0 or later (and so

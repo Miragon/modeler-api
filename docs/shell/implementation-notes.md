@@ -1581,6 +1581,23 @@ Storming and Wardley Maps extensions on macOS.
   from disk. Undo is checked twice: the canvas shows the shapes, connections and positions it showed
   before the edit (the webview re-imported the document), and after another save the file holds the
   fixture's exact text (the edit was one document change and undid completely).
+- **Reading the save (0.3.1).** VS Code writes a text file in place: `DiskFileSystemProvider` opens
+  it with `w` (or `r+` and `ftruncate`), then writes the new text; a text save uses no temporary
+  file and rename. 0.3.0 parsed the first read after the save key that differed from the fixture,
+  which now and then was the empty or half-written file: "Unexpected end of JSON input" once in 30
+  Value Chain runs, and a Wardley map without elements, which parses without a diagnostic. The modelers worked around it with a retry on exactly that failure
+  ([#27](https://github.com/Miragon/modeler-api/issues/27)). The driver now waits for the tab to
+  turn clean first: `TextFileEditorModel` clears the dirty state in `handleSaveSuccess`, after the
+  write has resolved, and a custom text editor's tab follows its text document. Then it reads the
+  file until two reads 100 ms apart, each between two `stat` calls with the same size and mtime and
+  with as many bytes as the size, see the same text, and parses that. A text the parser rejects
+  is read again, so a write that still goes on cannot fail the step; it fails once the rejected text
+  stays unchanged for 1 s, with the parser's message, the byte count and how long the text held.
+  Watching the file (`fs.watch`) was the alternative; its events differ per platform (one or two
+  `change` events, a `rename` for a replaced file) and say nothing about a completed write, so the
+  driver polls. Across 40 runs in Docker without the modelers' retries (20 Event Storming, 20
+  Wardley Maps), every save read the complete text on the first pair of reads, 102 to 110 ms after
+  the tab turned clean.
 - **Switching the theme.** The driver writes `workbench.colorTheme` into the profile's
   `settings.json`; VS Code watches the file and switches as for a user's change. The order then is
   the one [VS Code: theme bridge](#vs-code-theme-bridge) describes: the workbench's theme class
