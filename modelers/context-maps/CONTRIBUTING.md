@@ -63,6 +63,46 @@ buttons and links, which WebKit does not do by default. After `npm run build:web
 and the bundle keeps the shell's Lucide licence comment (CI runs both). Locally, run `npx playwright install chromium webkit` once; CI installs the browsers
 from the lockfile-pinned Playwright.
 
+## VS Code smoke test
+
+`npm run test:vscode` (Vitest project `vscode`, not part of `npm test`) checks what only a real VS
+Code shows, with the shell's driver `@miragon/modeler-shell/testing/vscode-electron`. It packs the
+extension as the release does (`vsce package --no-dependencies`, which runs `vscode:prepublish`),
+unpacks the VSIX outside the repository and starts VS Code with it on a throwaway profile. There it
+opens `apps/vscode/test-smoke/fixtures/ordering.cm` in the custom editor, creates a context through
+the palette's keyboard path and saves: the file has to parse (`parseDocumentText`), hold one more
+context and be canonical JSON. Then it undoes (canvas and file are the fixture again) and switches
+through VS Code's four default themes, with one screenshot per theme in `test-results/vscode-smoke/`
+(gitignored). A run takes about 5 s once VS Code is downloaded.
+
+**macOS, locally.** No build first, the test packs the extension itself:
+
+```bash
+npm run test:vscode                              # the newest stable VS Code
+VSCODE_SMOKE_VERSION=1.96.0 npm run test:vscode  # another version, here the engines.vscode floor
+```
+
+A VS Code window opens for a few seconds. The first run downloads VS Code (320 to 360 MB, 0.9 GB
+unpacked) into `~/Library/Caches/miragon-modeler-shell/vscode-test`, which every Miragon modeler on
+the machine shares; let one download finish before starting a second run. Packing rebuilds
+`apps/vscode/dist` in production mode, so run `npm run build:vscode` (or `npm run dev:vscode`)
+afterwards for a debug build. The VSIX is unpacked with `unzip` (macOS and Ubuntu have it).
+
+**Linux and CI.** VS Code needs an X server: `xvfb-run -a npm run test:vscode`. CI runs it in
+[`.github/workflows/vscode-smoke.yml`](.github/workflows/vscode-smoke.yml), apart from `ci.yml` and
+not a required check: on pull requests that touch `apps/vscode/**` or the test's wiring (the root
+`package.json` and `vitest.config.ts`, the setup action, the workflow itself), every Monday, and on
+demand (Actions → VS Code smoke → Run workflow, for any branch). Two jobs on `ubuntu-latest`, the
+`engines.vscode` floor and the newest stable VS Code, with the download cached per version and the
+screenshots uploaded as the artifacts `vscode-smoke-minimum` and `vscode-smoke-stable`.
+
+The shell's driver (0.3.0) can read the saved file at the moment VS Code has truncated it and not
+yet written it; the test then fails with "the driver read the saved file while VS Code was still
+writing it" and retries, up to twice, in a fresh VS Code. No other failure is retried. When the
+saved file is empty in the third attempt as well, the race is not the likely cause: the test fails
+with "the saved file was empty in all 3 attempts: the extension most likely saves an empty file",
+which points at the extension's save path, not at the driver.
+
 ## Design tokens
 
 The design system's files in `packages/renderer/src/theme/` (`cd-tokens.generated.css`,

@@ -292,7 +292,7 @@
     "@miragon/context-maps-cml": "0.1.5",
     "@miragon/context-maps-renderer": "0.4.0",
     "@miragon/context-maps-schema-model": "0.4.0",
-    "@miragon/modeler-shell": "0.2.2",
+    "@miragon/modeler-shell": "0.3.0",
     "diagram-js": "15.28.1",
     "didi": "12.0.0",
     "jsonc-parser": "3.3.1",
@@ -302,7 +302,9 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "@types/vscode": "1.96.0",
+    "@vscode/test-electron": "3.1.0",
     "@vscode/vsce": "4.0.0",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1"
   }
 }

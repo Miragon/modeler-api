@@ -59,6 +59,13 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   stub (project `vscode-webview`, served from `e2e/webview/`; only the inspector is absent) and
   against the web app (project `chromium`; the inspector and the invalid-file state are absent). Any
   skip fails the suite.
+- **Real VS Code.** `npm run test:vscode` (Vitest project `vscode`, in
+  [`apps/vscode/test-smoke/`](apps/vscode/test-smoke)) packs the extension as the release does
+  (`vsce package --no-dependencies`), unpacks the VSIX outside the repository and runs the shell's
+  `runVsCodeSmoke` on it: open, the default palette edit, save (`parseDocumentText`, one more
+  context, canonical text), undo and VS Code's four default themes, screenshots in
+  `test-results/vscode-smoke/`. Opt-in (needs a display, downloads VS Code once); CI runs it in
+  `vscode-smoke.yml`, not in `ci.yml`.
 
 ## Monorepo (npm workspaces)
 
@@ -73,7 +80,9 @@ the root `package.json` and hoisted to the workspaces — don't re-add them to w
 `vite` is additionally listed in the root `overrides` so transitive copies (vitest, plugins) resolve
 to the same version; keep the two entries identical. The vscode app pins its own `esbuild` (its
 bundler), separate from tsup's `esbuild` pinned via `overrides` — intentional, don't unify; `e2e`
-pins the same `esbuild` as the vscode app for its smoke test of the shipped webview bundle.
+pins the same `esbuild` as the vscode app for its smoke test of the shipped webview bundle. The
+vscode app also pins `playwright-core` and `@vscode/test-electron`, the optional peers of the shell's
+VS Code smoke driver; keep `playwright-core` equal to the root `playwright`.
 
 | Package                              | Purpose                                                                      | DOM |
 | ------------------------------------ | ---------------------------------------------------------------------------- | --- |
@@ -103,7 +112,9 @@ violating import fails `npm run lint` and `npm run depcruise`.
 - `npm test` — Vitest (unit; includes the VS Code host against a `vscode` mock) ·
   `npm run test:browser` — renderer and the contract kit in Chromium · `npm run test:e2e` —
   Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`, default 5180) and the VS Code
-  webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190)
+  webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) · `npm run test:vscode` — the
+  packaged extension in a real VS Code (macOS as is, Linux under `xvfb-run -a`;
+  `VSCODE_SMOKE_VERSION` picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
 - `npm run notices -w apps/vscode` — regenerate `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test
   fails when it is stale)
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)

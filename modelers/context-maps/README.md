@@ -92,6 +92,7 @@ npm run dev:vscode   # watch-build the VS Code extension (then F5 in VS Code)
 npm test             # unit tests (Vitest)
 npm run test:browser # renderer and the modeler-api conformance kit in Chromium
 npm run test:e2e     # Playwright: the web app and the VS Code webview (with the shell's kit)
+npm run test:vscode  # the packaged extension in a real VS Code (see CONTRIBUTING.md)
 npm run lint         # eslint + type-check
 npm run build        # build the publishable packages (schema-model, renderer)
 ```

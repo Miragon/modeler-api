@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "title": "Ordering and invoicing",
+  "contexts": [
+    {
+      "id": "ctx_invoicing",
+      "label": "Invoicing",
+      "position": {
+        "x": 440,
+        "y": 120
+      },
+      "size": {
+        "width": 200,
+        "height": 110
+      },
+      "subdomainType": "supporting"
+    },
+    {
+      "id": "ctx_ordering",
+      "label": "Ordering",
+      "position": {
+        "x": 40,
+        "y": 120
+      },
+      "size": {
+        "width": 200,
+        "height": 110
+      },
+      "subdomainType": "core"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_ordering_invoicing",
+      "from": "ctx_ordering",
+      "to": "ctx_invoicing",
+      "pattern": "upstream-downstream",
+      "upstreamRoles": [
+        "OHS"
+      ],
+      "downstreamRoles": [
+        "ACL"
+      ],
+      "label": "orders"
+    }
+  ]
+}
