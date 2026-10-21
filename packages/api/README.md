@@ -198,6 +198,16 @@ rewrites the constant on every release (`extra-files`) and a test pins it to
 `meta.apiVersion`; hosts match on the major (`apiVersionsCompatible`).
 Releases are tagged `modeler-api-vX.Y.Z`.
 
+Hosts bind from the package root, which carries no kit code (since 1.2;
+`@miragon/modeler-api/conformance` re-exports the same function, so 1.1 imports
+keep working):
+
+```ts
+import { apiVersionsCompatible, MODELER_API_VERSION } from "@miragon/modeler-api";
+
+if (!apiVersionsCompatible(modeler.meta.apiVersion, MODELER_API_VERSION)) refuseToMount(modeler);
+```
+
 The contract is first published as 1.0.0, never 0.x: under 0.x,
 `apiVersionsCompatible` matches on the minor too, which would turn every
 additive surface into a lockstep release across all modelers and their

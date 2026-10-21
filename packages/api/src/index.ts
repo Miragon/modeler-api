@@ -21,6 +21,20 @@
  *  constant is what travels in `meta`. */
 export const MODELER_API_VERSION = "1.1.0"; // x-release-please-version
 
+/**
+ * apiVersion compatibility: same major — and, while the contract is 0.x,
+ * the same minor too (pre-1.0 minors may break; bump-minor-pre-major).
+ * Hosts call it at bind time with `meta.apiVersion` and their own
+ * MODELER_API_VERSION; it lives in the package root so that check never
+ * pulls the conformance kit into a host bundle (`/conformance` re-exports it)
+ */
+export function apiVersionsCompatible(a: string, b: string): boolean {
+  const [aMajor = "", aMinor = ""] = a.split(".");
+  const [bMajor = "", bMinor = ""] = b.split(".");
+  if (aMajor !== bMajor) return false;
+  return aMajor !== "0" || aMinor === bMinor;
+}
+
 export interface ModelerMeta {
   /** stable notation id, e.g. "wardley", "team-topology", "event-storming" */
   readonly notation: string;

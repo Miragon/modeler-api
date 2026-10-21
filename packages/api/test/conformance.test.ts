@@ -17,6 +17,7 @@ import {
   conformanceCases,
   registerConformance,
 } from "../src/conformance.js";
+import * as root from "../src/index.js";
 import { type CollaborativeModeler, MODELER_API_VERSION } from "../src/index.js";
 import { createReferenceModeler, type Flaws, type ReferenceModeler } from "./reference-modeler.js";
 
@@ -395,10 +396,18 @@ describe("broken variants fail exactly their law's case set", () => {
   });
 
   test("apiVersion compatibility: same major; while 0.x, the same minor too", () => {
-    expect(apiVersionsCompatible("0.3.1", "0.3.9")).toBe(true);
-    expect(apiVersionsCompatible("0.3.1", "0.4.0")).toBe(false);
-    expect(apiVersionsCompatible("1.2.0", "1.9.3")).toBe(true);
-    expect(apiVersionsCompatible("1.2.0", "2.0.0")).toBe(false);
+    expect(root.apiVersionsCompatible("0.3.1", "0.3.9")).toBe(true);
+    expect(root.apiVersionsCompatible("0.3.1", "0.4.0")).toBe(false);
+    expect(root.apiVersionsCompatible("1.2.0", "1.9.3")).toBe(true);
+    expect(root.apiVersionsCompatible("1.2.0", "2.0.0")).toBe(false);
+  });
+
+  test("hosts bind from the package root: apiVersionsCompatible is there, and /conformance re-exports the same function", () => {
+    expect(apiVersionsCompatible).toBe(root.apiVersionsCompatible);
+  });
+
+  test("the package root carries no kit code — a host bundle that binds from it stays free of the kit", () => {
+    expect(Object.keys(root).sort()).toEqual(["MODELER_API_VERSION", "apiVersionsCompatible"]);
   });
 });
 

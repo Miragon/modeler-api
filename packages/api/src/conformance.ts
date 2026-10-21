@@ -15,7 +15,9 @@
  * not follow resolves with `{ advisories }`, reported the same way and never
  * a failure: a recommendation becomes a law only in a major release.
  */
-import { type CollaborativeModeler, MODELER_API_VERSION } from "./index.js";
+import { apiVersionsCompatible, type CollaborativeModeler, MODELER_API_VERSION } from "./index.js";
+
+export { apiVersionsCompatible };
 
 export interface UserMutation {
   /** names the failing mutation in the kit's error message */
@@ -181,17 +183,6 @@ export function attachedHost(width = 800, height = 600): HTMLElement {
   wrapper.append(host);
   document.body.append(wrapper);
   return host;
-}
-
-/**
- * apiVersion compatibility: same major — and, while the contract is 0.x,
- * the same minor too (pre-1.0 minors may break; bump-minor-pre-major)
- */
-export function apiVersionsCompatible(a: string, b: string): boolean {
-  const [aMajor = "", aMinor = ""] = a.split(".");
-  const [bMajor = "", bMinor = ""] = b.split(".");
-  if (aMajor !== bMajor) return false;
-  return aMajor !== "0" || aMinor === bMinor;
 }
 
 function fail(message: string): never {
