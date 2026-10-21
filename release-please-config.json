@@ -13,11 +13,35 @@
     "packages/api": {
       "component": "modeler-api",
       "initial-version": "1.0.0",
-      "extra-files": ["src/index.ts"]
+      "extra-files": [
+        "src/index.ts",
+        {
+          "type": "json",
+          "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/packages/renderer/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-api']"
+        }
+      ]
     },
     "packages/shell": {
       "component": "modeler-shell",
-      "initial-version": "0.1.0"
+      "initial-version": "0.1.0",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/apps/webapp/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/apps/vscode/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        }
+      ]
     }
   }
 }
