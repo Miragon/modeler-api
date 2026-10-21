@@ -18,9 +18,11 @@ Template: [`apps/webapp/src/main.ts`](../assets/template/apps/webapp/src/main.ts
    `attachTo`: the shell places the container in its slot.
 3. **`connectDiagramJs(shell, diagram, { contentBounds, isEmpty })`**: `contentBounds` is the tight
    box without padding (the shell's fit insets are the only margin), `isEmpty` is cheap (the shell
-   asks on every content change). It returns the `viewport`: call `afterImport()` after every
-   import, `newDocument()` before a new document in the web app, `getViewbox()` and `restore()`
-   around a re-import in VS Code, and `persistView` keeps the view in the webview state.
+   asks on every content change). It returns a connection, `{ viewport, destroy }`. On its
+   `viewport`, call `viewport.afterImport()` after every import, `viewport.newDocument()` before a
+   new document in the web app, and `viewport.getViewbox()` and `viewport.restore()` around a
+   re-import in VS Code; `persistView(vscode, viewport)` keeps the view in the webview state.
+   `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
 
 Stylesheets: the fonts (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, bundled,
 no CDN), the renderer's stylesheet (its entry imports it), then `@miragon/modeler-shell/shell.css`

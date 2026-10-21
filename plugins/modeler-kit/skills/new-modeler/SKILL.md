@@ -23,9 +23,10 @@ conformance kit). Five modelers follow this recipe; read the one closest to your
 ## Start from the template
 
 [`assets/template/`](assets/template/) is a minimal, runnable modeler for a toy notation (labelled
-nodes in a line DSL). Instantiated as it is, it builds, passes both conformance kits on the `web`
-and `ide` hosts and packages a VSIX. Copy it with the script, which fills every placeholder and
-refuses a non-empty target:
+nodes in a line DSL). Once the design-system files are copied in (step 1 of
+[After copying](#after-copying)), it builds, passes both conformance kits on the `web` and `ide`
+hosts and packages a VSIX. Copy it with the script, which fills every placeholder and refuses a
+non-empty target:
 
 ```sh
 node ${CLAUDE_PLUGIN_ROOT}/skills/new-modeler/scripts/new-modeler.mjs ../capability-map-modeler \
