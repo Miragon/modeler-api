@@ -68,6 +68,15 @@ describe("package.json", () => {
   it("publishes dist, the sources the sourcemaps name, API.md and the notices", () => {
     expect(manifest.files).toEqual(["dist", "src", "!src/**/*.test.ts", "API.md", "THIRD_PARTY_NOTICES.md"]);
   });
+
+  it("has one command, the VS Code smoke test in Docker, built from a source that starts with a shebang", () => {
+    expect(manifest.bin).toEqual({ "modeler-shell-vscode-docker": "./dist/vscode-docker.js" });
+    const cli = readFileSync(join(driverDir, "docker-cli.ts"), "utf8");
+    expect(cli.split("\n")[0]).toBe("#!/usr/bin/env node");
+    expect(readFileSync(join(packageDir, "tsup.config.ts"), "utf8")).toContain(
+      '"vscode-docker": "src/testing/vscode-electron/docker-cli.ts"',
+    );
+  });
 });
 
 describe("third-party notices", () => {

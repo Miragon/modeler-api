@@ -19,8 +19,9 @@ embedded in a foreign page), so the chrome looks and behaves the same everywhere
 Zero runtime dependencies: diagram-js services are typed structurally, the `vscode` namespace and
 Playwright's `page` and `test` are passed in, nothing is imported at runtime. Only the smoke-test
 driver `./testing/vscode-electron` loads `playwright-core` and `@vscode/test-electron`, optional peer
-dependencies that nobody installs who does not use it. The stylesheet reads only the design system's
-`--cd-ui-*` roles and `--cd-shell-*` sizes. All texts are English by default and overridable through
+dependencies that nobody installs who does not use it; its Docker command,
+`modeler-shell-vscode-docker`, needs only Node and Docker. The stylesheet reads only the design
+system's `--cd-ui-*` roles and `--cd-shell-*` sizes. All texts are English by default and overridable through
 one messages table; numbers go through `Intl` in the UI language.
 
 ## Install
@@ -588,11 +589,12 @@ every commit behind a lint hook.
 
 **macOS, locally.** Give the file a script of its own,
 `"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
-and run it; a VS Code window opens for a few seconds. The first run downloads VS Code, about 320 to
-360 MB depending on the platform (1.143.0: 324 MB for macOS on Apple silicon, 351 MB for Linux x64)
-and about 0.9 GB unpacked per version, 25 to 45 s on a fast connection; later runs reuse it. The
-driver dispatches keys by key code, so the run behaves the same on a QWERTZ or any other keyboard
-layout.
+and run it; a VS Code window opens for a few seconds and takes the focus (Electron has no headless
+mode on macOS; [in Docker](#in-docker-without-a-window) no window opens). The first run downloads VS
+Code, about 320 to 360 MB depending on the platform (1.143.0: 324 MB for macOS on Apple silicon, 351
+MB for Linux x64) and about 0.9 GB unpacked per version, 25 to 45 s on a fast connection; later runs
+reuse it. The driver dispatches keys by key code, so the run behaves the same on a QWERTZ or any
+other keyboard layout.
 
 ```sh
 npm run build && npm run build:vscode
@@ -601,8 +603,9 @@ npm run test:vscode-smoke
 
 **Linux, in CI.** VS Code needs an X server: run the script under `xvfb-run -a` (without one,
 Playwright reports "Unable to open X display"). GitHub's `ubuntu-latest` has the libraries VS Code
-needs, as `@vscode/test-electron`'s own CI recipe relies on; the driver itself has so far run on
-macOS only. An opt-in job, for example on demand and on pull requests with a label:
+needs, as `@vscode/test-electron`'s own CI recipe relies on; the Event Storming and Wardley Maps
+modelers run the driver there on every pull request that touches their extension. An opt-in job,
+for example on demand and on pull requests with a label:
 
 ```yaml
 vscode-smoke:
@@ -623,7 +626,67 @@ vscode-smoke:
 
 What each step checks, the result's fields and the settings and command line VS Code starts with
 are in [API.md][api], `./testing/vscode-electron`; why the driver works the way it does (frames,
-keys, theme switch) is in the [implementation notes][notes].
+keys, theme switch, save, Docker) is in the [implementation notes][notes].
+
+### In Docker, without a window
+
+On macOS every run starts a VS Code window in the foreground, and several runs in a row keep taking
+the focus from whoever works on the machine. `modeler-shell-vscode-docker`, the shell's one command,
+runs the same test in a Linux container under `xvfb-run -a`, where no window shows. The host needs
+Docker (Docker Desktop on macOS and Windows) and the shell; the container brings everything else.
+Add the script next to the modeler's smoke script:
+
+```json
+"test:vscode:docker": "modeler-shell-vscode-docker"
+```
+
+```sh
+npm run test:vscode:docker                                    # npm run test:vscode in the container
+npm run test:vscode:docker -- --script test:vscode-smoke      # another npm script
+npm run test:vscode:docker -- --env VSCODE_SMOKE_VERSION=1.96.0 --env VSCODE_SMOKE_KEEP=1
+npm run test:vscode:docker -- -- sh -c "npm run build && npm run build:vscode && npm run test:vscode-smoke"
+```
+
+What it does:
+
+1. **Image.** Once per Node version and recipe it builds the local image
+   `modeler-shell-vscode-smoke:node<version>-<hash>`: the official `node:<version>-bookworm-slim`
+   with Xvfb, `xauth`, the libraries Electron needs, fonts, `unzip` and `git` (Dockerfile:
+   `vsCodeSmokeDockerfile`, in [API.md][api]). The Node version is the one that runs the command
+   (`--node` picks another), the architecture the Docker host's (`linux/arm64` on Apple silicon, where
+   VS Code's `linux-arm64` build runs; `--platform linux/amd64` emulates x64, slowly). The hash in
+   the tag builds a new image when a shell release changes the recipe; `--rebuild` builds it again.
+2. **Repository.** The repository root (the nearest directory upwards with a `package-lock.json`) is
+   mounted read-only at `/repo` and copied into the container without `node_modules`, `.git`,
+   `.vscode-test` and the results directory. `npm ci` installs there, so the container gets the Linux
+   builds of esbuild and the like and the host's `node_modules` stay untouched.
+3. **Test.** The script (default `test:vscode`, `--script` for another, everything after `--` as the
+   command instead) runs under `xvfb-run -a` in the directory the command was started in, with
+   `HUSKY=0` and the variables of `--env`. VS Code's download and npm's cache live in two named
+   volumes, `modeler-shell-vscode-cache` (the container's `~/.cache`, where the driver keeps VS Code)
+   and `modeler-shell-npm-cache`, shared by every modeler on the machine.
+4. **Results.** `test-results/vscode-smoke` (`--results` for another directory inside the
+   repository) comes back to the host, with VS Code's logs in `vscode-logs/` when the test kept its
+   temporary files (`keepTemporaryFiles`). Each run empties `test-results/vscode-smoke` first, as the
+   modelers' tests do on a local run. Another results directory is emptied only when the command
+   created it (it carries the marker file `.modeler-shell-vscode-docker`); one with files of its own
+   is left as it is. The exit code is the test's.
+
+With the image and VS Code cached a run takes about 10 s on an Apple silicon Mac (Event Storming
+10.4 s, Wardley Maps 9.3 s, `npm ci` included); the very first run about 75 s (the image 38 s, the
+VS Code download 22 s). Paths in the test's own output are the container's (`/work/…`). Two runs at
+once share the cache volume, so let a first download finish before starting a second run. `docker
+volume rm modeler-shell-vscode-cache modeler-shell-npm-cache` starts over. Without the command, the
+same in plain Docker (the image's Dockerfile from `vsCodeSmokeDockerfile`):
+
+```sh
+docker build -t vscode-smoke - < Dockerfile
+docker run --rm --init --shm-size=1g -v "$PWD:/work" -v modeler-shell-vscode-cache:/root/.cache \
+  -w /work vscode-smoke sh -c "npm ci && xvfb-run -a npm run test:vscode"
+```
+
+That one writes the Linux `node_modules` into the working copy; the command copies the repository
+instead.
 
 ## Development
 

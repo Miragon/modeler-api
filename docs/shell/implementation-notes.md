@@ -6,7 +6,8 @@ legend, status box and the plumbing to its host (a VS Code webview, a web app, o
 such as designIQ). **Status: 0.3** in [`packages/shell`](../../packages/shell), Phase 4 of
 [#4](https://github.com/Miragon/modeler-api/issues/4): 0.1 brought the IDE host, 0.2 the web app's
 chrome (see [Web app host](#web-app-host)), 0.3 a driver for smoke tests in a real VS Code (see
-[VS Code: smoke tests in a real VS Code](#vs-code-smoke-tests-in-a-real-vs-code)); its public API is
+[VS Code: smoke tests in a real VS Code](#vs-code-smoke-tests-in-a-real-vs-code)), 0.3.1 its wait for
+a complete save and its Docker mode; its public API is
 documented in [`packages/shell/API.md`](../../packages/shell/API.md). Where building it showed a note
 to be wrong or incomplete, the note was corrected here.
 
@@ -1513,7 +1514,8 @@ one behaves that way only a real VS Code can show. `./testing/vscode-electron` s
 (API in [`packages/shell/API.md`](../../packages/shell/API.md), `./testing/vscode-electron`; usage in
 the [shell README](../../packages/shell/README.md#smoke-tests-in-a-real-vs-code)). Built against VS
 Code 1.143.0, `@vscode/test-electron` 3.1.0 and `playwright-core` 1.64.1, and run against the Event
-Storming and Wardley Maps extensions on macOS.
+Storming and Wardley Maps extensions on macOS, in their CI on `ubuntu-latest` and, since 0.3.1, in a
+Linux container on an Apple silicon Mac (`linux/arm64`).
 
 - **Why Playwright and not `runTests`.** `@vscode/test-electron`'s `runTests` runs Mocha inside the
   extension host: it reaches the `vscode` API but not the webview's DOM, and takes no screenshot. The
@@ -1610,6 +1612,70 @@ Storming and Wardley Maps extensions on macOS.
   CSS pixels, the same size on a Retina Mac and on a CI runner.
 - **Closing.** `files.hotExit` stays at its default, so a window with an unsaved document (after a
   failed step) quits without a prompt; a VS Code that has not quit after 10 s is killed.
+- **In a container (0.3.1).** On macOS Electron has no headless mode: every run starts a VS Code
+  window in the foreground that takes the focus, and runs in a row (or agents testing in parallel)
+  keep interrupting whoever works on the machine
+  ([#28](https://github.com/Miragon/modeler-api/issues/28)). On Linux the window goes to Xvfb.
+  `modeler-shell-vscode-docker` therefore runs the modeler's own smoke script in a Linux container
+  under `xvfb-run -a`. Decisions:
+  - _A command of the shell, not a recipe per modeler._ Image, mounts, volumes and the copy are the
+    same for every modeler; the modeler adds one script line. The Dockerfile is generated from
+    `vsCodeSmokeDockerfile`, so it is unit-tested, versioned with the shell and in the image's tag
+    (the first 12 hex digits of its SHA-256): a release that changes it builds a new image, an
+    unchanged one is reused.
+  - _Official Node image on bookworm._ `node:<version>-bookworm-slim` with the Node version the
+    command runs with, so the container installs with the same Node and npm major as the host's
+    run. The Debian release is fixed because trixie renamed Electron's libraries (`libasound2t64`,
+    `libgtk-3-0t64`, …), and a moving `slim` tag would break the package list.
+  - _Copy, then `npm ci`._ The host's `node_modules` are built for the host (esbuild, Rollup and
+    Rolldown ship native binaries per platform), and an `npm ci` into the mounted working copy
+    would replace them with Linux ones. The repository is mounted read-only and copied inside the
+    container without `node_modules`, `.git` (a worktree's `.git` is a file pointing outside the
+    mount anyway), `.vscode-test` and the results; `npm ci` there takes 3 to 6 s with the shared npm
+    cache. The copy takes under a second for a modeler repository.
+  - _Two named volumes._ VS Code's download (0.9 GB unpacked) goes into `modeler-shell-vscode-cache`
+    at `/root/.cache`, where the driver's default `cachePath` points in the container, and npm's
+    cache into `modeler-shell-npm-cache`; every modeler on the machine shares both, as on the host.
+  - _Results by mount, logs included._ Only the results directory is writable from the container.
+    The driver keeps VS Code's profile in `TMPDIR` with `keepTemporaryFiles`; the script copies its
+    `logs` next to the screenshots, as the modelers' CI uploads them. The default results directory
+    is the smoke test's own and is emptied before every run, as the modelers' tests empty it on a
+    local run. Another one is emptied only when it carries the marker of a directory the command
+    created, so `--results src` cannot delete sources.
+  - _`--init`, `--shm-size=1g`._ VS Code starts a dozen processes; tini reaps them and passes
+    Ctrl+C on. By default tini signals only its child, the script's bash, which defers a SIGINT
+    while it waits for `xvfb-run`, so an interrupted run went on to its end (a 120 s command ended
+    after 120 s). With `TINI_KILL_PROCESS_GROUP=1` tini signals the whole process group: Ctrl+C in
+    the middle of a smoke test ended it in 0.7 s with exit code 130 and no container left. Chromium
+    keeps shared memory in `/dev/shm`, 64 MB by default in Docker.
+  - Measured on an Apple silicon Mac with Docker Desktop 29.8.2 (`linux/arm64`, VS Code 1.143.0's
+    `linux-arm64` build): the image builds in 38 s, the first VS Code download 22 s; after that a
+    complete run (copy, `npm ci`, the modeler's packaging and the smoke test) takes 9.3 s for
+    Wardley Maps and 10.4 s for Event Storming, the smoke test itself 4.2 to 6.4 s (40 runs), as on
+    the host.
+    The screenshots match the host's apart from the workbench font (DejaVu Sans and Liberation
+    instead of the system font); the webview's Geist comes with the extension.
+- **Keeping a local macOS run in the background (not built).** Researched, not tried: running it
+  would take the focus on the machine it is tried on. VS Code creates its window with `show: true`
+  (unless the stored state is maximized or full screen) and focuses it on open, on macOS with
+  `app.focus({ steal: true })` for a forced focus. `_electron.launch` starts VS Code's executable
+  without Playwright's loader (that one is injected only for the `electron` package), so nothing of
+  the driver runs in the main process before `launch()` resolves. A candidate: a `background`
+  option that, right after `launch()` and before `firstWindow()`, evaluates in the main process
+  `BrowserWindow.prototype.show = showInactive`, no-op `focus`, `moveTop` and `app.focus`, and
+  `app.setActivationPolicy("accessory")` (no Dock icon, no menu bar); `window.newWindowDimensions:
+"maximized"` in the settings makes VS Code create the window hidden and show it through the
+  patched `show()`. Risks: the evaluation races VS Code's start and loses on a fast machine (one
+  focus change per run then); an activation by macOS itself for a regular app's first window is not
+  covered by any of the patches; a window behind other windows counts as occluded, and Chromium
+  then stops painting (`--disable-backgrounding-occluded-windows` and
+  `--disable-renderer-backgrounding` on the command line should keep it painting, since Playwright's
+  loader does not add them here), which would stall the frame waits and screenshots; Playwright
+  emulates focus only for the main frame, so the webview's two frames would see
+  `document.hasFocus() === false`, which changes focus rings, `:focus-visible` and the shell's
+  blur handling; and a maximized window makes `setContentSize` work against the maximized state.
+  Until it is verified on a Mac that may lose the focus, the Docker command is the way to run
+  without a window.
 - **Ctrl+C.** Playwright's SIGINT handler closes VS Code and calls `process.exit(130)`, so the
   run's `finally` never removed the temporary directory (about 3 MB per interrupted run), or an
   asynchronous removal was cut short. The driver removes it synchronously, in `finally` and from a

@@ -126,6 +126,9 @@
       ]
     }
   },
+  "bin": {
+    "modeler-shell-vscode-docker": "./dist/vscode-docker.js"
+  },
   "files": [
     "dist",
     "src",

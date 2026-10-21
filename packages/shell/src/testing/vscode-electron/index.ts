@@ -1,5 +1,18 @@
 export type { VsCodeSmokeContext, VsCodeSmokeFixture, VsCodeSmokeOptions } from "./driver.js";
 export { createFromPalette, runVsCodeSmoke } from "./driver.js";
+export type {
+  VsCodeSmokeDockerOptions,
+  VsCodeSmokeDockerResult,
+  VsCodeSmokeDockerRunOptions,
+} from "./docker.js";
+export {
+  VSCODE_SMOKE_DOCKER_PACKAGES,
+  VSCODE_SMOKE_DOCKER_VOLUMES,
+  runVsCodeSmokeInDocker,
+  vsCodeSmokeDockerImage,
+  vsCodeSmokeDockerRunArgs,
+  vsCodeSmokeDockerfile,
+} from "./docker.js";
 export type { ExtensionManifest, PlatformKeys, UserSettingsOptions, VsCodeSmokePaths } from "./launch.js";
 export {
   DEFAULT_WINDOW_SIZE,
