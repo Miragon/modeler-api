@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { FIT_ANIMATION_MS, fitViewbox, sameView, type Bounds, type Insets } from "../core/index.js";
 import { FakeCanvas, FakeEventBus, FakeResizeObserver, FrameQueue } from "../../test/support/diagram-js.js";
@@ -603,6 +603,28 @@ describe("freeRectCenter", () => {
     expect(viewport.freeRectCenter()).toBeDefined();
     viewport.destroy();
     expect(viewport.freeRectCenter()).toBeUndefined();
+  });
+});
+
+describe("focus", () => {
+  it("hands the focus to the canvas through canvas.focus(), until destroy", () => {
+    const { viewport, canvas } = setup();
+    const focus = vi.fn();
+    Object.assign(canvas, { focus });
+    viewport.focus?.();
+    expect(focus).toHaveBeenCalledTimes(1);
+    viewport.destroy();
+    viewport.focus?.();
+    expect(focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("is a no-op on a canvas without focus()", () => {
+    const { viewport } = setup();
+    expect(() => viewport.focus?.()).not.toThrow();
+  });
+
+  it("is optional, so a Viewport fake written against 0.2.1 still compiles", () => {
+    expectTypeOf<Omit<Viewport, "focus">>().toExtend<Viewport>();
   });
 });
 

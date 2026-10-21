@@ -1,5 +1,5 @@
 import { ariaKeyShortcutsFromLabel, matchChromeKey, type ShellMessages } from "../core/index.js";
-import { createElement, toggleAttribute } from "./element.js";
+import { createElement, isPointerClick, toggleAttribute } from "./element.js";
 import { iconElement, type ShellIconName } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
 import type { MenuEntry, MenuGroups, MenuHandle, MenuRadioGroup } from "./types.js";
@@ -17,13 +17,20 @@ function isModelerGroup(name: MenuGroupName): name is keyof MenuGroups {
   return name === "model" || name === "export" || name === "help";
 }
 
+/**
+ * The groups whose actions change what the canvas shows (another document, the model). Export and
+ * Help actions hand over to the host (a save dialog, a download, a page), and the focus waits on
+ * the trigger for their return (guide §5.4).
+ */
+const CANVAS_GROUPS: ReadonlySet<MenuGroupName> = new Set(["file", "model"]);
+
 interface Item {
   /** Stable across renders, so a re-render keeps the focus on the same entry. */
   key: string;
   element: HTMLButtonElement;
   label: string;
   disabled: boolean;
-  activate(): void;
+  activate(event: Event): void;
 }
 
 export interface MenuContext {
@@ -39,6 +46,8 @@ export interface MenuContext {
    */
   shellEntries(group: MenuGroupName): readonly MenuEntry[];
   isReadOnly(): boolean;
+  /** Hands the focus to the canvas (guide §5.8); true when it got there. */
+  focusCanvas(): boolean;
 }
 
 export interface MenuController extends MenuHandle {
@@ -163,13 +172,17 @@ export function createMenu(context: MenuContext): MenuController {
     toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
     if (entry.kind === "dialog") element.setAttribute("aria-haspopup", "dialog");
     if (entry.kind === "action" && entry.danger) element.dataset.danger = "";
+    const actsOnCanvas = entry.kind === "action" && CANVAS_GROUPS.has(group);
     return {
       key: entry.id,
       element,
       label: entry.label,
       disabled,
-      activate() {
-        close({ restoreFocus: true });
+      activate(event) {
+        close();
+        // Guide §5.8: after a pointer click the canvas keys act at once; Enter and Space keep the
+        // keyboard user on the trigger.
+        if (!(actsOnCanvas && isPointerClick(event) && context.focusCanvas())) focusTrigger();
         entry.onSelect();
       },
     };
@@ -246,8 +259,8 @@ export function createMenu(context: MenuContext): MenuController {
       }
     }
     for (const item of rendered) {
-      item.element.addEventListener("click", () => {
-        if (!item.disabled) item.activate();
+      item.element.addEventListener("click", (event) => {
+        if (!item.disabled) item.activate(event);
       });
     }
     dropdown.replaceChildren(...nodes);
@@ -309,7 +322,11 @@ export function createMenu(context: MenuContext): MenuController {
     trigger.setAttribute("aria-expanded", "false");
     ownerDocument.removeEventListener("pointerdown", onOutsidePointerDown, true);
     ownerDocument.defaultView?.removeEventListener("blur", onWindowBlur);
-    if (options.restoreFocus && !trigger.hidden) trigger.focus();
+    if (options.restoreFocus) focusTrigger();
+  }
+
+  function focusTrigger(): void {
+    if (!trigger.hidden) trigger.focus();
   }
 
   function refresh(): void {

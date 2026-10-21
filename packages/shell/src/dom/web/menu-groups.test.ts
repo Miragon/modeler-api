@@ -83,6 +83,7 @@ describe("File group (guide §5.4, §2)", () => {
       groups: {},
       shellEntries: (group) => (group === "file" ? file : []),
       isReadOnly: () => true,
+      focusCanvas: () => false,
     });
     menu.open();
     const items = [...menu.dropdown.querySelectorAll("[data-menu-id]")];

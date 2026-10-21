@@ -13,6 +13,7 @@ import {
   appearanceProblems,
   ariaProblems,
   createProblems,
+  focusHandBackProblems,
   isToolEntry,
   keyReachProblem,
   leftoverProblems,
@@ -28,6 +29,7 @@ import {
   readOnlyStateProblems,
   surroundProblems,
   tabSequenceProblems,
+  type FocusHandBackStep,
   type KeyReach,
   type PaletteShortcutFacts,
   type TabStop,
@@ -38,6 +40,7 @@ import {
   appearanceProbe,
   ariaProbe,
   canvasStateProbe,
+  focusPlaceProbe,
   menuEntriesProbe,
   menuProbe,
   paletteColorProbe,
@@ -66,12 +69,14 @@ import {
 import type { ShellConformanceCase, ShellConformanceHarness, ShellSkip, ToastFixture } from "./harness.js";
 import type { PageLike } from "./page.js";
 import {
+  CHROME_TARGET_SELECTORS,
   afterPressProbe,
   armCleanupProbe,
   canvasHandlesProbe,
   clearKeysProbe,
   findOverlay,
   findTarget,
+  focusProbe,
   focusTarget,
   hostPageModeProbe,
   inPage,
@@ -648,6 +653,74 @@ const keysCase: ShellConformanceCase = {
   },
 };
 
+/** The zoom panel's controls, clicked in this order by the focusHandBack case. */
+const ZOOM_CONTROLS: ReadonlyArray<readonly [ChromeTarget, string]> = [
+  ["zoom-in", "zoom in"],
+  ["zoom-out", "zoom out"],
+  ["zoom-actual", "the zoom readout"],
+  ["zoom-fit", "fit"],
+];
+
+/**
+ * Guide §5.8: a pointer click on each zoom control and on a palette tool leaves the focus on the
+ * canvas `<svg>`; Enter and Space on zoom in leave it on the button. Each control gets the focus by
+ * script first, so a click that keeps it shows as "stays on the control" in every engine.
+ */
+const focusHandBackCase: ShellConformanceCase = {
+  name: "focusHandBack",
+  async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    const root = harness.root ?? DEFAULT_ROOT;
+    const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
+    await openHarness(page, harness, { size, requested: LIGHT });
+    await settle(page);
+    const problems: string[] = [];
+    const steps: FocusHandBackStep[] = [];
+    const focusAfter = (selector: string) => inPage(page, focusPlaceProbe, { root, selector });
+
+    for (const [target, control] of ZOOM_CONTROLS) {
+      const button = await findTarget(page, root, target);
+      if (!button || !(await focusTarget(page, root, target))) {
+        problems.push(`focus: no visible ${control} button that takes the focus`);
+        continue;
+      }
+      await page.mouse.click(button.client.x, button.client.y);
+      await settle(page);
+      steps.push({ control, by: "pointer", focus: await focusAfter(CHROME_TARGET_SELECTORS[target]) });
+    }
+
+    const tools = (await inPage(page, paletteEntriesProbe, { root })).filter(
+      (entry) => isToolEntry(entry) && !entry.disabled,
+    );
+    const tool = tools.find((entry) => entry.action === "lasso-tool") ?? tools[0];
+    if (tool) {
+      const selector = `[data-chrome="palette"] [data-action="${tool.action}"]`;
+      await inPage(page, focusProbe, { root, selector });
+      await page.mouse.click(tool.client.x, tool.client.y);
+      await settle(page);
+      steps.push({
+        control: `palette tool "${tool.action}"`,
+        by: "pointer",
+        focus: await focusAfter(selector),
+      });
+      await closeByEscape(page);
+    }
+
+    for (const key of ["Enter", "Space"] as const) {
+      if (!(await focusTarget(page, root, "zoom-in"))) break;
+      await page.keyboard.press(key);
+      await settle(page);
+      steps.push({
+        control: "zoom in",
+        by: key,
+        focus: await focusAfter(CHROME_TARGET_SELECTORS["zoom-in"]),
+      });
+    }
+    await page.mouse.move(PARK.x, PARK.y);
+    problems.push(...focusHandBackProblems(steps));
+    return finish("focusHandBack", harness.host, problems, []);
+  },
+};
+
 async function appearanceFacts(page: PageLike, root: string): Promise<AppearanceFacts | null> {
   const probe = () => inPage(page, appearanceProbe, { root, roles: MODE_ROLES });
   await hover(page, root, "zoom-in");
@@ -1067,9 +1140,18 @@ const cleanupCase: ShellConformanceCase = {
   },
 };
 
-/** The 0.1 cases, extended for the web column. */
+/** The cases of every host: those of 0.1, extended for the web column, and the focus hand-back of 0.2.2. */
 export function createBaseCases(): ShellConformanceCase[] {
-  return [geometryCase, ariaCase, keysCase, createCase, readOnlyCase, appearanceCase, cleanupCase];
+  return [
+    geometryCase,
+    ariaCase,
+    keysCase,
+    focusHandBackCase,
+    createCase,
+    readOnlyCase,
+    appearanceCase,
+    cleanupCase,
+  ];
 }
 
 export function createCases(): ShellConformanceCase[] {

@@ -126,13 +126,15 @@ export interface ShellConformanceCase {
  * (roles, names, `aria-expanded`/`-controls`/`-keyshortcuts`/`-disabled`, DOM order, no positive
  * tabindex), `keys` (each chrome key acts exactly once; in the IDE host a `keydown` listener on
  * `window` never fires for a handled key; unmodified `+`/`-` never zoom; select all acts on the
- * canvas only), `create` (Enter on the first creating palette entry places one selected element in
- * the free rectangle and focuses the canvas), `readOnly` (the invalid-file lock of guide §13.5),
- * `appearance` (dark requested from a light-only modeler: nothing turns dark, `color-scheme` light
- * everywhere, the canvas surround and the palette's tool colours from the roles; the web app's mode
- * and its Appearance group) and `cleanup` (after `destroy` no shell element, class, attribute or
- * key handling remains); then the web column's `webChrome`, `emptyState`, `toasts`,
- * `problemsList` and `dropZone`, which assert in the other hosts that nothing of them shows.
+ * canvas only), `focusHandBack` (a pointer click on a zoom control or a palette tool leaves the focus
+ * on the canvas, Enter and Space on zoom in leave it on the button), `create` (Enter on the first
+ * creating palette entry places one selected element in the free rectangle and focuses the canvas),
+ * `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested from a light-only
+ * modeler: nothing turns dark, `color-scheme` light everywhere, the canvas surround and the
+ * palette's tool colours from the roles; the web app's mode and its Appearance group) and `cleanup`
+ * (after `destroy` no shell element, class, attribute or key handling remains); then the web
+ * column's `webChrome`, `emptyState`, `toasts`, `problemsList` and `dropZone`, which assert in the
+ * other hosts that nothing of them shows.
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
   return createCases();

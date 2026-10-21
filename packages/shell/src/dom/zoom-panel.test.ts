@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { chrome, cleanup, fakeZoomTarget, installFakes, mount } from "../../test/support/dom.js";
+import {
+  canvasWithSvg,
+  chrome,
+  cleanup,
+  click,
+  fakeZoomTarget,
+  focusingZoomTarget,
+  installFakes,
+  keydown,
+  mount,
+} from "../../test/support/dom.js";
 
 beforeEach(installFakes);
 afterEach(cleanup);
@@ -128,6 +138,65 @@ describe("zoom panel (guide §5.8)", () => {
     target.current = 1;
     actual.click();
     expect(target.calls).toHaveLength(4);
+  });
+
+  it("hands the focus to the canvas after a pointer click on each button (guide §5.8)", () => {
+    const { canvas, svg } = canvasWithSvg();
+    const { shell, root } = mount({ canvas });
+    const target = focusingZoomTarget(svg, 0.86);
+    shell.setZoomTarget(target);
+    const { out, actual, in: zoomIn, fit } = parts(root);
+    for (const button of [zoomIn, out, actual, fit]) {
+      button.focus();
+      click(button, 1);
+      expect(document.activeElement).toBe(svg);
+    }
+    expect(target.calls).toEqual(["step:1", "focus", "step:-1", "focus", "actual", "focus", "fit", "focus"]);
+    click(actual, 2);
+    expect(target.calls.at(-1)).toBe("focus");
+  });
+
+  it("keeps the focus on the button after Enter or Space, so the next press acts again", () => {
+    const { canvas, svg } = canvasWithSvg();
+    const { shell, root } = mount({ canvas });
+    const target = focusingZoomTarget(svg, 0.86);
+    shell.setZoomTarget(target);
+    const { out, actual, in: zoomIn, fit } = parts(root);
+    for (const button of [zoomIn, out, actual, fit]) {
+      button.focus();
+      click(button, 0);
+      expect(document.activeElement).toBe(button);
+    }
+    zoomIn.focus();
+    keydown(zoomIn, { key: "Enter" });
+    zoomIn.click();
+    expect(document.activeElement).toBe(zoomIn);
+    expect(target.calls).toEqual(["step:1", "step:-1", "actual", "fit", "step:1"]);
+  });
+
+  it("hands the focus back after a click on a button at its limit too, which zooms nothing", () => {
+    const { canvas, svg } = canvasWithSvg();
+    const { shell, root } = mount({ canvas });
+    const target = focusingZoomTarget(svg, 4);
+    shell.setZoomTarget(target);
+    const { in: zoomIn } = parts(root);
+    expect(zoomIn.getAttribute("aria-disabled")).toBe("true");
+    zoomIn.focus();
+    click(zoomIn, 1);
+    expect(target.calls).toEqual(["focus"]);
+    expect(document.activeElement).toBe(svg);
+  });
+
+  it("leaves the focus on the button for a zoom target that cannot focus the canvas", () => {
+    const { canvas } = canvasWithSvg();
+    const { shell, root } = mount({ canvas });
+    const target = fakeZoomTarget(0.86);
+    shell.setZoomTarget(target);
+    const { in: zoomIn } = parts(root);
+    zoomIn.focus();
+    click(zoomIn, 1);
+    expect(target.calls).toEqual(["step:1"]);
+    expect(document.activeElement).toBe(zoomIn);
   });
 
   it("unbinds the previous target", () => {

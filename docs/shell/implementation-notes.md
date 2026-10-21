@@ -241,6 +241,8 @@ still acts on its target, also on the canvas.
   `focusout` without `relatedTarget`: a click on the menu's own heading or separator causes one too.
 - Dropdown limits: `max-width: min(320px, 100cqw - 24px)`, `max-height: calc(100cqh - 72px)` (see
   [Container, not window](#container-not-window)).
+- An action of the File or Model group clicked with a pointer hands the focus to the canvas instead
+  of the trigger (see [Focus after a click](#focus-after-a-click)).
 
 ## Palette
 
@@ -307,6 +309,9 @@ tab order.
   calling private palette methods. The click is a contract for palette providers: `detail === 0`
   (every pointer click has 1 or more), `clientX`/`clientY` at the entry's centre, bubbling and
   cancelable.
+- **Pointer activation.** A click on an entry or a drag from it hands the focus to the canvas once
+  diagram-js has run the entry (see [Focus after a click](#focus-after-a-click)); Enter and Space
+  leave it on the entry.
 - **Keyboard creation** (guide §5.5: the element goes to the centre of the free rectangle, 24px
   diagonally further while that spot is taken, selected, with the label editor open where the
   notation has labels, and the focus on the canvas). diagram-js's create tool (`create.start`) makes
@@ -523,6 +528,60 @@ list) does not block the keys; whether §5.8 means that too is an open question 
   so diagram-js zooms nothing. Zooming via the browser menu always stays possible.
 - What the listener additionally stops in an IDE host: see
   [VS Code: key interception](#vs-code-key-interception).
+
+### Focus after a click
+
+**Guide [§5.8][guide-5.8]** (since design system 1.14.0). Rule: a click with mouse, pen or finger on
+the zoom panel, a palette entry or a menu entry that acts on the canvas hands the focus to the canvas,
+so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on the control.
+
+- Why the focus matters: the diagram-js 15 keyboard listens on the canvas `<svg>`, and the
+  renderers' own key handlers act only while their canvas or the page itself has the focus (Wardley
+  since 0.7, Event Storming and Context Maps since 0.3, Team Topologies since 0.11). Chromium (and
+  Firefox outside macOS) focus a clicked button on `mousedown`, so after a click on + the next Delete
+  went to the button. A click on a creating palette entry was worse: the click that places the
+  element does not move the focus either, because diagram-js ends the create drag on that
+  `mousedown` in the capture phase and prevents its default, the browser's focus move. Delete then
+  missed the new element.
+- Pointer or keyboard is told by `event.detail` of the `click`: 1 or more for mouse, pen and touch
+  (2 on a double click), 0 for Enter and Space on a button, for the palette's synthetic click (see
+  [Palette](#palette)) and for a desktop screen reader's activation. Every engine sets it, and the
+  palette's providers already branch on it (guide §5.5).
+- The DOM shell knows no canvas API, so it calls `focus()` of the bound zoom target; the adapter's
+  viewport implements it with `canvas.focus()` (diagram-js 15: `focus({ preventScroll: true })` on
+  the `<svg>` and `canvas.focus.changed`, on which `MoveCanvas` binds its drag). A zoom target without
+  `focus` (a host without the adapter) leaves the focus where the click put it.
+- Zoom panel: the button's `click` handler runs the key, then hands the focus over. A button at its
+  limit (`aria-disabled`) zooms nothing and still hands it over: the click was meant for the canvas,
+  and the button must not keep its keys.
+- Palette: one `click` and one `dragstart` listener on the palette element. diagram-js binds its own
+  delegates for both on the same element in `Palette#_init`, before `palette.create`, so they run
+  first and the entry's action (a tool, `create.start`) has run when the shell moves the focus.
+  `Dragging#init` calls `stopPropagation()`, which does not reach other listeners of the same
+  element. A vetoed entry (read-only canvas) gets the same hand-back. A `dragstart` comes from a
+  pointer only, so it needs no `detail` check.
+- Menu: only `action` entries of the File and Model groups, which change what the canvas shows.
+  Export and Help actions hand over to the host (a save dialog, a download, a page), after which
+  guide §5.4 wants the focus on the trigger; `dialog` entries keep it as well, so the dialog returns
+  the focus there. The menu closes first, the canvas takes the focus, then `onSelect` runs, so a
+  handler that opens the browser's file picker returns the focus to the canvas. If the canvas did not
+  take the focus, the trigger gets it as before.
+- Open… and Import… hand the focus to the canvas on purpose, unless the web app sets
+  `FileMenuAction.dialog` for a dialog of its own. The browser's file picker is no dialog in the
+  modeler (the guide's wording), and the file picked there shows on the canvas, where the keys then
+  act; on cancel the canvas keeps the focus. The dialog openers that
+  [#19](https://github.com/Miragon/modeler-api/issues/19) leaves as they were are therefore the
+  `dialog` entries, which keep the trigger.
+- A click on a zoom button while the menu is open: the capture-phase `pointerdown` closes the menu
+  without moving the focus (see [Menu](#menu)), then the click hands it to the canvas.
+- Touch: a tap is a click with `detail` 1 and hands the focus over too, which a tablet with a keyboard
+  needs. The `<svg>` takes no ring then: a focus a script moves after a pointer interaction does not
+  match `:focus-visible` (checked in Chromium, see [Open verification points](#open-verification-points)).
+- Not handed back: the menu trigger, the pill and the primary action open something that takes the
+  focus; the legend's close button returns it to the trigger; a problem row already focuses the
+  canvas (see [Problems popover](#problems-popover)).
+- Shell conformance (`focusHandBack`) clicks each zoom control and a palette tool with the pointer,
+  each focused by script first, and presses Enter and Space on zoom in.
 
 ### Shortcut labels
 
@@ -1492,6 +1551,9 @@ the notes rely on that the sources alone do not settle.
       webview with zod 4 reports no violation either (webview developer tools).
 - [ ] `workbench.reduceMotion` `on` sets the body class `vscode-reduce-motion` in the webview (and
       `off` removes it), at start and when the setting changes.
+- [ ] Safari (the web app, vscode.dev): after a click on a zoom button the canvas `<svg>` has the focus
+      and shows no focus ring. Safari does not focus a clicked button, so the focus moves from
+      wherever it was.
 - [ ] A click into the side bar or another editor while the webview menu is open fires `blur` on the
       webview's window, so the menu is closed when the user comes back.
 - [ ] Ctrl+- and Ctrl+Shift+- on macOS with the focus in the webview zoom the canvas instead of VS

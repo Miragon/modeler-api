@@ -4,6 +4,7 @@ import {
   type AppearanceFacts,
   type AriaFacts,
   type CanvasStateFacts,
+  type FocusPlaceFacts,
   type MenuEntryFacts,
   type MenuFacts,
   type PaletteColorEntry,
@@ -270,6 +271,37 @@ export function tabSequenceProblems(stops: readonly TabStop[], primary = false):
     );
   }
   return problems;
+}
+
+/** One activation of a chrome control by the kit and where the focus went afterwards. */
+export interface FocusHandBackStep {
+  /** The control as a problem names it: "zoom in", "palette tool \"lasso-tool\"". */
+  control: string;
+  /** A pointer click, or the key that activated the focused control. */
+  by: "pointer" | "Enter" | "Space";
+  focus: FocusPlaceFacts;
+}
+
+/**
+ * Guide §5.8: after a pointer click on chrome that acts on the canvas the focus is on the canvas
+ * `<svg>`, so Delete, the arrows and undo act at once; after Enter or Space it stays on the control,
+ * so a keyboard user can press again.
+ */
+export function focusHandBackProblems(steps: readonly FocusHandBackStep[]): string[] {
+  return steps.flatMap(({ control, by, focus }) => {
+    if (by === "pointer") {
+      return focus.canvas
+        ? []
+        : [
+            `focus: after a click on ${control} the focus is on ${focus.focused}, expected the canvas <svg>, so its keys act at once (guide §5.8)`,
+          ];
+    }
+    return focus.control
+      ? []
+      : [
+          `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
+        ];
+  });
 }
 
 /** A palette entry with the keyboard focus: its tooltip's chip and what it names for assistive technology. */
