@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.4.0...webapp-v0.5.0) (2026-10-21)
+
+
+### Features
+
+* implement contract 1.2 of @miragon/modeler-api with modeler-shell 0.2.2 and refuse ids the canvas cannot draw ([#70](https://github.com/Miragon/context-maps-modeler/issues/70)) ([8136ccb](https://github.com/Miragon/context-maps-modeler/commit/8136ccbe280e3068c4074ad4fb0ab65fc7aca701))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-cml bumped from 0.1.4 to 0.1.5
+    * @miragon/context-maps-renderer bumped from 0.3.0 to 0.4.0
+    * @miragon/context-maps-schema-model bumped from 0.3.0 to 0.4.0
+
 ## [0.4.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.3.0...webapp-v0.4.0) (2026-10-19)
 
 
