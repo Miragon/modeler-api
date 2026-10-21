@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "modeler-kit",
+  "displayName": "Miragon Modeler Kit",
+  "description": "Build Miragon modelers with Claude: the new-modeler skill takes a notation from an empty repository to a released web app and VS Code extension on @miragon/modeler-api and @miragon/modeler-shell, with a runnable template, both conformance kits, the Miragon design system, exact pins and release-please publishing.",
+  "author": {
+    "name": "Miragon",
+    "url": "https://miragon.io"
+  },
+  "homepage": "https://github.com/Miragon/modeler-api/tree/main/plugins/modeler-kit#readme",
+  "repository": "https://github.com/Miragon/modeler-api",
+  "license": "MIT",
+  "keywords": [
+    "modeler",
+    "diagram-js",
+    "modeler-api",
+    "modeler-shell",
+    "vscode-extension",
+    "template",
+    "miragon"
+  ]
+}

@@ -1,0 +1,41 @@
+name: Publish npm package
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: Package directory name under packages/
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # npm's trusted publisher names this environment and the CALLING workflow, release-please.yml
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Node 24 ships npm >= 11.5.1, which publishes through OIDC without a token, with provenance
+      - uses: ./.github/actions/setup
+        with:
+          node-version: 24
+      - run: npm run build
+      - name: Publish @miragon/__NOTATION__-${{ inputs.package }}
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          dir="packages/$PACKAGE"
+          name="$(node -p "require('./$dir/package.json').name")"
+          version="$(node -p "require('./$dir/package.json').version")"
+          if npm view "$name@$version" version > /dev/null 2>&1; then
+            echo "$name@$version already published, skipping"
+          else
+            npm publish -w "$dir"
+          fi

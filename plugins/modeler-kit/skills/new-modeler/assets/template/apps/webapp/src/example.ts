@@ -1,0 +1,7 @@
+/** The "Show example" document: a small, finished diagram of the notation. */
+export const EXAMPLE = `title Order fulfilment
+node order "Place order" [40, 40]
+node pay "Take payment" [280, 40]
+node pick "Pick items" [520, 40]
+node ship "Ship parcel" [520, 200]
+`;

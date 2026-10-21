@@ -19,6 +19,19 @@ the [package README](packages/api/README.md). The plan for the shell, the
 contract roadmap and the rollout across the modeler repositories live in
 [#4](https://github.com/Miragon/modeler-api/issues/4).
 
+## Claude Code plugin
+
+[`plugins/modeler-kit/`](plugins/modeler-kit/) ships the **`new-modeler`** skill: how to build a
+new Miragon modeler end to end on these two packages, with a runnable template and the script that
+instantiates it. Install it with
+
+```text
+/plugin marketplace add Miragon/modeler-api
+/plugin install modeler-kit@modeler-api
+```
+
+`npm test` keeps it in step with the packages (see [CONTRIBUTING.md](CONTRIBUTING.md#plugin)).
+
 ## Docs
 
 - [Shell implementation notes](docs/shell/implementation-notes.md): how
@@ -31,7 +44,7 @@ contract roadmap and the rollout across the modeler repositories live in
 ```sh
 npm ci
 npm run lint      # tsc in every package + prettier over the repo
-npm test          # every package's own suite
+npm test          # every package's own suite, then the plugin's drift test
 npm run build     # every package
 npm run test:e2e  # Playwright (the shell's demo); once: npx playwright install chromium
 ```

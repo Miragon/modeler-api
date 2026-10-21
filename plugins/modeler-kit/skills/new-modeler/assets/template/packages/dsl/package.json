@@ -1,0 +1,43 @@
+{
+  "name": "@miragon/__NOTATION__-dsl",
+  "version": "0.0.0",
+  "description": "Convert between the __DISPLAY_NAME__ text format (.__EXT__) and its data model, with lossless round trips.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/__REPO__.git",
+    "directory": "packages/dsl"
+  },
+  "homepage": "https://github.com/Miragon/__REPO__/tree/main/packages/dsl#readme",
+  "bugs": "https://github.com/Miragon/__REPO__/issues",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@miragon/__NOTATION__-schema-model": "0.0.0"
+  },
+  "devDependencies": {
+    "tsup": "9.0.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
