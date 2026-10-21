@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.2...modeler-shell-v0.3.0) (2026-10-21)
+
+
+### Features
+
+* **shell:** smoke-test a modeler's extension in a real VS Code ([f81428b](https://github.com/Miragon/modeler-api/commit/f81428bb55a7e7c18d0ba47bc2b1b348fc1c2cff))
+
 ## [0.2.2](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.2.1...modeler-shell-v0.2.2) (2026-10-21)
 
 
