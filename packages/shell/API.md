@@ -1663,7 +1663,7 @@ interface ViewportOptions {
 interface Viewport extends ZoomTarget {
   fit(options?: { animate?: boolean }): void;
   freeRectCenter(): Point | undefined; // diagram coordinates; undefined at 0 × 0 and after destroy
-  focus(): void; // 0.2.2: canvas.focus(); a no-op after destroy
+  focus?(): void; // 0.2.2: canvas.focus(); a no-op after destroy; always set by createViewport
   afterImport(): void;
   newDocument(): void; // 0.2, web app: the next afterImport() counts as the first again
   restore(viewbox: Bounds): void;

@@ -367,7 +367,7 @@ test.describe("saboteurs", () => {
     const harness = sabotaged(() => {
       document
         .querySelector('[data-chrome="zoom"] [data-zoom="in"]')
-        ?.addEventListener("click", () => window.__demo!.connection.viewport.focus());
+        ?.addEventListener("click", () => window.__demo!.connection.viewport.focus?.());
     });
     const failure = await runCase("focusHandBack", page, harness).then(
       () => "passed",
