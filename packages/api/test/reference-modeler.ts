@@ -118,8 +118,8 @@ export interface Flaws {
    *  the typed input instead of reopening it on the element with the same id */
   dropInteractionOnImport?: boolean;
   /** a host's view change commits the open label editor (diagram-js directEditing completing on
-   *  `canvas.viewbox.changing` — the Wardley 0.8 drift: a restore after a peer's re-import wrote the
-   *  half-typed label into the shared text) */
+   *  `canvas.viewbox.changing` — the drift every renderer built against contract 1.1 ships: a restore
+   *  after a peer's re-import writes the half-typed label into the shared text) */
   commitInteractionOnViewChange?: boolean;
   /** NOT a law violation, a missed recommendation: a host's view change closes the open label editor
    *  and drops the typed input */

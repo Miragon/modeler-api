@@ -92,10 +92,11 @@ A view change the HOST makes — `setViewState`, or a fit its chrome applies to
 the canvas — never commits an interaction in progress either (L5, since 1.2):
 no change event, the export unchanged. Hosts restore the viewport after every
 remote re-import and refit when their chrome changes; a modeler that completes
-its label editor on every viewbox change wrote the half-typed label into the
-shared document for every peer. RECOMMENDED: the interaction stays open with
-its typed input, so the user's commit afterwards writes what it would have
-written without the view change.
+its label editor on every viewbox change (diagram-js's direct-editing pattern,
+which every renderer built against contract 1.1 follows) writes the half-typed
+label into the shared document for every peer. RECOMMENDED: the interaction
+stays open with its typed input, so the user's commit afterwards writes what it
+would have written without the view change.
 
 ## Factory options
 

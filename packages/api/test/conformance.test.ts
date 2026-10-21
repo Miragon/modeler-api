@@ -453,7 +453,7 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ boundsForUnknownIds: true }, [CASE.bounds]));
   test("bounds in screen coordinates (they move with zoom and scroll) → exactly the bounds case", () =>
     expectFailures({ boundsInViewCoordinates: true }, [CASE.bounds]));
-  test("a host's view change that commits the open label editor (the Wardley 0.8 drift) → exactly the L5 interaction case", () =>
+  test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
     expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
 
   test("the contract version constant IS the package version (one identity)", () => {

@@ -694,12 +694,18 @@ text.
   re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell
   never commits or cancels an editor itself.
 - A renderer that completes direct editing on `canvas.viewbox.changing` (the pattern of bpmn-js's
-  `LabelEditingProvider`) commits half-typed input on each of them. Wardley 0.8 did so for labels and
-  links, so a host's restore after a peer's re-import wrote the half-typed label into the shared
-  document. diagram-js cannot tell a host's `canvas.viewbox(box)` from a wheel zoom, so the renderer
-  keeps the editor open across every viewbox change and places it again on `canvas.viewbox.changed`
-  (its geometry is the element's box through the new viewbox); it commits on the user's own gestures
-  only (Enter, blur, `element.mousedown`, `drag.init`).
+  `LabelEditingProvider`) commits half-typed input on each of them. All five published renderers do
+  so today: Wardley 0.8.0 (labels and links), Team Topologies 0.11.2, Event Storming 0.3.0, Context
+  Maps 0.3.0 and Value Chain 0.5.0. Their `setViewState` calls `canvas.viewbox()`, so a host's
+  restore after a peer's re-import writes the half-typed label into the shared document, and each
+  fails the kit's L5 interaction case.
+- The fix is the same in every renderer. diagram-js cannot tell a host's `canvas.viewbox(box)` from a
+  wheel zoom, so the renderer keeps the editor open across every viewbox change and places it again
+  on `canvas.viewbox.changed` (its geometry is the element's box through the new viewbox); it commits
+  on the user's own gestures only (Enter, blur, `element.mousedown`, `drag.init`).
+- A renderer moves to contract 1.2 with that fix, `elements.bounds` and the harness hooks
+  `commitInteraction` and `moveElement` in the same release. Without them the bounds case and the
+  commit halves of the L5 interaction case report skips, which fail a kit run whose `onSkip` throws.
 - The contract kit's L5 interaction case opens the editor, calls `setViewState` and expects no change
   event and an unchanged export; the shell's fit and resize go through `canvas.viewbox`, so a later
   shell conformance check can drive the same case through them.
