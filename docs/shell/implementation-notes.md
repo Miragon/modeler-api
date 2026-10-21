@@ -520,7 +520,7 @@ list) does not block the keys; whether §5.8 means that too is an open question 
 
 ### Focus after a click
 
-**Guide [§5.8][guide-5.8]** (since design system 1.13.1). Rule: a click with mouse, pen or finger on
+**Guide [§5.8][guide-5.8]** (since design system 1.14.0). Rule: a click with mouse, pen or finger on
 the zoom panel, a palette entry or a menu entry that acts on the canvas hands the focus to the canvas,
 so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on the control.
 
@@ -555,6 +555,12 @@ so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on th
   the focus there. The menu closes first, the canvas takes the focus, then `onSelect` runs, so a
   handler that opens the browser's file picker returns the focus to the canvas. If the canvas did not
   take the focus, the trigger gets it as before.
+- Open… and Import… hand the focus to the canvas on purpose, unless the web app sets
+  `FileMenuAction.dialog` for a dialog of its own. The browser's file picker is no dialog in the
+  modeler (the guide's wording), and the file picked there shows on the canvas, where the keys then
+  act; on cancel the canvas keeps the focus. The dialog openers that
+  [#19](https://github.com/Miragon/modeler-api/issues/19) leaves as they were are therefore the
+  `dialog` entries, which keep the trigger.
 - A click on a zoom button while the menu is open: the capture-phase `pointerdown` closes the menu
   without moving the focus (see [Menu](#menu)), then the click hands it to the canvas.
 - Touch: a tap is a click with `detail` 1 and hands the focus over too, which a tablet with a keyboard
