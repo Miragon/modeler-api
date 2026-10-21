@@ -10,7 +10,7 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
 [Usage: Event Storming in the web app](#usage-event-storming-in-the-web-app)).
 
 - **Look and behaviour** come from the Miragon design system, guide `modeler-design-system.md`
-  (skill `miragon-brand:modeler-tool-design`, design system 1.13.1), §2, §5.1 to §5.15, §6, §7, §8,
+  (skill `miragon-brand:modeler-tool-design`, design system 1.14.0), §2, §5.1 to §5.15, §6, §7, §8,
   §9, §11, §12 and §13.3 to §13.5. Section numbers below (§x.y) refer to it.
 - **Mechanics** (diagram-js services, VS Code quirks) are in
   [`docs/shell/implementation-notes.md`](../../docs/shell/implementation-notes.md).
@@ -780,15 +780,16 @@ interface StatusMessage {
   never is (§5.8), its click does nothing then. Buttons and keys never call `stepZoom` past a limit
   (zoom out at or below 20 % never zooms in), never `zoomToActual` at exactly 100 % and never `fit`
   while `canFit()` is false.
-- Focus after a pointer click (0.2.2, guide §5.8 since design system 1.13.1): a click with mouse,
+- Focus after a pointer click (0.2.2, guide §5.8 since design system 1.14.0): a click with mouse,
   pen or finger (`detail` ≥ 1) on a zoom button (also one at its limit), on a palette entry (also a
   `dragstart` from it, also a vetoed one) or on an `action` entry of the File or Model group hands
   the focus to the canvas through the zoom target's `focus()`, so the canvas's keys (Delete, the
-  arrows, undo) act at once. Enter and Space (`detail` 0, the palette's synthetic click included)
-  leave the focus on the control. Export and Help actions, `dialog` entries, the menu trigger, the
-  pill and the primary action keep their focus handling. A zoom target without `focus` (a host
-  without the diagram-js adapter) leaves the focus where the click put it; a menu action then
-  returns it to the trigger.
+  arrows, undo) act at once. Open… and Import… are such actions unless `FileMenuAction.dialog` is
+  set: the browser's file picker is no dialog in the modeler, and the file picked there shows on the
+  canvas. Enter and Space (`detail` 0, the palette's synthetic click included) leave the focus on
+  the control. Export and Help actions, `dialog` entries, the menu trigger, the pill and the primary
+  action keep their focus handling. A zoom target without `focus` (a host without the diagram-js
+  adapter) leaves the focus where the click put it; a menu action then returns it to the trigger.
 - `fitInsets()` is `fitInsets(layout)` of `./core` for what is open and measured right now (palette
   row, pill, legend width, side inspector or measured sheet top).
 - `registerPalette` is the adapter's API (`connectDiagramJs` calls it, possibly from inside
