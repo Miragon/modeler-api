@@ -360,6 +360,31 @@ export const activeStopProbe = ({ root }: { root: string }): { description: stri
   };
 };
 
+/** Where the focus is after the kit activated a chrome control (guide §5.8). */
+export interface FocusPlaceFacts {
+  /** The focused element, `<body>` when nothing has the focus. */
+  focused: string;
+  /** On the canvas `<svg>` (`.djs-container > svg`) or inside it. */
+  canvas: boolean;
+  /** On the first visible match of `selector`, the control the kit activated. */
+  control: boolean;
+}
+
+export const focusPlaceProbe = ({ root, selector }: { root: string; selector: string }): FocusPlaceFacts => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector(root);
+  const active = document.activeElement;
+  const svg = rootElement?.querySelector(".djs-container > svg");
+  const control = rootElement
+    ? [...rootElement.querySelectorAll(selector)].find((candidate) => tools.visible(candidate))
+    : undefined;
+  return {
+    focused: !active || active === document.body ? "<body>" : tools.describe(active),
+    canvas: Boolean(svg && active && svg.contains(active)),
+    control: Boolean(control && active === control),
+  };
+};
+
 /** The focused palette entry, its `aria-keyshortcuts` and the chip of the visible tooltip. */
 export const paletteShortcutProbe = ({
   root,

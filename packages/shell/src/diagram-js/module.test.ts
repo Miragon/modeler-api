@@ -7,7 +7,7 @@ import ZoomScrollExport from "diagram-js/lib/navigation/zoomscroll/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defaultMessages, type Insets } from "../core/index.js";
-import type { PaletteRegistration, ShellHandle } from "../dom/index.js";
+import { mountShell, type PaletteRegistration, type ShellHandle } from "../dom/index.js";
 import { connectDiagramJs } from "./connect.js";
 import { shellModule } from "./module.js";
 import type { ModuleDeclarationLike } from "./types.js";
@@ -713,5 +713,72 @@ describe("connectDiagramJs", () => {
     firstConnection.destroy();
     expect(second.unregister).not.toHaveBeenCalled();
     expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe("Zwei");
+  });
+});
+
+describe("focus after a pointer click (guide §5.8), with a mounted shell", () => {
+  const shells: ShellHandle[] = [];
+  afterEach(() => {
+    for (const shell of shells.splice(0)) shell.destroy();
+  });
+
+  function mounted() {
+    const diagram = createDiagram([ZoomScrollModule, PaletteModule, providerModule(ENTRIES), shellModule]);
+    const canvas = diagram.get<{ getContainer(): HTMLElement; zoom(): number }>("canvas");
+    // happy-dom has no SVG transform list, which the zoom getter reads.
+    vi.spyOn(canvas, "zoom").mockReturnValue(1);
+    const container = canvas.getContainer().parentElement!;
+    const root = document.createElement("div");
+    document.body.append(root);
+    const shell = mountShell(root, { host: "ide", platform: "mac", lang: "en", canvas: container });
+    shells.push(shell);
+    const connection = connectDiagramJs(shell, diagram, { contentBounds: () => undefined });
+    vi.spyOn(diagram.get<{ stepZoom(delta: number): void }>("zoomScroll"), "stepZoom").mockImplementation(
+      () => {},
+    );
+    const zoomIn = root.querySelector<HTMLButtonElement>('[data-zoom="in"]')!;
+    return { diagram, shell, connection, svg: svgOf(diagram), zoomIn };
+  }
+  const click = (target: HTMLElement, detail: number) =>
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail }));
+
+  it("puts it on the canvas <svg> through canvas.focus() after a click on zoom in or a palette entry", () => {
+    const { diagram, svg, zoomIn } = mounted();
+    const focus = vi.spyOn(diagram.get<{ focus(): void }>("canvas"), "focus");
+    zoomIn.focus();
+    click(zoomIn, 1);
+    expect(document.activeElement).toBe(svg);
+
+    entry(diagram, "hand-tool").focus();
+    click(entry(diagram, "hand-tool"), 1);
+    expect(clicks).toEqual(["click:hand"]);
+    expect(document.activeElement).toBe(svg);
+    expect(focus).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves it on the control after Enter, and on a vetoed entry's click hands it over all the same", () => {
+    const { diagram, shell, svg, zoomIn } = mounted();
+    zoomIn.focus();
+    click(zoomIn, 0);
+    expect(document.activeElement).toBe(zoomIn);
+    const lasso = entry(diagram, "lasso-tool");
+    lasso.focus();
+    press(lasso, "Enter");
+    expect(clicks).toEqual(["click:lasso"]);
+    expect(document.activeElement).toBe(lasso);
+
+    shell.setReadOnly(true);
+    entry(diagram, "create.box").focus();
+    click(entry(diagram, "create.box"), 1);
+    expect(clicks).toEqual(["click:lasso"]);
+    expect(document.activeElement).toBe(svg);
+  });
+
+  it("stops once the connection is gone: the shell keeps no zoom target to focus", () => {
+    const { connection, zoomIn } = mounted();
+    connection.destroy();
+    zoomIn.focus();
+    click(zoomIn, 1);
+    expect(document.activeElement).toBe(zoomIn);
   });
 });

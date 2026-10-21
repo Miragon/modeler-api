@@ -331,8 +331,9 @@ modeler passes `problems.onActivate` (an embedding host with a list of its own).
 
 Every modeler runs the kit in its own Playwright suite against its real webview or page. It checks
 the geometry of every island (±1px), ARIA and the keyboard models, that every chrome key acts exactly
-once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that
-nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
+once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that a
+pointer click on the zoom panel or a palette tool hands the focus to the canvas while Enter and Space
+leave it on the button, that nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
 Enter on a creating palette entry adds one selected element, that an invalid file locks the canvas,
 and that `destroy()` leaves nothing behind. Five more cases cover the web column (`webChrome`,
 `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded hosts they assert that

@@ -49,3 +49,11 @@ export function hasVisibleFocus(element: Element): boolean {
     return true;
   }
 }
+
+/**
+ * A click from a mouse, pen or finger (`detail` ≥ 1). Enter and Space on a button, the palette's
+ * synthetic click and a desktop screen reader's activation have `detail` 0.
+ */
+export function isPointerClick(event: Event): boolean {
+  return (event as MouseEvent).detail > 0;
+}

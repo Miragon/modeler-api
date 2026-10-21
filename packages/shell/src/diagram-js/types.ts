@@ -41,6 +41,7 @@ export interface CanvasLike {
   zoom(): number;
   zoom(scale: number, center?: Point): number;
   resized(): void;
+  focus?(): void;
 }
 
 /** `zoomScroll` */

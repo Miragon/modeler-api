@@ -79,6 +79,8 @@ export interface Viewport extends ZoomTarget {
    * `undefined` while the container is 0 × 0 and after `destroy`.
    */
   freeRectCenter(): Point | undefined;
+  /** `canvas.focus()`: the canvas `<svg>` takes the keyboard focus. A no-op after `destroy`. */
+  focus(): void;
   /** True until the user zoomed or panned; a resize then refits. */
   isAutomatic(): boolean;
   /** For VS Code `setState`; `undefined` before the first import. */
@@ -198,6 +200,10 @@ export class DiagramViewport implements Viewport {
     if (this.destroyed) return;
     this.beforeUserChange();
     this.canvas.zoom(1);
+  }
+
+  focus(): void {
+    if (!this.destroyed) this.canvas.focus?.();
   }
 
   fit(options?: { animate?: boolean }): void {

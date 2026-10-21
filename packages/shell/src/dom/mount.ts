@@ -18,7 +18,7 @@ import {
   type ToastRequest,
   type ZoomTarget,
 } from "../core/index.js";
-import { boxRelativeTo, createElement } from "./element.js";
+import { boxRelativeTo, createElement, isPointerClick } from "./element.js";
 import { connectWebAppearance } from "./feedback/appearance.js";
 import { createProblemsPopover, type ProblemsPopover } from "./feedback/problems-popover.js";
 import { createToaster } from "./feedback/toasts.js";
@@ -215,6 +215,7 @@ function renderShell(
     groups: options.menu ?? {},
     shellEntries,
     isReadOnly: () => readOnly,
+    focusCanvas,
   });
   ledger.defer(() => menu.destroy());
   ledger.defer(tooltip.attach(menu.trigger, () => (menu.isOpen() ? null : { label: messages.menu })));
@@ -252,6 +253,20 @@ function renderShell(
   /** Where the focus goes when the island holding it hides. */
   function moveFocusOutOf(island: HTMLElement): void {
     if (island.contains(ownerDocument.activeElement)) focusCanvasOrTrigger();
+  }
+
+  let zoomTarget: ZoomTarget | null = null;
+
+  /**
+   * After a pointer click on chrome that acts on the canvas (guide §5.8): the renderers act on keys
+   * only while their canvas has the focus, so Delete or the arrows would otherwise go to the
+   * clicked button. Only the adapter's zoom target can focus the canvas; without it the focus stays
+   * where the click put it. True when the focus is on the canvas now.
+   */
+  function focusCanvas(): boolean {
+    if (ledger.isClosed || !zoomTarget?.focus) return false;
+    zoomTarget.focus();
+    return canvas.contains(ownerDocument.activeElement);
   }
 
   const status = createStatusBox(ownerDocument);
@@ -320,7 +335,7 @@ function renderShell(
       })
     : undefined;
   if (legal) ledger.defer(() => legal.destroy());
-  const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip });
+  const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip, focusCanvas });
   ledger.defer(() => zoomPanel.destroy());
   const toaster =
     host === "ide"
@@ -371,7 +386,8 @@ function renderShell(
       : undefined;
   if (dropZone) ledger.defer(() => dropZone.destroy());
 
-  let palette: { registration: PaletteRegistration; detachTooltip: () => void } | undefined;
+  let palette:
+    { registration: PaletteRegistration; detachTooltip: () => void; detachFocus: () => void } | undefined;
   let paletteRow: PaletteRow = "top";
   /** Web: the zoom panel stands above the legal line (`data-zoom-row="raised"`). */
   let zoomRaised = false;
@@ -547,9 +563,29 @@ function renderShell(
     applyReadOnly();
   }
 
+  /**
+   * A palette entry clicked or dragged with a pointer hands the focus to the canvas once
+   * diagram-js has run it: its click and dragstart delegates sit on the same element and were
+   * bound first. Enter and Space (the skin's synthetic click) leave it on the entry.
+   */
+  function handFocusBackFrom(element: HTMLElement): () => void {
+    const onActivation = (event: Event): void => {
+      if (event.type === "click" && !isPointerClick(event)) return;
+      const entry = (event.target as Element | null)?.closest?.(".entry");
+      if (entry && element.contains(entry)) focusCanvas();
+    };
+    element.addEventListener("click", onActivation);
+    element.addEventListener("dragstart", onActivation);
+    return () => {
+      element.removeEventListener("click", onActivation);
+      element.removeEventListener("dragstart", onActivation);
+    };
+  }
+
   function unregisterPalette(): void {
     if (!palette) return;
     palette.detachTooltip();
+    palette.detachFocus();
     resizeObserver?.unobserve(palette.registration.element);
     palette = undefined;
   }
@@ -631,7 +667,9 @@ function renderShell(
     primary: primaryHandle,
     appearance: appearanceHandle,
     setZoomTarget(target: ZoomTarget | null) {
-      if (!ledger.isClosed) zoomPanel.setTarget(target);
+      if (ledger.isClosed) return;
+      zoomTarget = target;
+      zoomPanel.setTarget(target);
     },
     fitInsets: currentFitInsets,
     registerPalette(registration) {
@@ -642,6 +680,7 @@ function renderShell(
         detachTooltip: tooltip.delegate(registration.element, ".entry", (entry) =>
           registration.entryTooltip(entry),
         ),
+        detachFocus: handFocusBackFrom(registration.element),
       };
       resizeObserver?.observe(registration.element);
       registration.setReadOnly(readOnlyState());

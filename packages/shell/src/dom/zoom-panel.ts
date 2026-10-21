@@ -10,7 +10,7 @@ import {
   type ShellMessages,
   type ZoomTarget,
 } from "../core/index.js";
-import { createElement, toggleAttribute } from "./element.js";
+import { createElement, isPointerClick, toggleAttribute } from "./element.js";
 import { iconElement, type ShellIconName } from "./icons.js";
 import type { TooltipController } from "./tooltip.js";
 
@@ -20,6 +20,8 @@ export interface ZoomPanelContext {
   lang: string;
   platform: Platform;
   tooltip: TooltipController;
+  /** After a pointer click on a button: hands the focus to the canvas (guide §5.8). */
+  focusCanvas(): void;
 }
 
 export interface ZoomPanel {
@@ -31,7 +33,7 @@ export interface ZoomPanel {
 }
 
 export function createZoomPanel(context: ZoomPanelContext): ZoomPanel {
-  const { ownerDocument, messages, lang, platform, tooltip } = context;
+  const { ownerDocument, messages, lang, platform, tooltip, focusCanvas } = context;
   let target: ZoomTarget | null = null;
   let unsubscribe: (() => void) | undefined;
   let frame: number | undefined;
@@ -51,7 +53,11 @@ export function createZoomPanel(context: ZoomPanelContext): ZoomPanel {
       "aria-keyshortcuts": ariaKeyShortcuts(key, platform),
     });
     if (options.icon) element.append(iconElement(options.icon));
-    element.addEventListener("click", () => run(key));
+    element.addEventListener("click", (event) => {
+      run(key);
+      // Enter and Space leave a keyboard user on the button, so the next press zooms again.
+      if (isPointerClick(event)) focusCanvas();
+    });
     detachers.push(
       tooltip.attach(element, {
         label: tooltipLabel,

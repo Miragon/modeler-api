@@ -184,6 +184,35 @@ export function pointer(target: EventTarget, type: string, init: PointerEventIni
   return event;
 }
 
+/** A click as a pointer gives it (`detail` 1) or as Enter, Space and `element.click()` do (`detail` 0). */
+export function click(target: EventTarget, detail: number): MouseEvent {
+  const event = new MouseEvent("click", { bubbles: true, cancelable: true, detail });
+  target.dispatchEvent(event);
+  return event;
+}
+
+/** A canvas slot as diagram-js fills it: `.djs-container` around a focusable `<svg>`. */
+export function canvasWithSvg(): { canvas: HTMLElement; svg: SVGSVGElement } {
+  const canvas = document.createElement("div");
+  const container = document.createElement("div");
+  container.className = "djs-container";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("tabindex", "0");
+  container.append(svg);
+  canvas.append(container);
+  return { canvas, svg };
+}
+
+/** A zoom target whose `focus` puts the focus on `svg`, as the adapter's `canvas.focus()` does. */
+export function focusingZoomTarget(svg: SVGElement, zoom = 1): FakeZoomTarget {
+  const target = fakeZoomTarget(zoom);
+  target.focus = () => {
+    target.calls.push("focus");
+    svg.focus();
+  };
+  return target;
+}
+
 export function chrome(root: HTMLElement, name: string): HTMLElement {
   const element = root.querySelector<HTMLElement>(`[data-chrome="${name}"]`);
   if (!element) throw new Error(`no [data-chrome="${name}"]`);

@@ -3,13 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mountShell } from "./mount.js";
 import {
   FakeResizeObserver,
+  canvasWithSvg,
   chrome,
   cleanup,
+  click,
   fakePalette,
   fakeZoomTarget,
+  focusingZoomTarget,
   installFakes,
   keydown,
   mount,
+  pointer,
   setContainerSize,
 } from "../../test/support/dom.js";
 
@@ -338,17 +342,6 @@ describe("mountShell: robustness", () => {
 });
 
 describe("mountShell: focus when an island hides (guide §5.14)", () => {
-  function canvasWithSvg(): { canvas: HTMLElement; svg: SVGSVGElement } {
-    const canvas = document.createElement("div");
-    const container = document.createElement("div");
-    container.className = "djs-container";
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("tabindex", "0");
-    container.append(svg);
-    canvas.append(container);
-    return { canvas, svg };
-  }
-
   it("moves the focus from Insert example to the canvas when the hint hides", () => {
     const { canvas, svg } = canvasWithSvg();
     const { shell, root } = mount({ canvas, emptyHint: { onInsertExample() {} } });
@@ -384,5 +377,62 @@ describe("mountShell: focus when an island hides (guide §5.14)", () => {
     shell.menu.trigger.focus();
     shell.setEmptyHint(false);
     expect(document.activeElement).toBe(shell.menu.trigger);
+  });
+});
+
+describe("mountShell: focus after a pointer click (guide §5.8)", () => {
+  function withPalette() {
+    const { canvas, svg } = canvasWithSvg();
+    const mounted = mount({ canvas, menu: fullOptions.menu });
+    const palette = fakePalette();
+    const lasso = palette.entry("lasso-tool", { label: "Lasso" });
+    const separator = document.createElement("hr");
+    separator.className = "separator";
+    palette.element.append(separator);
+    canvas.querySelector(".djs-container")?.prepend(palette.element);
+    const unregister = mounted.shell.registerPalette(palette);
+    mounted.shell.setZoomTarget(focusingZoomTarget(svg));
+    return { ...mounted, svg, palette, lasso, separator, unregister };
+  }
+
+  it("hands it to the canvas after a click or a drag on a palette entry, not after Enter or Space", () => {
+    const { svg, lasso } = withPalette();
+    lasso.focus();
+    click(lasso, 1);
+    expect(document.activeElement).toBe(svg);
+
+    lasso.focus();
+    click(lasso, 0);
+    expect(document.activeElement).toBe(lasso);
+
+    lasso.dispatchEvent(new Event("dragstart", { bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(svg);
+  });
+
+  it("leaves it alone for a click between the palette's entries, after unregister and after destroy", () => {
+    const first = withPalette();
+    first.lasso.focus();
+    click(first.separator, 1);
+    expect(document.activeElement).toBe(first.lasso);
+    first.unregister();
+    click(first.lasso, 1);
+    expect(document.activeElement).toBe(first.lasso);
+
+    const second = withPalette();
+    second.lasso.focus();
+    second.shell.destroy();
+    click(second.lasso, 1);
+    expect(document.activeElement).toBe(second.lasso);
+  });
+
+  it("closes the open menu and hands it to the canvas when the click goes to a zoom button", () => {
+    const { shell, root, svg } = withPalette();
+    shell.menu.open();
+    const zoomIn = chrome(root, "zoom").querySelector<HTMLButtonElement>('[data-zoom="in"]')!;
+    pointer(zoomIn, "pointerdown");
+    zoomIn.focus();
+    click(zoomIn, 1);
+    expect(shell.menu.isOpen()).toBe(false);
+    expect(document.activeElement).toBe(svg);
   });
 });

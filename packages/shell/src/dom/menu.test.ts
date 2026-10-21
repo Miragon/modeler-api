@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cleanup, installFakes, keydown, mount, pointer } from "../../test/support/dom.js";
-import type { MenuGroups } from "./types.js";
+import {
+  canvasWithSvg,
+  cleanup,
+  click,
+  fakeZoomTarget,
+  focusingZoomTarget,
+  installFakes,
+  keydown,
+  mount,
+  pointer,
+} from "../../test/support/dom.js";
+import type { MenuEntry, MenuGroups } from "./types.js";
 
 beforeEach(installFakes);
 afterEach(cleanup);
@@ -368,6 +378,74 @@ describe("menu: activation", () => {
     expect(disabled).toEqual([true, true, true, false, false, false, false]);
     shell.setReadOnly(false);
     expect(items(shell.menu.dropdown).some((item) => item.hasAttribute("aria-disabled"))).toBe(false);
+  });
+});
+
+describe("menu: focus after a pointer click (guide §5.8)", () => {
+  function setup(zoomTarget: "focusing" | "plain" | "none" = "focusing") {
+    const seen: string[] = [];
+    const { canvas, svg } = canvasWithSvg();
+    const record = (id: string) => (): void => {
+      const active = document.activeElement;
+      seen.push(`${id}:${active === svg ? "canvas" : active === shell.menu.trigger ? "trigger" : "other"}`);
+    };
+    const action = (id: string): MenuEntry => ({ kind: "action", id, label: id, onSelect: record(id) });
+    const { shell } = mount({
+      host: "web",
+      canvas,
+      file: {
+        newDiagram: { onSelect: record("new-diagram") },
+        open: { onSelect: record("open"), dialog: true },
+      },
+      menu: {
+        model: [action("tidy")],
+        export: [action("png")],
+        help: [
+          { kind: "dialog", id: "shortcuts", label: "Keyboard shortcuts…", onSelect: record("shortcuts") },
+        ],
+      },
+    });
+    if (zoomTarget === "focusing") shell.setZoomTarget(focusingZoomTarget(svg));
+    if (zoomTarget === "plain") shell.setZoomTarget(fakeZoomTarget());
+    const activate = (id: string, detail: number) => {
+      shell.menu.open();
+      const item = shell.menu.dropdown.querySelector<HTMLElement>(`[data-menu-id="${id}"]`);
+      if (!item) throw new Error(id);
+      item.focus();
+      click(item, detail);
+      expect(shell.menu.isOpen()).toBe(false);
+    };
+    return { seen, activate };
+  }
+
+  it("hands the focus to the canvas before a File or Model action runs", () => {
+    const { seen, activate } = setup();
+    activate("new-diagram", 1);
+    activate("tidy", 1);
+    expect(seen).toEqual(["new-diagram:canvas", "tidy:canvas"]);
+  });
+
+  it("returns the focus to the trigger after Enter or Space on them", () => {
+    const { seen, activate } = setup();
+    activate("new-diagram", 0);
+    activate("tidy", 0);
+    expect(seen).toEqual(["new-diagram:trigger", "tidy:trigger"]);
+  });
+
+  it("returns it to the trigger for Export and for the openers of a dialog, whatever the click", () => {
+    const { seen, activate } = setup();
+    activate("png", 1);
+    activate("open", 1);
+    activate("shortcuts", 1);
+    expect(seen).toEqual(["png:trigger", "open:trigger", "shortcuts:trigger"]);
+  });
+
+  it("falls back to the trigger while nothing can focus the canvas", () => {
+    for (const target of ["plain", "none"] as const) {
+      const { seen, activate } = setup(target);
+      activate("tidy", 1);
+      expect(seen).toEqual(["tidy:trigger"]);
+    }
   });
 });
 

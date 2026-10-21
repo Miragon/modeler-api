@@ -28,6 +28,7 @@ function menuWith(shellEntries: Partial<Record<MenuGroupName, readonly MenuEntry
     groups: { model: [action("level")], export: [action("png")], help: [action("shortcuts")] },
     shellEntries: (group) => shellEntries[group] ?? [],
     isReadOnly: () => true,
+    focusCanvas: () => false,
   });
 }
 

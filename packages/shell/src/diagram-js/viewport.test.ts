@@ -606,6 +606,24 @@ describe("freeRectCenter", () => {
   });
 });
 
+describe("focus", () => {
+  it("hands the focus to the canvas through canvas.focus(), until destroy", () => {
+    const { viewport, canvas } = setup();
+    const focus = vi.fn();
+    Object.assign(canvas, { focus });
+    viewport.focus();
+    expect(focus).toHaveBeenCalledTimes(1);
+    viewport.destroy();
+    viewport.focus();
+    expect(focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("is a no-op on a canvas without focus()", () => {
+    const { viewport } = setup();
+    expect(() => viewport.focus()).not.toThrow();
+  });
+});
+
 describe("user moves", () => {
   it("recognises the own change in a delayed changed event (deferUpdate)", () => {
     const { viewport, canvas } = setup({ deferUpdate: true });

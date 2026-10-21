@@ -108,6 +108,18 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("focusHandBack fails when a pointer click leaves the focus on the chrome", async ({ page }) => {
+      // shell 0.2.1: the clicked button keeps the focus, so Delete and the arrows do nothing
+      const harness = sabotaged(() => {
+        window.__demo!.connection.viewport.focus = () => {};
+      });
+      await expectOnlyCaseFails(page, harness, "focusHandBack", [
+        /focus: after a click on zoom in the focus is on button\.cd-shell-target, expected the canvas <svg>/,
+        /focus: after a click on fit the focus is on button\.cd-shell-target, expected the canvas <svg>/,
+        /focus: after a click on palette tool "lasso-tool" the focus is on div\.entry\S*, expected the canvas <svg>/,
+      ]);
+    });
+
     test("readOnly fails when the lock leaves the canvas editable", async ({ page }) => {
       const harness = sabotaged(() => {
         window.__demo!.flaws.canvasUnlocked = true;
@@ -347,6 +359,25 @@ test.describe("saboteurs", () => {
     );
     expect(failure).toMatch(/menu: the Legend toggle is aria-disabled on the read-only canvas/);
     expect(failure).toMatch(/menu: "Export as PNG" is aria-disabled on the read-only canvas/);
+  });
+
+  test("focusHandBack fails when Enter or Space on zoom in moves the focus to the canvas", async ({
+    page,
+  }) => {
+    const harness = sabotaged(() => {
+      document
+        .querySelector('[data-chrome="zoom"] [data-zoom="in"]')
+        ?.addEventListener("click", () => window.__demo!.connection.viewport.focus());
+    });
+    const failure = await runCase("focusHandBack", page, harness).then(
+      () => "passed",
+      (error: unknown) => String(error),
+    );
+    expect(failure).toMatch(
+      /focus: after Enter on zoom in the focus is on svg, expected it to stay on zoom in, so the next press acts again/,
+    );
+    expect(failure).toMatch(/focus: after Space on zoom in the focus is on svg/);
+    expect(failure).not.toMatch(/after a click/);
   });
 
   test("geometry and aria fail for an island the harness declares absent", async ({ page }) => {

@@ -10,7 +10,7 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
 [Usage: Event Storming in the web app](#usage-event-storming-in-the-web-app)).
 
 - **Look and behaviour** come from the Miragon design system, guide `modeler-design-system.md`
-  (skill `miragon-brand:modeler-tool-design`, design system 1.13.0), §2, §5.1 to §5.15, §6, §7, §8,
+  (skill `miragon-brand:modeler-tool-design`, design system 1.13.1), §2, §5.1 to §5.15, §6, §7, §8,
   §9, §11, §12 and §13.3 to §13.5. Section numbers below (§x.y) refer to it.
 - **Mechanics** (diagram-js services, VS Code quirks) are in
   [`docs/shell/implementation-notes.md`](../../docs/shell/implementation-notes.md).
@@ -124,6 +124,7 @@ interface ZoomTarget {
   fit(): void; // explicit fit: animated unless reduced motion; view becomes automatic
   canFit(): boolean; // false while the content bounds are empty
   onChange(listener: () => void): () => void; // every viewbox change and canFit change; unsubscribe
+  focus?(): void; // 0.2.2: the canvas takes the keyboard focus (diagram-js canvas.focus())
 }
 
 // JSON-serializable, for VS Code setState
@@ -619,9 +620,10 @@ interface MenuRadioOption {
   from `MenuGroups`. With a legend (and `legend.menuEntry !== false`) the shell appends the checkbox
   "Legend" to the Model group.
 - `action` and `dialog`: the menu closes, focus returns to the trigger, then `onSelect` runs (a host
-  dialog then hands focus back to a visible control). `dialog` adds `aria-haspopup="dialog"`; its
-  label ends with "…" (U+2026), and in 0.2 the modeler renders the dialog itself (see
-  [Modeler dialogs](#modeler-dialogs)).
+  dialog then hands focus back to a visible control). After a pointer click on an `action` of the
+  File or Model group the focus goes to the canvas instead (0.2.2, §5.8), since those change what
+  the canvas shows. `dialog` adds `aria-haspopup="dialog"`; its label ends with "…" (U+2026), and in
+  0.2 the modeler renders the dialog itself (see [Modeler dialogs](#modeler-dialogs)).
 - `checkbox` and `radio` toggle and keep the menu open. State is read through `checked()`, `value()`
   and `disabled()` whenever the menu opens and on `menu.refresh()`.
 - Icons only from the common set and only where the guide gives one; the icon column stays 16px wide
@@ -778,11 +780,22 @@ interface StatusMessage {
   never is (§5.8), its click does nothing then. Buttons and keys never call `stepZoom` past a limit
   (zoom out at or below 20 % never zooms in), never `zoomToActual` at exactly 100 % and never `fit`
   while `canFit()` is false.
+- Focus after a pointer click (0.2.2, guide §5.8 since design system 1.13.1): a click with mouse,
+  pen or finger (`detail` ≥ 1) on a zoom button (also one at its limit), on a palette entry (also a
+  `dragstart` from it, also a vetoed one) or on an `action` entry of the File or Model group hands
+  the focus to the canvas through the zoom target's `focus()`, so the canvas's keys (Delete, the
+  arrows, undo) act at once. Enter and Space (`detail` 0, the palette's synthetic click included)
+  leave the focus on the control. Export and Help actions, `dialog` entries, the menu trigger, the
+  pill and the primary action keep their focus handling. A zoom target without `focus` (a host
+  without the diagram-js adapter) leaves the focus where the click put it; a menu action then
+  returns it to the trigger.
 - `fitInsets()` is `fitInsets(layout)` of `./core` for what is open and measured right now (palette
   row, pill, legend width, side inspector or measured sheet top).
 - `registerPalette` is the adapter's API (`connectDiagramJs` calls it, possibly from inside
   diagram-js's `palette.create`, before any entry exists); a later registration replaces the
   earlier one, and the returned unregister function is safe to call twice and after `destroy()`.
+  The shell listens for `click` and `dragstart` on the palette element after diagram-js's own
+  delegates, so a pointer activation of an entry runs first and then hands the focus to the canvas.
 - `setProblems`: the pill shows for `count > 0` with `Intl` numbers in `lang` and the icon by severity;
   its tooltip "Show in Problems view" exists only in the `ide` host (`aria-describedby`, since it
   says more than the label). A click calls `onActivate` in the `ide` host and in an `embedded` host
@@ -1610,6 +1623,7 @@ interface CanvasLike {
   zoom(): number;
   zoom(scale: number, center?: Point): number;
   resized(): void;
+  focus?(): void; // 0.2.2: diagram-js 15
 }
 interface ZoomScrollLike {
   stepZoom(delta: number, position?: Point): void;
@@ -1649,6 +1663,7 @@ interface ViewportOptions {
 interface Viewport extends ZoomTarget {
   fit(options?: { animate?: boolean }): void;
   freeRectCenter(): Point | undefined; // diagram coordinates; undefined at 0 × 0 and after destroy
+  focus(): void; // 0.2.2: canvas.focus(); a no-op after destroy
   afterImport(): void;
   newDocument(): void; // 0.2, web app: the next afterImport() counts as the first again
   restore(viewbox: Bounds): void;
@@ -2205,6 +2220,13 @@ hosts it applies to it asserts that nothing of it shows and passes.
 | `toasts`                | through `show.toast`: a `role="status"` and a `role="alert"` live region in the root before the first toast, the toast's text arriving in the one of its status, no live role on the card; Close named "Close", at most three (the fourth evicts the oldest without action), the newest at the bottom, a repeated text not stacked, closing after `toastLifetime` (with a margin) unless hovered or focused, a toast with an action never; web: shown again in the top layer after a `showModal()` stand-in opened (everything outside a modal is inert, so the kit checks the stacking, not a click); IDE: no hook and no toast element ever |
 | `problemsList`          | web (embedded when the pill opens it): after `show.problems`, a click on the pill opens `role="dialog"` titled "Problems" with the rows, Escape returns the focus to the pill, an outside click closes without moving it; Enter on the pill and then ↓ to the last row, Home and End reach every row, text rows included, each scrolled into the list (WCAG 2.1.1); a row with an element closes it and focuses the canvas (skipped with `hook: "problems"` when no item has an `elementId`, unless `absent` lists `"problemSelection"`); geometry left 12, 8px above the pill, at most 320 wide and high                                     |
 | `dropZone`              | web with `harness.drop`: synthetic file drags (a `DataTransfer` built in the page) show `data-drop="over"` with the §9 colours and the 12px inset; two files (unless `drop.multiple`) and a modal stand-in show `forbidden`; a drag without files changes nothing; dropping `accepted` on the start screen opens it, `rejected` opens nothing and shows a danger toast; skips with `hook: "drop"` without the fixtures unless `absent` lists `"drop"`                                                                                                                                                                                         |
+
+**0.2.2, the focus hand-back.** One case joins after `keys` (`createBaseCases`) and runs in every
+host:
+
+| Case            | Checks                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `focusHandBack` | §5.8: each zoom control (zoom in, zoom out, the readout, Fit) focused by script, then clicked with the pointer, and a palette tool (`lasso-tool`, else the first enabled tool, Escape afterwards) clicked: the focus is on the canvas `<svg>` (`.djs-container > svg`) or inside it; Enter and then Space on the focused zoom in: the focus stays on the button. Every visible zoom control is required |
 
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in

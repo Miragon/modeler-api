@@ -42,11 +42,12 @@ function register(
 }
 
 describe("shellConformanceCases", () => {
-  it("are the 0.1 cases, then the web column's after cleanup", () => {
+  it("are the cases of every host, then the web column's after cleanup", () => {
     expect(shellConformanceCases().map((conformanceCase) => conformanceCase.name)).toEqual([
       "geometry",
       "aria",
       "keys",
+      "focusHandBack",
       "create",
       "readOnly",
       "appearance",
@@ -74,6 +75,7 @@ describe("registerShellConformance", () => {
       "shell conformance: geometry",
       "shell conformance: aria",
       "shell conformance: keys",
+      "shell conformance: focusHandBack",
       "shell conformance: create",
       "shell conformance: readOnly",
       "shell conformance: appearance",

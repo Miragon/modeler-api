@@ -96,6 +96,12 @@ export interface ZoomTarget {
    * several times per frame. Returns the unsubscribe function.
    */
   onChange(listener: () => void): () => void;
+  /**
+   * Hands the keyboard focus to the canvas (diagram-js `canvas.focus()`), which the shell calls
+   * after a pointer click on chrome that acts on the canvas (guide §5.8). Without it the focus stays
+   * on the clicked control.
+   */
+  focus?(): void;
 }
 
 /** The persisted view (VS Code `setState`): JSON-serializable. */

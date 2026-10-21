@@ -9,6 +9,7 @@ import {
   createProblems,
   expectedAppearance,
   expectedKeyShortcuts,
+  focusHandBackProblems,
   harnessHookProblems,
   isToolEntry,
   keyReachProblem,
@@ -939,6 +940,42 @@ function created(overrides: Partial<CreateFacts> = {}): CreateFacts {
     ...overrides,
   };
 }
+
+describe("focusHandBackProblems", () => {
+  const onCanvas = { focused: "svg", canvas: true, control: false };
+  const onControl = { focused: "button.cd-shell-target", canvas: false, control: true };
+
+  it("accepts the canvas after a pointer click and the control after Enter or Space", () => {
+    expect(
+      focusHandBackProblems([
+        { control: "zoom in", by: "pointer", focus: onCanvas },
+        { control: 'palette tool "lasso-tool"', by: "pointer", focus: onCanvas },
+        { control: "zoom in", by: "Enter", focus: onControl },
+        { control: "zoom in", by: "Space", focus: onControl },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reports a click that leaves the focus off the canvas, and a key that moves it", () => {
+    expect(
+      focusHandBackProblems([
+        { control: "fit", by: "pointer", focus: onControl },
+        {
+          control: 'palette tool "lasso-tool"',
+          by: "pointer",
+          focus: { ...onControl, focused: "div.entry", control: false },
+        },
+        { control: "zoom in", by: "Enter", focus: onCanvas },
+        { control: "zoom in", by: "Space", focus: { focused: "<body>", canvas: false, control: false } },
+      ]),
+    ).toEqual([
+      "focus: after a click on fit the focus is on button.cd-shell-target, expected the canvas <svg>, so its keys act at once (guide §5.8)",
+      'focus: after a click on palette tool "lasso-tool" the focus is on div.entry, expected the canvas <svg>, so its keys act at once (guide §5.8)',
+      "focus: after Enter on zoom in the focus is on svg, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
+      "focus: after Space on zoom in the focus is on <body>, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
+    ]);
+  });
+});
 
 describe("createProblems", () => {
   it("accepts one selected element centred in the free rectangle, the canvas focused", () => {

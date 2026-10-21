@@ -4,6 +4,7 @@ import {
   ariaProbe,
   appearanceProbe,
   canvasStateProbe,
+  focusPlaceProbe,
   menuEntriesProbe,
   menuProbe,
   paletteColorProbe,
@@ -463,6 +464,24 @@ describe("probes in a page", () => {
       },
       { name: "Foreign", role: "menuitem", menuId: null, disabled: false, group: null, ...rest },
     ]);
+  });
+
+  it("tells whether the focus is on the canvas <svg> or on the control the kit activated", async () => {
+    const root = buildShell();
+    const zoomIn = '[data-chrome="zoom"] [data-zoom="in"]';
+    const at = () => inPage(page, focusPlaceProbe, { root: ".cd-shell", selector: zoomIn });
+    root.querySelector<HTMLElement>('[data-zoom="in"]')!.focus();
+    await expect(at()).resolves.toEqual({ focused: "button", canvas: false, control: true });
+    root.querySelector<SVGElement>(".djs-container > svg")!.focus();
+    await expect(at()).resolves.toEqual({ focused: "svg", canvas: true, control: false });
+    root.querySelector<HTMLElement>('[data-action="lasso-tool"]')!.focus();
+    await expect(at()).resolves.toEqual({
+      focused: "div.entry",
+      canvas: false,
+      control: false,
+    });
+    (document.activeElement as HTMLElement).blur();
+    await expect(at()).resolves.toEqual({ focused: "<body>", canvas: false, control: false });
   });
 });
 
