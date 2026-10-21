@@ -31,15 +31,15 @@ modeler's build — not a downstream integration review.
 import type { CollaborativeModeler } from "@miragon/modeler-api";
 ```
 
-| Law | Requirement                                                                                                                                                                                                               |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| L1  | `importText` is **silent**: no change events, undo history erased without emitting — also over existing history and foreign content; an interaction open during an import (a label editor with typed input) never commits |
-| L2  | `exportText` is **canonical**: deterministic, a byte fixpoint on canonical input, idempotent otherwise                                                                                                                    |
-| L3  | `onContentChanged` fires for **every** user-visible change — element commands, config/axis/title edits, undo/redo — and nothing else; inside a listener `exportText()` already returns the new document                   |
-| L4  | undo directly after an import is a defined **no-op** — never a stale-history mutation                                                                                                                                     |
-| L5  | view state survives a re-import; an import leaves the view **fitted** to the content; the readback may be a normalised form of what was set                                                                               |
-| L6  | `exportText` is total after a successful import; foreign content is **preserved** through import → export, never dropped, never a throw                                                                                   |
-| L7  | EVERY rejected import leaves no trace — previous document still rendered and exported, no events, undo history untouched — and the modeler **stays usable**                                                               |
+| Law | Requirement                                                                                                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1  | `importText` is **silent**: no change events, undo history erased without emitting — also over existing history and foreign content; an interaction open during an import (a label editor with typed input) never commits       |
+| L2  | `exportText` is **canonical**: deterministic, a byte fixpoint on canonical input, idempotent otherwise                                                                                                                          |
+| L3  | `onContentChanged` fires for **every** user-visible change — element commands, config/axis/title edits, undo/redo — and nothing else; inside a listener `exportText()` already returns the new document                         |
+| L4  | undo directly after an import is a defined **no-op** — never a stale-history mutation                                                                                                                                           |
+| L5  | view state survives a re-import; an import leaves the view **fitted** to the content; the readback may be a normalised form of what was set; a host's view change (`setViewState`, a fit) never **commits** an open interaction |
+| L6  | `exportText` is total after a successful import; foreign content is **preserved** through import → export, never dropped, never a throw                                                                                         |
+| L7  | EVERY rejected import leaves no trace — previous document still rendered and exported, no events, undo history untouched — and the modeler **stays usable**                                                                     |
 
 View state is never part of the document: `setViewState` fires no change
 events and `exportText` is independent of it.
@@ -71,12 +71,73 @@ per-instance counter such as `event_1`. An id derived from the content (OWM's
 `component_<slug>`) collides only when both users create the same content,
 which the merge has to reconcile anyway.
 
+Optional `elements.bounds(id)` (1.2) gives the element's box in DIAGRAM
+coordinates (`{ x, y, width, height }`, the canvas's own space, which zoom and
+scroll leave alone), or `undefined` for an id `list()` does not report. Hosts
+feature-detect it (`typeof modeler.elements?.bounds === "function"`) for
+presence outlines and todo markers instead of reaching into the engine. It
+reads the live canvas: an element created, moved, resized or renamed in the
+session has its current box at once, not the one of the last import. The box
+is the element's own shape (a connection: the box around its waypoints),
+without an external label.
+
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
 event, nothing in the imported document or on its undo history, nothing
 applied to an element the import removed. RECOMMENDED: keep the typed input
 and reopen the interaction on the element with the same id when it is still
 there — hosts re-import remote states while the user is typing.
+
+A view change the HOST makes — `setViewState`, or a fit its chrome applies to
+the canvas — never commits an interaction in progress either (L5, since 1.2):
+no change event, the export unchanged. Hosts restore the viewport after every
+remote re-import and refit when their chrome changes; a modeler that completes
+its label editor on every viewbox change (diagram-js's direct-editing pattern,
+which every renderer built against contract 1.1 follows) writes the half-typed
+label into the shared document for every peer. RECOMMENDED: the interaction
+stays open with its typed input, so the user's commit afterwards writes what it
+would have written without the view change.
+
+## Factory options
+
+`CollaborativeModelerOptions` (1.2) names the options a host has to feed a
+renderer's contract factory (`createCollaborativeModeler`,
+`createCollaborativeViewer`), the same for every notation, so a host can pass
+every notation one object. The contract defines them; each renderer adopts
+them in its own release, next to its own options (diagram-js
+`additionalModules`). Adopting them is part of moving a renderer to contract
+1.2: `meta.apiVersion` follows the `@miragon/modeler-api` version the renderer
+pins, and no kit case checks the options (the harness's `create()` builds the
+instance), so a renderer that reports 1.2.0 without them silently ignores a
+host's aligned options.
+
+| Option         | Meaning                                                                                                                                                                                                                                                           | Default             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `freeArea`     | the part of the canvas no host chrome covers — `{ insets }` (px from the container's edges, e.g. `shell.fitInsets()`) or `{ center }` (diagram coordinates, e.g. `viewport.freeRectCenter()`), each a function, never both; keyboard creation lands in its centre | the whole container |
+| `fitOnImport`  | fit the content after every import (the fitted view of L5); `false` when the host's chrome fits it itself                                                                                                                                                         | `true`              |
+| `undoRedoKeys` | bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history; `false` when the host owns the document's history (VS Code)                                                                                                                               | `true`              |
+
+```ts
+import type { CollaborativeModelerOptions } from "@miragon/modeler-api";
+
+const options: CollaborativeModelerOptions = {
+  freeArea: { insets: () => shell.fitInsets() }, // or { center: () => viewport.freeRectCenter() }
+  fitOnImport: false, // the shell's viewport fits after every import
+  undoRedoKeys: false, // VS Code owns the history
+};
+```
+
+Until a renderer ships the aligned names, a host keeps passing that
+renderer's own names, or passes both: a renderer that accepts the aligned
+names takes them over its own. Its own names then stay accepted as DEPRECATED
+aliases for one minor release of that renderer, then go: `freeRectInsets`
+(Wardley, Event Storming, Context Maps) is `freeArea: { insets }`,
+`freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
+Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. A renderer given only
+`center` that needs the rectangle itself (a pan constraint) treats the whole
+container as free. A viewer factory takes the same type and ignores
+`undoRedoKeys`. The kit's `create()` keeps `fitOnImport` at its default: L5
+checks the modeler's own fit.
 
 ## The conformance kit
 
@@ -98,9 +159,11 @@ registerConformance(
     configMutations: [{ name: "axis labels", run: (m) => renameEvolutionAxis(m) }], // [] if the notation has none
     undo: (m) => triggerUndo(m),
     redo: (m) => triggerRedo(m),
+    moveElement: (m) => dragFirstElement(m), // optional: move one element by its own commands, return its id
     probeTexts: [CUT_OFF_SAMPLE], // optional: damaged forms your parser meets, on top of the derived probes
     openInteraction: (m) => typeIntoLabelEditor(m, "typed, not committed"), // open an editor, type, do NOT commit
     interactionState: (m) => readOpenLabelEditor(m), // { elementId, text } | undefined
+    commitInteraction: (m) => pressEnterInLabelEditor(m), // optional: commit what openInteraction typed
     // engines that debounce change delivery: make this outlast the debounce
     settle: () => new Promise((r) => setTimeout(r, 50)),
   },
@@ -126,7 +189,12 @@ to route it) instead of passing. An explicit `[]` (`invalidTexts`,
 `foreignTexts`, `configMutations`, `looseTexts`) is a statement that the
 notation has no such form and skips nothing. Without `openInteraction` the
 L1 interaction case reports a skip; with `openInteraction` but without
-`interactionState` only its keep-and-reopen half does.
+`interactionState` only its keep-and-reopen half does. A modeler without
+`elements.bounds` skips the bounds case; with it, a harness without
+`moveElement` skips only its move half, one without `viewState` only its
+diagram-coordinates half. Without `openInteraction` or `viewState` the L5
+interaction case reports a skip; without `commitInteraction` only its commit
+halves do.
 
 **Every rejection is probed.** `invalidTexts` lists what MUST reject; the kit
 does not take `[]` on trust. The L7 probe case derives damaged forms from
@@ -155,25 +223,43 @@ requires no change event, the imported document as the export and an undo
 that changes nothing (L1, L4). `interactionState` lets it check the
 recommended keep-and-reopen on the same-document import.
 
+**Interactions open during a host's view change.** On a fresh import of
+`canonicalTexts[0]` the kit opens the interaction, commits it with
+`commitInteraction` and requires the export to change and to contain the typed
+input (`interactionState().text`) — proof the case can see a commit. It then
+re-imports, opens the interaction again and calls `setViewState(viewState)`:
+no change event, the export unchanged (L5), and the view really changed. The
+RECOMMENDED keep-open is an advisory: `interactionState` must still report the
+same element and input, and `commitInteraction` must then write the same
+document as without the view change — so `openInteraction` types the same
+input on every call.
+
 **Recommendations are advisories.** Where the contract only RECOMMENDS
-(collision-free ids across peers, keep-and-reopen of an open interaction), the
-kit reports what it finds as an ADVISORY through `onAdvisory`
-(`console.warn` by default) and never fails: a recommendation becomes a law,
-with a failing case, only in a major release. The collision check imports the
-same canonical text into two fresh instances, runs `mutate` once on each and
-advises when both allocate the same id — unless both new elements carry the
-same name and the id spells it out (its letters and digits contain the
-name's, as `component_new_component` does for "New Component"). Such an id is
-derived from the content and collides for identical content by design, so
-the check reports a skip instead: let `mutate`'s elements differ in content
-(a counter the harness shares across instances, as the reference harness
-does).
+(collision-free ids across peers, keep-and-reopen of an open interaction across
+an import, keep-open across a host's view change), the kit reports what it
+finds as an ADVISORY through `onAdvisory` (`console.warn` by default) and never
+fails: a recommendation becomes a law, with a failing case, only in a major
+release. The collision check imports the same canonical text into two fresh
+instances, runs `mutate` once on each and advises when both allocate the same
+id — unless both new elements carry the same name and the id spells it out
+(its letters and digits contain the name's, as `component_new_component` does
+for "New Component"). Such an id is derived from the content and collides for
+identical content by design, so the check reports a skip instead: let
+`mutate`'s elements differ in content (a counter the harness shares across
+instances, as the reference harness does).
 
 **View state is compared by readback.** The kit never compares
 `getViewState()` with your `viewState` literal: it sets it, reads the
 modeler's own (possibly normalised) state back, and requires that readback
 to survive a re-import — a diagram-js viewbox that comes back rounded with
 `scale`/`inner`/`outer` is fine.
+
+**Element boxes are verified live.** With `elements.bounds` present, every
+listed id must give a finite box with a non-negative size and an unknown id
+`undefined` — after an import, after `mutate` (the new element has its box at
+once) and after `moveElement` (the moved element's box changed position).
+`setViewState(viewState)` must leave every box as it was: they are diagram
+coordinates. A viewer that exposes `bounds` is held to the same listing rules.
 
 **Element identity is verified through names.** After an unrelated edit, and
 after an export → import into the same instance, a fresh instance and the
@@ -197,6 +283,16 @@ rewrites the constant on every release (`extra-files`) and a test pins it to
 `package.json` exactly. Modelers pin the package and put the constant into
 `meta.apiVersion`; hosts match on the major (`apiVersionsCompatible`).
 Releases are tagged `modeler-api-vX.Y.Z`.
+
+Hosts bind from the package root, which carries no kit code (since 1.2;
+`@miragon/modeler-api/conformance` re-exports `apiVersionsCompatible`, so 1.1
+imports keep working):
+
+```ts
+import { apiVersionsCompatible, MODELER_API_VERSION } from "@miragon/modeler-api";
+
+if (!apiVersionsCompatible(modeler.meta.apiVersion, MODELER_API_VERSION)) refuseToMount(modeler);
+```
 
 The contract is first published as 1.0.0, never 0.x: under 0.x,
 `apiVersionsCompatible` matches on the minor too, which would turn every
@@ -226,6 +322,10 @@ Recommendations today, proposed as hard laws for the next major:
   during an import is reopened, with its typed input, on the element with the
   same id when that element is still there (today: L1 RECOMMENDED, advisory in
   the L1 interaction case).
+- **Keep an interaction open across a host's view change** — after
+  `setViewState` (or a host's fit) the interaction is still open with its typed
+  input, and the user's commit writes what it would have written without the
+  view change (today: L5 RECOMMENDED, advisory in the L5 interaction case).
 
 ## License
 

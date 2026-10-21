@@ -104,6 +104,15 @@ at `viewport.freeRectCenter()` (see [Palette](#palette)), the canvas lock of a r
 on the canvas (see [VS Code: key interception](#vs-code-key-interception)) and, until the shell has
 a dialog component, the "Keyboard shortcuts…" dialog itself (see [Modeler dialogs](#modeler-dialogs)).
 
+The host hands the shell's side to the renderer through factory options. The
+[`@miragon/modeler-api`](../../packages/api/README.md#factory-options) contract names them since 1.2,
+the same for every notation: `freeArea: { insets: () => shell.fitInsets() }` or
+`freeArea: { center: () => viewport.freeRectCenter() }`, `fitOnImport: false` when the viewport fits
+after every import, and `undoRedoKeys: false` in the IDE host. Each renderer adopts them in its own
+release; until it does, the host passes the renderer's own names (`freeRectInsets`, `freeRectCenter`,
+Wardley's `keyboard: { undoRedo }`), or both. After that the renderer's own names stay deprecated
+aliases for one minor release of that renderer.
+
 The shell talks to diagram-js only through public services and events (`canvas`, `zoomScroll`,
 `keyboard`, `palette`, `eventBus`). It never reads private fields such as `palette._container`, which
 hosts still do today (Miragon/design-iq#136): the palette's container comes with the `palette.create`
@@ -307,9 +316,11 @@ tab order.
   of the container minus the fit insets, in diagram coordinates, as fit computes it), creates the
   shape there with `modeling.createShape`, selects it, calls `canvas.focus()` and opens its label
   editor. The provider is built before `connectDiagramJs`, so it receives a function and reads the
-  viewport when the entry fires. The 24px step is the provider's; a shared placement helper is a
-  later candidate. Shell conformance (`create`) presses Enter on the first creating entry and expects
-  exactly one new, selected shape whose centre lies in the free rectangle.
+  viewport when the entry fires (the factory option `freeArea`, see
+  [What a modeler hands to the shell](#what-a-modeler-hands-to-the-shell)). The 24px step is the
+  provider's; a shared placement helper is a later candidate. Shell conformance (`create`) presses
+  Enter on the first creating entry and expects exactly one new, selected shape whose centre lies in
+  the free rectangle.
 - **Read-only** (guide §13.5). Only Lasso and Hand stay active; every other entry changes the diagram
   and is vetoed, also tools of group `tools` such as draw, space or connect. `palette.trigger`
   carries the entry definition without its id, so the veto finds the entry element through the
@@ -672,6 +683,33 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
   `.removed`, `connection.added` and `.removed`, `diagram.clear`, `import.done`, the viewport's own
   `afterImport`, `restore`, `setState`): a modeler's bounds may be costly (Event Storming's
   `exportMap()` validates the whole board).
+
+### Fit and an open label editor
+
+**Contract L5 ([`@miragon/modeler-api`](../../packages/api/README.md) 1.2).** Rule: a view change the
+host makes never commits an open label editor or popup input; it should stay open with the typed
+text.
+
+- Every viewbox the shell writes without a gesture on the canvas is such a view change: the first
+  fit, the refit on resize (opening the inspector, a side bar or a bottom panel), `restore` after a
+  re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell
+  never commits or cancels an editor itself.
+- A renderer that completes direct editing on `canvas.viewbox.changing` (the pattern of bpmn-js's
+  `LabelEditingProvider`) commits half-typed input on each of them. All five published renderers do
+  so today: Wardley 0.8.0 (labels and links), Team Topologies 0.11.2, Event Storming 0.3.0, Context
+  Maps 0.3.0 and Value Chain 0.5.0. Their `setViewState` calls `canvas.viewbox()`, so a host's
+  restore after a peer's re-import writes the half-typed label into the shared document, and each
+  fails the kit's L5 interaction case.
+- The fix is the same in every renderer. diagram-js cannot tell a host's `canvas.viewbox(box)` from a
+  wheel zoom, so the renderer keeps the editor open across every viewbox change and places it again
+  on `canvas.viewbox.changed` (its geometry is the element's box through the new viewbox); it commits
+  on the user's own gestures only (Enter, blur, `element.mousedown`, `drag.init`).
+- A renderer moves to contract 1.2 with that fix, `elements.bounds` and the harness hooks
+  `commitInteraction` and `moveElement` in the same release. Without them the bounds case and the
+  commit halves of the L5 interaction case report skips, which fail a kit run whose `onSkip` throws.
+- The contract kit's L5 interaction case opens the editor, calls `setViewState` and expects no change
+  event and an unchanged export; the shell's fit and resize go through `canvas.viewbox`, so a later
+  shell conformance check can drive the same case through them.
 
 ## Legend state
 
@@ -1162,9 +1200,10 @@ selection; in text fields the field's own undo applies.
   where VS Code's webview host forwards them and VS Code undoes the document edit.
 - A modeler's own DOM binding must go in the webview as well. Event Storming's document keyboard
   calls `preventDefault()` and `commandStack.undo()` on Cmd+Z (also with an empty stack) unless the
-  webview creates it with `undoRedoKeys: false`. With the binding on, the shell stops the key as one
-  the canvas handled, VS Code never undoes, and since Event Storming clears its stack on every
-  import, Cmd+Z on the canvas does nothing at all after an external edit.
+  webview creates it with `undoRedoKeys: false` (also the contract's aligned name since 1.2; Wardley
+  takes `keyboard: { undoRedo: false }` until it adopts the aligned options). With the binding on,
+  the shell stops the key as one the canvas handled, VS Code never undoes, and since Event Storming
+  clears its stack on every import, Cmd+Z on the canvas does nothing at all after an external edit.
   Shell conformance presses Cmd/Ctrl+Z, Shift+Z and Ctrl+Y on the canvas in the IDE host and expects
   each on `window`, once and unprevented.
 - Each canvas change is written as one `WorkspaceEdit` with minimal line changes, applied with

@@ -15,7 +15,15 @@
  * not follow resolves with `{ advisories }`, reported the same way and never
  * a failure: a recommendation becomes a law only in a major release.
  */
-import { type CollaborativeModeler, MODELER_API_VERSION } from "./index.js";
+import {
+  apiVersionsCompatible,
+  type CollaborativeModeler,
+  type ElementBounds,
+  type ElementsSurface,
+  MODELER_API_VERSION,
+} from "./index.js";
+
+export { apiVersionsCompatible };
 
 export interface UserMutation {
   /** names the failing mutation in the kit's error message */
@@ -29,7 +37,8 @@ export interface ConformanceHarness {
    * document with a non-zero size (`attachedHost()` below) — diagram-js
    * engines compute viewboxes from the host's client size, so a detached
    * or 0×0 host yields NaN view state; they also need a real browser
-   * (vitest browser mode / Playwright), jsdom has no getBBox
+   * (vitest browser mode / Playwright), jsdom has no getBBox. Keep
+   * `fitOnImport` at its default: the L5 cases check the modeler's own fit
    */
   create(): Promise<CollaborativeModeler>;
   /** a fresh READ-ONLY instance (`meta.editable === false`) — the viewer
@@ -123,11 +132,25 @@ export interface ConformanceHarness {
    *  half of the undo/redo case is reported as skipped */
   redo?(modeler: CollaborativeModeler): Promise<void> | void;
   /**
+   * move ONE element read from `canonicalTexts[0]` (imported, then one
+   * `mutate` added an element) through the modeler's own commands, the way
+   * a user drags it, far enough that its box changes position after any
+   * snapping, rounding or clamping — and return that element's id
+   * (ElementInfo.id). The bounds case requires `elements.bounds` to report
+   * the moved box. `undefined` = that half of the bounds case is reported as
+   * skipped (only when the modeler has `bounds`)
+   */
+  moveElement?(modeler: CollaborativeModeler): Promise<string> | string;
+  /**
    * open an INTERACTION on an element of `canonicalTexts[0]` (already
    * imported) the way a user does — its label editor, or a popup with an
    * input — and type input WITHOUT committing it (no Enter, no blur). The
-   * kit then imports over it, which must never commit it (L1). `undefined`
-   * = the L1 interaction case is reported as skipped
+   * kit then imports over it (L1) and changes the view over it (L5), and
+   * neither may commit it. Type the same input on every call, one the
+   * serializer writes verbatim: the L5 case looks for it in the export and
+   * compares what a commit writes with and without a view change in
+   * between. `undefined` = the L1 and L5 interaction cases are reported as
+   * skipped
    */
   openInteraction?(modeler: CollaborativeModeler): Promise<void> | void;
   /**
@@ -138,6 +161,15 @@ export interface ConformanceHarness {
    * of the L1 interaction case is reported as skipped
    */
   interactionState?(modeler: CollaborativeModeler): InteractionState | undefined;
+  /**
+   * commit the interaction `openInteraction` opened, the way a user does
+   * (Enter, or a click on the canvas). The L5 interaction case commits once
+   * without a view change, proving the typed input changes the document,
+   * and once after a host's view change, checking the RECOMMENDED keep-open
+   * (an advisory, never a failure). `undefined` = both halves are reported
+   * as skipped
+   */
+  commitInteraction?(modeler: CollaborativeModeler): Promise<void> | void;
 }
 
 /** an interaction in progress, as `ConformanceHarness.interactionState` reports it */
@@ -183,17 +215,6 @@ export function attachedHost(width = 800, height = 600): HTMLElement {
   return host;
 }
 
-/**
- * apiVersion compatibility: same major — and, while the contract is 0.x,
- * the same minor too (pre-1.0 minors may break; bump-minor-pre-major)
- */
-export function apiVersionsCompatible(a: string, b: string): boolean {
-  const [aMajor = "", aMinor = ""] = a.split(".");
-  const [bMajor = "", bMinor = ""] = b.split(".");
-  if (aMajor !== bMajor) return false;
-  return aMajor !== "0" || aMinor === bMinor;
-}
-
 function fail(message: string): never {
   throw new Error(`modeler-api conformance: ${message}`);
 }
@@ -209,6 +230,37 @@ function exportOrFail(modeler: CollaborativeModeler, when: string): string {
 }
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+type BoundedElements = ElementsSurface & { bounds(id: string): ElementBounds | undefined };
+
+const hasBounds = (elements: ElementsSurface): elements is BoundedElements =>
+  typeof elements.bounds === "function";
+
+const isFiniteBox = (box: ElementBounds | undefined): box is ElementBounds =>
+  box !== undefined &&
+  [box.x, box.y, box.width, box.height].every((n) => typeof n === "number" && Number.isFinite(n)) &&
+  box.width >= 0 &&
+  box.height >= 0;
+
+const describeBox = (box: ElementBounds | undefined): string =>
+  box === undefined
+    ? "undefined"
+    : `{ x: ${box.x}, y: ${box.y}, width: ${box.width}, height: ${box.height} }`;
+
+/** every listed element's box, copied — a listed id without a finite box fails */
+function boxesOf(elements: BoundedElements, when: string): Map<string, ElementBounds> {
+  const boxes = new Map<string, ElementBounds>();
+  for (const { id } of elements.list()) {
+    const box = elements.bounds(id);
+    if (!isFiniteBox(box)) {
+      fail(
+        `elements.bounds('${id}') ${when} is ${describeBox(box)} — every listed id must give a finite box with a non-negative size`,
+      );
+    }
+    boxes.set(id, { x: box.x, y: box.y, width: box.width, height: box.height });
+  }
+  return boxes;
+}
 
 /** a view state with NaN/Infinity is what a detached or 0×0 host produces */
 function assertFinite(state: unknown, when: string): void {
@@ -798,6 +850,101 @@ export function conformanceCases(): ConformanceCase[] {
       },
     },
     {
+      name: "L5: a host's view change never commits an open interaction",
+      async run(h) {
+        if (!h.openInteraction) {
+          return skip(
+            "openInteraction is undefined — a host's view change over an open interaction (a label editor with typed input) was not verified",
+          );
+        }
+        if (h.viewState === undefined) {
+          return skip(
+            "viewState is undefined — a host's view change over an open interaction was not verified (supply a panned/zoomed state)",
+          );
+        }
+        const openInteraction = h.openInteraction;
+        const commitInteraction = h.commitInteraction;
+        const viewState = h.viewState;
+        const settle = h.settle ?? defaultSettle;
+        const first = h.canonicalTexts[0] ?? "";
+        const m = await h.create();
+        try {
+          await m.importText(first);
+          const doc = exportOrFail(m, "after importing canonicalTexts[0]");
+          const open = async (): Promise<InteractionState | undefined> => {
+            await openInteraction(m);
+            await settle();
+            const opened = h.interactionState?.(m);
+            if (h.interactionState && opened === undefined) {
+              fail("interactionState reports no interaction after openInteraction — the case proves nothing");
+            }
+            return opened;
+          };
+          // the document a commit writes WITHOUT a view change: proof that the
+          // typed input is real, and the oracle for the commit after one
+          let committed: string | undefined;
+          if (commitInteraction) {
+            const typed = (await open())?.text;
+            await commitInteraction(m);
+            await settle();
+            committed = exportOrFail(m, "after committing the interaction");
+            if (committed === doc || (typed && !committed.includes(typed))) {
+              fail(
+                "committing the interaction openInteraction opened did not write its typed input into the export — the case proves nothing (commitInteraction must commit the way a user does, openInteraction type input the serializer writes verbatim)",
+              );
+            }
+            await importOrFail(m, first, "re-importing canonicalTexts[0] after the commit rejected");
+          }
+          const opened = await open();
+          const view = m.getViewState();
+          const { calls } = await changeEvents(h, m, () => m.setViewState(viewState));
+          if (calls > 0) {
+            fail(
+              `setViewState over an open interaction fired onContentChanged ${calls}x — the host's view change committed it (L5; if every setViewState emits, see the L5 round-trip case first)`,
+            );
+          }
+          if (exportOrFail(m, "after setViewState over an open interaction") !== doc) {
+            fail(
+              "setViewState over an open interaction changed the export — the host's view change committed it (L5)",
+            );
+          }
+          if (same(m.getViewState(), view)) {
+            fail(
+              "setViewState(viewState) had no effect over an open interaction — the case proves nothing (supply a state that differs from the fitted view)",
+            );
+          }
+          const after = h.interactionState?.(m);
+          let advice: string | undefined;
+          if (
+            opened !== undefined &&
+            (after?.elementId !== opened.elementId || after?.text !== opened.text)
+          ) {
+            const input = opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
+            const what = after === undefined ? "closed it" : `left ${JSON.stringify(after)} open`;
+            advice = `an interaction on '${opened.elementId}'${input} did not survive a host's view change (setViewState ${what}) — RECOMMENDED: keep it open with its typed input, so the user's commit afterwards writes what it would have written without the view change`;
+          } else if (commitInteraction && committed !== undefined) {
+            await commitInteraction(m);
+            await settle();
+            const out = exportOrFail(m, "after committing the interaction after a view change");
+            if (out !== committed) {
+              advice = `committing an interaction after a host's view change wrote another document than committing it without one — RECOMMENDED: keep it open with its typed input across a view change (if openInteraction types different input per call, this advice is the harness's):\n--- committed without a view change\n${committed}\n--- committed after setViewState\n${out}`;
+            }
+          }
+          return {
+            ...(commitInteraction
+              ? {}
+              : {
+                  skipped:
+                    "commitInteraction is undefined — that the typed input changes the document (without it the case may prove nothing) and that it still commits after the view change were not checked (pass commitInteraction to check both)",
+                }),
+            ...(advice === undefined ? {} : { advisories: [advice] }),
+          };
+        } finally {
+          m.destroy();
+        }
+      },
+    },
+    {
       name: "elements (when present): stable ids across re-imports and unrelated edits, reveal and selection semantics",
       async run(h) {
         const m = await h.create();
@@ -994,6 +1141,86 @@ export function conformanceCases(): ConformanceCase[] {
           }
         } finally {
           for (const peer of peers) peer.destroy();
+        }
+      },
+    },
+    {
+      name: "elements.bounds (when present): a finite box in diagram coordinates for every listed id, undefined for an unknown one, live after a new element and a move",
+      async run(h) {
+        const text = h.canonicalTexts[0] ?? "";
+        const settle = h.settle ?? defaultSettle;
+        const m = await h.create();
+        let viewer: CollaborativeModeler | undefined;
+        try {
+          await m.importText(text);
+          const elements = m.elements;
+          if (!elements)
+            return skip("the modeler exposes no elements surface (optional) — nothing to verify");
+          if (!hasBounds(elements))
+            return skip("the modeler exposes no elements.bounds (optional) — nothing to verify");
+          boxesOf(elements, "after an import");
+          if (elements.bounds("__modeler_api_no_such_id__") !== undefined)
+            fail("elements.bounds(unknown id) must return undefined");
+          // what a box cached at the last import gives away: an element the
+          // session created has none, a moved one keeps its old position
+          const imported = new Set(elements.list().map((e) => e.id));
+          await h.mutate(m);
+          await settle();
+          for (const { id } of elements.list().filter((e) => !imported.has(e.id))) {
+            const box = elements.bounds(id);
+            if (!isFiniteBox(box)) {
+              fail(
+                `elements.bounds('${id}') of an element created in the session is ${describeBox(box)} — bounds must read the live canvas, not the last import`,
+              );
+            }
+          }
+          const unverified: string[] = [];
+          if (h.moveElement) {
+            const before = boxesOf(elements, "before a move");
+            const movedId = await h.moveElement(m);
+            await settle();
+            const was = before.get(movedId);
+            if (was === undefined)
+              fail(`moveElement returned '${movedId}', an id elements.list() did not report before the move`);
+            const box = boxesOf(elements, "after a move").get(movedId);
+            if (box === undefined)
+              fail(`'${movedId}' is gone from elements.list() after moveElement moved it`);
+            if (box.x === was.x && box.y === was.y) {
+              fail(
+                `elements.bounds('${movedId}') did not follow a move made through the modeler's own commands (still ${describeBox(was)}) — bounds must read the live canvas, not the last import (or moveElement did not move the element)`,
+              );
+            }
+          } else {
+            unverified.push("moveElement is undefined — that a box follows a move was not verified");
+          }
+          if (h.viewState !== undefined) {
+            const atRest = boxesOf(elements, "before a view change");
+            m.setViewState(h.viewState);
+            for (const [id, box] of boxesOf(elements, "after setViewState")) {
+              if (!same(box, atRest.get(id))) {
+                fail(
+                  `elements.bounds('${id}') changed with the view (${describeBox(atRest.get(id))} → ${describeBox(box)}) — boxes are in diagram coordinates, which zoom and scroll leave alone`,
+                );
+              }
+            }
+          } else {
+            unverified.push(
+              "viewState is undefined — that boxes are independent of the view was not verified",
+            );
+          }
+          if (h.createReadonly) {
+            viewer = await h.createReadonly();
+            await importOrFail(viewer, text, "the viewer rejected canonicalTexts[0]");
+            if (viewer.elements && hasBounds(viewer.elements)) {
+              boxesOf(viewer.elements, "on the viewer after an import");
+              if (viewer.elements.bounds("__modeler_api_no_such_id__") !== undefined)
+                fail("the viewer's elements.bounds(unknown id) must return undefined");
+            }
+          }
+          if (unverified.length > 0) return skip(unverified.join("; "));
+        } finally {
+          m.destroy();
+          viewer?.destroy();
         }
       },
     },

@@ -17,7 +17,14 @@ import {
   conformanceCases,
   registerConformance,
 } from "../src/conformance.js";
-import { type CollaborativeModeler, MODELER_API_VERSION } from "../src/index.js";
+import * as root from "../src/index.js";
+import {
+  type CollaborativeModeler,
+  type CollaborativeModelerOptions,
+  type DiagramPoint,
+  type FreeAreaInsets,
+  MODELER_API_VERSION,
+} from "../src/index.js";
 import { createReferenceModeler, type Flaws, type ReferenceModeler } from "./reference-modeler.js";
 
 function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {}): ConformanceHarness {
@@ -34,6 +41,12 @@ function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {})
     configMutations: [{ name: "title", run: (m) => (m as ReferenceModeler).setTitle(`T${counter++}`) }],
     undo: (m) => (m as ReferenceModeler).undoCommand(),
     redo: (m) => (m as ReferenceModeler).redoCommand(),
+    moveElement: (m) => {
+      const elementId = m.elements?.list()[0]?.id;
+      if (elementId === undefined) throw new Error("the harness needs an element to move");
+      (m as ReferenceModeler).moveLine(elementId, 40, 24);
+      return elementId;
+    },
     // a rejecting probe, so the conforming reference walks the rejection path too
     probeTexts: ["alpha\n!be"],
     openInteraction: (m) => {
@@ -42,6 +55,7 @@ function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {})
       (m as ReferenceModeler).editLabel(elementId, "typed, not committed");
     },
     interactionState: (m) => (m as ReferenceModeler).openLabelEditor(),
+    commitInteraction: (m) => (m as ReferenceModeler).commitLabel(),
     ...overrides,
   };
 }
@@ -63,12 +77,15 @@ const CASE = {
   l5Fresh: "L5: getViewState never throws before the first import",
   l5RoundTrip:
     "L5: view state round-trips across a re-import, an import fits the view — and none of it is document content",
+  l5Interaction: "L5: a host's view change never commits an open interaction",
   elements:
     "elements (when present): stable ids across re-imports and unrelated edits, reveal and selection semantics",
   elementsRoundTrip:
     "elements (when present): ids and names survive export → import, in this and in a fresh instance",
   elementsCollision:
     "elements (when present, recommended): ids created on two peers at the same time do not collide",
+  bounds:
+    "elements.bounds (when present): a finite box in diagram coordinates for every listed id, undefined for an unknown one, live after a new element and a move",
   l6Total: "L6: export is total after imports, user mutations and undo",
   l6Foreign: "L6: foreign content survives an import → export round-trip",
   l7NoTrace: "L7: a rejected import leaves no trace",
@@ -181,6 +198,28 @@ describe("the conforming reference modeler", () => {
     expect(counter?.advisories).toEqual([expect.stringContaining("allocated the same id ('line_1')")]);
   });
 
+  test("a modeler without elements.bounds (optional) skips exactly the bounds case", async () => {
+    const withoutBounds = async (): Promise<ReferenceModeler> => {
+      const m = createReferenceModeler();
+      if (!m.elements) throw new Error("the reference exposes an elements surface");
+      const { bounds: _dropped, ...elements } = m.elements;
+      return { ...m, elements };
+    };
+    const h = harness({}, { create: withoutBounds });
+    expect(await failingCases(h)).toEqual([]);
+    expect((await skippedCases(h)).skipped).toEqual([CASE.bounds]);
+  });
+
+  test("a moved element's offset is document content: it survives export → import", async () => {
+    const m = createReferenceModeler();
+    await m.importText("alpha\nbeta\n");
+    m.moveLine("alpha", 40, 24);
+    expect(m.exportText()).toBe("alpha @40,24\nbeta\n");
+    const fresh = createReferenceModeler();
+    await fresh.importText(m.exportText());
+    expect(fresh.elements?.bounds?.("alpha")).toEqual({ x: 40, y: 24, width: 40, height: 24 });
+  });
+
   test("ids the serializer writes back (a renamed element keeps its id) survive export → import", async () => {
     const m = createReferenceModeler();
     await m.importText("alpha\nbeta\n");
@@ -208,21 +247,25 @@ describe("the conforming reference modeler", () => {
           configMutations: undefined,
           undo: undefined,
           redo: undefined,
+          moveElement: undefined,
           probeTexts: undefined,
           openInteraction: undefined,
           interactionState: undefined,
+          commitInteraction: undefined,
         },
       ),
     );
     expect(sparse.ran).toBe(conformanceCases().length);
     expect(sparse.skipped).toEqual(
       [
+        CASE.bounds,
         CASE.l1Interaction,
         CASE.l2Idempotent,
         CASE.l3Config,
         CASE.l3Undo,
         CASE.l4,
         CASE.l5RoundTrip,
+        CASE.l5Interaction,
         CASE.l6Foreign,
         CASE.l7NoTrace,
         CASE.l7Usable,
@@ -231,10 +274,21 @@ describe("the conforming reference modeler", () => {
     );
     // undo without redo: the undo half is verified, the redo half reports a skip
     expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
-    // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a skip
+    // bounds without a move: the listing, the new element and the view are verified, the move reports a skip
+    expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([CASE.bounds]);
+    // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a
+    // skip; the L5 case checks the keep-open through the commit instead
     expect((await skippedCases(harness({}, { interactionState: undefined }))).skipped).toEqual([
       CASE.l1Interaction,
     ]);
+    // an interaction without a commit: the L5 no-commit half is verified, the commit halves report a skip
+    expect((await skippedCases(harness({}, { commitInteraction: undefined }))).skipped).toEqual([
+      CASE.l5Interaction,
+    ]);
+    // a view change needs a view to change to: without viewState the L5 interaction case skips too
+    expect((await skippedCases(harness({}, { viewState: undefined }))).skipped).toEqual(
+      [CASE.l5RoundTrip, CASE.l5Interaction, CASE.bounds].sort(),
+    );
     // one canonical text (L4 fails it anyway): the interaction case says which leg it could not run
     const interaction = conformanceCases().find((c) => c.name === CASE.l1Interaction);
     const single = await interaction?.run(harness({}, { canonicalTexts: ["alpha\nbeta\ngamma\n"] }));
@@ -325,8 +379,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ silentUndo: true }, [CASE.l3Undo]));
   test("silent redo → exactly the L3 undo/redo case", () =>
     expectFailures({ silentRedo: true }, [CASE.l3Undo]));
-  test("no-op setViewState → L5 round-trip and the viewer", () =>
-    expectFailures({ noopViewState: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("no-op setViewState → both L5 view cases (nothing to prove without a view change) and the viewer", () =>
+    expectFailures({ noopViewState: true }, [CASE.l5RoundTrip, CASE.l5Interaction, CASE.viewer]));
   test("an import that keeps the viewport instead of fitting → L5 round-trip and the viewer", () =>
     expectFailures({ noFitOnImport: true }, [CASE.l5RoundTrip, CASE.viewer]));
   test("a readback that setViewState does not accept → L5 round-trip and the viewer", () =>
@@ -343,8 +397,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ emitBeforeApply: true }, [CASE.l3Mutation]));
   test("silent element command → the L3 mutation case, L7 usable and the pre-import case (looks wedged)", () =>
     expectFailures({ silentMutation: true }, [CASE.l3Mutation, CASE.l7Usable, CASE.preImport]));
-  test("setViewState emits → L5 round-trip and the viewer", () =>
-    expectFailures({ viewStateEmits: true }, [CASE.l5RoundTrip, CASE.viewer]));
+  test("setViewState emits → both L5 view cases and the viewer", () =>
+    expectFailures({ viewStateEmits: true }, [CASE.l5RoundTrip, CASE.l5Interaction, CASE.viewer]));
   test("invalid input resolves instead of rejecting → both L7 cases and the viewer", () =>
     expectFailures({ rejectResolves: true }, [CASE.l7NoTrace, CASE.l7Usable, CASE.viewer]));
   test("rejected import clears the document → L7 no-trace, the L7 probes (a rejecting probe) and the viewer", () =>
@@ -369,8 +423,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ destroyThrowsTwice: true }, [CASE.destroy, CASE.viewer]));
   test("a viewer that emits on import → exactly the viewer case", () =>
     expectFailures({ viewerEmits: true }, [CASE.viewer]));
-  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer leg of the id round-trip", () =>
-    expectFailures({ viewerImportThrows: true }, [CASE.viewer, CASE.elementsRoundTrip]));
+  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer legs of the id round-trip and the bounds case", () =>
+    expectFailures({ viewerImportThrows: true }, [CASE.viewer, CASE.elementsRoundTrip, CASE.bounds]));
   test("a viewer that cannot reveal (no selection service) → exactly the viewer case", () =>
     expectFailures({ viewerCannotReveal: true }, [CASE.viewer]));
   test("a viewer whose import keeps the viewport → exactly the viewer case", () =>
@@ -390,28 +444,138 @@ describe("broken variants fail exactly their law's case set", () => {
   test("an import that commits the open label editor → exactly the L1 interaction case", () =>
     expectFailures({ commitInteractionOnImport: true }, [CASE.l1Interaction]));
 
+  // ── the Design IQ host's findings (contract 1.2) ───────────────────────────
+  test("bounds answered from the last import (a new element has none) → exactly the bounds case", () =>
+    expectFailures({ boundsOfImportedOnly: true }, [CASE.bounds]));
+  test("bounds answered from the last import, with neither a move nor a view change to give it away → exactly the bounds case (the new element alone)", () =>
+    expectFailures({ boundsOfImportedOnly: true }, [CASE.bounds], {
+      moveElement: undefined,
+      viewState: undefined,
+    }));
+  test("bounds frozen at the first read (a moved element stays where it was) → exactly the bounds case", () =>
+    expectFailures({ boundsFrozenAtFirstRead: true }, [CASE.bounds]));
+  test("bounds that answer a box for an unknown id → exactly the bounds case", () =>
+    expectFailures({ boundsForUnknownIds: true }, [CASE.bounds]));
+  test("bounds that answer a box for an unknown id on the modeler only → exactly the bounds case", () =>
+    expectFailures({ boundsForUnknownIds: true }, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({}, false),
+    }));
+  test("bounds that answer a box for an unknown id on the viewer only → exactly the bounds case", () =>
+    expectFailures({}, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({ boundsForUnknownIds: true }, false),
+    }));
+  test("bounds in screen coordinates (they move with zoom and scroll) → exactly the bounds case", () =>
+    expectFailures({ boundsInViewCoordinates: true }, [CASE.bounds]));
+  test("bounds of imported elements read before their layout placed them (a NaN position) → exactly the bounds case", () =>
+    expectFailures({ boundsUnplacedOnImport: true }, [CASE.bounds]));
+  test("bounds with a negative width (spanned from the right edge) → exactly the bounds case", () =>
+    expectFailures({ boundsSignedSize: true }, [CASE.bounds]));
+  test("bounds of the viewer's imported elements read before their layout placed them → exactly the bounds case", () =>
+    expectFailures({}, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({ boundsUnplacedOnImport: true }, false),
+    }));
+  // the kit names the cause here instead of tripping over an undefined box
+  const boundsCase = conformanceCases().find((c) => c.name === CASE.bounds);
+  test("a move that re-creates the element under a fresh id → exactly the bounds case, which says the element is gone", async () => {
+    await expectFailures({ moveChangesId: true }, [CASE.bounds]);
+    await expect(boundsCase?.run(harness({ moveChangesId: true }))).rejects.toThrow(
+      /is gone from elements\.list\(\) after moveElement moved it/,
+    );
+  });
+  test("a moveElement that returns an id the modeler never listed → exactly the bounds case, which blames the harness", async () => {
+    const neverListed = { moveElement: () => "__never_listed__" };
+    await expectFailures({}, [CASE.bounds], neverListed);
+    await expect(boundsCase?.run(harness({}, neverListed))).rejects.toThrow(
+      /moveElement returned '__never_listed__', an id elements\.list\(\) did not report/,
+    );
+  });
+  test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
+    expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
+  test("a host's view change that commits the open label editor with its change events muted → exactly the L5 interaction case", () =>
+    expectFailures({ silentCommitInteractionOnViewChange: true }, [CASE.l5Interaction]));
+  test("a commit that writes nothing (Enter does not commit, or the harness misses the editor) → exactly the L5 interaction case: it would prove nothing", () =>
+    expectFailures({}, [CASE.l5Interaction], { commitInteraction: () => undefined }));
+  test("a commit that writes nothing, with no interactionState to name the typed input → exactly the L5 interaction case", () =>
+    expectFailures({}, [CASE.l5Interaction], {
+      commitInteraction: () => undefined,
+      interactionState: undefined,
+    }));
+  test("a commit that changes the document but not by the typed input → exactly the L5 interaction case: it would prove nothing", () =>
+    expectFailures({}, [CASE.l5Interaction], {
+      commitInteraction: (m) => (m as ReferenceModeler).setTitle("Elsewhere"),
+    }));
+  test("an openInteraction that opens nothing → both interaction cases: neither would prove anything", () =>
+    expectFailures({}, [CASE.l1Interaction, CASE.l5Interaction], {
+      openInteraction: () => undefined,
+      commitInteraction: undefined,
+    }));
+
   test("the contract version constant IS the package version (one identity)", () => {
     expect(MODELER_API_VERSION).toBe(pkg.version);
   });
 
   test("apiVersion compatibility: same major; while 0.x, the same minor too", () => {
-    expect(apiVersionsCompatible("0.3.1", "0.3.9")).toBe(true);
-    expect(apiVersionsCompatible("0.3.1", "0.4.0")).toBe(false);
-    expect(apiVersionsCompatible("1.2.0", "1.9.3")).toBe(true);
-    expect(apiVersionsCompatible("1.2.0", "2.0.0")).toBe(false);
+    expect(root.apiVersionsCompatible("0.3.1", "0.3.9")).toBe(true);
+    expect(root.apiVersionsCompatible("0.3.1", "0.4.0")).toBe(false);
+    expect(root.apiVersionsCompatible("1.2.0", "1.9.3")).toBe(true);
+    expect(root.apiVersionsCompatible("1.2.0", "2.0.0")).toBe(false);
+  });
+
+  test("hosts bind from the package root: apiVersionsCompatible is there, and /conformance re-exports the same function", () => {
+    expect(apiVersionsCompatible).toBe(root.apiVersionsCompatible);
+  });
+
+  test("the package root carries no kit code — a host bundle that binds from it stays free of the kit", () => {
+    expect(Object.keys(root).sort()).toEqual(["MODELER_API_VERSION", "apiVersionsCompatible"]);
   });
 });
 
 describe("variants that miss a RECOMMENDATION fail nothing and advise exactly once", () => {
   /** no failure anywhere, and one advisory — from the case that checks the recommendation */
-  const expectAdvisoryOnly = async (flaws: Flaws, caseName: string) => {
-    const h = harness(flaws);
+  const expectAdvisoryOnly = async (
+    flaws: Flaws,
+    caseName: string,
+    overrides: Partial<ConformanceHarness> = {},
+  ): Promise<string> => {
+    const h = harness(flaws, overrides);
     expect(await failingCases(h)).toEqual([]);
-    expect((await advisories(h)).map(([name]) => name)).toEqual([caseName]);
+    const advised = await advisories(h);
+    expect(advised.map(([name]) => name)).toEqual([caseName]);
+    return advised[0]?.[1] ?? "";
   };
 
   test("per-instance counter ids (event_1 on both peers) → an advisory from the collision case", () =>
     expectAdvisoryOnly({ counterIds: true }, CASE.elementsCollision));
   test("an import that drops the open label editor instead of reopening it → an advisory from the L1 interaction case", () =>
     expectAdvisoryOnly({ dropInteractionOnImport: true }, CASE.l1Interaction));
+  test("a host's view change that drops the open label editor → an advisory from the L5 interaction case", () =>
+    expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction));
+  test("the dropped label editor, seen through interactionState alone (no commitInteraction) → the same advisory", async () => {
+    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
+      commitInteraction: undefined,
+    });
+    expect(advice).toMatch(/did not survive a host's view change \(setViewState closed it\)/);
+  });
+  test("the dropped label editor, seen through the commit alone (no interactionState) → an advisory naming both documents", async () => {
+    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
+      interactionState: undefined,
+    });
+    expect(advice).toMatch(/wrote another document than committing it without one/);
+  });
+});
+
+describe("the aligned factory options (a type the renderers implement — tsc checks this block)", () => {
+  test("the free area takes insets or a centre, never both, next to fitOnImport and undoRedoKeys", () => {
+    const insets = (): FreeAreaInsets => ({ top: 88, right: 24, bottom: 64, left: 24 });
+    const center = (): DiagramPoint | undefined => ({ x: 400, y: 300 });
+    const options: CollaborativeModelerOptions[] = [
+      {},
+      { freeArea: { insets }, fitOnImport: false, undoRedoKeys: false },
+      { freeArea: { center } },
+      // @ts-expect-error — one form only: a renderer given both could not tell which one the host means
+      { freeArea: { insets, center } },
+    ];
+    const forms = options.map((o) => (o.freeArea ? ("insets" in o.freeArea ? "insets" : "center") : "none"));
+    expect(forms).toEqual(["none", "insets", "center", "insets"]);
+  });
 });

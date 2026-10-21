@@ -21,6 +21,20 @@
  *  constant is what travels in `meta`. */
 export const MODELER_API_VERSION = "1.1.0"; // x-release-please-version
 
+/**
+ * apiVersion compatibility: same major — and, while the contract is 0.x,
+ * the same minor too (pre-1.0 minors may break; bump-minor-pre-major).
+ * Hosts call it at bind time with `meta.apiVersion` and their own
+ * MODELER_API_VERSION; it lives in the package root so that check never
+ * pulls the conformance kit into a host bundle (`/conformance` re-exports it)
+ */
+export function apiVersionsCompatible(a: string, b: string): boolean {
+  const [aMajor = "", aMinor = ""] = a.split(".");
+  const [bMajor = "", bMinor = ""] = b.split(".");
+  if (aMajor !== bMajor) return false;
+  return aMajor !== "0" || aMinor === bMinor;
+}
+
 export interface ModelerMeta {
   /** stable notation id, e.g. "wardley", "team-topology", "event-storming" */
   readonly notation: string;
@@ -71,6 +85,14 @@ export interface ElementInfo {
   name?: string;
 }
 
+/** an element's box in diagram coordinates, as `ElementsSurface.bounds` reports it */
+export interface ElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /**
  * Optional element surface — what a host needs for anchored todos, `?element=`
  * deep links and the selection half of live presence. Absent = the notation
@@ -90,6 +112,22 @@ export interface ElementsSurface {
   selection(): string[];
   /** selection changes as STABLE element ids; returns the unsubscribe */
   onSelection(cb: (ids: string[]) => void): () => void;
+  /**
+   * the element's box in DIAGRAM coordinates — the canvas's own coordinate
+   * space, which zoom and scroll leave alone (a host maps it to the screen
+   * with the current view, or draws in a layer that moves with the canvas) —
+   * or `undefined` for an id `list()` does not report. Optional (1.2): hosts
+   * feature-detect it for presence outlines and todo markers instead of
+   * reaching into the engine.
+   *
+   * It reads the LIVE canvas: an element created, moved, resized or renamed
+   * in this session has its current box at once, not the one of the last
+   * import — a host outlining a peer's selection would otherwise draw it
+   * where the element was, or not at all, until the next import. The box is
+   * the element's own shape (a connection: the box around its waypoints); an
+   * external label is not part of it.
+   */
+  bounds?(id: string): ElementBounds | undefined;
 }
 
 /**
@@ -132,6 +170,15 @@ export interface ElementsSurface {
  *     readback may be a NORMALISED form of what was set (a diagram-js
  *     viewbox comes back rounded, with scale/inner/outer) — what must hold
  *     is that setting a readback yields that readback again.
+ *     A view change the HOST makes — `setViewState`, or a fit its chrome
+ *     applies to the canvas — never commits an interaction in progress (an
+ *     open label editor, a popup with typed input): no change event, the
+ *     export unchanged. Hosts restore the viewport after every remote
+ *     re-import and refit when their chrome changes; a commit there writes
+ *     the half-typed input into the shared document for every peer.
+ *     RECOMMENDED: the interaction stays open with its typed input, so the
+ *     user's own commit afterwards writes what it would have written without
+ *     the view change.
  *  L6 EXPORT IS TOTAL AFTER IMPORT — after a successful import (and any
  *     sequence of user commands and undos), `exportText` succeeds. Foreign or
  *     auxiliary content the modeler does not understand is PRESERVED through
@@ -184,4 +231,79 @@ export interface CollaborativeModeler {
   /** tear down DOM + listeners; further calls on the instance are undefined
    *  behavior, but a second destroy() must not throw */
   destroy(): void;
+}
+
+/** px the host's chrome covers along the edges of the modeler's container */
+export interface FreeAreaInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/** a point in diagram coordinates */
+export interface DiagramPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * The FREE AREA: the part of the canvas no host chrome covers (Miragon
+ * guide §5.9). Keyboard creation places a new element in its centre (§5.5)
+ * and a renderer that constrains panning keeps the content reachable around
+ * it, so both agree with a host that fits into the same rectangle. A host
+ * passes ONE of two forms, each a function the renderer reads whenever it
+ * needs it (the chrome changes when an inspector or a legend opens):
+ *
+ *  - `insets`: what the chrome covers, in px from the container's edges
+ *    (the modeler shell's `shell.fitInsets()`); the renderer computes the
+ *    centre itself, the way a fit does;
+ *  - `center`: the centre itself, in diagram coordinates, `undefined` while
+ *    there is none (a 0×0 container) — the shell's `viewport.freeRectCenter()`.
+ *
+ * A renderer accepts both. One that needs the rectangle itself (a pan
+ * constraint) and is given only `center` treats the whole container as
+ * free, as it does without the option.
+ */
+export type FreeArea =
+  | { insets: () => FreeAreaInsets; center?: never }
+  | { center: () => DiagramPoint | undefined; insets?: never };
+
+/**
+ * The options a renderer's contract factory takes under THESE names once it
+ * implements contract 1.2, so a host feeds every notation the same object
+ * instead of one spelling per renderer. A renderer extends the type with its
+ * own options (diagram-js `additionalModules`); the contract fixes names,
+ * meaning and defaults. A viewer factory takes the same type and ignores
+ * what has no meaning without editing (`undoRedoKeys`).
+ *
+ * Each renderer adopts them in its own release, as part of its move to 1.2:
+ * `meta.apiVersion` follows the pinned package and no kit case checks the
+ * options, so the version alone does not tell a host they are honoured.
+ * Until a renderer ships them, a host passes the renderer's own names, or
+ * both. Those names then stay accepted as DEPRECATED aliases for one minor
+ * release of that renderer, then go: `freeRectInsets` (Wardley, Event
+ * Storming, Context Maps) is `freeArea: { insets }`, `freeRectCenter` (Team
+ * Topologies, Value Chain) is `freeArea: { center }`, and Wardley's
+ * `keyboard: { undoRedo }` is `undoRedoKeys`. Given both, the aligned name
+ * wins.
+ */
+export interface CollaborativeModelerOptions {
+  /** where the host's chrome leaves the canvas free; default: the whole container */
+  freeArea?: FreeArea | undefined;
+  /**
+   * fit the content into the view after every import — default true, the
+   * fitted view L5 defines. A host whose chrome fits the content itself
+   * (the modeler shell's viewport fits into the free area) passes false:
+   * the post-import view is then the host's to set, and L5's fit is the
+   * host's fit. The conformance kit runs with the default
+   */
+  fitOnImport?: boolean | undefined;
+  /**
+   * bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history —
+   * default true. A host that owns the document's history (VS Code) passes
+   * false, and the keys reach it unprevented; text fields keep their own
+   * undo either way
+   */
+  undoRedoKeys?: boolean | undefined;
 }

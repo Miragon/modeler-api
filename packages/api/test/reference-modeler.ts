@@ -4,17 +4,24 @@
  * trailing newline). Each line is an element whose id is the line's text,
  * unless the line names another one with a ` #id` suffix — the serializer
  * writes that suffix back whenever an element's id differs from its text (a
- * renamed element keeps its id). It is the kit's reference subject, plus
- * deliberately BROKEN variants: one per real-world drift the contract exists
- * to prevent AND one per case in the kit, so the kit's own CI proves every
- * case bites. Each variant must fail exactly its law's case set. Three
+ * renamed element keeps its id). Element n sits in row n of the canvas; a
+ * moved one carries its offset from there as an ` @x,y` suffix. It is the
+ * kit's reference subject, plus deliberately BROKEN variants: one per
+ * real-world drift the contract exists to prevent AND one per case in the
+ * kit, so the kit's own CI proves every case bites. Each variant must fail exactly its law's case set. Three
  * variants are NOT flaws but legitimate implementation choices the kit must
  * accept (a diagram-js style enriched view-state readback, commands ignored
  * before the first import, an empty name that reads back absent) — they must
- * fail nothing. Two variants ignore a RECOMMENDATION — they must fail nothing
- * and advise once.
+ * fail nothing. Three variants ignore a RECOMMENDATION — they must fail
+ * nothing and advise once.
  */
-import type { CollaborativeModeler, ElementsSurface, ImportResult, ModelerMeta } from "../src/index.js";
+import type {
+  CollaborativeModeler,
+  ElementBounds,
+  ElementsSurface,
+  ImportResult,
+  ModelerMeta,
+} from "../src/index.js";
 import { MODELER_API_VERSION } from "../src/index.js";
 
 export interface Flaws {
@@ -110,12 +117,40 @@ export interface Flaws {
   /** NOT a law violation, a missed recommendation: an import closes the open label editor and drops
    *  the typed input instead of reopening it on the element with the same id */
   dropInteractionOnImport?: boolean;
+  /** a host's view change commits the open label editor (diagram-js directEditing completing on
+   *  `canvas.viewbox.changing` — the drift every renderer built against contract 1.1 ships: a restore
+   *  after a peer's re-import writes the half-typed label into the shared text) */
+  commitInteractionOnViewChange?: boolean;
+  /** a host's view change commits the open label editor while the change events are muted, the way
+   *  a renderer mutes them for its own programmatic updates: no event, but the export changed */
+  silentCommitInteractionOnViewChange?: boolean;
+  /** NOT a law violation, a missed recommendation: a host's view change closes the open label editor
+   *  and drops the typed input */
+  dropInteractionOnViewChange?: boolean;
   /** NOT a flaw: a command before the first import does nothing — no element, no change event (a
    *  harness mutate that waits for that event never settles) */
   ignoresCommandsBeforeImport?: boolean;
   /** NOT a flaw: an element without a label (a `~` line) reports the name "" when created in the
    *  session and no name at all when read from a text */
   blankNamesReadBackAbsent?: boolean;
+  /** elements.bounds answers from a table filled at the last import — an element created in the
+   *  session has no box until the next import (the host workaround the surface replaces) */
+  boundsOfImportedOnly?: boolean;
+  /** elements.bounds keeps the box each element had when it was first asked for — a moved
+   *  element is outlined where it was */
+  boundsFrozenAtFirstRead?: boolean;
+  /** elements.bounds answers an empty box for an id it does not know */
+  boundsForUnknownIds?: boolean;
+  /** elements.bounds reports screen coordinates — the box moves with zoom and scroll */
+  boundsInViewCoordinates?: boolean;
+  /** an import reads each element's box before its layout placed it: an element read from a text
+   *  has a NaN position, one created in the session is placed live */
+  boundsUnplacedOnImport?: boolean;
+  /** elements.bounds spans the box from its right edge to its left one: a negative width */
+  boundsSignedSize?: boolean;
+  /** a move re-creates the element under a fresh id (a delete + create pair), so a host loses the
+   *  element it outlined */
+  moveChangesId?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -132,6 +167,8 @@ export interface ReferenceModeler extends CollaborativeModeler {
   openLabelEditor(): { elementId: string; text: string } | undefined;
   /** commit the open label editor: renames its element, an undoable command */
   commitLabel(): void;
+  /** move an element by an offset, an undoable command */
+  moveLine(elementId: string, dx: number, dy: number): void;
 }
 
 interface View {
@@ -144,10 +181,15 @@ interface Entry {
   readonly text: string;
   /** created by a command in this session, not read from a text */
   readonly created?: boolean;
+  /** moved off its row by this offset */
+  readonly at?: { x: number; y: number };
 }
 
 /** a line naming its element's id: `text #id` */
 const ID_SUFFIX = /^(.*\S) #(\S+)$/;
+/** a line placing its element off its row: `text @x,y` */
+const AT_SUFFIX = /^(.*\S) @(-?\d+),(-?\d+)$/;
+const ROW_HEIGHT = 40;
 
 export function createReferenceModeler(flaws: Flaws = {}, editable = true): ReferenceModeler {
   let title = "";
@@ -167,7 +209,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   let labelEditor: { elementId: string; text: string } | undefined;
   const keepsHistory = Boolean(flaws.staleUndo || flaws.staleUndoDelta);
 
+  let muted = false;
   const emit = (): void => {
+    if (muted) return;
     for (const cb of listeners) cb();
   };
   const select = (ids: string[]): void => {
@@ -176,11 +220,17 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     if (flaws.deadSelection || (!editable && flaws.viewerDeadSelectionEvents)) return;
     for (const cb of selectionListeners) cb(selection);
   };
-  const lineOf = (entry: Entry): string =>
-    entry.id === entry.text || flaws.idsChangeOnExport ? entry.text : `${entry.text} #${entry.id}`;
+  const lineOf = (entry: Entry): string => {
+    const named =
+      entry.id === entry.text || flaws.idsChangeOnExport ? entry.text : `${entry.text} #${entry.id}`;
+    return entry.at ? `${named} @${entry.at.x},${entry.at.y}` : named;
+  };
   const entryOf = (line: string): Entry => {
-    const named = ID_SUFFIX.exec(line);
-    return named ? { text: named[1] ?? line, id: named[2] ?? line } : { id: line, text: line };
+    const placed = AT_SUFFIX.exec(line);
+    const rest = placed ? (placed[1] ?? line) : line;
+    const named = ID_SUFFIX.exec(rest);
+    const entry = named ? { text: named[1] ?? rest, id: named[2] ?? rest } : { id: rest, text: rest };
+    return placed ? { ...entry, at: { x: Number(placed[2]), y: Number(placed[3]) } } : entry;
   };
   const canonical = (): string => {
     const body = entries.map(lineOf).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
@@ -193,6 +243,42 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   };
   const ids = (): string[] =>
     flaws.positionalIds ? entries.map((_e, i) => `l${entries.length - i}`) : entries.map((e) => e.id);
+  const liveBoxes = (): Map<string, ElementBounds> => {
+    const reported = ids();
+    return new Map(
+      entries.map((e, row) => {
+        const x = e.at?.x ?? 0;
+        const width = 8 * Math.max(1, e.text.length);
+        const unplaced = flaws.boundsUnplacedOnImport && !e.created;
+        const box = {
+          x: unplaced ? Number.NaN : flaws.boundsSignedSize ? x + width : x,
+          y: unplaced ? Number.NaN : row * ROW_HEIGHT + (e.at?.y ?? 0),
+          width: flaws.boundsSignedSize ? -width : width,
+          height: 24,
+        };
+        return [reported[row] ?? e.id, box];
+      }),
+    );
+  };
+  let importedBoxes = new Map<string, ElementBounds>();
+  const firstReadBoxes = new Map<string, ElementBounds>();
+  const boundsOf = (id: string): ElementBounds | undefined => {
+    if (flaws.boundsOfImportedOnly) return importedBoxes.get(id);
+    const live = liveBoxes().get(id);
+    if (live === undefined)
+      return flaws.boundsForUnknownIds ? { x: 0, y: 0, width: 0, height: 0 } : undefined;
+    if (flaws.boundsFrozenAtFirstRead) {
+      if (!firstReadBoxes.has(id)) firstReadBoxes.set(id, live);
+      return firstReadBoxes.get(id);
+    }
+    if (!flaws.boundsInViewCoordinates || view === undefined) return live;
+    return {
+      x: live.x * view.zoom - view.scrollX,
+      y: live.y * view.zoom,
+      width: live.width * view.zoom,
+      height: live.height * view.zoom,
+    };
+  };
   /** a pre-import call the wedging variant never recovers from */
   const touchBeforeImport = (): void => {
     if (flaws.wedgeOnPreImportCall && !imported) wedged = true;
@@ -205,7 +291,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     // updates the detached shape through the command stack
     const before = entries;
     const reported = ids();
-    entries = entries.map((e, i) => (reported[i] === edit.elementId ? { id: e.id, text: edit.text } : e));
+    entries = entries.map((e, i) =>
+      reported[i] === edit.elementId ? { id: e.id, text: edit.text, ...(e.at ? { at: e.at } : {}) } : e,
+    );
     const after = entries;
     undoStack.push({
       undo: () => {
@@ -247,6 +335,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
         if (!flaws.leakySelectionUnsubscribe) selectionListeners.delete(cb);
       };
     },
+    bounds: boundsOf,
   };
 
   const modeler: ReferenceModeler = {
@@ -302,6 +391,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       const keeps = flaws.noFitOnImport || (!editable && flaws.viewerKeepsView);
       if (!keeps || view === undefined) view = { ...fittedView };
       imported = true;
+      importedBoxes = liveBoxes();
       // the flawed import completes the open label editor once it rendered
       if (flaws.commitInteractionOnImport) commitLabel();
       // an import never commits an open label editor (L1): it stays open on
@@ -337,6 +427,13 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     },
     setViewState(state) {
       if (flaws.viewStateEmits) emit();
+      if (flaws.commitInteractionOnViewChange) commitLabel();
+      if (flaws.silentCommitInteractionOnViewChange) {
+        muted = true;
+        commitLabel();
+        muted = false;
+      }
+      if (flaws.dropInteractionOnViewChange) labelEditor = undefined;
       if (flaws.noopViewState) return;
       if (state !== null && typeof state === "object") {
         // the flawed setter only takes the literal shape, never its own readback
@@ -422,6 +519,31 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     },
     openLabelEditor: () => (labelEditor ? { ...labelEditor } : undefined),
     commitLabel,
+    moveLine(elementId: string, dx: number, dy: number): void {
+      if (!editable) throw new Error("a viewer accepts no commands");
+      const before = entries;
+      const reported = ids();
+      entries = entries.map((e, i) =>
+        reported[i] === elementId
+          ? {
+              ...e,
+              ...(flaws.moveChangesId ? { id: `${e.id}_moved` } : {}),
+              at: { x: (e.at?.x ?? 0) + dx, y: (e.at?.y ?? 0) + dy },
+            }
+          : e,
+      );
+      const after = entries;
+      undoStack.push({
+        undo: () => {
+          entries = before;
+        },
+        redo: () => {
+          entries = after;
+        },
+      });
+      redoStack = [];
+      emit();
+    },
   };
   return modeler;
 }
