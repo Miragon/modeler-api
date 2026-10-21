@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Miragon/modeler-api/compare/modeler-api-v1.1.0...modeler-api-v1.2.0) (2026-10-21)
+
+
+### Features
+
+* **api:** contract 1.2 — elements.bounds, apiVersionsCompatible from the root, no commit on a host view change, aligned factory options ([#21](https://github.com/Miragon/modeler-api/issues/21)) ([f3f4998](https://github.com/Miragon/modeler-api/commit/f3f4998386f22ae42703f91ce2c72da1e4f85a35))
+
 ## [1.1.0](https://github.com/Miragon/modeler-api/compare/modeler-api-v1.0.0...modeler-api-v1.1.0) (2026-10-19)
 
 
