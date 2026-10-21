@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { join, resolve } from "node:path";
 import type { Size } from "../../core/index.js";
 
 /** The directories of one smoke run, all inside one throwaway directory. */
@@ -157,12 +158,23 @@ export function extensionIdOf(manifest: ExtensionManifest): string | undefined {
   return manifest.publisher && manifest.name ? `${manifest.publisher}.${manifest.name}` : undefined;
 }
 
-/** A VS Code `filenamePattern` (`*.storm`, `*.{wmap,owm}`) against a file name. */
+/**
+ * A VS Code `filenamePattern` (`*.storm`, `*.{wmap,owm}`) against a file name. A pattern with a `/`
+ * matches the path, where a `**` segment stands for any number of directories, none included, so the
+ * globstar form of `*.storm` matches `board.storm` as it does in VS Code.
+ */
 export function matchesFilenamePattern(pattern: string, fileName: string): boolean {
   let source = "";
   let inGroup = false;
-  for (const character of pattern) {
-    if (character === "*") source += "[^/]*";
+  for (let index = 0; index < pattern.length; index++) {
+    const character = pattern[index]!;
+    if (pattern.startsWith("**/", index)) {
+      source += "(?:.*/)?";
+      index += 2;
+    } else if (pattern.startsWith("**", index)) {
+      source += ".*";
+      index += 1;
+    } else if (character === "*") source += "[^/]*";
     else if (character === "?") source += "[^/]";
     else if (character === "{") {
       inGroup = true;
@@ -175,6 +187,19 @@ export function matchesFilenamePattern(pattern: string, fileName: string): boole
   }
   const target = pattern.includes("/") ? fileName : (fileName.split("/").pop() ?? fileName);
   return new RegExp(`^${source}$`, "i").test(target);
+}
+
+/**
+ * The file an extension's `main` loads, found the way Node's `require` finds it (and so VS Code's
+ * extension host): as given, with `.js`, `.json` or `.node`, or as a folder's `index.js`; undefined
+ * when there is none.
+ */
+export function resolveExtensionMain(extensionPath: string, main: string): string | undefined {
+  try {
+    return createRequire(join(extensionPath, "package.json")).resolve(resolve(extensionPath, main));
+  } catch {
+    return undefined;
+  }
 }
 
 /** The view type of the first custom editor whose selector matches `fileName`. */

@@ -2487,7 +2487,10 @@ function defaultVsCodeCachePath(
 function platformKeys(platform: string): PlatformKeys;
 function extensionIdOf(manifest: ExtensionManifest): string | undefined;
 function customEditorViewType(manifest: ExtensionManifest, fileName: string): string | undefined;
-function matchesFilenamePattern(pattern: string, fileName: string): boolean; // *, ?, {a,b}; case-insensitive
+// *, ?, {a,b} and ** (a "**/" segment also matches no directory, as in VS Code); case-insensitive
+function matchesFilenamePattern(pattern: string, fileName: string): boolean;
+// the file main loads, found as Node's require finds it (as given, + .js/.json/.node, a folder's index.js)
+function resolveExtensionMain(extensionPath: string, main: string): string | undefined;
 ```
 
 A run takes these steps, each timed; a failed step skips what depends on it, never the rest:
@@ -2536,12 +2539,12 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
 
 `runVsCodeSmoke` never throws for a failed check: everything broken is in `failures`, prefixed with
 its step. It throws for options it cannot run with (no `package.json`, no custom editor for the
-fixture, an extension whose `main` is not built, a fixture name with a path or glob characters) and
-when a peer is missing. `createFromPalette`, the default `edit`, is the keyboard path of the shell's
-palette (guide §5.5): it focuses the first enabled entry outside the tools group that is not a
-`-tool`, presses Enter, waits for one more shape and presses Escape for the label editor a creation
-opens. An `edit` of one's own drives `context.webview` with locators (`click`, `dblclick`, `fill`) and
-`context.page.keyboard`, and leaves no label editor open.
+fixture, an extension whose `main` is not built, that is, `require` would not find it, a fixture
+name with a path or glob characters) and when a peer is missing. `createFromPalette`, the default
+`edit`, is the keyboard path of the shell's palette (guide §5.5): it focuses the first enabled entry
+outside the tools group that is not a `-tool`, presses Enter, waits for one more shape and presses
+Escape for the label editor a creation opens. An `edit` of one's own drives `context.webview` with
+locators (`click`, `dblclick`, `fill`) and `context.page.keyboard`, and leaves no label editor open.
 
 ```ts
 // apps/vscode/test-smoke/vscode-smoke.test.ts

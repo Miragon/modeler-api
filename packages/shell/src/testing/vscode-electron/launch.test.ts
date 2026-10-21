@@ -1,5 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import {
   customEditorViewType,
@@ -8,6 +10,7 @@ import {
   isPlainFileName,
   matchesFilenamePattern,
   platformKeys,
+  resolveExtensionMain,
   vsCodeEnvironment,
   vsCodeLaunchArgs,
   vsCodeUserSettings,
@@ -205,9 +208,43 @@ describe("matchesFilenamePattern", () => {
     expect(matchesFilenamePattern("*.WMAP", "tea.wmap")).toBe(true);
   });
 
+  it("lets a globstar segment stand for any directories, none included, as VS Code does", () => {
+    expect(matchesFilenamePattern("**/*.storm", "board.storm")).toBe(true);
+    expect(matchesFilenamePattern("**/*.{wmap,owm}", "tea.wmap")).toBe(true);
+    expect(matchesFilenamePattern("**/*.{wmap,owm}", "tea.md")).toBe(false);
+    expect(matchesFilenamePattern("**/board.storm", "board.storm")).toBe(true);
+    expect(matchesFilenamePattern("**/*.storm", "boards/q3/board.storm")).toBe(true);
+    expect(matchesFilenamePattern("boards/**/*.storm", "boards/board.storm")).toBe(true);
+    expect(matchesFilenamePattern("*/board.storm", "board.storm")).toBe(false);
+  });
+
   it("takes dots and other regular-expression characters literally", () => {
     expect(matchesFilenamePattern("*.vc", "chainxvc")).toBe(false);
     expect(matchesFilenamePattern("(a)+.vc", "(a)+.vc")).toBe(true);
+  });
+});
+
+describe("resolveExtensionMain", () => {
+  const extensionPath = mkdtempSync(join(tmpdir(), "modeler-shell-main-"));
+  mkdirSync(join(extensionPath, "out", "lib"), { recursive: true });
+  writeFileSync(join(extensionPath, "package.json"), "{}");
+  writeFileSync(join(extensionPath, "out", "extension.js"), "");
+  writeFileSync(join(extensionPath, "out", "extension.cjs"), "");
+  writeFileSync(join(extensionPath, "out", "bundle.cjs"), "");
+  writeFileSync(join(extensionPath, "out", "lib", "index.js"), "");
+  afterAll(() => rmSync(extensionPath, { recursive: true, force: true }));
+
+  it("finds main as given, without its .js, and as a folder's index.js, as Node's require does", () => {
+    expect(resolveExtensionMain(extensionPath, "./out/extension.cjs")).toMatch(/extension\.cjs$/);
+    expect(resolveExtensionMain(extensionPath, "out/extension.js")).toMatch(/extension\.js$/);
+    expect(resolveExtensionMain(extensionPath, "./out/extension")).toMatch(/extension\.js$/);
+    expect(resolveExtensionMain(extensionPath, "./out/lib")).toMatch(/index\.js$/);
+  });
+
+  it("is undefined for a main that is not built, and adds no .cjs, as Node does not", () => {
+    expect(resolveExtensionMain(extensionPath, "./dist/extension.cjs")).toBeUndefined();
+    expect(resolveExtensionMain(extensionPath, "./out/missing")).toBeUndefined();
+    expect(resolveExtensionMain(extensionPath, "./out/bundle")).toBeUndefined();
   });
 });
 
@@ -215,6 +252,17 @@ describe("customEditorViewType", () => {
   it("is the first custom editor whose selector matches", () => {
     expect(customEditorViewType(manifest, "teams.ttm.json")).toBe("teamTopologies.editor");
     expect(customEditorViewType(manifest, "teams.tt.png")).toBe("teamTopologies.pngEditor");
+  });
+
+  it("accepts a globstar selector", () => {
+    const storm: ExtensionManifest = {
+      contributes: {
+        customEditors: [
+          { viewType: "eventStorming.boardEditor", selector: [{ filenamePattern: "**/*.storm" }] },
+        ],
+      },
+    };
+    expect(customEditorViewType(storm, "board.storm")).toBe("eventStorming.boardEditor");
   });
 
   it("is undefined when no editor opens the file", () => {

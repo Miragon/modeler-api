@@ -12,6 +12,7 @@ import {
   extensionIdOf,
   isPlainFileName,
   platformKeys,
+  resolveExtensionMain,
   vsCodeEnvironment,
   vsCodeLaunchArgs,
   vsCodeUserSettings,
@@ -292,7 +293,7 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
   const manifest = await readManifest(extensionPath);
   const viewType = options.viewType ?? customEditorViewType(manifest, fileName);
   if (!viewType) throw new Error(`runVsCodeSmoke: no custom editor of ${extensionPath} opens ${fileName}`);
-  if (manifest.main && !(await exists(join(extensionPath, manifest.main)))) {
+  if (manifest.main && !resolveExtensionMain(extensionPath, manifest.main)) {
     throw new Error(
       `runVsCodeSmoke: the extension is not built, ${join(extensionPath, manifest.main)} is missing`,
     );

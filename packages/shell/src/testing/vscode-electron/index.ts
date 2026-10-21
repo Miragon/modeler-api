@@ -8,6 +8,7 @@ export {
   extensionIdOf,
   matchesFilenamePattern,
   platformKeys,
+  resolveExtensionMain,
   vsCodeEnvironment,
   vsCodeLaunchArgs,
   vsCodeUserSettings,
