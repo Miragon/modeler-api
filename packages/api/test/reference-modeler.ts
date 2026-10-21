@@ -121,6 +121,9 @@ export interface Flaws {
    *  `canvas.viewbox.changing` — the drift every renderer built against contract 1.1 ships: a restore
    *  after a peer's re-import writes the half-typed label into the shared text) */
   commitInteractionOnViewChange?: boolean;
+  /** a host's view change commits the open label editor while the change events are muted, the way
+   *  a renderer mutes them for its own programmatic updates: no event, but the export changed */
+  silentCommitInteractionOnViewChange?: boolean;
   /** NOT a law violation, a missed recommendation: a host's view change closes the open label editor
    *  and drops the typed input */
   dropInteractionOnViewChange?: boolean;
@@ -140,6 +143,11 @@ export interface Flaws {
   boundsForUnknownIds?: boolean;
   /** elements.bounds reports screen coordinates — the box moves with zoom and scroll */
   boundsInViewCoordinates?: boolean;
+  /** an import reads each element's box before its layout placed it: an element read from a text
+   *  has a NaN position, one created in the session is placed live */
+  boundsUnplacedOnImport?: boolean;
+  /** elements.bounds spans the box from its right edge to its left one: a negative width */
+  boundsSignedSize?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -198,7 +206,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   let labelEditor: { elementId: string; text: string } | undefined;
   const keepsHistory = Boolean(flaws.staleUndo || flaws.staleUndoDelta);
 
+  let muted = false;
   const emit = (): void => {
+    if (muted) return;
     for (const cb of listeners) cb();
   };
   const select = (ids: string[]): void => {
@@ -233,15 +243,18 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   const liveBoxes = (): Map<string, ElementBounds> => {
     const reported = ids();
     return new Map(
-      entries.map((e, row) => [
-        reported[row] ?? e.id,
-        {
-          x: e.at?.x ?? 0,
-          y: row * ROW_HEIGHT + (e.at?.y ?? 0),
-          width: 8 * Math.max(1, e.text.length),
+      entries.map((e, row) => {
+        const x = e.at?.x ?? 0;
+        const width = 8 * Math.max(1, e.text.length);
+        const unplaced = flaws.boundsUnplacedOnImport && !e.created;
+        const box = {
+          x: unplaced ? Number.NaN : flaws.boundsSignedSize ? x + width : x,
+          y: unplaced ? Number.NaN : row * ROW_HEIGHT + (e.at?.y ?? 0),
+          width: flaws.boundsSignedSize ? -width : width,
           height: 24,
-        },
-      ]),
+        };
+        return [reported[row] ?? e.id, box];
+      }),
     );
   };
   let importedBoxes = new Map<string, ElementBounds>();
@@ -412,6 +425,11 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     setViewState(state) {
       if (flaws.viewStateEmits) emit();
       if (flaws.commitInteractionOnViewChange) commitLabel();
+      if (flaws.silentCommitInteractionOnViewChange) {
+        muted = true;
+        commitLabel();
+        muted = false;
+      }
       if (flaws.dropInteractionOnViewChange) labelEditor = undefined;
       if (flaws.noopViewState) return;
       if (state !== null && typeof state === "object") {

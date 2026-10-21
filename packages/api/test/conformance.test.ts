@@ -447,14 +447,49 @@ describe("broken variants fail exactly their law's case set", () => {
   // ── the Design IQ host's findings (contract 1.2) ───────────────────────────
   test("bounds answered from the last import (a new element has none) → exactly the bounds case", () =>
     expectFailures({ boundsOfImportedOnly: true }, [CASE.bounds]));
+  test("bounds answered from the last import, with neither a move nor a view change to give it away → exactly the bounds case (the new element alone)", () =>
+    expectFailures({ boundsOfImportedOnly: true }, [CASE.bounds], {
+      moveElement: undefined,
+      viewState: undefined,
+    }));
   test("bounds frozen at the first read (a moved element stays where it was) → exactly the bounds case", () =>
     expectFailures({ boundsFrozenAtFirstRead: true }, [CASE.bounds]));
   test("bounds that answer a box for an unknown id → exactly the bounds case", () =>
     expectFailures({ boundsForUnknownIds: true }, [CASE.bounds]));
+  test("bounds that answer a box for an unknown id on the modeler only → exactly the bounds case", () =>
+    expectFailures({ boundsForUnknownIds: true }, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({}, false),
+    }));
+  test("bounds that answer a box for an unknown id on the viewer only → exactly the bounds case", () =>
+    expectFailures({}, [CASE.bounds], {
+      createReadonly: async () => createReferenceModeler({ boundsForUnknownIds: true }, false),
+    }));
   test("bounds in screen coordinates (they move with zoom and scroll) → exactly the bounds case", () =>
     expectFailures({ boundsInViewCoordinates: true }, [CASE.bounds]));
+  test("bounds of imported elements read before their layout placed them (a NaN position) → exactly the bounds case", () =>
+    expectFailures({ boundsUnplacedOnImport: true }, [CASE.bounds]));
+  test("bounds with a negative width (spanned from the right edge) → exactly the bounds case", () =>
+    expectFailures({ boundsSignedSize: true }, [CASE.bounds]));
   test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
     expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
+  test("a host's view change that commits the open label editor with its change events muted → exactly the L5 interaction case", () =>
+    expectFailures({ silentCommitInteractionOnViewChange: true }, [CASE.l5Interaction]));
+  test("a commit that writes nothing (Enter does not commit, or the harness misses the editor) → exactly the L5 interaction case: it would prove nothing", () =>
+    expectFailures({}, [CASE.l5Interaction], { commitInteraction: () => undefined }));
+  test("a commit that writes nothing, with no interactionState to name the typed input → exactly the L5 interaction case", () =>
+    expectFailures({}, [CASE.l5Interaction], {
+      commitInteraction: () => undefined,
+      interactionState: undefined,
+    }));
+  test("a commit that changes the document but not by the typed input → exactly the L5 interaction case: it would prove nothing", () =>
+    expectFailures({}, [CASE.l5Interaction], {
+      commitInteraction: (m) => (m as ReferenceModeler).setTitle("Elsewhere"),
+    }));
+  test("an openInteraction that opens nothing → both interaction cases: neither would prove anything", () =>
+    expectFailures({}, [CASE.l1Interaction, CASE.l5Interaction], {
+      openInteraction: () => undefined,
+      commitInteraction: undefined,
+    }));
 
   test("the contract version constant IS the package version (one identity)", () => {
     expect(MODELER_API_VERSION).toBe(pkg.version);
@@ -478,10 +513,16 @@ describe("broken variants fail exactly their law's case set", () => {
 
 describe("variants that miss a RECOMMENDATION fail nothing and advise exactly once", () => {
   /** no failure anywhere, and one advisory — from the case that checks the recommendation */
-  const expectAdvisoryOnly = async (flaws: Flaws, caseName: string) => {
-    const h = harness(flaws);
+  const expectAdvisoryOnly = async (
+    flaws: Flaws,
+    caseName: string,
+    overrides: Partial<ConformanceHarness> = {},
+  ): Promise<string> => {
+    const h = harness(flaws, overrides);
     expect(await failingCases(h)).toEqual([]);
-    expect((await advisories(h)).map(([name]) => name)).toEqual([caseName]);
+    const advised = await advisories(h);
+    expect(advised.map(([name]) => name)).toEqual([caseName]);
+    return advised[0]?.[1] ?? "";
   };
 
   test("per-instance counter ids (event_1 on both peers) → an advisory from the collision case", () =>
@@ -490,6 +531,18 @@ describe("variants that miss a RECOMMENDATION fail nothing and advise exactly on
     expectAdvisoryOnly({ dropInteractionOnImport: true }, CASE.l1Interaction));
   test("a host's view change that drops the open label editor → an advisory from the L5 interaction case", () =>
     expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction));
+  test("the dropped label editor, seen through interactionState alone (no commitInteraction) → the same advisory", async () => {
+    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
+      commitInteraction: undefined,
+    });
+    expect(advice).toMatch(/did not survive a host's view change \(setViewState closed it\)/);
+  });
+  test("the dropped label editor, seen through the commit alone (no interactionState) → an advisory naming both documents", async () => {
+    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
+      interactionState: undefined,
+    });
+    expect(advice).toMatch(/wrote another document than committing it without one/);
+  });
 });
 
 describe("the aligned factory options (a type the renderers implement — tsc checks this block)", () => {
