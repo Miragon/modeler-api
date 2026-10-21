@@ -3,11 +3,12 @@
 `@miragon/modeler-shell` is the shared, framework-free implementation of everything around a
 Miragon diagram-js modeler: menu button, tool palette, tooltips, zoom panel, keys, fit, problems pill,
 legend, status box and the plumbing to its host (a VS Code webview, a web app, or an embedding host
-such as designIQ). **Status: 0.2** in [`packages/shell`](../../packages/shell), Phase 4 of
+such as designIQ). **Status: 0.3** in [`packages/shell`](../../packages/shell), Phase 4 of
 [#4](https://github.com/Miragon/modeler-api/issues/4): 0.1 brought the IDE host, 0.2 the web app's
-chrome (see [Web app host](#web-app-host)); its public API is documented in
-[`packages/shell/API.md`](../../packages/shell/API.md). Where building it showed a note to be wrong or
-incomplete, the note was corrected here.
+chrome (see [Web app host](#web-app-host)), 0.3 a driver for smoke tests in a real VS Code (see
+[VS Code: smoke tests in a real VS Code](#vs-code-smoke-tests-in-a-real-vs-code)); its public API is
+documented in [`packages/shell/API.md`](../../packages/shell/API.md). Where building it showed a note
+to be wrong or incomplete, the note was corrected here.
 
 The source of truth for look and behaviour is the Miragon design system: the Claude skill
 `modeler-tool-design` in Miragon/corporate-identity, guide
@@ -1219,8 +1220,9 @@ the cursor `not-allowed`.
 ## VS Code host
 
 The VS Code sections below (commands and menu, notifications, undo, key interception, theme bridge,
-language, host hygiene, state) implement guide §13.5. In VS Code the extension owns file, document,
-history and mode; the webview shows the canvas with the chrome.
+language, host hygiene, state) implement guide §13.5; the last one tells how the shell's smoke-test
+driver checks them in a real VS Code. In VS Code the extension owns file, document, history and
+mode; the webview shows the canvas with the chrome.
 
 ## VS Code: commands and menu
 
@@ -1500,6 +1502,103 @@ webview (for example a window reload); the stored view wins over fitting.
 - `canvas.viewbox()` caches `outer` until the next change, so derive the stored width and height
   from the fresh `canvas.getSize()` and the scale.
 
+## VS Code: smoke tests in a real VS Code
+
+**Guide [§13.3][guide-13.3], [§13.5][guide-13.5].** Rule: the webview follows the VS Code color theme
+(a light-only modeler stays light, high contrast passes); file, document and history belong to the
+host, so save and undo are VS Code's.
+
+The stub of `./testing/vscode-stub` reproduces VS Code's webview from its sources; whether the real
+one behaves that way only a real VS Code can show. `./testing/vscode-electron` starts one per run
+(API in [`packages/shell/API.md`](../../packages/shell/API.md), `./testing/vscode-electron`; usage in
+the [shell README](../../packages/shell/README.md#smoke-tests-in-a-real-vs-code)). Built against VS
+Code 1.143.0, `@vscode/test-electron` 3.1.0 and `playwright-core` 1.64.1, and run against the Event
+Storming and Wardley Maps extensions on macOS.
+
+- **Why Playwright and not `runTests`.** `@vscode/test-electron`'s `runTests` runs Mocha inside the
+  extension host: it reaches the `vscode` API but not the webview's DOM, and takes no screenshot. The
+  driver uses the package only to download VS Code (`downloadAndUnzipVSCode`) and starts the
+  executable with Playwright's `_electron.launch`, which attaches to the workbench window over the
+  DevTools protocol. A webview is two frames deep: the workbench's `iframe.webview` (VS Code's host
+  page, whose URL carries `extensionId=<publisher>.<name>`), and inside it `iframe#active-frame`
+  with the extension's HTML. Playwright follows both as a `FrameLocator`, so a modeler's `edit` clicks
+  and types into the canvas like a user.
+- **Why `@vscode/test-electron` 3.1.0 or later.** VS Code 1.110 renamed its macOS executable from
+  `Contents/MacOS/Electron` to `Code` (microsoft/vscode#291948) and removed the `Electron` link it
+  had kept for compatibility in July 2026 (microsoft/vscode#326502). Up to 3.0.0,
+  `downloadAndUnzipVSCode` returns the `Electron` path, and the launch fails with
+  `spawn …/Contents/MacOS/Electron ENOENT`; 3.1.0 reads the name from the bundle's `Info.plist`.
+  2.4.0, 2.5.2 and 3.0.0 failed that way with VS Code 1.143.0, so the peer range starts at 3.1.0,
+  and the resolve step names the cause when the executable it got does not exist.
+- **Where the download goes.** `@vscode/test-electron` defaults to `.vscode-test` in the working
+  directory, that is the modeler's repository. ESLint's flat config does not read `.gitignore`, so
+  after one local run `eslint .` linted the unpacked VS Code (about 0.9 GB) and failed with 733
+  errors in the Wardley Maps repository, which blocks every commit behind its lint hook. The driver
+  passes `defaultVsCodeCachePath` instead, the OS's cache directory as Playwright uses it for its
+  browsers: outside every repository, kept across `npm ci`, shared by all modelers. It creates the
+  folder first, because `@vscode/test-electron` creates only its last segment.
+- **Opening the fixture.** The workspace folder and the fixture are the last command-line arguments,
+  and `workbench.editorAssociations` maps the fixture's file name to the custom editor's view type.
+  VS Code then opens the fixture in the custom editor at start, whatever the editor's `priority`; no
+  command palette, no `vscode.openWith` from an extension. On the first start of a freshly
+  downloaded VS Code the file sometimes resolved before the development extension's custom editor
+  was registered (two of thirteen such starts on macOS) and opened as text; the association
+  does not reopen it. The driver then closes the text editor and opens the fixture from the
+  Explorer, where the association applies, and repeats that every 2 s until the webview shows.
+- **An extension that does not activate.** Its custom editor is never registered, so the webview
+  never comes, and the workbench shows nothing but an empty tab with a progress bar. The cause is
+  only in the extension host's log, `<user-data-dir>/logs/<session>/window1/exthost/exthost.log`:
+  "Activating extension <id> failed due to an error:" and the error as the next entry. While the
+  driver waits for the webview it reads that log every second, stops at such a line, and quotes it
+  with the error's first line in the open failure; before, a run waited the full timeout and said
+  only that no webview showed, and the log went with the temporary profile. The driver's first runs
+  against the Context Maps and Value Chain extensions found exactly that, "Error: Cannot find
+  module './impl/format'" (jsonc-parser's UMD build in an esbuild bundle), which their e2e suites
+  against the stub cannot see.
+- **A clean profile.** `--user-data-dir` and `--extensions-dir` point into a fresh temporary
+  directory, so no user setting, extension, restored window or welcome page interferes. The settings
+  turn off what would cover the editor or change the theme behind the test's back: the start page,
+  the chat in the secondary side bar, and `window.autoDetectColorScheme` and
+  `window.autoDetectHighContrast` (an OS in dark or high-contrast mode would otherwise pick the
+  theme). The process gets the test's environment without `VSCODE_*`: run from a VS Code terminal,
+  those variables make the webview's service worker fail to register and the webview stays empty.
+- **Keys and keyboard layouts.** Playwright sends key events as a US keyboard produces them (`z` is
+  `code` `KeyZ`). VS Code resolves keybindings by `code` and translates it through the OS's
+  keyboard layout. On a German Mac `meta+[KeyZ]` is Cmd+Y: the keybinding troubleshooting log shows
+  "From 2 keybinding entries, no when clauses matched the context" and nothing undoes, while Cmd+S
+  works because S is in the same place. The driver sets `keyboard.dispatch` to `keyCode`, so VS Code
+  reads the key code, which is the same on every layout. A real keyboard is not affected: the OS
+  reports the physical key and its layout together.
+- **Save and undo go through the workbench.** The webview's host page calls `preventDefault()` on
+  Cmd/Ctrl+S and Cmd/Ctrl+Z and forwards them to the workbench (`did-keydown`), where the keybindings
+  run `workbench.action.files.save` and `undo`. For the active custom editor, `undo` reaches the text
+  document's undo stack (the workbench's `custom-editor` implementation at priority 105 runs before
+  the webview's own `execCommand("undo")` at 100). macOS also has the application menu's Undo with
+  the same accelerator; Playwright's synthetic events never pass the native menu, so the smoke test
+  covers the keybinding path, the one a webview's forwarded key takes.
+- **Dirty, saved, restored.** The editor tab carries `.dirty` while the document differs from the
+  file; the driver waits for it after the edit and for its end after the save, then reads the file
+  from disk. Undo is checked twice: the canvas shows the shapes, connections and positions it showed
+  before the edit (the webview re-imported the document), and after another save the file holds the
+  fixture's exact text (the edit was one document change and undid completely).
+- **Switching the theme.** The driver writes `workbench.colorTheme` into the profile's
+  `settings.json`; VS Code watches the file and switches as for a user's change. The order then is
+  the one [VS Code: theme bridge](#vs-code-theme-bridge) describes: the workbench's theme class
+  (`vs`, `vs-dark`, `hc-black`, `hc-light` on `.monaco-workbench`), the webview's body classes, the
+  bridge's message, `data-cd-theme` and `data-cd-kontrast` on `<html>`, and the end of the shell's
+  one-frame transition stop. The driver waits for each and only then takes the screenshot. A switch
+  took 0.1 to 0.5 s.
+- **Screenshots.** Before the first theme the driver blurs the webview: the edit went through the
+  keyboard, so the canvas shows its focus ring, which would be in every picture. Screenshots are in
+  CSS pixels, the same size on a Retina Mac and on a CI runner.
+- **Closing.** `files.hotExit` stays at its default, so a window with an unsaved document (after a
+  failed step) quits without a prompt; a VS Code that has not quit after 10 s is killed.
+- **Ctrl+C.** Playwright's SIGINT handler closes VS Code and calls `process.exit(130)`, so the
+  run's `finally` never removed the temporary directory (about 3 MB per interrupted run), or an
+  asynchronous removal was cut short. The driver removes it synchronously, in `finally` and from a
+  `process.once("exit")` listener it holds while the run lasts. SIGTERM needs neither: Playwright's
+  handler only closes VS Code, and the run ends through its failed steps.
+
 ## Not covered here
 
 These topics stay in the design guide because they are not part of the shell:
@@ -1516,7 +1615,9 @@ These topics stay in the design guide because they are not part of the shell:
 ## Open verification points
 
 To confirm in a real VS Code before the shell's VS Code part is released. Each one is an assumption
-the notes rely on that the sources alone do not settle.
+the notes rely on that the sources alone do not settle. Since 0.3 the smoke driver of
+`./testing/vscode-electron` confirms some of them on every run; candidates for more of its checks are
+listed in `packages/shell/API.md`, "Out of scope for 0.3".
 
 - [ ] No handled key reaches a `keydown` listener on `window`: zoom keys including Cmd/Ctrl+Shift+-
       and the numpad, Shift+1, Escape with an open menu, undo and redo in text fields, Cmd/Ctrl+A, C
@@ -1527,11 +1628,15 @@ the notes rely on that the sources alone do not settle.
       host page leaves them to the browser and does not forward them).
 - [ ] Cmd/Ctrl+Z in the label editor undoes only in the field; the document stays unchanged.
 - [ ] One Cmd/Ctrl+Z on the canvas undoes exactly one canvas change; viewbox and selection stay.
+      The smoke driver confirms the first half in VS Code 1.143.0 (Event Storming, Wardley Maps);
+      viewbox and selection are still open.
 - [ ] Light, Dark, High Contrast and High Contrast Light: attributes before the first paint (no
       flash), switching at once, a light-only modeler stays light (with `hoch` under both High
-      Contrast themes).
-- [ ] High Contrast Light sets both body classes `vscode-high-contrast-light` and
-      `vscode-high-contrast` (the reason for the fallback's check order).
+      Contrast themes). The smoke driver confirms the switch and the light-only result in VS Code
+      1.143.0; the first paint is still open.
+- [x] High Contrast Light sets both body classes `vscode-high-contrast-light` and
+      `vscode-high-contrast` (the reason for the fallback's check order). Confirmed in VS Code
+      1.143.0 by the smoke driver.
 - [ ] A theme change while the tab is hidden: does the message arrive in a retained webview? Either
       way the re-send on `onDidChangeViewState` leaves the right mode.
 - [ ] A hidden tab with `retainContextWhenHidden` reports 0 × 0 to the `ResizeObserver`; back in
