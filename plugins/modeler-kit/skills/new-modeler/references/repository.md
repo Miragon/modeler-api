@@ -84,6 +84,10 @@ on the major `typescript-eslint` accepts (Dependabot ignores the next major).
 `pin-check`, `dependency-review`. A shared setup action installs the Node version of `engines` and
 runs `npm ci`. Every `uses:` is pinned to a commit SHA with the tag as a comment.
 
+[`codeql.yml`](../assets/template/.github/workflows/codeql.yml) runs CodeQL's
+`javascript-typescript` analysis from source (`build-mode: none`) on pull requests, on pushes to
+`main` and weekly, so an advisory published after a merge still surfaces, as in the five modelers.
+
 `pr-title.yml` validates the PR title as a Conventional Commit (`feat`, `fix`, `chore`, `docs`,
 `refactor`, `ci`, `build`, `test`, `revert`); PRs are squash-merged with the title as the commit.
 

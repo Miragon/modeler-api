@@ -379,6 +379,18 @@ describe("the template's package.json files", () => {
     expect(root.devDependencies?.playwright).toBe(e2e.devDependencies?.["@playwright/test"]);
   });
 
+  it("run only actions pinned to a commit SHA, with the tag as a comment", () => {
+    const loose = filesUnder(join(TEMPLATE, ".github")).flatMap((file) =>
+      [...readText(file).matchAll(/^\s*-?\s*uses:\s*(\S+)(.*)$/gm)]
+        .filter(
+          ([, action, rest]) =>
+            !action!.startsWith("./") && (!/@[0-9a-f]{40}$/.test(action!) || !/^ # v\d/.test(rest!)),
+        )
+        .map(([line]) => `${fromTemplate(file)}: ${line!.trim()}`),
+    );
+    expect(loose).toEqual([]);
+  });
+
   it("define every script the template's workflows run", () => {
     const scripts = (dir: string) =>
       Object.keys(readJson<{ scripts?: Json }>(join(TEMPLATE, dir, "package.json")).scripts ?? {});
