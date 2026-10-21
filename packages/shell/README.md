@@ -517,7 +517,9 @@ has to show what the theme bridge resolves for the modeler's `themes`, and every
 screenshot. A run takes about 4 to 6 seconds once VS Code is downloaded.
 
 Its two dependencies are optional peers of the shell, so only a modeler that uses the entry installs
-them, next to the build of its extension:
+them, next to the build of its extension. It needs `@vscode/test-electron` 3.1.0 or later (and so
+Node 22): earlier releases look for VS Code's macOS executable under a name current VS Code no
+longer has.
 
 ```sh
 npm i -D --save-exact playwright-core @vscode/test-electron

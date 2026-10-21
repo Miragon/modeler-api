@@ -148,7 +148,7 @@
     "demo": "vite --config demo/vite.config.ts"
   },
   "peerDependencies": {
-    "@vscode/test-electron": "^2.4.0 || ^3.0.0",
+    "@vscode/test-electron": "^3.1.0",
     "playwright-core": "^1.50.0"
   },
   "peerDependenciesMeta": {

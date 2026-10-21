@@ -1523,6 +1523,13 @@ Storming and Wardley Maps extensions on macOS.
   page, whose URL carries `extensionId=<publisher>.<name>`), and inside it `iframe#active-frame`
   with the extension's HTML. Playwright follows both as a `FrameLocator`, so a modeler's `edit` clicks
   and types into the canvas like a user.
+- **Why `@vscode/test-electron` 3.1.0 or later.** VS Code 1.110 renamed its macOS executable from
+  `Contents/MacOS/Electron` to `Code` (microsoft/vscode#291948) and removed the `Electron` link it
+  had kept for compatibility in July 2026 (microsoft/vscode#326502). Up to 3.0.0,
+  `downloadAndUnzipVSCode` returns the `Electron` path, and the launch fails with
+  `spawn …/Contents/MacOS/Electron ENOENT`; 3.1.0 reads the name from the bundle's `Info.plist`.
+  2.4.0, 2.5.2 and 3.0.0 failed that way with VS Code 1.143.0, so the peer range starts at 3.1.0,
+  and the resolve step names the cause when the executable it got does not exist.
 - **Opening the fixture.** The workspace folder and the fixture are the last command-line arguments,
   and `workbench.editorAssociations` maps the fixture's file name to the custom editor's view type.
   VS Code then opens the fixture in the custom editor at start, whatever the editor's `priority`; no

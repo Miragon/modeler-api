@@ -340,6 +340,11 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
       reporter,
     });
     log(`resolve: VS Code ${result.vscodeVersion ?? "?"} at ${path}`);
+    if (!(await exists(path))) {
+      throw new Error(
+        `VS Code's executable ${path} does not exist (on macOS, VS Code 1.110 and later need @vscode/test-electron 3.1.0 or later)`,
+      );
+    }
     return path;
   });
   result.executablePath = executablePath;

@@ -2358,10 +2358,13 @@ webview inside VS Code's two frames, the document's dirty state, save and undo t
 workbench's keybindings, and the theme bridge under VS Code's four default themes, with a screenshot
 per theme. It runs in Node, from a Vitest or `node:test` file; no Playwright test runner is needed.
 
-`playwright-core` (`^1.50.0`) and `@vscode/test-electron` (`^2.4.0 || ^3.0.0`; 3.x needs Node 22) are
+`playwright-core` (`^1.50.0`) and `@vscode/test-electron` (`^3.1.0`, which needs Node 22) are
 optional peer dependencies of the shell: only this entry uses them, and it loads them on the first
 `runVsCodeSmoke` call. A modeler that uses it adds both as exact devDependencies; nobody else installs
-them. Verified with `playwright-core` 1.64.1, `@vscode/test-electron` 3.1.0 and VS Code 1.143.0.
+them. `@vscode/test-electron` before 3.1.0 starts VS Code on macOS as `Contents/MacOS/Electron`; VS
+Code 1.110 renamed that executable to `Code` and has since dropped the `Electron` link, so 2.x and
+3.0 fail every launch of a current VS Code on macOS. Verified with `playwright-core` 1.50.0 and
+1.64.1, `@vscode/test-electron` 3.1.0 and VS Code 1.96.0 and 1.143.0.
 
 ```ts
 interface VsCodeSmokeFixture {
