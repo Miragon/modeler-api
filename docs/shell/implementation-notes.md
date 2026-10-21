@@ -1593,6 +1593,11 @@ Storming and Wardley Maps extensions on macOS.
   CSS pixels, the same size on a Retina Mac and on a CI runner.
 - **Closing.** `files.hotExit` stays at its default, so a window with an unsaved document (after a
   failed step) quits without a prompt; a VS Code that has not quit after 10 s is killed.
+- **Ctrl+C.** Playwright's SIGINT handler closes VS Code and calls `process.exit(130)`, so the
+  run's `finally` never removed the temporary directory (about 3 MB per interrupted run), or an
+  asynchronous removal was cut short. The driver removes it synchronously, in `finally` and from a
+  `process.once("exit")` listener it holds while the run lasts. SIGTERM needs neither: Playwright's
+  handler only closes VS Code, and the run ends through its failed steps.
 
 ## Not covered here
 

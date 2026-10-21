@@ -1,4 +1,5 @@
-import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { rmSync } from "node:fs";
+import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { ProgressReport, ProgressReporter } from "@vscode/test-electron";
@@ -362,6 +363,10 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
 
   if (executablePath) {
     const root = await mkdtemp(join(tmpdir(), "modeler-shell-vscode-"));
+    // Synchronous, and on exit too: Playwright answers Ctrl+C by closing VS Code and calling
+    // process.exit, which skips `finally` or cuts an asynchronous removal short.
+    const removeTemporaryFiles = () => rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+    if (!options.keepTemporaryFiles) process.once("exit", removeTemporaryFiles);
     const launched: { app?: ElectronApplication } = {};
     try {
       await runSession({
@@ -391,8 +396,9 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
     } finally {
       const app = launched.app;
       if (app) await step("close", () => closeApplication(app));
+      process.off("exit", removeTemporaryFiles);
       if (options.keepTemporaryFiles) log(`kept ${root}`);
-      else await rm(root, { recursive: true, force: true, maxRetries: 3 });
+      else removeTemporaryFiles();
     }
   }
 

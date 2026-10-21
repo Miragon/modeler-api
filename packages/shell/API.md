@@ -2531,7 +2531,8 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    theme it blurs the webview, so the canvas's focus ring of the keyboard edit is not in the
    pictures.
 8. **close**: `app.close()`; a VS Code that has not quit after 10 s (a modal dialog) is killed. The
-   temporary directory goes, unless `keepTemporaryFiles`.
+   temporary directory goes, unless `keepTemporaryFiles`, also when Ctrl+C ends the test process
+   in the middle of a run.
 
 `runVsCodeSmoke` never throws for a failed check: everything broken is in `failures`, prefixed with
 its step. It throws for options it cannot run with (no `package.json`, no custom editor for the
