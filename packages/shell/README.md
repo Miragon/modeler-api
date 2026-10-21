@@ -17,9 +17,11 @@ embedded in a foreign page), so the chrome looks and behaves the same everywhere
   Event Storming modeler is the pilot.
 
 Zero runtime dependencies: diagram-js services are typed structurally, the `vscode` namespace and
-Playwright's `page` and `test` are passed in, nothing is imported at runtime. The stylesheet reads
-only the design system's `--cd-ui-*` roles and `--cd-shell-*` sizes. All texts are English by default
-and overridable through one messages table; numbers go through `Intl` in the UI language.
+Playwright's `page` and `test` are passed in, nothing is imported at runtime. Only the smoke-test
+driver `./testing/vscode-electron` loads `playwright-core` and `@vscode/test-electron`, optional peer
+dependencies that nobody installs who does not use it. The stylesheet reads only the design system's
+`--cd-ui-*` roles and `--cd-shell-*` sizes. All texts are English by default and overridable through
+one messages table; numbers go through `Intl` in the UI language.
 
 ## Install
 
@@ -66,16 +68,17 @@ expect(SHELL).toEqual(shellSizesFromTokens(vendoredTokens.shell));
 expect(Object.keys(vendoredTokens.shell)).toEqual(expect.arrayContaining(Object.values(SHELL_TOKENS)));
 ```
 
-| Entry                                        | For                                                         |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| `@miragon/modeler-shell`                     | `mountShell`, icons, and everything of `./core`             |
-| `@miragon/modeler-shell/core`                | DOM-free: fit math, keymap, zoom readout, appearance, sizes |
-| `@miragon/modeler-shell/diagram-js`          | `shellModule`, the viewport, `connectDiagramJs`             |
-| `@miragon/modeler-shell/vscode/extension`    | webview HTML with CSP and nonce, theme bridge               |
-| `@miragon/modeler-shell/vscode/webview`      | `mountVsCodeShell`, appearance handler, webview state       |
-| `@miragon/modeler-shell/testing`             | the Playwright-driven shell conformance kit                 |
-| `@miragon/modeler-shell/testing/vscode-stub` | a stand-in for VS Code around a webview test page           |
-| `@miragon/modeler-shell/shell.css`           | every style of the shell                                    |
+| Entry                                            | For                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| `@miragon/modeler-shell`                         | `mountShell`, icons, and everything of `./core`             |
+| `@miragon/modeler-shell/core`                    | DOM-free: fit math, keymap, zoom readout, appearance, sizes |
+| `@miragon/modeler-shell/diagram-js`              | `shellModule`, the viewport, `connectDiagramJs`             |
+| `@miragon/modeler-shell/vscode/extension`        | webview HTML with CSP and nonce, theme bridge               |
+| `@miragon/modeler-shell/vscode/webview`          | `mountVsCodeShell`, appearance handler, webview state       |
+| `@miragon/modeler-shell/testing`                 | the Playwright-driven shell conformance kit                 |
+| `@miragon/modeler-shell/testing/vscode-stub`     | a stand-in for VS Code around a webview test page           |
+| `@miragon/modeler-shell/testing/vscode-electron` | smoke tests of the modeler's extension in a real VS Code    |
+| `@miragon/modeler-shell/shell.css`               | every style of the shell                                    |
 
 TypeScript: every entry resolves under `moduleResolution` `node16`, `bundler` and `node10`, and
 every optional input field accepts `undefined`, so a modeler compiling with
@@ -500,6 +503,128 @@ The test page runs the webview from source without a CSP. Add one smoke test of 
 behind the HTML and CSP of `renderWebviewHtml` that fails on any `securitypolicyviolation` (the recipe
 is in [API.md][api], `./vscode/extension`).
 
+## Smoke tests in a real VS Code
+
+The kit runs against a stand-in for VS Code. `@miragon/modeler-shell/testing/vscode-electron` starts
+the real one, from a plain Vitest or `node:test` file: it downloads VS Code with
+`@vscode/test-electron`, starts it through Playwright's Electron support with the modeler's built
+extension on a throwaway profile, opens a fixture in the custom editor, checks that the shell's
+chrome is there, makes an edit through the canvas, saves with the platform's save key (the file on
+disk changes and the modeler's parser accepts it), undoes with the platform's undo key (the canvas
+and, saved again, the file return), and switches through VS Code's four default themes (Default
+Light Modern, Default Dark Modern, Default High Contrast, Default High Contrast Light): the webview
+has to show what the theme bridge resolves for the modeler's `themes`, and every theme gets a
+screenshot. A run takes about 4 to 6 seconds once VS Code is downloaded.
+
+Its two dependencies are optional peers of the shell, so only a modeler that uses the entry installs
+them, next to the build of its extension. It needs `@vscode/test-electron` 3.1.0 or later (and so
+Node 22): earlier releases look for VS Code's macOS executable under a name current VS Code no
+longer has.
+
+```sh
+npm i -D --save-exact playwright-core @vscode/test-electron
+```
+
+The modeler supplies only its specifics: the extension folder, a fixture, its parser and, where the
+default does not fit, the edit. The default edit is Enter on the first creating palette entry, then
+Escape. A `node:test` file, run with `node --test` (Node 22.18 or later runs it without a build):
+
+```ts
+// apps/vscode/test-smoke/vscode-smoke.test.ts
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { parseDSLWithDiagnostics } from "@miragon/wardley-dsl";
+import { formatVsCodeSmoke, runVsCodeSmoke } from "@miragon/modeler-shell/testing/vscode-electron";
+
+test("Wardley Maps in a real VS Code", { timeout: 600_000 }, async () => {
+  const result = await runVsCodeSmoke({
+    extensionPath: fileURLToPath(new URL("..", import.meta.url)), // after npm run build:vscode
+    fixture: { fileName: "tea.wmap", text: await readFile("example/tea.owm", "utf8") },
+    parse(text) {
+      const { diagnostics } = parseDSLWithDiagnostics(text);
+      if (diagnostics.length > 0) throw new Error(diagnostics.map((d) => d.message).join("; "));
+    },
+    themes: ["light"], // what the extension passes to connectThemeBridge
+    name: "wardley",
+    screenshotDir: "test-results/vscode-smoke", // wardley-light.png, wardley-dark.png, …
+    log: console.log,
+  });
+  console.log(formatVsCodeSmoke(result)); // VS Code version, timings, every theme
+  assert.deepEqual(result.failures, []);
+});
+```
+
+A modeler with an edit of its own passes `edit`; it gets the VS Code window, the webview document
+as a Playwright `FrameLocator` and the platform's keys:
+
+```ts
+edit: async ({ webview, page }) => {
+  await webview.locator('[data-element-id="cmp_power"]').click(); // a shape no other one covers
+  await page.keyboard.press("ArrowRight"); // the modeler's keyboard moves the selection
+},
+```
+
+The result says what happened (`ok`, `failures`, `saved`, `undone`, `themes` with the observed
+appearance and the screenshot, `timings` per step); `runVsCodeSmoke` never throws for a failed
+check, only for options it cannot run with. An extension that fails to activate in VS Code (a module
+its bundle cannot load, a throw in `activate`) fails the open step at once, with VS Code's own error
+from its extension host log; `keepTemporaryFiles: true` keeps the profile with all of VS Code's logs.
+Keep the smoke test out of the unit tests' project: it needs a display and the built extension. Add
+the screenshot directory to `.gitignore`.
+
+**Where VS Code goes.** The driver keeps the download in the OS's cache directory, as Playwright
+keeps its browsers: `~/Library/Caches/miragon-modeler-shell/vscode-test` on macOS,
+`$XDG_CACHE_HOME/miragon-modeler-shell/vscode-test` (by default under `~/.cache`) on Linux and
+`%LOCALAPPDATA%\miragon-modeler-shell\vscode-test` on Windows. Every modeler on the machine shares
+it, `npm ci` does not delete it, and since it is outside the repository neither Git nor `eslint .`
+walks the unpacked VS Code. Two runs that download the same version at once would write into the
+same folder, so let the first download finish before starting a second run. A `cachePath` inside
+the repository (`.vscode-test`, the default of `@vscode/test-electron` itself) needs an entry in
+`.gitignore` and one in ESLint's `ignores` (`"**/.vscode-test/**"`): the flat config does not read
+`.gitignore`, so `eslint .` would lint the downloaded VS Code, fail with hundreds of errors and block
+every commit behind a lint hook.
+
+**macOS, locally.** Give the file a script of its own,
+`"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
+and run it; a VS Code window opens for a few seconds. The first run downloads VS Code, about 320 to
+360 MB depending on the platform (1.143.0: 324 MB for macOS on Apple silicon, 351 MB for Linux x64)
+and about 0.9 GB unpacked per version, 25 to 45 s on a fast connection; later runs reuse it. The
+driver dispatches keys by key code, so the run behaves the same on a QWERTZ or any other keyboard
+layout.
+
+```sh
+npm run build && npm run build:vscode
+npm run test:vscode-smoke
+```
+
+**Linux, in CI.** VS Code needs an X server: run the script under `xvfb-run -a` (without one,
+Playwright reports "Unable to open X display"). GitHub's `ubuntu-latest` has the libraries VS Code
+needs, as `@vscode/test-electron`'s own CI recipe relies on; the driver itself has so far run on
+macOS only. An opt-in job, for example on demand and on pull requests with a label:
+
+```yaml
+vscode-smoke:
+  if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'vscode-smoke')
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: ./.github/actions/setup # setup-node and npm ci
+    - run: npm run build && npm run build:vscode
+    - run: xvfb-run -a npm run test:vscode-smoke
+    - if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: vscode-smoke
+        path: test-results/vscode-smoke/
+        retention-days: 7
+```
+
+What each step checks, the result's fields and the settings and command line VS Code starts with
+are in [API.md][api], `./testing/vscode-electron`; why the driver works the way it does (frames,
+keys, theme switch) is in the [implementation notes][notes].
+
 ## Development
 
 Run from the repository root (`-w packages/shell` for this package only):
@@ -542,7 +667,7 @@ rule is broken.
 | `src/dom/feedback`, `src/core/feedback` | toasts, problems popover, the web app's mode                                               |
 | `src/diagram-js`                        | `shellModule`, viewport, `connectDiagramJs`, palette skin                                  |
 | `src/vscode`                            | extension side (HTML, theme bridge) and webview side                                       |
-| `src/testing`                           | the Playwright-driven conformance kit and the VS Code stub                                 |
+| `src/testing`                           | the conformance kit, the VS Code stub, the real-VS-Code smoke driver                       |
 | `src/*.ts`, `src/shell.css`             | the entry points                                                                           |
 | `test/`                                 | package boundaries, token drift, the unit tests' helpers                                   |
 | `demo/`, `e2e/`                         | the demo modeler and the e2e suite                                                         |
@@ -550,8 +675,9 @@ rule is broken.
 
 A module imports another one only through its `index.ts`; `src/core` imports nothing outside
 itself and compiles without the DOM library. `test/package-boundaries.test.ts` enforces this, the
-zero runtime dependencies, the exact devDependency pins, the token-only stylesheets and the published
-files (`dist`, `src` without its tests, `API.md` and the notices).
+zero runtime dependencies (the smoke driver's two peers optional, mirrored by exact
+devDependencies, loaded lazily and by nothing else), the exact devDependency pins, the token-only
+stylesheets and the published files (`dist`, `src` without its tests, `API.md` and the notices).
 
 ## License
 

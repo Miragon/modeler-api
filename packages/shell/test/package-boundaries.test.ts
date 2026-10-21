@@ -17,6 +17,14 @@ function filesUnder(directory: string, extension: string): string[] {
 
 const sourceFiles = filesUnder(sourceDir, ".ts").filter((path) => !path.endsWith(".test.ts"));
 
+/** `./testing/vscode-electron` drives a real VS Code; only it may use these, as optional peers. */
+const DRIVER_PEERS = ["@vscode/test-electron", "playwright-core"];
+const driverDir = join(sourceDir, "testing", "vscode-electron");
+
+function isDriverFile(path: string): boolean {
+  return path === driverDir || path.startsWith(driverDir + sep);
+}
+
 function importSpecifiers(source: string): string[] {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const pattern =
@@ -35,10 +43,18 @@ describe("package.json", () => {
     unknown
   >;
 
-  it("has no runtime dependencies", () => {
+  it("has no runtime dependencies; the VS Code driver's peers are optional", () => {
     expect(manifest.dependencies).toBeUndefined();
-    expect(manifest.peerDependencies).toBeUndefined();
     expect(manifest.optionalDependencies).toBeUndefined();
+    expect(Object.keys(manifest.peerDependencies as Record<string, string>).sort()).toEqual(DRIVER_PEERS);
+    expect(manifest.peerDependenciesMeta).toEqual(
+      Object.fromEntries(DRIVER_PEERS.map((peer) => [peer, { optional: true }])),
+    );
+  });
+
+  it("mirrors every peer by an exact devDependency for its own build and tests", () => {
+    const devDependencies = manifest.devDependencies as Record<string, string>;
+    for (const peer of DRIVER_PEERS) expect(devDependencies[peer]).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("pins every devDependency exactly", () => {
@@ -89,14 +105,40 @@ describe("third-party notices", () => {
 });
 
 describe("sources", () => {
-  it("never import diagram-js, vscode, Lucide, React or Playwright, not even as types", () => {
+  it("never import diagram-js, vscode, Lucide, React or Playwright, not even as types; the VS Code driver only its peers", () => {
     const forbidden =
-      /^(diagram-js|didi|tiny-svg|min-dom|min-dash|vscode|lucide.*|react|react-dom|preact|@playwright\/.*|playwright)(\/|$)/;
+      /^(diagram-js|didi|tiny-svg|min-dom|min-dash|vscode|@vscode\/.*|lucide.*|react|react-dom|preact|@playwright\/.*|playwright|playwright-core)(\/|$)/;
     const offending = sourceFiles.flatMap((path) =>
       importSpecifiers(readFileSync(path, "utf8"))
         .filter((specifier) => forbidden.test(specifier))
+        .filter((specifier) => !(isDriverFile(path) && DRIVER_PEERS.includes(specifier)))
         .map((specifier) => `${relative(packageDir, path)} → ${specifier}`),
     );
+    expect(offending).toEqual([]);
+  });
+
+  // A static import would make loading the entry fail before the driver can explain the missing peer.
+  it("reach the VS Code driver's peers only as types or through import()", () => {
+    const staticImport = new RegExp(
+      `^\\s*import\\s+(?!type\\b)[^;]*?from\\s*["'](${DRIVER_PEERS.join("|")})["']`,
+      "m",
+    );
+    const offending = sourceFiles
+      .filter(isDriverFile)
+      .filter((path) => staticImport.test(readFileSync(path, "utf8")))
+      .map((path) => relative(packageDir, path));
+    expect(offending).toEqual([]);
+  });
+
+  it("keep the VS Code driver out of every entry but its own", () => {
+    const ownEntry = join(sourceDir, "testing-vscode-electron.ts");
+    const offending = sourceFiles
+      .filter((path) => !isDriverFile(path) && path !== ownEntry)
+      .flatMap((path) =>
+        importSpecifiers(readFileSync(path, "utf8"))
+          .filter((specifier) => specifier.startsWith(".") && isDriverFile(join(dirname(path), specifier)))
+          .map((specifier) => `${relative(packageDir, path)} → ${specifier}`),
+      );
     expect(offending).toEqual([]);
   });
 

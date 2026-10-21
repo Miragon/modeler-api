@@ -1,10 +1,11 @@
-# @miragon/modeler-shell 0.2 — public API
+# @miragon/modeler-shell 0.3 — public API
 
 The shared, framework-free implementation of everything around a Miragon diagram-js modeler: menu
 button with dropdown, horizontal palette skin, chrome tooltip, zoom panel, zoom and fit keys, fit,
 problems pill, status box, empty-file hint, legend and inspector slots, the plumbing to a VS Code
 webview, and (0.2) the web-app chrome: primary action, legal line, File and Appearance groups,
-problems popover, toasts, empty-state card, drop zone and the web app's mode. Planned in
+problems popover, toasts, empty-state card, drop zone and the web app's mode, and (0.3) a driver
+that smoke-tests a modeler's extension in a real VS Code. Planned in
 [Miragon/modeler-api#4](https://github.com/Miragon/modeler-api/issues/4) (Phase 4); the first
 consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2, see
 [Usage: Event Storming in the web app](#usage-event-storming-in-the-web-app)).
@@ -16,7 +17,9 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
   [`docs/shell/implementation-notes.md`](../../docs/shell/implementation-notes.md).
 - **Zero runtime dependencies.** The shell never imports `diagram-js`, `didi`, `vscode`, Lucide or
   React, not even for types: diagram-js services are typed structurally, the `vscode` namespace and
-  Playwright's `page`/`test` are passed in.
+  Playwright's `page`/`test` are passed in. The one exception is `./testing/vscode-electron`, which
+  starts VS Code itself: it loads `playwright-core` and `@vscode/test-electron`, two optional peer
+  dependencies nobody installs who does not use that entry.
 - **Tokens are the consumer's.** The modeler vendors `cd-tokens.generated.css` unchanged; the shell
   CSS reads only `var(--cd-ui-*)` roles, `var(--cd-shell-*)` sizes and the mode-independent
   non-colour tokens `--cd-radius-*`, `--cd-shadow-*`, `--cd-motion-*`, `--cd-ease`, `--cd-ease-out`.
@@ -31,16 +34,17 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
 
 ## Entry points
 
-| Entry                                        | For                                                                                                   | Needs a DOM                    |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `@miragon/modeler-shell`                     | the chrome (`mountShell`, web chrome included), icons, plus all of `./core`                           | yes (at call time)             |
-| `@miragon/modeler-shell/core`                | fit math, keymap, zoom readout, appearance, sizes, messages, the web host's decisions and head script | no                             |
-| `@miragon/modeler-shell/diagram-js`          | `shellModule`, viewport, `connectDiagramJs`                                                           | yes                            |
-| `@miragon/modeler-shell/vscode/extension`    | webview HTML, nonce, theme bridge (extension host)                                                    | no                             |
-| `@miragon/modeler-shell/vscode/webview`      | `mountVsCodeShell`, appearance handler, webview state                                                 | yes                            |
-| `@miragon/modeler-shell/testing`             | Playwright-driven shell conformance kit                                                               | runs in Node, drives a browser |
-| `@miragon/modeler-shell/testing/vscode-stub` | a stand-in for VS Code around a webview test page                                                     | yes (in the test page)         |
-| `@miragon/modeler-shell/shell.css`           | every style of the shell                                                                              | —                              |
+| Entry                                            | For                                                                                                   | Needs a DOM                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `@miragon/modeler-shell`                         | the chrome (`mountShell`, web chrome included), icons, plus all of `./core`                           | yes (at call time)             |
+| `@miragon/modeler-shell/core`                    | fit math, keymap, zoom readout, appearance, sizes, messages, the web host's decisions and head script | no                             |
+| `@miragon/modeler-shell/diagram-js`              | `shellModule`, viewport, `connectDiagramJs`                                                           | yes                            |
+| `@miragon/modeler-shell/vscode/extension`        | webview HTML, nonce, theme bridge (extension host)                                                    | no                             |
+| `@miragon/modeler-shell/vscode/webview`          | `mountVsCodeShell`, appearance handler, webview state                                                 | yes                            |
+| `@miragon/modeler-shell/testing`                 | Playwright-driven shell conformance kit                                                               | runs in Node, drives a browser |
+| `@miragon/modeler-shell/testing/vscode-stub`     | a stand-in for VS Code around a webview test page                                                     | yes (in the test page)         |
+| `@miragon/modeler-shell/testing/vscode-electron` | smoke tests of the modeler's extension in a real VS Code (0.3)                                        | runs in Node, drives VS Code   |
+| `@miragon/modeler-shell/shell.css`               | every style of the shell                                                                              | —                              |
 
 All JavaScript entries ship as ESM and CJS with types (`typesVersions` covers `moduleResolution:
 node10`); importing any of them has no side effects. The package also ships `src/` without its tests,
@@ -648,7 +652,7 @@ interface MenuRadioOption {
 
 ### Modeler dialogs
 
-0.2 has no dialog component (a later candidate, see [Out of scope for 0.2](#out-of-scope-for-02)), so
+0.3 has no dialog component (a later candidate, see [Out of scope for 0.3](#out-of-scope-for-03)), so
 a modeler renders its dialogs, the "Keyboard shortcuts…" dialog of the Help group (§5.4) first among
 them, and meets §8 on its own:
 
@@ -2345,6 +2349,240 @@ for `window.webviewReady`. `ready`, `webviewReady` and the window globals are th
 shell's: its webview module exports `ready`, resolved once the first `init` import settled, and the
 test page turns it into the flag (the Event Storming `main.ts` below exports it).
 
+### `./testing/vscode-electron` — smoke tests in a real VS Code (0.3)
+
+The stub above stands in for VS Code; this entry starts the real one. It downloads VS Code with
+`@vscode/test-electron`, starts it through Playwright's Electron support with the modeler's built
+extension, opens a fixture in the custom editor and checks what only a real VS Code can show: the
+webview inside VS Code's two frames, the document's dirty state, save and undo through the
+workbench's keybindings, and the theme bridge under VS Code's four default themes, with a screenshot
+per theme. It runs in Node, from a Vitest or `node:test` file; no Playwright test runner is needed.
+
+`playwright-core` (`^1.50.0`) and `@vscode/test-electron` (`^3.1.0`, which needs Node 22) are
+optional peer dependencies of the shell: only this entry uses them, and it loads them on the first
+`runVsCodeSmoke` call. A modeler that uses it adds both as exact devDependencies; nobody else installs
+them. `@vscode/test-electron` before 3.1.0 starts VS Code on macOS as `Contents/MacOS/Electron`; VS
+Code 1.110 renamed that executable to `Code` and has since dropped the `Electron` link, so 2.x and
+3.0 fail every launch of a current VS Code on macOS. Verified with `playwright-core` 1.50.0 and
+1.64.1, `@vscode/test-electron` 3.1.0 and VS Code 1.96.0 and 1.143.0.
+
+```ts
+interface VsCodeSmokeFixture {
+  fileName: string; // a plain file name; it also keys workbench.editorAssociations
+  text: string; // the document, with at least one element
+}
+interface PlatformKeys {
+  modifier: "Meta" | "Control";
+  save: string; // "Meta+s" on macOS, "Control+s" elsewhere
+  undo: string; // "Meta+z" / "Control+z"
+  redo: string; // "Meta+Shift+z" / "Control+y"
+  close: string; // "Meta+w" / "Control+w": closes the active editor
+}
+interface VsCodeSmokeContext {
+  page: Page; // playwright-core: the VS Code window
+  webview: FrameLocator; // the modeler's webview document, inside VS Code's two webview frames
+  keys: PlatformKeys;
+  timeoutMs: number;
+}
+interface VsCodeSmokeOptions {
+  extensionPath: string; // the built extension folder (its package.json), --extensionDevelopmentPath
+  fixture: VsCodeSmokeFixture;
+  parse: (text: string) => unknown; // the modeler's parser; throws or rejects for an invalid document
+  edit?: (context: VsCodeSmokeContext) => Promise<void>; // default createFromPalette
+  ready?: (context: VsCodeSmokeContext) => Promise<void>; // default: the canvas shows a shape
+  undoSteps?: number; // default 1
+  themes?: readonly Theme[]; // what the extension passes to the theme bridge; default ["light"]
+  colorThemes?: readonly VsCodeColorTheme[]; // default VSCODE_COLOR_THEMES; the first also at start
+  chrome?: readonly ChromeIsland[]; // must be visible; default ["menu", "palette", "zoom"]
+  screenshotDir?: string; // <name>-<theme id>.png; none without it
+  name?: string; // default the extension's package.json name
+  viewType?: string; // default the first custom editor whose filenamePattern matches fixture.fileName
+  vscodeVersion?: string; // "stable", "insiders", "1.96.0"; default the newest stable satisfying engines.vscode
+  cachePath?: string; // @vscode/test-electron's download cache; default defaultVsCodeCachePath(…)
+  windowSize?: Size; // the window's content size; default 1280 × 800
+  timeoutMs?: number; // every single wait; default 30 000
+  settings?: Record<string, unknown>; // more user settings, merged over the driver's
+  log?: (line: string) => void; // progress; default silent
+  keepTemporaryFiles?: boolean; // keep profile, workspace and VS Code's logs, and log where
+}
+function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCodeSmokeResult>;
+function createFromPalette(context: VsCodeSmokeContext): Promise<void>;
+
+interface VsCodeColorTheme {
+  id: string; // light, dark, high-contrast-dark, high-contrast-light
+  name: string; // the workbench.colorTheme value
+  kind: ColorThemeKind; // 1 to 4
+}
+// Default Light Modern, Default Dark Modern, Default High Contrast, Default High Contrast Light
+const VSCODE_COLOR_THEMES: readonly VsCodeColorTheme[];
+function expectedWebviewAppearance(kind: ColorThemeKind, themes: readonly Theme[]): Appearance;
+function workbenchThemeClass(kind: ColorThemeKind): string; // vs, vs-dark, hc-black, hc-light
+function webviewBodyClasses(kind: ColorThemeKind): readonly string[]; // sorted; kind 4 has both high-contrast classes
+
+const VSCODE_SMOKE_STEPS: readonly ["resolve", "launch", "open", "edit", "save", "undo", "themes", "close"];
+type VsCodeSmokeStep = (typeof VSCODE_SMOKE_STEPS)[number];
+type VsCodeSmokeTimings = Partial<Record<VsCodeSmokeStep | "total", number>>; // milliseconds
+type ChromePresence = Partial<Record<ChromeIsland, boolean>>;
+interface VsCodeSmokeThemeResult {
+  theme: VsCodeColorTheme;
+  expected: Appearance; // what the theme bridge has to show for `themes`
+  observed?: Appearance; // what the webview's <html> showed; missing when the workbench never switched
+  bodyClasses: readonly string[]; // VS Code's theme classes on the webview's <body>
+  chrome: ChromePresence;
+  screenshot?: string; // absolute path
+  ms: number;
+  ok: boolean;
+}
+interface VsCodeSmokeResult {
+  ok: boolean; // failures is empty
+  failures: string[]; // "save: Meta+s wrote nothing to disk", one per broken expectation
+  vscodeVersion?: string;
+  executablePath?: string;
+  extensionId?: string; // publisher.name
+  viewType?: string;
+  chrome: ChromePresence; // after opening
+  saved?: { text: string; parsed: unknown }; // what the save wrote and parse returned
+  undone: boolean; // undo brought the canvas back and, saved again, the fixture's exact text
+  themes: VsCodeSmokeThemeResult[];
+  timings: VsCodeSmokeTimings;
+}
+function formatVsCodeSmoke(result: VsCodeSmokeResult): string; // a few lines for the test log
+function screenshotFileName(name: string, theme: VsCodeColorTheme): string;
+
+// the building blocks, for a driver of one's own
+interface VsCodeSmokePaths {
+  userDataDir: string;
+  extensionsDir: string;
+  workspaceDir: string;
+  file: string;
+}
+interface ExtensionManifest {
+  name?: string;
+  publisher?: string;
+  main?: string;
+  contributes?: {
+    customEditors?: ReadonlyArray<{
+      viewType?: string;
+      selector?: ReadonlyArray<{ filenamePattern?: string }>;
+    }>;
+  };
+}
+interface UserSettingsOptions {
+  colorTheme: string;
+  fileName: string;
+  viewType: string;
+  extra?: Record<string, unknown>;
+}
+const DEFAULT_WINDOW_SIZE: Size; // 1280 × 800
+function vsCodeLaunchArgs(extensionPath: string, paths: VsCodeSmokePaths): string[];
+function vsCodeUserSettings(options: UserSettingsOptions): Record<string, unknown>;
+function vsCodeEnvironment(environment: Record<string, string | undefined>): Record<string, string>;
+// <OS cache directory>/miragon-modeler-shell/vscode-test: ~/Library/Caches on macOS,
+// $XDG_CACHE_HOME or ~/.cache on Linux, %LOCALAPPDATA% on Windows
+function defaultVsCodeCachePath(
+  platform: string,
+  environment: Record<string, string | undefined>,
+  homeDirectory: string,
+): string;
+function platformKeys(platform: string): PlatformKeys;
+function extensionIdOf(manifest: ExtensionManifest): string | undefined;
+function customEditorViewType(manifest: ExtensionManifest, fileName: string): string | undefined;
+// *, ?, {a,b} and ** (a "**/" segment also matches no directory, as in VS Code); case-insensitive
+function matchesFilenamePattern(pattern: string, fileName: string): boolean;
+// the file main loads, found as Node's require finds it (as given, + .js/.json/.node, a folder's index.js)
+function resolveExtensionMain(extensionPath: string, main: string): string | undefined;
+```
+
+A run takes these steps, each timed; a failed step skips what depends on it, never the rest:
+
+1. **resolve**: `downloadAndUnzipVSCode` (cached in `cachePath`, by default in the OS's cache
+   directory, outside the repository and shared by every modeler on the machine; without
+   `vscodeVersion` the newest stable release that satisfies the extension's `engines.vscode`). A
+   `cachePath` inside the repository needs entries in `.gitignore` and in ESLint's `ignores`.
+2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
+   `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
+   VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release
+   notes or workspace trust prompt), no telemetry or crash reporter, then the workspace folder with
+   the fixture and the fixture itself. The user settings (`vsCodeUserSettings`) set the theme,
+   associate the fixture's file name with the custom editor (`workbench.editorAssociations`, so the
+   editor's `priority` does not matter), turn off telemetry, updates, the start page, tips,
+   experiments, the chat, auto save, Git and the OS's automatic color scheme and high contrast, and
+   dispatch keys by key code (`keyboard.dispatch: keyCode`). The environment drops `VSCODE_*` and
+   `ELECTRON_RUN_AS_NODE`. The window's content size becomes `windowSize`.
+3. **open**: the webview frame of the extension (`iframe.webview` whose URL names `extensionId`),
+   then its `#active-frame`; waits for `[data-chrome="menu"]`, then `ready`, and checks that every
+   island of `chrome` is visible. It records the canvas: shapes, connections and every shape's
+   position. When VS Code shows the fixture as text instead (the custom editor was not registered
+   yet when VS Code opened it, seen on the first start of a fresh download), the driver closes that
+   editor and opens the fixture again from the Explorer, every 2 s until the custom editor shows.
+   When the extension fails to activate, the step fails at once and quotes VS Code's error from the
+   extension host log (`exthost.log`: "Activating extension <id> failed due to an error: Error:
+   Cannot find module …"); a webview that never shows otherwise fails after `timeoutMs`. Either
+   failure names the webview frames the workbench has, with a `screenshotDir`
+   `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
+4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
+5. **save**: the platform's save key; the file on disk changes, the tab turns clean, and `parse`
+   accepts the saved text.
+6. **undo**: the platform's undo key `undoSteps` times; the canvas shows what it showed before the
+   edit (same shapes, connections and positions), and saved again, the file holds the fixture's
+   exact text.
+7. **themes**: per color theme, the driver writes `workbench.colorTheme` into the settings file
+   (VS Code watches it, as for a user's change), waits for `.monaco-workbench` to carry the theme's
+   class, for the webview's `<body>` classes and for `<html>` to show
+   `expectedWebviewAppearance(kind, themes)` without the shell's transition stop, then checks the
+   chrome and takes the screenshot (CSS pixels, so the same size on every machine). Before the first
+   theme it blurs the webview, so the canvas's focus ring of the keyboard edit is not in the
+   pictures.
+8. **close**: `app.close()`; a VS Code that has not quit after 10 s (a modal dialog) is killed. The
+   temporary directory goes, unless `keepTemporaryFiles`, also when Ctrl+C ends the test process
+   in the middle of a run.
+
+`runVsCodeSmoke` never throws for a failed check: everything broken is in `failures`, prefixed with
+its step. It throws for options it cannot run with (no `package.json`, no custom editor for the
+fixture, an extension whose `main` is not built, that is, `require` would not find it, a fixture
+name with a path or glob characters) and when a peer is missing. `createFromPalette`, the default
+`edit`, is the keyboard path of the shell's palette (guide §5.5): it focuses the first enabled entry
+outside the tools group that is not a `-tool`, presses Enter, waits for one more shape and presses
+Escape for the label editor a creation opens. An `edit` of one's own drives `context.webview` with
+locators (`click`, `dblclick`, `fill`) and `context.page.keyboard`, and leaves no label editor open.
+
+```ts
+// apps/vscode/test-smoke/vscode-smoke.test.ts
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { expect, it } from "vitest";
+import { parseDSLWithDiagnostics } from "@miragon/event-storming-dsl";
+import { formatVsCodeSmoke, runVsCodeSmoke } from "@miragon/modeler-shell/testing/vscode-electron";
+
+// the first run downloads VS Code: about 320 to 360 MB, about 0.9 GB unpacked per version
+it("Event Storming in a real VS Code", { timeout: 600_000 }, async () => {
+  const result = await runVsCodeSmoke({
+    extensionPath: fileURLToPath(new URL("..", import.meta.url)), // built: npm run build:vscode
+    fixture: {
+      fileName: "order-checkout.storm",
+      text: await readFile("example/order-checkout.storm", "utf8"),
+    },
+    parse(text) {
+      const { diagnostics } = parseDSLWithDiagnostics(text);
+      if (diagnostics.length > 0)
+        throw new Error(diagnostics.map((d) => `${d.line}: ${d.message}`).join("; "));
+    },
+    themes: ["light"], // as the extension passes them to connectThemeBridge
+    screenshotDir: "test-results/vscode-smoke",
+    log: console.log,
+  });
+  console.log(formatVsCodeSmoke(result));
+  expect(result.failures).toEqual([]);
+});
+```
+
+Run it on its own (`vitest run --config apps/vscode/test-smoke/vitest.config.ts`, with
+`fileParallelism: false`), not in the unit project: it needs a display and the extension's build,
+and two runs that download the same VS Code at once would write into the same cache. How to run it on
+macOS and in Linux CI, and why the driver works the way it does, is in the
+[README](README.md#smoke-tests-in-a-real-vs-code) and the
+[implementation notes](../../docs/shell/implementation-notes.md#vs-code-smoke-tests-in-a-real-vs-code).
+
 ## `./shell.css`
 
 One stylesheet for everything above, loaded last. Containment: `.cd-shell { container: cd-shell /
@@ -2845,7 +3083,7 @@ Storming board." and keeps the board. `pickFile` opens the hidden file input wit
 element order (the importer stacks overlapping stickies by it). The web app's own `style.css`,
 `toast.ts` and the hand-written menu, zoom, fit and legal markup go away.
 
-## Out of scope for 0.2
+## Out of scope for 0.3
 
 Later candidates unless noted:
 
@@ -2888,5 +3126,9 @@ Later candidates unless noted:
   - on those documents, a check that an empty one opens at 100 % with the empty-file hint;
   - a check that selects an element and reports positioned descendants of `.djs-container` above
     `z-index` 100 that are neither the palette, diagram-js's popup menu nor `.djs-hover-tooltip`.
+- **VS Code smoke driver** (`./testing/vscode-electron`): viewbox and selection kept across the
+  undo, redo, `workbench.reduceMotion`, Developer: Reload Window with the stored view, a hidden tab,
+  VS Code for the Web; and a fixture extension in this repository, so the shell's own CI runs the
+  driver (until then it is validated against the modelers' extensions).
 - IntelliJ/JCEF hosts, Electron, Tauri, Theia.
 - Canvas theming (`cd-canvas.css`, `cd-c-*` classes), light-only export, the token files themselves.
