@@ -115,14 +115,14 @@ creation, the read-only lock, the web column and a clean `destroy`.
   `shellSizesFromTokens` and `SHELL_TOKENS`
   ([`tokens.sync.test.ts`](../assets/template/apps/vscode/test/tokens.sync.test.ts)).
 
-## The VS Code smoke test (from modeler-shell 0.3.0)
+## The VS Code smoke test
 
 The kit's `ide` host is a stand-in for VS Code. `runVsCodeSmoke` from
-`@miragon/modeler-shell/testing/vscode-electron` (from modeler-shell 0.3.0) starts the real one: it
-downloads VS Code, starts it with the built extension on a throwaway profile, opens a fixture in
-the custom editor, edits through the canvas, saves (the file on disk changes and the modeler's
-parser accepts it), undoes (the canvas and, saved again, the file are the fixture again) and
-switches through VS Code's four default themes, where the webview has to show what the theme
+`@miragon/modeler-shell/testing/vscode-electron` (modeler-shell 0.3.0 or later) starts the real
+one: it downloads VS Code, starts it with the built extension on a throwaway profile, opens a
+fixture in the custom editor, edits through the canvas, saves (the file on disk changes and the
+modeler's parser accepts it), undoes (the canvas and, saved again, the file are the fixture again)
+and switches through VS Code's four default themes, where the webview has to show what the theme
 bridge resolves for the modeler's `themes`, with a screenshot each. Template:
 [`vscode-smoke.test.ts`](../assets/template/apps/vscode/test-smoke/vscode-smoke.test.ts), run by
 `npm run test:vscode-smoke` after `npm run build` and `npm run build:vscode`.

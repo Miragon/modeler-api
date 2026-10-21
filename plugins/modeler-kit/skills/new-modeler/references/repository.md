@@ -29,8 +29,7 @@ resolve them through `node_modules` to `dist`, so `npm run build` comes first.
 config, `apps/vscode`, `e2e`), `lint` (ESLint, then `typecheck`), `format`, `format:check`, `test`
 (Vitest project `unit`), `test:browser` (Vitest project `browser`, Chromium through
 `@vitest/browser-playwright`), `test:e2e`, `test:vscode-smoke` (the built extension in a real VS
-Code, from modeler-shell 0.3.0, see
-[shell](shell.md#the-vs-code-smoke-test-from-modeler-shell-030)), `depcruise`, `dev:webapp`
+Code, see [shell](shell.md#the-vs-code-smoke-test)), `depcruise`, `dev:webapp`
 (Portless; `dev:webapp:plain` for plain Vite on 5180), `dev:vscode`. The Husky pre-commit hook
 runs lint-staged and `npm run lint` only.
 
