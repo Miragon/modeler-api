@@ -18,10 +18,10 @@ import {
 } from "./launch.js";
 
 const paths = {
-  userDataDir: "/tmp/run/user-data",
-  extensionsDir: "/tmp/run/extensions",
-  workspaceDir: "/tmp/run/workspace",
-  file: "/tmp/run/workspace/board.storm",
+  userDataDir: "/scratch/run/user-data",
+  extensionsDir: "/scratch/run/extensions",
+  workspaceDir: "/scratch/run/workspace",
+  file: "/scratch/run/workspace/board.storm",
 };
 
 describe("vsCodeLaunchArgs", () => {
@@ -44,13 +44,13 @@ describe("vsCodeLaunchArgs", () => {
   });
 
   it("runs on a throwaway profile with the modeler's extension in development mode", () => {
-    expect(args).toContain("--user-data-dir=/tmp/run/user-data");
-    expect(args).toContain("--extensions-dir=/tmp/run/extensions");
+    expect(args).toContain("--user-data-dir=/scratch/run/user-data");
+    expect(args).toContain("--extensions-dir=/scratch/run/extensions");
     expect(args).toContain("--extensionDevelopmentPath=/repo/apps/vscode");
   });
 
   it("opens the workspace and then the fixture in it, last", () => {
-    expect(args.slice(-2)).toEqual(["/tmp/run/workspace", "/tmp/run/workspace/board.storm"]);
+    expect(args.slice(-2)).toEqual(["/scratch/run/workspace", "/scratch/run/workspace/board.storm"]);
     expect(args.filter((arg) => !arg.startsWith("--"))).toHaveLength(2);
   });
 });
@@ -106,7 +106,7 @@ describe("vsCodeEnvironment", () => {
       vsCodeEnvironment({
         PATH: "/usr/bin",
         HOME: "/home/ci",
-        VSCODE_IPC_HOOK_CLI: "/tmp/ipc.sock",
+        VSCODE_IPC_HOOK_CLI: "/scratch/ipc.sock",
         vscode_pid: "12",
         ELECTRON_RUN_AS_NODE: "1",
         UNSET: undefined,
@@ -117,15 +117,15 @@ describe("vsCodeEnvironment", () => {
 
 describe("defaultVsCodeCachePath", () => {
   it("is in the OS's cache directory, outside every repository", () => {
-    expect(defaultVsCodeCachePath("darwin", {}, "/Users/dev")).toBe(
-      join("/Users/dev", "Library", "Caches", "miragon-modeler-shell", "vscode-test"),
+    expect(defaultVsCodeCachePath("darwin", {}, "/home/dev")).toBe(
+      join("/home/dev", "Library", "Caches", "miragon-modeler-shell", "vscode-test"),
     );
     expect(defaultVsCodeCachePath("linux", {}, "/home/ci")).toBe(
       join("/home/ci", ".cache", "miragon-modeler-shell", "vscode-test"),
     );
-    expect(
-      defaultVsCodeCachePath("win32", { LOCALAPPDATA: "/c/Users/dev/AppData/Local" }, "/c/Users/dev"),
-    ).toBe(join("/c/Users/dev/AppData/Local", "miragon-modeler-shell", "vscode-test"));
+    expect(defaultVsCodeCachePath("win32", { LOCALAPPDATA: "/profiles/dev/local" }, "/home/dev")).toBe(
+      join("/profiles/dev/local", "miragon-modeler-shell", "vscode-test"),
+    );
   });
 
   it("follows XDG_CACHE_HOME on Linux and falls back where a variable is empty", () => {
@@ -135,8 +135,8 @@ describe("defaultVsCodeCachePath", () => {
     expect(defaultVsCodeCachePath("linux", { XDG_CACHE_HOME: "" }, "/home/ci")).toBe(
       join("/home/ci", ".cache", "miragon-modeler-shell", "vscode-test"),
     );
-    expect(defaultVsCodeCachePath("win32", {}, "/c/Users/dev")).toBe(
-      join("/c/Users/dev", "AppData", "Local", "miragon-modeler-shell", "vscode-test"),
+    expect(defaultVsCodeCachePath("win32", {}, "/home/dev")).toBe(
+      join("/home/dev", "AppData", "Local", "miragon-modeler-shell", "vscode-test"),
     );
   });
 });
