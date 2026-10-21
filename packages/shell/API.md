@@ -2666,8 +2666,8 @@ A run of `runVsCodeSmokeInDocker`:
 2. **Image.** Without `image`: `docker image inspect` of `vsCodeSmokeDockerImage(nodeVersion)`, and
    when it is missing (or `rebuild`) `docker build --tag <image> -` with `vsCodeSmokeDockerfile` on
    stdin; no build context. The hash in the tag builds a new image when a release changes the
-   recipe. A failed build names the base image (`node:<version>-bookworm-slim` exists for every Node
-   release Docker Hub carries) and `--node`.
+   recipe. A failed build names the base image `node:<version>-bookworm-slim` and `--node`, for a
+   Node version Docker Hub has no such image of.
 3. **Results directory.** The default `test-results/vscode-smoke`, the smoke test's own, is emptied,
    as are directories an earlier run created (they hold the marker `.modeler-shell-vscode-docker`); a
    missing or empty one is created with the marker; any other directory with files is left as it is

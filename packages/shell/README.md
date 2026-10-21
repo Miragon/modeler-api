@@ -633,7 +633,8 @@ keys, theme switch, save, Docker) is in the [implementation notes][notes].
 On macOS every run starts a VS Code window in the foreground, and several runs in a row keep taking
 the focus from whoever works on the machine. `modeler-shell-vscode-docker`, the shell's one command,
 runs the same test in a Linux container under `xvfb-run -a`, where no window shows. The host needs
-Docker (Docker Desktop on macOS and Windows) and the shell; the container brings everything else.
+Docker and the shell; the container brings everything else. Validated with Docker Desktop on an
+Apple silicon Mac; on a Linux host the results get the host user's ownership, not root's.
 Add the script next to the modeler's smoke script:
 
 ```json
@@ -650,11 +651,12 @@ npm run test:vscode:docker -- -- sh -c "npm run build && npm run build:vscode &&
 What it does:
 
 1. **Image.** Once per Node version and recipe it builds the local image
-   `modeler-shell-vscode-smoke:node<version>-<hash>`: the official `node:<version>-bookworm-slim`
-   with Xvfb, `xauth`, the libraries Electron needs, fonts, `unzip` and `git` (Dockerfile:
-   `vsCodeSmokeDockerfile`, in [API.md][api]). The Node version is the one that runs the command
+   `modeler-shell-vscode-smoke:node<version>-<hash>` (about 0.9 GB): the official
+   `node:<version>-bookworm-slim` with Xvfb, `xauth`, the libraries Electron needs, fonts, `unzip`
+   and `git` (Dockerfile: `vsCodeSmokeDockerfile`, in [API.md][api]). The Node version is the one that runs the command
    (`--node` picks another), the architecture the Docker host's (`linux/arm64` on Apple silicon, where
-   VS Code's `linux-arm64` build runs; `--platform linux/amd64` emulates x64, slowly). The hash in
+   VS Code's `linux-arm64` build runs; `--platform linux/amd64` asks for x64, which Docker Desktop
+   emulates there, not validated). The hash in
    the tag builds a new image when a shell release changes the recipe; `--rebuild` builds it again.
 2. **Repository.** The repository root (the nearest directory upwards with a `package-lock.json`) is
    mounted read-only at `/repo` and copied into the container without `node_modules`, `.git`,
@@ -676,7 +678,8 @@ With the image and VS Code cached a run takes about 10 s on an Apple silicon Mac
 10.4 s, Wardley Maps 9.3 s, `npm ci` included); the very first run about 75 s (the image 38 s, the
 VS Code download 22 s). Paths in the test's own output are the container's (`/work/…`). Two runs at
 once share the cache volume, so let a first download finish before starting a second run. `docker
-volume rm modeler-shell-vscode-cache modeler-shell-npm-cache` starts over. Without the command, the
+volume rm modeler-shell-vscode-cache modeler-shell-npm-cache` starts over (the VS Code volume holds
+about 1 GB per version). Without the command, the
 same in plain Docker (the image's Dockerfile from `vsCodeSmokeDockerfile`):
 
 ```sh

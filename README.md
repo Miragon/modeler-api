@@ -9,10 +9,10 @@ This repository is an npm workspace. Each package under `packages/` is
 versioned, tagged (`<component>-vX.Y.Z`, e.g. `modeler-api-v1.0.0`) and
 published on its own.
 
-| Package                                    | Path             | Status                                                                                                                                                                                                                           |
-| ------------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@miragon/modeler-api`](packages/api)     | `packages/api`   | the collaborative-modeler contract and its conformance kit, 0 runtime dependencies                                                                                                                                               |
-| [`@miragon/modeler-shell`](packages/shell) | `packages/shell` | the shared chrome around diagram-js modelers (menu, palette skin, zoom panel, keys, fit, VS Code plumbing), its conformance kit and a smoke-test driver for a real VS Code, 0 runtime dependencies, [API](packages/shell/API.md) |
+| Package                                    | Path             | Status                                                                                                                                                                                                                                                       |
+| ------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`@miragon/modeler-api`](packages/api)     | `packages/api`   | the collaborative-modeler contract and its conformance kit, 0 runtime dependencies                                                                                                                                                                           |
+| [`@miragon/modeler-shell`](packages/shell) | `packages/shell` | the shared chrome around diagram-js modelers (menu, palette skin, zoom panel, keys, fit, VS Code plumbing), its conformance kit and a smoke-test driver for a real VS Code (also in a Linux container), 0 runtime dependencies, [API](packages/shell/API.md) |
 
 The contract's laws, the conformance kit and its versioning are documented in
 the [package README](packages/api/README.md). The plan for the shell, the
