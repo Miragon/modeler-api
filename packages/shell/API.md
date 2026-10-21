@@ -2554,7 +2554,7 @@ import { expect, it } from "vitest";
 import { parseDSLWithDiagnostics } from "@miragon/event-storming-dsl";
 import { formatVsCodeSmoke, runVsCodeSmoke } from "@miragon/modeler-shell/testing/vscode-electron";
 
-// the first run downloads VS Code (about 150 MB)
+// the first run downloads VS Code: about 320 to 360 MB, about 0.9 GB unpacked per version
 it("Event Storming in a real VS Code", { timeout: 600_000 }, async () => {
   const result = await runVsCodeSmoke({
     extensionPath: fileURLToPath(new URL("..", import.meta.url)), // built: npm run build:vscode

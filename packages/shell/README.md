@@ -588,9 +588,11 @@ every commit behind a lint hook.
 
 **macOS, locally.** Give the file a script of its own,
 `"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
-and run it; a VS Code window opens for a few seconds. The first run downloads VS Code (about 150 MB);
-later runs reuse it. The driver dispatches keys by key code, so the run behaves the same on a QWERTZ
-or any other keyboard layout.
+and run it; a VS Code window opens for a few seconds. The first run downloads VS Code, about 320 to
+360 MB depending on the platform (1.143.0: 324 MB for macOS on Apple silicon, 351 MB for Linux x64)
+and about 0.9 GB unpacked per version, 25 to 45 s on a fast connection; later runs reuse it. The
+driver dispatches keys by key code, so the run behaves the same on a QWERTZ or any other keyboard
+layout.
 
 ```sh
 npm run build && npm run build:vscode
