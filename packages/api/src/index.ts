@@ -85,6 +85,14 @@ export interface ElementInfo {
   name?: string;
 }
 
+/** an element's box in diagram coordinates, as `ElementsSurface.bounds` reports it */
+export interface ElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /**
  * Optional element surface — what a host needs for anchored todos, `?element=`
  * deep links and the selection half of live presence. Absent = the notation
@@ -104,6 +112,22 @@ export interface ElementsSurface {
   selection(): string[];
   /** selection changes as STABLE element ids; returns the unsubscribe */
   onSelection(cb: (ids: string[]) => void): () => void;
+  /**
+   * the element's box in DIAGRAM coordinates — the canvas's own coordinate
+   * space, which zoom and scroll leave alone (a host maps it to the screen
+   * with the current view, or draws in a layer that moves with the canvas) —
+   * or `undefined` for an id `list()` does not report. Optional (1.2): hosts
+   * feature-detect it for presence outlines and todo markers instead of
+   * reaching into the engine.
+   *
+   * It reads the LIVE canvas: an element created, moved, resized or renamed
+   * in this session has its current box at once, not the one of the last
+   * import — a host outlining a peer's selection would otherwise draw it
+   * where the element was, or not at all, until the next import. The box is
+   * the element's own shape (a connection: the box around its waypoints); an
+   * external label is not part of it.
+   */
+  bounds?(id: string): ElementBounds | undefined;
 }
 
 /**

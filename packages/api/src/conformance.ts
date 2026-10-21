@@ -15,7 +15,13 @@
  * not follow resolves with `{ advisories }`, reported the same way and never
  * a failure: a recommendation becomes a law only in a major release.
  */
-import { apiVersionsCompatible, type CollaborativeModeler, MODELER_API_VERSION } from "./index.js";
+import {
+  apiVersionsCompatible,
+  type CollaborativeModeler,
+  type ElementBounds,
+  type ElementsSurface,
+  MODELER_API_VERSION,
+} from "./index.js";
 
 export { apiVersionsCompatible };
 
@@ -125,6 +131,16 @@ export interface ConformanceHarness {
    *  half of the undo/redo case is reported as skipped */
   redo?(modeler: CollaborativeModeler): Promise<void> | void;
   /**
+   * move ONE element read from `canonicalTexts[0]` (imported, then one
+   * `mutate` added an element) through the modeler's own commands, the way
+   * a user drags it, far enough that its box changes position after any
+   * snapping, rounding or clamping — and return that element's id
+   * (ElementInfo.id). The bounds case requires `elements.bounds` to report
+   * the moved box. `undefined` = that half of the bounds case is reported as
+   * skipped (only when the modeler has `bounds`)
+   */
+  moveElement?(modeler: CollaborativeModeler): Promise<string> | string;
+  /**
    * open an INTERACTION on an element of `canonicalTexts[0]` (already
    * imported) the way a user does — its label editor, or a popup with an
    * input — and type input WITHOUT committing it (no Enter, no blur). The
@@ -200,6 +216,37 @@ function exportOrFail(modeler: CollaborativeModeler, when: string): string {
 }
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+type BoundedElements = ElementsSurface & { bounds(id: string): ElementBounds | undefined };
+
+const hasBounds = (elements: ElementsSurface): elements is BoundedElements =>
+  typeof elements.bounds === "function";
+
+const isFiniteBox = (box: ElementBounds | undefined): box is ElementBounds =>
+  box !== undefined &&
+  [box.x, box.y, box.width, box.height].every((n) => typeof n === "number" && Number.isFinite(n)) &&
+  box.width >= 0 &&
+  box.height >= 0;
+
+const describeBox = (box: ElementBounds | undefined): string =>
+  box === undefined
+    ? "undefined"
+    : `{ x: ${box.x}, y: ${box.y}, width: ${box.width}, height: ${box.height} }`;
+
+/** every listed element's box, copied — a listed id without a finite box fails */
+function boxesOf(elements: BoundedElements, when: string): Map<string, ElementBounds> {
+  const boxes = new Map<string, ElementBounds>();
+  for (const { id } of elements.list()) {
+    const box = elements.bounds(id);
+    if (!isFiniteBox(box)) {
+      fail(
+        `elements.bounds('${id}') ${when} is ${describeBox(box)} — every listed id must give a finite box with a non-negative size`,
+      );
+    }
+    boxes.set(id, { x: box.x, y: box.y, width: box.width, height: box.height });
+  }
+  return boxes;
+}
 
 /** a view state with NaN/Infinity is what a detached or 0×0 host produces */
 function assertFinite(state: unknown, when: string): void {
@@ -985,6 +1032,86 @@ export function conformanceCases(): ConformanceCase[] {
           }
         } finally {
           for (const peer of peers) peer.destroy();
+        }
+      },
+    },
+    {
+      name: "elements.bounds (when present): a finite box in diagram coordinates for every listed id, undefined for an unknown one, live after a new element and a move",
+      async run(h) {
+        const text = h.canonicalTexts[0] ?? "";
+        const settle = h.settle ?? defaultSettle;
+        const m = await h.create();
+        let viewer: CollaborativeModeler | undefined;
+        try {
+          await m.importText(text);
+          const elements = m.elements;
+          if (!elements)
+            return skip("the modeler exposes no elements surface (optional) — nothing to verify");
+          if (!hasBounds(elements))
+            return skip("the modeler exposes no elements.bounds (optional) — nothing to verify");
+          boxesOf(elements, "after an import");
+          if (elements.bounds("__modeler_api_no_such_id__") !== undefined)
+            fail("elements.bounds(unknown id) must return undefined");
+          // what a box cached at the last import gives away: an element the
+          // session created has none, a moved one keeps its old position
+          const imported = new Set(elements.list().map((e) => e.id));
+          await h.mutate(m);
+          await settle();
+          for (const { id } of elements.list().filter((e) => !imported.has(e.id))) {
+            const box = elements.bounds(id);
+            if (!isFiniteBox(box)) {
+              fail(
+                `elements.bounds('${id}') of an element created in the session is ${describeBox(box)} — bounds must read the live canvas, not the last import`,
+              );
+            }
+          }
+          const unverified: string[] = [];
+          if (h.moveElement) {
+            const before = boxesOf(elements, "before a move");
+            const movedId = await h.moveElement(m);
+            await settle();
+            const was = before.get(movedId);
+            if (was === undefined)
+              fail(`moveElement returned '${movedId}', an id elements.list() did not report before the move`);
+            const box = boxesOf(elements, "after a move").get(movedId);
+            if (box === undefined)
+              fail(`'${movedId}' is gone from elements.list() after moveElement moved it`);
+            if (box.x === was.x && box.y === was.y) {
+              fail(
+                `elements.bounds('${movedId}') did not follow a move made through the modeler's own commands (still ${describeBox(was)}) — bounds must read the live canvas, not the last import (or moveElement did not move the element)`,
+              );
+            }
+          } else {
+            unverified.push("moveElement is undefined — that a box follows a move was not verified");
+          }
+          if (h.viewState !== undefined) {
+            const atRest = boxesOf(elements, "before a view change");
+            m.setViewState(h.viewState);
+            for (const [id, box] of boxesOf(elements, "after setViewState")) {
+              if (!same(box, atRest.get(id))) {
+                fail(
+                  `elements.bounds('${id}') changed with the view (${describeBox(atRest.get(id))} → ${describeBox(box)}) — boxes are in diagram coordinates, which zoom and scroll leave alone`,
+                );
+              }
+            }
+          } else {
+            unverified.push(
+              "viewState is undefined — that boxes are independent of the view was not verified",
+            );
+          }
+          if (h.createReadonly) {
+            viewer = await h.createReadonly();
+            await importOrFail(viewer, text, "the viewer rejected canonicalTexts[0]");
+            if (viewer.elements && hasBounds(viewer.elements)) {
+              boxesOf(viewer.elements, "on the viewer after an import");
+              if (viewer.elements.bounds("__modeler_api_no_such_id__") !== undefined)
+                fail("the viewer's elements.bounds(unknown id) must return undefined");
+            }
+          }
+          if (unverified.length > 0) return skip(unverified.join("; "));
+        } finally {
+          m.destroy();
+          viewer?.destroy();
         }
       },
     },

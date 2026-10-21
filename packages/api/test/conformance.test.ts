@@ -35,6 +35,12 @@ function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {})
     configMutations: [{ name: "title", run: (m) => (m as ReferenceModeler).setTitle(`T${counter++}`) }],
     undo: (m) => (m as ReferenceModeler).undoCommand(),
     redo: (m) => (m as ReferenceModeler).redoCommand(),
+    moveElement: (m) => {
+      const elementId = m.elements?.list()[0]?.id;
+      if (elementId === undefined) throw new Error("the harness needs an element to move");
+      (m as ReferenceModeler).moveLine(elementId, 40, 24);
+      return elementId;
+    },
     // a rejecting probe, so the conforming reference walks the rejection path too
     probeTexts: ["alpha\n!be"],
     openInteraction: (m) => {
@@ -70,6 +76,8 @@ const CASE = {
     "elements (when present): ids and names survive export → import, in this and in a fresh instance",
   elementsCollision:
     "elements (when present, recommended): ids created on two peers at the same time do not collide",
+  bounds:
+    "elements.bounds (when present): a finite box in diagram coordinates for every listed id, undefined for an unknown one, live after a new element and a move",
   l6Total: "L6: export is total after imports, user mutations and undo",
   l6Foreign: "L6: foreign content survives an import → export round-trip",
   l7NoTrace: "L7: a rejected import leaves no trace",
@@ -182,6 +190,28 @@ describe("the conforming reference modeler", () => {
     expect(counter?.advisories).toEqual([expect.stringContaining("allocated the same id ('line_1')")]);
   });
 
+  test("a modeler without elements.bounds (optional) skips exactly the bounds case", async () => {
+    const withoutBounds = async (): Promise<ReferenceModeler> => {
+      const m = createReferenceModeler();
+      if (!m.elements) throw new Error("the reference exposes an elements surface");
+      const { bounds: _dropped, ...elements } = m.elements;
+      return { ...m, elements };
+    };
+    const h = harness({}, { create: withoutBounds });
+    expect(await failingCases(h)).toEqual([]);
+    expect((await skippedCases(h)).skipped).toEqual([CASE.bounds]);
+  });
+
+  test("a moved element's offset is document content: it survives export → import", async () => {
+    const m = createReferenceModeler();
+    await m.importText("alpha\nbeta\n");
+    m.moveLine("alpha", 40, 24);
+    expect(m.exportText()).toBe("alpha @40,24\nbeta\n");
+    const fresh = createReferenceModeler();
+    await fresh.importText(m.exportText());
+    expect(fresh.elements?.bounds?.("alpha")).toEqual({ x: 40, y: 24, width: 40, height: 24 });
+  });
+
   test("ids the serializer writes back (a renamed element keeps its id) survive export → import", async () => {
     const m = createReferenceModeler();
     await m.importText("alpha\nbeta\n");
@@ -209,6 +239,7 @@ describe("the conforming reference modeler", () => {
           configMutations: undefined,
           undo: undefined,
           redo: undefined,
+          moveElement: undefined,
           probeTexts: undefined,
           openInteraction: undefined,
           interactionState: undefined,
@@ -218,6 +249,7 @@ describe("the conforming reference modeler", () => {
     expect(sparse.ran).toBe(conformanceCases().length);
     expect(sparse.skipped).toEqual(
       [
+        CASE.bounds,
         CASE.l1Interaction,
         CASE.l2Idempotent,
         CASE.l3Config,
@@ -232,6 +264,8 @@ describe("the conforming reference modeler", () => {
     );
     // undo without redo: the undo half is verified, the redo half reports a skip
     expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
+    // bounds without a move: the listing, the new element and the view are verified, the move reports a skip
+    expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([CASE.bounds]);
     // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a skip
     expect((await skippedCases(harness({}, { interactionState: undefined }))).skipped).toEqual([
       CASE.l1Interaction,
@@ -370,8 +404,8 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ destroyThrowsTwice: true }, [CASE.destroy, CASE.viewer]));
   test("a viewer that emits on import → exactly the viewer case", () =>
     expectFailures({ viewerEmits: true }, [CASE.viewer]));
-  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer leg of the id round-trip", () =>
-    expectFailures({ viewerImportThrows: true }, [CASE.viewer, CASE.elementsRoundTrip]));
+  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer legs of the id round-trip and the bounds case", () =>
+    expectFailures({ viewerImportThrows: true }, [CASE.viewer, CASE.elementsRoundTrip, CASE.bounds]));
   test("a viewer that cannot reveal (no selection service) → exactly the viewer case", () =>
     expectFailures({ viewerCannotReveal: true }, [CASE.viewer]));
   test("a viewer whose import keeps the viewport → exactly the viewer case", () =>
@@ -390,6 +424,16 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ probeRejectionLeavesTrace: true }, [CASE.l7Probes], { invalidTexts: [] }));
   test("an import that commits the open label editor → exactly the L1 interaction case", () =>
     expectFailures({ commitInteractionOnImport: true }, [CASE.l1Interaction]));
+
+  // ── the Design IQ host's findings (contract 1.2) ───────────────────────────
+  test("bounds answered from the last import (a new element has none) → exactly the bounds case", () =>
+    expectFailures({ boundsOfImportedOnly: true }, [CASE.bounds]));
+  test("bounds frozen at the first read (a moved element stays where it was) → exactly the bounds case", () =>
+    expectFailures({ boundsFrozenAtFirstRead: true }, [CASE.bounds]));
+  test("bounds that answer a box for an unknown id → exactly the bounds case", () =>
+    expectFailures({ boundsForUnknownIds: true }, [CASE.bounds]));
+  test("bounds in screen coordinates (they move with zoom and scroll) → exactly the bounds case", () =>
+    expectFailures({ boundsInViewCoordinates: true }, [CASE.bounds]));
 
   test("the contract version constant IS the package version (one identity)", () => {
     expect(MODELER_API_VERSION).toBe(pkg.version);

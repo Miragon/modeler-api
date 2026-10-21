@@ -71,6 +71,16 @@ per-instance counter such as `event_1`. An id derived from the content (OWM's
 `component_<slug>`) collides only when both users create the same content,
 which the merge has to reconcile anyway.
 
+Optional `elements.bounds(id)` (1.2) gives the element's box in DIAGRAM
+coordinates (`{ x, y, width, height }`, the canvas's own space, which zoom and
+scroll leave alone), or `undefined` for an id `list()` does not report. Hosts
+feature-detect it (`typeof modeler.elements?.bounds === "function"`) for
+presence outlines and todo markers instead of reaching into the engine. It
+reads the live canvas: an element created, moved, resized or renamed in the
+session has its current box at once, not the one of the last import. The box
+is the element's own shape (a connection: the box around its waypoints),
+without an external label.
+
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
 event, nothing in the imported document or on its undo history, nothing
@@ -98,6 +108,7 @@ registerConformance(
     configMutations: [{ name: "axis labels", run: (m) => renameEvolutionAxis(m) }], // [] if the notation has none
     undo: (m) => triggerUndo(m),
     redo: (m) => triggerRedo(m),
+    moveElement: (m) => dragFirstElement(m), // optional: move one element by its own commands, return its id
     probeTexts: [CUT_OFF_SAMPLE], // optional: damaged forms your parser meets, on top of the derived probes
     openInteraction: (m) => typeIntoLabelEditor(m, "typed, not committed"), // open an editor, type, do NOT commit
     interactionState: (m) => readOpenLabelEditor(m), // { elementId, text } | undefined
@@ -126,7 +137,10 @@ to route it) instead of passing. An explicit `[]` (`invalidTexts`,
 `foreignTexts`, `configMutations`, `looseTexts`) is a statement that the
 notation has no such form and skips nothing. Without `openInteraction` the
 L1 interaction case reports a skip; with `openInteraction` but without
-`interactionState` only its keep-and-reopen half does.
+`interactionState` only its keep-and-reopen half does. A modeler without
+`elements.bounds` skips the bounds case; with it, a harness without
+`moveElement` skips only its move half, one without `viewState` only its
+diagram-coordinates half.
 
 **Every rejection is probed.** `invalidTexts` lists what MUST reject; the kit
 does not take `[]` on trust. The L7 probe case derives damaged forms from
@@ -174,6 +188,13 @@ does).
 modeler's own (possibly normalised) state back, and requires that readback
 to survive a re-import — a diagram-js viewbox that comes back rounded with
 `scale`/`inner`/`outer` is fine.
+
+**Element boxes are verified live.** With `elements.bounds` present, every
+listed id must give a finite box with a non-negative size and an unknown id
+`undefined` — after an import, after `mutate` (the new element has its box at
+once) and after `moveElement` (the moved element's box changed position).
+`setViewState(viewState)` must leave every box as it was: they are diagram
+coordinates. A viewer that exposes `bounds` is held to the same listing rules.
 
 **Element identity is verified through names.** After an unrelated edit, and
 after an export → import into the same instance, a fresh instance and the
