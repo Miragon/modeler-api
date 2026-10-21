@@ -111,10 +111,11 @@ a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `
   workspace does not install are left to the template's own lint). `zod` is a root devDependency
   for that last check only (the template's schema model uses it).
 - **The VS Code smoke step** (`apps/vscode/test-smoke/` in the template) runs on the shell's
-  `./testing/vscode-electron` entry, which modeler-shell 0.3.0 releases. While the workspace's
-  shell is older, the drift test leaves that step out of the type check and accepts its import and
-  the driver's names in the skill (two of its tests show as skipped); from the 0.3.0 release PR on,
-  whose `extra-files` rewrite the template pins to 0.3.0, it checks them like everything else.
+  `./testing/vscode-electron` entry (released in modeler-shell 0.3.0). The drift test type-checks it
+  with the rest of the template and fails when it imports the driver from elsewhere, when
+  `apps/vscode` pins a shell other than the workspace's, or when the driver's optional peers
+  (`playwright-core`, `@vscode/test-electron`) are not exact devDependencies of `apps/vscode`
+  inside the shell's peer ranges.
 - **The template itself** builds and passes both conformance kits once instantiated: run the script
   into an empty directory outside this repository, copy the design-system files in (see the
   skill), then `npm install` and the template's checks. `claude plugin validate .` checks the
