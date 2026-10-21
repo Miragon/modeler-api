@@ -2512,8 +2512,11 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    position. When VS Code shows the fixture as text instead (the custom editor was not registered
    yet when VS Code opened it, seen on the first start of a fresh download), the driver closes that
    editor and opens the fixture again from the Explorer, every 2 s until the custom editor shows.
-   A webview that never shows fails with the webview frames the workbench has and, with a
-   `screenshotDir`, `<name>-open-failure.png`.
+   When the extension fails to activate, the step fails at once and quotes VS Code's error from the
+   extension host log (`exthost.log`: "Activating extension <id> failed due to an error: Error:
+   Cannot find module …"); a webview that never shows otherwise fails after `timeoutMs`. Either
+   failure names the webview frames the workbench has, with a `screenshotDir`
+   `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
 4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
 5. **save**: the platform's save key; the file on disk changes, the tab turns clean, and `parse`
    accepts the saved text.

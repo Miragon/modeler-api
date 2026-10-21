@@ -1,6 +1,6 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import type { ProgressReport, ProgressReporter } from "@vscode/test-electron";
 import type { ElectronApplication, FrameLocator, Page } from "playwright-core";
 import type { Appearance, ChromeIsland, Size, Theme } from "../../core/index.js";
@@ -18,6 +18,7 @@ import {
   type PlatformKeys,
   type VsCodeSmokePaths,
 } from "./launch.js";
+import { extensionActivationFailures } from "./logs.js";
 import {
   SmokeFailures,
   missingChrome,
@@ -122,6 +123,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const CLOSE_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 100;
 const REOPEN_INTERVAL_MS = 2_000;
+const LOG_READ_INTERVAL_MS = 1_000;
 const DEFAULT_CHROME: readonly ChromeIsland[] = ["menu", "palette", "zoom"];
 /** Names the screenshot of a webview that never showed, next to the theme screenshots. */
 const OPEN_FAILURE: VsCodeColorTheme = { id: "open-failure", name: "", kind: 1 };
@@ -479,11 +481,7 @@ async function runSession(run: SessionRun): Promise<void> {
   const dirty = () => context.page.evaluate(activeEditorDirtyProbe);
 
   const before = await step("open", async () => {
-    if (!(await showCustomEditor(context, run))) {
-      throw new Error(
-        `the custom editor never showed the shell's menu ${await describeWebviews(context, run)}`,
-      );
-    }
+    if (!(await showCustomEditor(context, run))) throw new Error(await openFailure(context, run));
     await (options.ready ?? defaultReady)(context);
     await settle(context);
     result.chrome = await html.evaluate(chromeProbe, islands);
@@ -567,14 +565,20 @@ async function runSession(run: SessionRun): Promise<void> {
  * development extension's custom editor is registered (seen on the first start of a fresh
  * download): it then shows as text. The driver closes it and opens it again from the Explorer,
  * where `workbench.editorAssociations` picks the custom editor once it is registered, and retries
- * until it is. False when the menu never showed.
+ * until it is. False when the menu never showed, at once when the extension failed to activate:
+ * its editor is then never registered.
  */
 async function showCustomEditor(context: VsCodeSmokeContext, run: SessionRun): Promise<boolean> {
   const menu = context.webview.locator('[data-chrome="menu"]');
   const deadline = performance.now() + run.timeoutMs;
   let reopenedAt = Number.NEGATIVE_INFINITY;
+  let logsReadAt = Number.NEGATIVE_INFINITY;
   while (performance.now() < deadline) {
     if (await menu.isVisible()) return true;
+    if (performance.now() - logsReadAt > LOG_READ_INTERVAL_MS) {
+      logsReadAt = performance.now();
+      if ((await activationFailures(run)).length > 0) return false;
+    }
     const retry = performance.now() - reopenedAt > REOPEN_INTERVAL_MS;
     if (retry && (await context.page.evaluate(activeTextEditorProbe))) {
       reopenedAt = performance.now();
@@ -592,10 +596,28 @@ async function showCustomEditor(context: VsCodeSmokeContext, run: SessionRun): P
 }
 
 /**
- * Why the webview did not show: which webview frames the workbench has (a run that never opened
- * leaves no other trace), and a screenshot of the window when there is a `screenshotDir`.
+ * The activation failures of the modeler's extension in VS Code's extension host logs, read while
+ * the temporary profile still exists.
  */
-async function describeWebviews(context: VsCodeSmokeContext, run: SessionRun): Promise<string> {
+async function activationFailures(run: SessionRun): Promise<string[]> {
+  const id = run.extensionId;
+  if (!id) return [];
+  const logsDir = join(run.paths.userDataDir, "logs");
+  const files = await readdir(logsDir, { recursive: true }).catch((): string[] => []);
+  const logs = await Promise.all(
+    files
+      .filter((file) => basename(file) === "exthost.log")
+      .map((file) => readFile(join(logsDir, file), "utf8").catch(() => "")),
+  );
+  return logs.flatMap((log) => extensionActivationFailures(log, id));
+}
+
+/**
+ * Why the webview did not show: the extension's activation error from VS Code's extension host log,
+ * which webview frames the workbench has (a run that never opened leaves no other trace), a
+ * screenshot of the window when there is a `screenshotDir`, and where VS Code's logs are.
+ */
+async function openFailure(context: VsCodeSmokeContext, run: SessionRun): Promise<string> {
   const sources = await context.page.evaluate(workbenchWebviewsProbe).catch((): string[] => []);
   const id = run.extensionId?.toLowerCase();
   const own = id ? sources.filter((source) => source.toLowerCase().includes(`extensionid=${id}`)) : sources;
@@ -608,7 +630,15 @@ async function describeWebviews(context: VsCodeSmokeContext, run: SessionRun): P
       () => "",
     );
   }
-  return `(${sources.length} webview frames in the workbench, ${own.length} of ${run.extensionId ?? "the extension"}${screenshot})`;
+  const failed = await activationFailures(run);
+  const causes = failed.length > 0 ? `: ${failed.join("; ")}` : "";
+  const logs = run.options.keepTemporaryFiles
+    ? `VS Code's logs are in ${join(run.paths.userDataDir, "logs")}`
+    : "keepTemporaryFiles keeps VS Code's logs";
+  return (
+    `the custom editor never showed the shell's menu${causes} ` +
+    `(${sources.length} webview frames in the workbench, ${own.length} of ${run.extensionId ?? "the extension"}${screenshot}; ${logs})`
+  );
 }
 
 interface ThemeCheckOptions {

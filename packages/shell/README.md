@@ -568,8 +568,11 @@ edit: async ({ webview, page }) => {
 
 The result says what happened (`ok`, `failures`, `saved`, `undone`, `themes` with the observed
 appearance and the screenshot, `timings` per step); `runVsCodeSmoke` never throws for a failed
-check, only for options it cannot run with. Keep the smoke test out of the unit tests' project: it
-needs a display and the built extension. Add the screenshot directory to `.gitignore`.
+check, only for options it cannot run with. An extension that fails to activate in VS Code (a module
+its bundle cannot load, a throw in `activate`) fails the open step at once, with VS Code's own error
+from its extension host log; `keepTemporaryFiles: true` keeps the profile with all of VS Code's logs.
+Keep the smoke test out of the unit tests' project: it needs a display and the built extension. Add
+the screenshot directory to `.gitignore`.
 
 **Where VS Code goes.** The driver keeps the download in the OS's cache directory, as Playwright
 keeps its browsers: `~/Library/Caches/miragon-modeler-shell/vscode-test` on macOS,

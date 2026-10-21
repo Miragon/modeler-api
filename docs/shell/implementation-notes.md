@@ -1545,6 +1545,16 @@ Storming and Wardley Maps extensions on macOS.
   was registered (two of thirteen such starts on macOS) and opened as text; the association
   does not reopen it. The driver then closes the text editor and opens the fixture from the
   Explorer, where the association applies, and repeats that every 2 s until the webview shows.
+- **An extension that does not activate.** Its custom editor is never registered, so the webview
+  never comes, and the workbench shows nothing but an empty tab with a progress bar. The cause is
+  only in the extension host's log, `<user-data-dir>/logs/<session>/window1/exthost/exthost.log`:
+  "Activating extension <id> failed due to an error:" and the error as the next entry. While the
+  driver waits for the webview it reads that log every second, stops at such a line, and quotes it
+  with the error's first line in the open failure; before, a run waited the full timeout and said
+  only that no webview showed, and the log went with the temporary profile. The driver's first runs
+  against the Context Maps and Value Chain extensions found exactly that, "Error: Cannot find
+  module './impl/format'" (jsonc-parser's UMD build in an esbuild bundle), which their e2e suites
+  against the stub cannot see.
 - **A clean profile.** `--user-data-dir` and `--extensions-dir` point into a fresh temporary
   directory, so no user setting, extension, restored window or welcome page interferes. The settings
   turn off what would cover the editor or change the theme behind the test's back: the start page,
