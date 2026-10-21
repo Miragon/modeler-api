@@ -364,7 +364,7 @@ describe("the template pins the modeler platform's current releases", () => {
   });
 });
 
-describe("the template's package.json files", () => {
+describe("the template's package.json files and workflows", () => {
   it("pin every dependency and devDependency exactly, with no file:, link: or tarball references", () => {
     const loose = templatePins.filter(
       (pin) =>

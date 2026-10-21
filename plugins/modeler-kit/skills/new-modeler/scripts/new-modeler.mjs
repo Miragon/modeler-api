@@ -104,5 +104,5 @@ function main() {
   console.log(`Wrote ${files.length} files to ${targetDir}. Next: see "After copying" in SKILL.md.`);
 }
 
-// Run as a script, not when imported (a symlinked path such as macOS's /tmp counts as the same file).
+// Run as a script, not when imported (a path through a symlinked directory counts as the same file).
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) main();
