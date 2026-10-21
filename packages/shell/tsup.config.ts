@@ -15,11 +15,19 @@ export default defineConfig([
     format: ["esm", "cjs"],
     dts: true,
     sourcemap: true,
-    // the CSS build below runs in parallel; cleaning its output here would race it
-    clean: ["**/*", "!shell.css"],
+    // the CSS and command builds below run in parallel; cleaning their output here would race them
+    clean: ["**/*", "!shell.css", "!vscode-docker.js*"],
   },
   {
     entry: { shell: "src/shell.css" },
+    clean: false,
+  },
+  {
+    // the bin: one self-contained ESM file, its shebang kept by esbuild
+    entry: { "vscode-docker": "src/testing/vscode-electron/docker-cli.ts" },
+    format: ["esm"],
+    platform: "node",
+    sourcemap: true,
     clean: false,
   },
 ]);

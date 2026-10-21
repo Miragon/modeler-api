@@ -31,6 +31,7 @@ import {
   type VsCodeSmokeStep,
   type VsCodeSmokeThemeResult,
 } from "./result.js";
+import { readSaveOnceClean } from "./save.js";
 import {
   VSCODE_COLOR_THEMES,
   WEBVIEW_THEME_BODY_CLASSES,
@@ -126,6 +127,8 @@ const CLOSE_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 100;
 const REOPEN_INTERVAL_MS = 2_000;
 const LOG_READ_INTERVAL_MS = 1_000;
+/** How long a saved text the parser rejects has to stay unchanged before the save step fails. */
+const SAVE_SETTLE_MS = 1_000;
 const DEFAULT_CHROME: readonly ChromeIsland[] = ["menu", "palette", "zoom"];
 /** Names the screenshot of a webview that never showed, next to the theme screenshots. */
 const OPEN_FAILURE: VsCodeColorTheme = { id: "open-failure", name: "", kind: 1 };
@@ -511,17 +514,30 @@ async function runSession(run: SessionRun): Promise<void> {
     edited &&
     (await step("save", async () => {
       await context.page.keyboard.press(context.keys.save);
-      const written = await pollUntil(readDisk, (text) => text !== original, timeoutMs);
-      if (!written.met) throw new Error(`${context.keys.save} wrote nothing to disk`);
-      const clean = await pollUntil(dirty, (value) => !value, timeoutMs);
-      if (!clean.met) failures.add("save", "the editor is still dirty after the save");
-      let parsed: unknown;
-      try {
-        parsed = await options.parse(written.value);
-      } catch (error) {
-        throw new Error(`the saved text does not parse: ${messageOf(error)}`);
+      const { clean, diskTimeoutMs, written } = await readSaveOnceClean({
+        dirty,
+        file: paths.file,
+        previous: original,
+        parse: options.parse,
+        timeoutMs,
+        intervalMs: POLL_INTERVAL_MS,
+        settleMs: SAVE_SETTLE_MS,
+      });
+      if (written.status === "unchanged") throw new Error(`${context.keys.save} wrote nothing to disk`);
+      if (!clean) failures.add("save", "the editor is still dirty after the save");
+      if (written.status === "unsettled") {
+        throw new Error(`the file was still changing ${diskTimeoutMs} ms after the save`);
       }
-      result.saved = { text: written.value, parsed };
+      if (written.status === "unparseable") {
+        throw new Error(
+          `the saved text does not parse: ${messageOf(written.error)} ` +
+            `(${Buffer.byteLength(written.text)} bytes on disk, unchanged for ${written.unchangedMs} ms)`,
+        );
+      }
+      log(
+        `save: ${Buffer.byteLength(written.text)} bytes on disk, read complete after ${written.waitedMs} ms`,
+      );
+      result.saved = { text: written.text, parsed: written.parsed };
       return true;
     }));
 

@@ -5,7 +5,7 @@ button with dropdown, horizontal palette skin, chrome tooltip, zoom panel, zoom 
 problems pill, status box, empty-file hint, legend and inspector slots, the plumbing to a VS Code
 webview, and (0.2) the web-app chrome: primary action, legal line, File and Appearance groups,
 problems popover, toasts, empty-state card, drop zone and the web app's mode, and (0.3) a driver
-that smoke-tests a modeler's extension in a real VS Code. Planned in
+that smoke-tests a modeler's extension in a real VS Code, since 0.3.1 also in a Linux container. Planned in
 [Miragon/modeler-api#4](https://github.com/Miragon/modeler-api/issues/4) (Phase 4); the first
 consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2, see
 [Usage: Event Storming in the web app](#usage-event-storming-in-the-web-app)).
@@ -19,7 +19,8 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
   React, not even for types: diagram-js services are typed structurally, the `vscode` namespace and
   Playwright's `page`/`test` are passed in. The one exception is `./testing/vscode-electron`, which
   starts VS Code itself: it loads `playwright-core` and `@vscode/test-electron`, two optional peer
-  dependencies nobody installs who does not use that entry.
+  dependencies nobody installs who does not use that entry. Its command `modeler-shell-vscode-docker`
+  (0.3.1) needs neither on the host, only Node and Docker.
 - **Tokens are the consumer's.** The modeler vendors `cd-tokens.generated.css` unchanged; the shell
   CSS reads only `var(--cd-ui-*)` roles, `var(--cd-shell-*)` sizes and the mode-independent
   non-colour tokens `--cd-radius-*`, `--cd-shadow-*`, `--cd-motion-*`, `--cd-ease`, `--cd-ease-out`.
@@ -47,11 +48,12 @@ consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2
 | `@miragon/modeler-shell/shell.css`               | every style of the shell                                                                              | —                              |
 
 All JavaScript entries ship as ESM and CJS with types (`typesVersions` covers `moduleResolution:
-node10`); importing any of them has no side effects. The package also ships `src/` without its tests,
-the files the sourcemaps point at, so stack traces and test locations resolve to real files. Every
-optional input field also accepts an explicit `undefined`, so consumers compiling with
-`exactOptionalPropertyTypes` can forward optional values (`{ view: viewport.getState() }`,
-`{ open: stored.legendOpen }`); the shell compiles with it too.
+node10`); importing any of them has no side effects. The package has one command (`bin`),
+`modeler-shell-vscode-docker`, an ESM file in `dist` (see [In Docker](#in-docker-031)). The package
+also ships `src/` without its tests, the files the sourcemaps point at, so stack traces and test
+locations resolve to real files. Every optional input field also accepts an explicit `undefined`, so
+consumers compiling with `exactOptionalPropertyTypes` can forward optional values
+(`{ view: viewport.getState() }`, `{ open: stored.legendOpen }`); the shell compiles with it too.
 
 ### Stylesheet order
 
@@ -2357,6 +2359,8 @@ extension, opens a fixture in the custom editor and checks what only a real VS C
 webview inside VS Code's two frames, the document's dirty state, save and undo through the
 workbench's keybindings, and the theme bridge under VS Code's four default themes, with a screenshot
 per theme. It runs in Node, from a Vitest or `node:test` file; no Playwright test runner is needed.
+The package's command `modeler-shell-vscode-docker` runs such a test in a Linux container, without a
+window on the host ([In Docker](#in-docker-031)).
 
 `playwright-core` (`^1.50.0`) and `@vscode/test-electron` (`^3.1.0`, which needs Node 22) are
 optional peer dependencies of the shell: only this entry uses them, and it loads them on the first
@@ -2521,8 +2525,17 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    failure names the webview frames the workbench has, with a `screenshotDir`
    `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
 4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
-5. **save**: the platform's save key; the file on disk changes, the tab turns clean, and `parse`
-   accepts the saved text.
+5. **save** (0.3.1): the platform's save key; the tab turns clean, then the driver reads the file
+   until it holds still: a read counts once two reads 100 ms apart see the same size, mtime and text
+   and that text differs from the fixture. The clean tab is what makes the read complete: VS Code
+   truncates the file before it writes it, so a read during the write can be empty or cut short, and
+   it clears the dirty state only once the write has resolved. The two reads only add a margin (for a
+   save that reports success before its write is visible); on their own they cannot tell a pause
+   inside a write from its end. `parse` gets that text; a text it rejects is read again, and the step
+   fails only when the rejected text stays unchanged for 1 s: "the saved text does not parse: <the
+   parser's first line> (<bytes> bytes on disk, unchanged for <ms> ms)". A file that never changes
+   fails with "<save key> wrote nothing to disk"; a tab that stays dirty adds "the editor is still
+   dirty after the save" and the disk gets one more second instead of another `timeoutMs`.
 6. **undo**: the platform's undo key `undoSteps` times; the canvas shows what it showed before the
    edit (same shapes, connections and positions), and saved again, the file holds the fixture's
    exact text.
@@ -2582,6 +2595,111 @@ and two runs that download the same VS Code at once would write into the same ca
 macOS and in Linux CI, and why the driver works the way it does, is in the
 [README](README.md#smoke-tests-in-a-real-vs-code) and the
 [implementation notes](../../docs/shell/implementation-notes.md#vs-code-smoke-tests-in-a-real-vs-code).
+
+#### In Docker (0.3.1)
+
+`modeler-shell-vscode-docker`, the package's command, runs a modeler's smoke test in a Linux
+container under `xvfb-run -a`, so no VS Code window opens on the host (on macOS every run would take
+the focus). A modeler adds `"test:vscode:docker": "modeler-shell-vscode-docker"`; the host needs Node
+and Docker, not the peers. `runVsCodeSmokeInDocker` is the same from a script of one's own, the rest
+are its building blocks.
+
+```text
+modeler-shell-vscode-docker [options] [-- <command> [arguments]]
+  --script <name>         the npm script to run (default: test:vscode)
+  --results <directory>   copied back, relative to the repository (default: test-results/vscode-smoke)
+  --env <NAME[=value]>    into the container's environment, the value from here when it has none (repeatable)
+  --node <version>        the Node.js version of the image (default: the Node.js that runs the command)
+  --image <name>          an image of one's own instead of the built one
+  --platform <platform>   docker --platform, e.g. linux/amd64 (default: the Docker host's)
+  --rebuild               build the image again
+  -h, --help
+```
+
+```ts
+interface VsCodeSmokeDockerOptions {
+  cwd?: string; // default process.cwd(); the root is the nearest directory upwards with a package-lock.json
+  command?: readonly string[]; // under xvfb-run -a after npm ci; default ["npm", "run", "test:vscode"]
+  results?: string; // inside the root; default "test-results/vscode-smoke"
+  nodeVersion?: string; // the image's Node; default process.versions.node
+  env?: Record<string, string>; // into the container
+  image?: string; // one's own image (with bash, tar, Node and npm, xvfb-run); builds none
+  platform?: string; // docker --platform
+  rebuild?: boolean; // build the image even when it exists
+  docker?: string; // the Docker CLI; default "docker"
+  log?: (line: string) => void; // default console.log
+}
+interface VsCodeSmokeDockerResult {
+  exitCode: number; // the command's in the container; npm ci failing: 1
+  image: string;
+  root: string; // the repository root on the host
+  results: string; // the results directory on the host, absolute
+  timings: { image: number; run: number }; // ms; image 0 when it existed
+}
+function runVsCodeSmokeInDocker(options?: VsCodeSmokeDockerOptions): Promise<VsCodeSmokeDockerResult>;
+
+// FROM node:<version>-bookworm-slim; apt-get install --no-install-recommends of the packages below
+function vsCodeSmokeDockerfile(nodeVersion: string): string;
+// "modeler-shell-vscode-smoke:node<version>-<first 12 hex of the Dockerfile's SHA-256>", with a
+// platform "-<platform, / as ->" at the end ("…-linux-amd64"): one tag holds one platform's image
+function vsCodeSmokeDockerImage(nodeVersion: string, platform?: string): string;
+// Xvfb, xauth, Electron's libraries (GTK 3, NSS, GBM, ALSA, libsecret, libxkbfile, …), fonts, unzip, git
+const VSCODE_SMOKE_DOCKER_PACKAGES: readonly string[];
+// shared by every run on the machine: VS Code's downloads (the container's ~/.cache) and npm's cache
+const VSCODE_SMOKE_DOCKER_VOLUMES: { cache: "modeler-shell-vscode-cache"; npm: "modeler-shell-npm-cache" };
+interface VsCodeSmokeDockerRunOptions {
+  image: string;
+  root: string; // absolute, on the host
+  workdir: string; // where the command runs, relative to the root; "" for the root
+  results: string; // relative to the root
+  command: readonly string[];
+  env?: Record<string, string>;
+  platform?: string;
+  hostUser?: { uid: number; gid: number }; // gets the results; none on Windows
+}
+// the arguments after "docker"
+function vsCodeSmokeDockerRunArgs(options: VsCodeSmokeDockerRunOptions): string[];
+```
+
+A run of `runVsCodeSmokeInDocker`:
+
+1. **Docker.** `docker version` must answer, otherwise it throws "Docker is not available (<docker's
+   message>): install and start Docker Desktop or Docker Engine". It throws as well without a
+   `package-lock.json` in `cwd` or above and for a results directory outside the root or the root
+   itself, compared with its symlinks resolved (an absolute path through `/tmp`, which is
+   `/private/tmp` on macOS, is inside; a symlink in the repository that leads out of it is not).
+2. **Image.** Without `image`: `docker image inspect` of
+   `vsCodeSmokeDockerImage(nodeVersion, platform)`, and when it is missing (or `rebuild`)
+   `docker build [--platform <platform>] --tag <image> -` with `vsCodeSmokeDockerfile` on stdin; no
+   build context. The hash in the tag builds a new image when a release changes the recipe. A
+   `platform` gets an image of its own (the tag ends in `-linux-amd64`): a tag holds one platform's
+   image, and `docker run --platform` with a tag that holds another platform's tries to pull it. A
+   failed build names the base image `node:<version>-bookworm-slim` and `--node`, for a Node version
+   Docker Hub has no such image of.
+3. **Results directory.** The default `test-results/vscode-smoke`, the smoke test's own, is emptied,
+   as are directories an earlier run created (they hold the marker `.modeler-shell-vscode-docker`); a
+   missing or empty one is created with the marker; any other directory with files is left as it is
+   and the run's files land next to them.
+4. **Container.** `docker run` with `vsCodeSmokeDockerRunArgs`: `--rm`, `--init` (reaps VS Code's
+   processes, passes Ctrl+C on), `--shm-size=1g` (Chromium's shared memory; Docker's 64 MB default
+   crashes renderers), the root read-only at `/repo`, the results directory at `/results`, the two
+   volumes at `/root/.cache` and `/root/.npm`, and `SMOKE_RESULTS`, `SMOKE_WORKDIR`, `HOST_UID`,
+   `HOST_GID`, `TMPDIR=/tmp/vscode-smoke`, `HUSKY=0` and `TINI_KILL_PROCESS_GROUP=1` (Ctrl+C reaches
+   every process of the run, not only the script) next to `env`. Inside, a bash script copies
+   `/repo` to `/work` without `node_modules`, `.git`, `.vscode-test` and the results, runs
+   `npm ci --no-audit --no-fund` (its log's last 40 lines on failure), then the command in the
+   working directory under `xvfb-run -a -s "-screen 0 1920x1200x24"`, copies the results and every
+   kept VS Code log directory (`$TMPDIR/modeler-shell-vscode-*/user-data/logs`, to
+   `vscode-logs/<run>/`) to `/results`, gives them to the host's user and exits with the command's
+   code. Every phase logs its duration (`[vscode-docker] npm ci in 4 s`).
+
+The driver needs nothing special in the container: Linux keys (`Control+s`), its default cache path
+under `~/.cache` (the volume), VS Code's `linux-arm64` or `linux-x64` build by the container's
+architecture. Keep that default `cachePath` for Docker runs. The copy leaves out only
+`.vscode-test`: a test with its `cachePath` there downloads VS Code on every run, because the copy
+starts without it. Any other `cachePath` inside the repository is copied in on every run with the
+host's VS Code builds (about 1 GB per version), and the container still downloads its Linux build
+into the copy, which the run then throws away.
 
 ## `./shell.css`
 
@@ -3126,7 +3244,9 @@ Later candidates unless noted:
   - on those documents, a check that an empty one opens at 100 % with the empty-file hint;
   - a check that selects an element and reports positioned descendants of `.djs-container` above
     `z-index` 100 that are neither the palette, diagram-js's popup menu nor `.djs-hover-tooltip`.
-- **VS Code smoke driver** (`./testing/vscode-electron`): viewbox and selection kept across the
+- **VS Code smoke driver** (`./testing/vscode-electron`): keeping a local run on macOS in the
+  background (no focus change; the Docker command is the way until then), a reused `node_modules`
+  between Docker runs; viewbox and selection kept across the
   undo, redo, `workbench.reduceMotion`, Developer: Reload Window with the stored view, a hidden tab,
   VS Code for the Web; and a fixture extension in this repository, so the shell's own CI runs the
   driver (until then it is validated against the modelers' extensions).
