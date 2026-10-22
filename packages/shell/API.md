@@ -2513,7 +2513,10 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    that run holds the folder `.replacing-<folder>` in `cachePath` while it moves the rejected install
    aside, and a lock older than a minute, left by a killed run, is taken over. A private folder its
    run could not remove (killed mid-download) goes with the first run a day later. A `cachePath` the
-   run cannot write to is read as it is.
+   run cannot write to is read as it is. One on a file system that refuses symbolic links (FAT, for
+   one) goes to `downloadAndUnzipVSCode` directly once it holds an install, as before 0.3.3 and so
+   without this protection, and the run logs "resolve: <cachePath> cannot hold links (EPERM), so this
+   run uses it directly, unprotected from runs at the same time".
 2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
    `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
    VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release

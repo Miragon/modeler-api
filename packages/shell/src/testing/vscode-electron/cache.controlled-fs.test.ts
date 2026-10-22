@@ -11,6 +11,7 @@ const fileSystem = vi.hoisted(() => ({
   heldStat: undefined as { path: string; reached: () => void; release: Promise<void> } | undefined,
   watched: undefined as string | undefined,
   movedOutOfWatched: [] as string[],
+  symlinkError: undefined as string | undefined,
 }));
 
 vi.mock("node:fs/promises", async (importOriginal) => {
@@ -39,6 +40,11 @@ vi.mock("node:fs/promises", async (importOriginal) => {
       }
       return fs.rename(from, to);
     },
+    symlink: async (...args: Parameters<typeof fs.symlink>) => {
+      const code = fileSystem.symlinkError;
+      if (code) throw Object.assign(new Error(`${code}, symlink`), { code });
+      return fs.symlink(...args);
+    },
   };
 });
 
@@ -57,6 +63,7 @@ afterEach(() => {
   fileSystem.heldStat = undefined;
   fileSystem.watched = undefined;
   fileSystem.movedOutOfWatched = [];
+  fileSystem.symlinkError = undefined;
 });
 
 let cacheCount = 0;
@@ -110,5 +117,46 @@ describe("resolveInSharedCache on a file system the test controls", () => {
       [`another run installed ${shared} first, this run uses that one`],
       [`replaced ${shared}, which @vscode/test-electron did not accept`],
     ]);
+  });
+
+  it.each(["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS"])(
+    "reads a cache on a file system without links (%s) as it is",
+    async (code) => {
+      const cachePath = await emptyCache();
+      const fake = fakeTestElectron();
+      await writeInstall(join(cachePath, fake.folderName), "earlier run");
+      fileSystem.symlinkError = code;
+      const cachePaths: string[] = [];
+      const lines: string[] = [];
+
+      const executable = await resolveInSharedCache({
+        cachePath,
+        download: (path) => {
+          cachePaths.push(path);
+          return fake.download({ cachePath: path });
+        },
+        log: (line) => lines.push(line),
+      });
+
+      expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+      expect(cachePaths).toEqual([cachePath]);
+      expect(fake.unpacked).toEqual([]);
+      expect(await readdir(cachePath)).toEqual([fake.folderName]);
+      expect(lines).toEqual([
+        `${cachePath} cannot hold links (${code}), so this run uses it directly, unprotected from runs at the same time`,
+      ]);
+    },
+  );
+
+  it("fails on any other error of a link", async () => {
+    const cachePath = await emptyCache();
+    const fake = fakeTestElectron();
+    await writeInstall(join(cachePath, fake.folderName), "earlier run");
+    fileSystem.symlinkError = "EIO";
+
+    await expect(
+      resolveInSharedCache({ cachePath, download: (path) => fake.download({ cachePath: path }) }),
+    ).rejects.toThrow("EIO");
+    expect(await readdir(cachePath)).toEqual([fake.folderName]);
   });
 });

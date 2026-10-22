@@ -1589,6 +1589,13 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   - _A cache the run cannot write to_ (`EACCES`, `EPERM`, `EROFS` for the private folder) gets
     `downloadAndUnzipVSCode` directly, as before: a cached version still resolves, and a run that
     cannot write to the cache cannot break it for another one.
+  - _A cache without links_ (`EPERM` for the link on a FAT mount under Linux; `ENOTSUP`,
+    `EOPNOTSUPP`, `ENOSYS`) gets `downloadAndUnzipVSCode` directly too, with a log line, since 0.3.2
+    resolved a cached version there and the private folder failed it at the first link. Runs on
+    such a cache are not protected from each other once it holds an install; an empty one needs no
+    link, so its first download still goes through the private folder. On a vfat loop mount in
+    Docker with the real `@vscode/test-electron` 3.1.0, a cached version resolved where the run
+    without the fallback failed with `EPERM: operation not permitted, symlink`.
   - With the change, the same two staggered runs both passed (the second one logged "another run
     installed … first, this run uses that one"), as did two runs started at the same moment; the
     cache then held one install and no private folder, and a third run resolved through the link in

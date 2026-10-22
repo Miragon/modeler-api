@@ -584,7 +584,9 @@ walks the unpacked VS Code. Since 0.3.3 runs may use it at the same time, in one
 several: a run unpacks a VS Code version the cache does not have yet into a folder of its own inside
 the cache and then moves it in with one rename, so no run deletes or overwrites the VS Code another
 one starts. When two runs download the same version at once, the first one done puts it into the
-cache and the other one uses that copy. A `cachePath` inside the repository (`.vscode-test`, the
+cache and the other one uses that copy. A cache on a file system that refuses symbolic links (FAT,
+for one) loses this protection once it holds an install: a run then uses it directly, as before
+0.3.3, and says so in its log. A `cachePath` inside the repository (`.vscode-test`, the
 default of `@vscode/test-electron` itself) needs an entry in `.gitignore` and one in ESLint's
 `ignores` (`"**/.vscode-test/**"`): the flat config does not read `.gitignore`, so `eslint .` would
 lint the downloaded VS Code, fail with hundreds of errors and block every commit behind a lint hook.

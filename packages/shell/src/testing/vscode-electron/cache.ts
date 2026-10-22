@@ -44,7 +44,7 @@ export interface SharedCacheOptions {
 export async function resolveInSharedCache({
   cachePath,
   download,
-  log,
+  log = () => undefined,
 }: SharedCacheOptions): Promise<string> {
   await mkdir(cachePath, { recursive: true });
   await removeAbandonedDownloads(cachePath);
@@ -58,7 +58,14 @@ export async function resolveInSharedCache({
   const removePrivateCacheNow = () => rmSync(privateCache, { recursive: true, force: true, maxRetries: 3 });
   process.once("exit", removePrivateCacheNow);
   try {
-    const linked = await linkSharedInstalls(cachePath, privateCache);
+    const linked = await linkSharedInstalls(cachePath, privateCache).catch((error: unknown) => {
+      if (!cannotLink(error)) throw error;
+      log(
+        `${cachePath} cannot hold links (${String(codeOf(error))}), so this run uses it directly, unprotected from runs at the same time`,
+      );
+      return undefined;
+    });
+    if (!linked) return await download(cachePath);
     const executable = await download(privateCache);
     const inside = relative(privateCache, executable);
     if (inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside)) {
@@ -67,7 +74,7 @@ export async function resolveInSharedCache({
     const folder = inside.split(sep)[0]!;
     const unpacked = join(privateCache, folder);
     if (!(await lstat(unpacked)).isSymbolicLink()) {
-      await publish(unpacked, join(cachePath, folder), linked.get(folder), log ?? (() => undefined));
+      await publish(unpacked, join(cachePath, folder), linked.get(folder), log);
     }
     return join(cachePath, inside);
   } finally {
@@ -200,6 +207,12 @@ function codeOf(error: unknown): unknown {
 function isReadOnly(error: unknown): boolean {
   const code = codeOf(error);
   return code === "EACCES" || code === "EPERM" || code === "EROFS";
+}
+
+/** A file system without symbolic links: EPERM on Linux (FAT), ENOTSUP, EOPNOTSUPP or ENOSYS elsewhere. */
+function cannotLink(error: unknown): boolean {
+  const code = codeOf(error);
+  return code === "EPERM" || code === "ENOTSUP" || code === "EOPNOTSUPP" || code === "ENOSYS";
 }
 
 /** A rename onto a directory that is there already: ENOTEMPTY or EEXIST, on Windows EPERM or EACCES. */
