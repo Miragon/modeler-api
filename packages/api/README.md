@@ -130,7 +130,7 @@ host's aligned options.
 | Option         | Meaning                                                                                                                                                                                                                                                           | Default             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | `freeArea`     | the part of the canvas no host chrome covers — `{ insets }` (px from the container's edges, e.g. `shell.fitInsets()`) or `{ center }` (diagram coordinates, e.g. `viewport.freeRectCenter()`), each a function, never both; keyboard creation lands in its centre | the whole container |
-| `fitOnImport`  | fit the content after every import (the fitted view of L5); `false` when the host's chrome fits it itself                                                                                                                                                         | `true`              |
+| `fitOnImport`  | fit the content after every import (the fitted view of L5), into the free rectangle or with the renderer's own padding (see below); `false` when the host's chrome fits it itself                                                                                 | `true`              |
 | `undoRedoKeys` | bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history; `false` when the host owns the document's history (VS Code)                                                                                                                               | `true`              |
 
 ```ts
@@ -150,10 +150,20 @@ aliases for one minor release of that renderer, then go: `freeRectInsets`
 (Wardley, Event Storming, Context Maps) is `freeArea: { insets }`,
 `freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
 Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. A renderer given only
-`center` that needs the rectangle itself (a pan constraint) treats the whole
-container as free. A viewer factory takes the same type and ignores
-`undoRedoKeys`. The kit's `create()` keeps `fitOnImport` at its default: L5
-checks the modeler's own fit.
+`center` that needs the rectangle itself (a pan constraint) works there as it
+does without the option: no host chrome, its own margins. A viewer factory
+takes the same type and ignores `undoRedoKeys`. The kit's `create()` keeps
+`fitOnImport` at its default: L5 checks the modeler's own fit.
+
+The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free area:
+given `insets` a renderer may fit into the free rectangle (Wardley, Context
+Maps) or keep its own fit (Event Storming, Team Topologies, Value Chain), and
+given only `center`, which names no rectangle, it fits as it does without the
+option, keeping the padding it uses then (Context Maps keeps the room its
+palette needs, and a test pins it). All five published renderers conform to
+this reading; no kit case checks it, since `create()` takes no options. A host
+whose first view must leave its chrome free passes `fitOnImport: false` and
+fits itself, to `contentBounds()` where the renderer has it.
 
 ## The conformance kit
 

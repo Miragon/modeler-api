@@ -289,8 +289,16 @@ export interface DiagramPoint {
  *    there is none (a 0×0 container) — the shell's `viewport.freeRectCenter()`.
  *
  * A renderer accepts both. One that needs the rectangle itself (a pan
- * constraint) and is given only `center` treats the whole container as
- * free, as it does without the option.
+ * constraint) and is given only `center` works there as it does without
+ * the option: it assumes no host chrome and keeps margins of its own.
+ *
+ * The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free
+ * area: given `insets` a renderer may fit into the free rectangle or keep
+ * its own fit, and given only `center`, which names no rectangle, it fits
+ * as it does without the option, keeping the padding it uses then (Context
+ * Maps keeps the room its palette needs) — the reading all five published
+ * renderers conform to, which no kit case checks; a host whose first view
+ * must leave its chrome free passes `fitOnImport: false` and fits itself.
  */
 export type FreeArea =
   | { insets: () => FreeAreaInsets; center?: never }
@@ -323,7 +331,10 @@ export interface CollaborativeModelerOptions {
    * fitted view L5 defines. A host whose chrome fits the content itself
    * (the modeler shell's viewport fits into the free area) passes false:
    * the post-import view is then the host's to set, and L5's fit is the
-   * host's fit. The conformance kit runs with the default
+   * host's fit. The conformance kit runs with the default. Whether the
+   * renderer's own fit uses `freeArea` is its choice (see `FreeArea`): with
+   * `insets` it may fit into the free rectangle, with only `center` it keeps
+   * the padding it uses without the option
    */
   fitOnImport?: boolean | undefined;
   /**
