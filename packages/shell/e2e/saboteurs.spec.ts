@@ -440,6 +440,19 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("aria fails for a dialog entry without the ellipsis, whatever its shortcut chip", async ({ page }) => {
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        help: [
+          { kind: "dialog", id: "shortcuts", label: "Keyboard shortcuts", shortcut: "?", onSelect() {} },
+        ],
+      });
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: "Keyboard shortcuts" opens a dialog, so its label ends with "…" \(U\+2026\)/,
+    );
+  });
+
   test("aria fails for an extra tab stop a renderer puts on .djs-container", async ({ page }) => {
     // Event Storming's keyboard sets tabindex="0" on canvas.getContainer()
     const harness = sabotaged(() => {

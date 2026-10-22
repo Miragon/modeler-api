@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { cleanup, installFakes, mount, setBox } from "../../test/support/dom.js";
+import { menuOpenProblems } from "./checks.js";
 import {
   ariaProbe,
   appearanceProbe,
@@ -466,6 +468,24 @@ describe("probes in a page", () => {
     ]);
   });
 
+  it("names menu items as assistive technology does, leaving out what it skips", async () => {
+    const root = buildShell();
+    root.insertAdjacentHTML("beforeend", '<span id="n1">Map</span><span id="n2" aria-label="size…">x</span>');
+    const menu = root.querySelector('[role="menu"]')!;
+    menu.innerHTML = `
+      <button role="menuitem" aria-haspopup="dialog"><span>Keyboard shortcuts…</span><span><span class="cd-shell-menu-shortcut" aria-hidden="true">?</span></span></button>
+      <button role="menuitem" aria-label=" ">Export <span hidden>as</span><span style="display: none">to</span> PNG</button>
+      <button role="menuitem" aria-label="Open file">Open…</button>
+      <button role="menuitem" aria-labelledby="n1 missing n2" aria-label="Ignored">Ignored</button>
+      <button role="menuitem"><span style="visibility: hidden">Gone <b style="visibility: visible">Shown</b></span> <svg aria-label="Warning"></svg></button>`;
+    for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
+    const names = ["Keyboard shortcuts…", "Export PNG", "Open file", "Map size…", "Shown Warning"];
+    const items = (await inPage(page, menuProbe, { root: ".cd-shell" }))?.items ?? [];
+    expect(items.map((item) => item.name)).toEqual(names);
+    const entries = (await inPage(page, menuEntriesProbe, { root: ".cd-shell" })) ?? [];
+    expect(entries.map((entry) => entry.name)).toEqual(names);
+  });
+
   it("tells whether the focus is on the canvas <svg> or on the control the kit activated", async () => {
     const root = buildShell();
     const zoomIn = '[data-chrome="zoom"] [data-zoom="in"]';
@@ -482,6 +502,53 @@ describe("probes in a page", () => {
     });
     (document.activeElement as HTMLElement).blur();
     await expect(at()).resolves.toEqual({ focused: "<body>", canvas: false, control: false });
+  });
+});
+
+describe("the shell's own menu through the kit", () => {
+  let page: ReturnType<typeof serializingPage>;
+  const checkVisibility = Element.prototype.checkVisibility;
+
+  beforeEach(() => {
+    delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
+    Object.defineProperty(Element.prototype, "checkVisibility", { value: undefined, configurable: true });
+    installFakes();
+    page = serializingPage();
+  });
+
+  afterEach(() => {
+    cleanup();
+    Object.defineProperty(Element.prototype, "checkVisibility", {
+      value: checkVisibility,
+      configurable: true,
+    });
+  });
+
+  /** The menu open on a Help group of one dialog entry with the "?" chip. */
+  async function openDialogEntry(label: string) {
+    const { shell } = mount({
+      menu: { help: [{ kind: "dialog", id: "shortcuts", label, shortcut: "?", onSelect() {} }] },
+    });
+    shell.menu.open();
+    const { dropdown } = shell.menu;
+    for (const element of [dropdown, ...dropdown.querySelectorAll("[role^='menuitem']")]) {
+      setBox(element, { left: 12, top: 60, width: 248, height: 36 });
+    }
+    expect(dropdown.querySelector(".cd-shell-menu-shortcut")?.textContent).toBe("?");
+    return (await inPage(page, menuProbe, { root: "#app" }))!;
+  }
+
+  it("passes a dialog entry with a shortcut chip: the chip is no part of its name", async () => {
+    const facts = await openDialogEntry("Keyboard shortcuts…");
+    expect(facts.items.map((item) => item.name)).toEqual(["Keyboard shortcuts…"]);
+    expect(menuOpenProblems(facts, "first")).toEqual([]);
+  });
+
+  it("still fails a dialog entry whose label lacks the ellipsis, chip or not", async () => {
+    const facts = await openDialogEntry("Keyboard shortcuts");
+    expect(menuOpenProblems(facts, "first")).toEqual([
+      'menu: "Keyboard shortcuts" opens a dialog, so its label ends with "…" (U+2026)',
+    ]);
   });
 });
 

@@ -64,6 +64,14 @@ export interface PageTools {
   box(element: Element, root: HTMLElement): RelativeBox;
   describe(element: Element): string;
   facts(element: Element): ElementFacts;
+  /**
+   * The accessible name of a control whose role takes its name from content (a button, a menu
+   * item), as assistive technology computes it (accname 1.2): `aria-labelledby`, else a non-empty
+   * `aria-label`, else the text of its content without `aria-hidden="true"`, `hidden`,
+   * `display: none` and `visibility: hidden` parts, a descendant's `aria-label` standing for its
+   * content. Whitespace collapsed and trimmed.
+   */
+  accessibleName(element: Element): string;
 }
 
 export type ToolWindow = Window & { __modelerShellConformance?: PageTools };
@@ -117,6 +125,33 @@ export const installPageTools = (_: null): void => {
       .join("");
     const chrome = element.getAttribute("data-chrome");
     return `${element.tagName.toLowerCase()}${id}${classes}${chrome ? `[data-chrome="${chrome}"]` : ""}`;
+  };
+  const hiddenSubtree = (element: Element): boolean =>
+    element.getAttribute("aria-hidden") === "true" ||
+    element.hasAttribute("hidden") ||
+    getComputedStyle(element).display === "none";
+  const contentText = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // visibility inherits, but a descendant may turn it back on, so it is read per text node
+      const parent = node.parentElement;
+      return parent && getComputedStyle(parent).visibility === "hidden" ? "" : (node.textContent ?? "");
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const element = node as Element;
+    if (hiddenSubtree(element)) return "";
+    const label = element.getAttribute("aria-label")?.trim();
+    if (label) return label;
+    return [...element.childNodes].map(contentText).join("");
+  };
+  const ownName = (element: Element): string =>
+    element.getAttribute("aria-label")?.trim() || [...element.childNodes].map(contentText).join("");
+  const accessibleName = (element: Element): string => {
+    const labelledBy = (element.getAttribute("aria-labelledby") ?? "")
+      .split(/\s+/)
+      .map((id) => (id ? document.getElementById(id) : null))
+      .filter((target): target is HTMLElement => target !== null);
+    const text = labelledBy.length > 0 ? labelledBy.map(ownName).join(" ") : ownName(element);
+    return text.replace(/\s+/g, " ").trim();
   };
   const tools: PageTools = {
     keys: [],
@@ -177,6 +212,7 @@ export const installPageTools = (_: null): void => {
         disabled: Boolean((element as HTMLButtonElement).disabled),
       };
     },
+    accessibleName,
   };
   const recorder = (into: RecordedKey[]) => (event: KeyboardEvent) => {
     if (modifierKeys.includes(event.key)) return;

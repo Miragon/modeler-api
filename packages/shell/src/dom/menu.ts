@@ -161,8 +161,15 @@ export function createMenu(context: MenuContext): MenuController {
         },
       };
     }
+    // aria-keyshortcuts announces the key; read as part of the name it would be heard twice, and a
+    // dialog entry's name would no longer end with "…".
     const shortcut = entry.shortcut
-      ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
+      ? createElement(
+          ownerDocument,
+          "span",
+          { class: "cd-shell-menu-shortcut", "aria-hidden": "true" },
+          entry.shortcut,
+        )
       : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;

@@ -584,11 +584,12 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     shell.menu.open();
     const of = (id: string) => shell.menu.dropdown.querySelector(`[data-menu-id="${id}"]`);
     expect(of("svg")?.getAttribute("aria-keyshortcuts")).toBe("Meta+E");
+    expect(of("svg")?.querySelector(".cd-shell-menu-shortcut")?.getAttribute("aria-hidden")).toBe("true");
     expect(of("json")?.getAttribute("aria-keyshortcuts")).toBe("Meta+J");
     expect(of("png")?.hasAttribute("aria-keyshortcuts")).toBe(false);
   });
 
-  it("shows a dialog entry's shortcut chip and names it in aria-keyshortcuts", () => {
+  it("shows a dialog entry's shortcut chip, named in aria-keyshortcuts and not in the entry's name", () => {
     const base = groups();
     const help = (base.help ?? []).map((entry) =>
       entry.kind === "dialog" ? { ...entry, shortcut: "?" } : entry,
@@ -596,7 +597,9 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     const { shell } = mount({ menu: { ...base, help } });
     shell.menu.open();
     const entry = shell.menu.dropdown.querySelector('[data-menu-id="shortcuts"]');
-    expect(entry?.querySelector(".cd-shell-menu-shortcut")?.textContent).toBe("?");
+    const chip = entry?.querySelector(".cd-shell-menu-shortcut");
+    expect(chip?.textContent).toBe("?");
+    expect(chip?.getAttribute("aria-hidden")).toBe("true");
     expect(entry?.getAttribute("aria-keyshortcuts")).toBe("?");
     expect(entry?.getAttribute("aria-haspopup")).toBe("dialog");
   });
