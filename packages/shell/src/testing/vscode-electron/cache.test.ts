@@ -1,7 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { chmod, mkdir, readdir, stat, utimes } from "node:fs/promises";
+import { chmod, mkdir, readdir, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { ProgressReportStage, download, type ProgressReport } from "@vscode/test-electron";
 import { afterAll, describe, expect, it } from "vitest";
 
@@ -10,6 +11,9 @@ import { ABANDONED_DOWNLOAD_MS, PRIVATE_DOWNLOAD_PREFIX, resolveInSharedCache } 
 
 const directory = mkdtempSync(join(tmpdir(), "modeler-shell-cache-"));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
+
+// root writes through any mode bits
+const isRoot = process.getuid?.() === 0;
 
 let cacheCount = 0;
 async function emptyCache(): Promise<string> {
@@ -156,8 +160,7 @@ describe("resolveInSharedCache", () => {
     ]);
   });
 
-  // root writes through any mode bits
-  it.skipIf(process.getuid?.() === 0)("reads a cache it cannot write to as it is", async () => {
+  it.skipIf(isRoot)("reads a cache it cannot write to as it is", async () => {
     const cachePath = await emptyCache();
     const fake = fakeTestElectron();
     await writeInstall(join(cachePath, fake.folderName), "earlier run");
@@ -178,6 +181,84 @@ describe("resolveInSharedCache", () => {
     } finally {
       await chmod(cachePath, 0o755);
     }
+  });
+
+  it.skipIf(isRoot)(
+    "retries a move the file system refuses for a moment, as Windows does while a virus scanner holds a file",
+    async () => {
+      const cachePath = await emptyCache();
+      const fake = fakeTestElectron();
+      let writableAgain: Promise<void> | undefined;
+      try {
+        const executable = await resolveInSharedCache({
+          cachePath,
+          download: async (path) => {
+            const unpacked = await fake.download({ cachePath: path });
+            await chmod(cachePath, 0o555);
+            writableAgain = delay(150).then(() => chmod(cachePath, 0o755));
+            return unpacked;
+          },
+        });
+
+        expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+        expect(await readInstall(join(cachePath, fake.folderName))).toEqual({
+          code: "A",
+          app: "A",
+          complete: true,
+        });
+        expect(await readdir(cachePath)).toEqual([fake.folderName]);
+      } finally {
+        await writableAgain;
+        await chmod(cachePath, 0o755);
+      }
+    },
+  );
+
+  it.skipIf(isRoot)(
+    "returns the VS Code when its private folder cannot be removed, which a later run removes",
+    async () => {
+      const cachePath = await emptyCache();
+      const fake = fakeTestElectron();
+      let locked = "";
+      try {
+        const executable = await resolveInSharedCache({
+          cachePath,
+          download: async (path) => {
+            locked = join(path, "locked");
+            await mkdir(locked);
+            await writeFile(join(locked, "in-use"), "");
+            await chmod(locked, 0o555);
+            return fake.download({ cachePath: path });
+          },
+        });
+
+        expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+        expect(await readInstall(join(cachePath, fake.folderName))).toEqual({
+          code: "A",
+          app: "A",
+          complete: true,
+        });
+        expect((await readdir(cachePath)).sort()).toEqual([basename(dirname(locked)), fake.folderName]);
+      } finally {
+        if (locked) await chmod(locked, 0o755);
+      }
+    },
+  );
+
+  it("does not link an entry of the cache it cannot read, here a link to itself, and resolves as without it", async () => {
+    const cachePath = await emptyCache();
+    const fake = fakeTestElectron();
+    const unreadable = "vscode-linux-x64-1.95.0";
+    await symlink(unreadable, join(cachePath, unreadable));
+
+    const executable = await resolveInSharedCache({
+      cachePath,
+      download: (path) => fake.download({ cachePath: path }),
+    });
+
+    expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+    expect(fake.unpacked).toEqual(["A"]);
+    expect((await readdir(cachePath)).sort()).toEqual([unreadable, fake.folderName]);
   });
 
   it("returns an executable outside the private folder as it is and moves nothing", async () => {
