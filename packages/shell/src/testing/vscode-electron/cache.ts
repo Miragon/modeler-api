@@ -11,7 +11,8 @@ export const PRIVATE_DOWNLOAD_PREFIX = ".download-";
  */
 export const ABANDONED_DOWNLOAD_MS = 24 * 60 * 60 * 1000;
 
-const PUBLISH_ATTEMPTS = 5;
+const PUBLISH_ATTEMPTS = 10;
+const PUBLISH_RETRY_MS = 100;
 
 export interface SharedCacheOptions {
   /** The cache every run on the machine shares. */
@@ -60,7 +61,8 @@ export async function resolveInSharedCache({
     return join(cachePath, inside);
   } finally {
     process.off("exit", removePrivateCacheNow);
-    await rm(privateCache, { recursive: true, force: true, maxRetries: 3 });
+    // What is left goes with removeAbandonedDownloads; it must not fail a run that has its VS Code.
+    await rm(privateCache, { recursive: true, force: true, maxRetries: 3 }).catch(() => undefined);
   }
 }
 
@@ -86,7 +88,7 @@ async function linkSharedInstalls(cachePath: string, privateCache: string): Prom
   for (const name of await readdir(cachePath)) {
     if (name.startsWith(".")) continue;
     const install = join(cachePath, name);
-    const identity = await identityOf(install);
+    const identity = await identityOf(install).catch(() => undefined);
     if (!identity) continue;
     // A junction needs no privilege on Windows; elsewhere the type is ignored.
     await symlink(install, join(privateCache, name), "junction");
@@ -117,7 +119,11 @@ async function publish(
       if (attempt >= PUBLISH_ATTEMPTS || !isOccupied(error)) throw error;
     }
     const current = await identityOf(shared);
-    if (current === undefined) continue;
+    if (current === undefined) {
+      // Windows refuses the rename while a virus scanner still holds a file of the new install.
+      await new Promise((done) => setTimeout(done, PUBLISH_RETRY_MS * attempt));
+      continue;
+    }
     if (current !== rejected) {
       log(`another run installed ${shared} first, this run uses that one`);
       return;
