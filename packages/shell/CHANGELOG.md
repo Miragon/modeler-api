@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.2...modeler-shell-v0.3.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* **shell:** let concurrent VS Code smoke runs share the download cache ([#53](https://github.com/Miragon/modeler-api/issues/53)) ([f932060](https://github.com/Miragon/modeler-api/commit/f932060bc3368eef5d6f9eca24a6b77feb63e7d8))
+
 ## [0.3.2](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.1...modeler-shell-v0.3.2) (2026-10-22)
 
 
