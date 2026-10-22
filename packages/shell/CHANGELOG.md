@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.1...modeler-shell-v0.3.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **shell:** empty the Docker results folder in place instead of replacing it ([#32](https://github.com/Miragon/modeler-api/issues/32)) ([c1e93d0](https://github.com/Miragon/modeler-api/commit/c1e93d01719c7792eff8f9401937278bed4b3648))
+
 ## [0.3.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.0...modeler-shell-v0.3.1) (2026-10-21)
 
 
