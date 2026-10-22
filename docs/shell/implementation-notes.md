@@ -1539,6 +1539,45 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   passes `defaultVsCodeCachePath` instead, the OS's cache directory as Playwright uses it for its
   browsers: outside every repository, kept across `npm ci`, shared by all modelers. It creates the
   folder first, because `@vscode/test-electron` creates only its last segment.
+- **Runs that share the cache (0.3.3).** `@vscode/test-electron` 3.1.0 takes no lock: a version
+  folder without its `is-complete` marker it deletes and unpacks into again (on Linux while the
+  archive still downloads), and it writes the marker last. Two runs that needed a version the cache
+  did not have yet (a new stable release, the default; several agents running `test:vscode:docker`
+  on the shared volume, [#36](https://github.com/Miragon/modeler-api/issues/36)) deleted each
+  other's half-unpacked install. Two Event Storming runs in Docker on one empty cache, the second
+  started while the first was at 30 % of its download, both failed with 0.3.2: the first with 1623
+  `tar: … Cannot open: No such file or directory` and "Failed to download and unzip VS Code
+  1.143.0", the second at launch (`Timeout 30000ms exceeded while waiting for event "window"`).
+  The driver now gives `downloadAndUnzipVSCode` a private folder `.download-<random>` inside the
+  cache with a link to every install of the cache, and moves a new install into the cache with one
+  `rename`. Decisions:
+  - _A rename, not a lock._ A lock directory needs a stale timeout: a killed container leaves its
+    lock behind, process IDs mean nothing across containers, and two waiters that see the same
+    stale lock at once both take it. The rename needs no timeout, a killed run cannot block or
+    break another one, and it works per version: a run that needs a cached version never waits for
+    a download of another one. The cost: runs that need the same new version at once each download
+    it, and the first one done wins.
+  - _Links, not a version check of the driver's own._ Which version a run gets (`engines.vscode`,
+    `stable`, `insiders`, a cached one when the update service cannot be reached) only
+    `downloadAndUnzipVSCode` knows. Through the links it decides as before; what it deletes in the
+    private folder is a link (`fs.rm` removes a link, not its target) or its own unpacking. The
+    private folder is inside the cache because a rename across file systems fails (`EXDEV`), and in
+    Docker the temp directory is the container's while the cache is a volume. On Windows the links
+    are junctions, which need no privilege.
+  - _The first install stays._ When the rename meets an install another run moved in first, that
+    one stays, since that run may have started it already, and the run deletes its own copy. Only
+    the very folder `downloadAndUnzipVSCode` rejected through this run's link (same device, inode
+    and birth time: an outdated Insiders build, a download an older driver left unfinished) is
+    moved aside and replaced. Replacing an Insiders build breaks a run that still uses the old one,
+    as `@vscode/test-electron` itself does; a run of 0.3.2 or earlier on the same cache still
+    deletes and unpacks in place.
+  - _Leftovers._ A run removes its private folder, on `process.exit` too. A run killed during the
+    download (SIGKILL, `docker kill`, a SIGINT no handler catches) leaves it; the first run a day
+    later removes it.
+  - With the change, the same two staggered runs both passed (the second one logged "another run
+    installed … first, this run uses that one"), as did two runs started at the same moment; the
+    cache then held one install and no private folder, and a third run resolved through the link in
+    2.1 s.
 - **Opening the fixture.** The workspace folder and the fixture are the last command-line arguments,
   and `workbench.editorAssociations` maps the fixture's file name to the custom editor's view type.
   VS Code then opens the fixture in the custom editor at start, whatever the editor's `priority`; no

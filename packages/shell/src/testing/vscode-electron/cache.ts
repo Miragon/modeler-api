@@ -1,0 +1,152 @@
+import { rmSync } from "node:fs";
+import { lstat, mkdir, mkdtemp, readdir, rename, rm, stat, symlink } from "node:fs/promises";
+import { isAbsolute, join, relative, sep } from "node:path";
+
+/** Names a run's private download folder inside the shared cache. */
+export const PRIVATE_DOWNLOAD_PREFIX = ".download-";
+
+/**
+ * How old the private download folder of a run that never removed it (killed mid-download) has to
+ * be before another run removes it: far longer than a download takes.
+ */
+export const ABANDONED_DOWNLOAD_MS = 24 * 60 * 60 * 1000;
+
+const PUBLISH_ATTEMPTS = 5;
+
+export interface SharedCacheOptions {
+  /** The cache every run on the machine shares. */
+  cachePath: string;
+  /** `@vscode/test-electron`'s download into the cache it is given; resolves with the executable. */
+  download: (cachePath: string) => Promise<string>;
+  log?: ((line: string) => void) | undefined;
+}
+
+/**
+ * Resolves VS Code in a cache that concurrent runs share, without a lock. `@vscode/test-electron`
+ * deletes a version folder without its completion marker and unpacks into it again, so two runs on
+ * one folder delete and overwrite each other's install. `download` therefore gets a private folder
+ * inside `cachePath` that links every install of the shared cache: a cached version resolves
+ * through its link, a new one is unpacked there and moved into the shared cache with one rename.
+ * The shared cache only ever gains complete installs. Returns the executable in the shared cache.
+ */
+export async function resolveInSharedCache({
+  cachePath,
+  download,
+  log,
+}: SharedCacheOptions): Promise<string> {
+  await mkdir(cachePath, { recursive: true });
+  await removeAbandonedDownloads(cachePath);
+  const privateCache = await mkdtemp(join(cachePath, PRIVATE_DOWNLOAD_PREFIX));
+  // process.exit skips `finally`; a killed run leaves its folder to removeAbandonedDownloads.
+  const removePrivateCacheNow = () => rmSync(privateCache, { recursive: true, force: true, maxRetries: 3 });
+  process.once("exit", removePrivateCacheNow);
+  try {
+    const linked = await linkSharedInstalls(cachePath, privateCache);
+    const executable = await download(privateCache);
+    const inside = relative(privateCache, executable);
+    if (inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside)) {
+      return executable;
+    }
+    const folder = inside.split(sep)[0]!;
+    const unpacked = join(privateCache, folder);
+    if (!(await lstat(unpacked)).isSymbolicLink()) {
+      await publish(unpacked, join(cachePath, folder), linked.get(folder), log ?? (() => undefined));
+    }
+    return join(cachePath, inside);
+  } finally {
+    process.off("exit", removePrivateCacheNow);
+    await rm(privateCache, { recursive: true, force: true, maxRetries: 3 });
+  }
+}
+
+async function removeAbandonedDownloads(cachePath: string): Promise<void> {
+  const now = Date.now();
+  for (const name of await readdir(cachePath)) {
+    if (!name.startsWith(PRIVATE_DOWNLOAD_PREFIX)) continue;
+    const folder = join(cachePath, name);
+    const modified = await lstat(folder).then(
+      (stats) => stats.mtimeMs,
+      () => now,
+    );
+    // Two runs may remove the same folder at once; the one that loses has nothing left to do.
+    if (now - modified > ABANDONED_DOWNLOAD_MS) {
+      await rm(folder, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+}
+
+/** Links every install of the shared cache into the private one; returns their identities by name. */
+async function linkSharedInstalls(cachePath: string, privateCache: string): Promise<Map<string, string>> {
+  const identities = new Map<string, string>();
+  for (const name of await readdir(cachePath)) {
+    if (name.startsWith(".")) continue;
+    const install = join(cachePath, name);
+    const identity = await identityOf(install);
+    if (!identity) continue;
+    // A junction needs no privilege on Windows; elsewhere the type is ignored.
+    await symlink(install, join(privateCache, name), "junction");
+    identities.set(name, identity);
+  }
+  return identities;
+}
+
+/**
+ * Moves `unpacked` to `shared`. An install another run moved there first stays: it is complete, and
+ * that run may have started it already. Only the install `@vscode/test-electron` rejected through
+ * this run's link (an outdated Insiders build, a download an older driver left unfinished) is
+ * replaced.
+ */
+async function publish(
+  unpacked: string,
+  shared: string,
+  rejected: string | undefined,
+  log: (line: string) => void,
+): Promise<void> {
+  let replaced = false;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(unpacked, shared);
+      if (replaced) log(`replaced ${shared}, which @vscode/test-electron did not accept`);
+      return;
+    } catch (error) {
+      if (attempt >= PUBLISH_ATTEMPTS || !isOccupied(error)) throw error;
+    }
+    const current = await identityOf(shared);
+    if (current === undefined) continue;
+    if (current !== rejected) {
+      log(`another run installed ${shared} first, this run uses that one`);
+      return;
+    }
+    const aside = `${unpacked}.rejected-${attempt}`;
+    try {
+      await rename(shared, aside);
+    } catch (error) {
+      if (codeOf(error) === "ENOENT") continue;
+      throw error;
+    }
+    replaced = (await identityOf(aside)) === rejected;
+    // Another run may have replaced it between the check and the move; its install goes back.
+    if (!replaced) await rename(aside, shared).catch(() => undefined);
+  }
+}
+
+/** A directory's identity, which a rename keeps; undefined when there is no directory. */
+async function identityOf(path: string): Promise<string | undefined> {
+  try {
+    const stats = await stat(path, { bigint: true });
+    return stats.isDirectory() ? `${stats.dev}:${stats.ino}:${stats.birthtimeNs}` : undefined;
+  } catch (error) {
+    if (codeOf(error) === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+function codeOf(error: unknown): unknown {
+  return error instanceof Error && "code" in error ? error.code : undefined;
+}
+
+/** A rename onto a directory that is there already: ENOTEMPTY or EEXIST, on Windows EPERM or EACCES. */
+function isOccupied(error: unknown): boolean {
+  const code = codeOf(error);
+  return code === "ENOTEMPTY" || code === "EEXIST" || code === "EPERM" || code === "EACCES";
+}

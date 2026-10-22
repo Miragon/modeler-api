@@ -580,12 +580,14 @@ keeps its browsers: `~/Library/Caches/miragon-modeler-shell/vscode-test` on macO
 `$XDG_CACHE_HOME/miragon-modeler-shell/vscode-test` (by default under `~/.cache`) on Linux and
 `%LOCALAPPDATA%\miragon-modeler-shell\vscode-test` on Windows. Every modeler on the machine shares
 it, `npm ci` does not delete it, and since it is outside the repository neither Git nor `eslint .`
-walks the unpacked VS Code. Two runs that download the same version at once would write into the
-same folder, so let the first download finish before starting a second run. A `cachePath` inside
-the repository (`.vscode-test`, the default of `@vscode/test-electron` itself) needs an entry in
-`.gitignore` and one in ESLint's `ignores` (`"**/.vscode-test/**"`): the flat config does not read
-`.gitignore`, so `eslint .` would lint the downloaded VS Code, fail with hundreds of errors and block
-every commit behind a lint hook.
+walks the unpacked VS Code. Since 0.3.3 runs may use it at the same time, in one modeler or in
+several: a run unpacks a VS Code version the cache does not have yet into a folder of its own inside
+the cache and then moves it in with one rename, so no run deletes or overwrites the VS Code another
+one starts. When two runs download the same version at once, the first one done puts it into the
+cache and the other one uses that copy. A `cachePath` inside the repository (`.vscode-test`, the
+default of `@vscode/test-electron` itself) needs an entry in `.gitignore` and one in ESLint's
+`ignores` (`"**/.vscode-test/**"`): the flat config does not read `.gitignore`, so `eslint .` would
+lint the downloaded VS Code, fail with hundreds of errors and block every commit behind a lint hook.
 
 **macOS, locally.** Give the file a script of its own,
 `"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
@@ -679,8 +681,8 @@ What it does:
 
 With the image and VS Code cached a run takes about 10 s on an Apple silicon Mac (Event Storming
 10.4 s, Wardley Maps 9.3 s, `npm ci` included); the very first run about 75 s (the image 38 s, the
-VS Code download 22 s). Paths in the test's own output are the container's (`/work/…`). Two runs at
-once share the cache volume, so let a first download finish before starting a second run. `docker
+VS Code download 22 s). Paths in the test's own output are the container's (`/work/…`). Runs in
+parallel share the cache volume, also while one of them downloads a new VS Code version. `docker
 volume rm modeler-shell-vscode-cache modeler-shell-npm-cache` starts over (the VS Code volume holds
 about 1 GB per version). Without the command, the
 same in plain Docker (the image's Dockerfile from `vsCodeSmokeDockerfile`):
