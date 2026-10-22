@@ -30,7 +30,10 @@ import {
 /** Room for a view change to land and hold still: the fit's animation, a resize's frame, a margin. */
 const VIEW_WAIT_MS = FIT_ANIMATION_MS + 750;
 
-/** Room for a modeler that commits a frame or two after the click. */
+/**
+ * Room for a modeler that commits a moment after the view held still or after the click: a
+ * debounced resize handler, a commit a frame or two late.
+ */
 const COMMIT_WAIT_MS = 500;
 
 /** The resize narrows the page like a side bar or panel opening next to the editor. */
@@ -92,7 +95,12 @@ async function editorFacts(page: PageLike, root: string, host: ShellHost): Promi
   return facts;
 }
 
-/** The facts once the view differs from `before` and held still for one poll, or `VIEW_WAIT_MS` passed. */
+/**
+ * The facts once the view differs from `before` and held still for one poll (or `VIEW_WAIT_MS`
+ * passed), and then `COMMIT_WAIT_MS` more. The full wait, not a poll that stops at the first
+ * commit, keeps a late commit with the step that caused it: the editor opened for the next step
+ * would otherwise take the commits still pending from this one.
+ */
 async function afterViewChange(
   page: PageLike,
   root: string,
@@ -106,6 +114,7 @@ async function afterViewChange(
     if (current.view !== before && current.view === previous.view) break;
     previous = current;
   }
+  await page.waitForTimeout(COMMIT_WAIT_MS);
   await settle(page);
   return editorFacts(page, root, host);
 }
@@ -132,8 +141,8 @@ async function openEditor<P extends PageLike>(
 /**
  * Contract L5 through the shell's own view changes: over a label editor with typed text, zoom in
  * and Fit (clicked), Cmd/Ctrl+Plus, Cmd/Ctrl+0 and Shift+1 (at the canvas) and a container resize
- * (the refit) neither commit it nor take it down; then a click on the canvas, the user's commit,
- * must change the document.
+ * (the refit) never commit it (L5), nor take it down (L5 only recommends that, the shell kit
+ * requires it); then a click on the canvas, the user's commit, must change the document.
  */
 export const labelEditorCase: ShellConformanceCase = {
   name: "labelEditor",

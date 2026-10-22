@@ -346,7 +346,8 @@ once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on 
 pointer click on the zoom panel or a palette tool hands the focus to the canvas while Enter and Space
 leave it on the button, that nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
 Enter on a creating palette entry adds one selected element, that the shell's zoom, fit and refit
-neither commit nor close an open label editor (contract L5), that an invalid file locks the canvas,
+never commit an open label editor (contract L5) and leave it open with the typed text (L5 recommends
+it, the kit requires it), that an invalid file locks the canvas,
 and that `destroy()` leaves nothing behind. Five more cases cover the web column (`webChrome`,
 `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded hosts they assert that
 none of it shows.

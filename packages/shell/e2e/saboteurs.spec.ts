@@ -47,18 +47,22 @@ async function failures(page: Page, harness: ShellConformanceHarness<Page>): Pro
   return failed;
 }
 
-/** The saboteur breaks exactly one rule: `caseName` fails with every pattern, all other cases pass. */
+/**
+ * The saboteur breaks exactly one rule: `caseName` fails with every pattern, all other cases pass.
+ * Resolves with that case's failure.
+ */
 async function expectOnlyCaseFails(
   page: Page,
   harness: ShellConformanceHarness<Page>,
   caseName: string,
   patterns: readonly RegExp[],
-): Promise<void> {
+): Promise<string> {
   const failed = await failures(page, harness);
   expect([...failed.entries()].filter(([name]) => name !== caseName)).toEqual([]);
   const failure = failed.get(caseName);
   expect(failure, `"${caseName}" passed the saboteur`).toBeDefined();
   for (const pattern of patterns) expect(failure).toMatch(pattern);
+  return failure ?? "";
 }
 
 /** The demo harness with `sabotage` applied right after every open. */
@@ -340,10 +344,68 @@ test.describe("saboteurs", () => {
         window.__demo!.flaws.closeLabelOnViewChange = true;
       });
       await expectOnlyCaseFails(page, harness, "labelEditor", [
-        /label editor: after a click on Fit the focus is on \S+, not in the label editor; it stays open with the typed "Renamed box \d+" \(contract L5\)/,
+        /label editor: after a click on Fit the focus is on \S+, not in the label editor; it stays open with the typed "Renamed box \d+" \(L5 recommends it, the shell kit requires it\)/,
         /label editor: after Shift\+1 on the canvas the focus is on \S+, not in the label editor/,
         /label editor: after a container resize the focus is on \S+, not in the label editor/,
       ]);
+    });
+
+    test("labelEditor fails when the label editor commits a moment after a container resize", async ({
+      page,
+    }) => {
+      // a debounced resize handler commits after the refit held still; the demo's editor commits on blur
+      const harness = sabotaged(() => {
+        let pending: number | undefined;
+        window.addEventListener("resize", () => {
+          window.clearTimeout(pending);
+          pending = window.setTimeout(() => {
+            const field = document.activeElement;
+            if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+          }, 300);
+        });
+      });
+      const failure = await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a container resize committed the open label editor/,
+      ]);
+      expect(failure.match(/committed the open label editor/g)).toHaveLength(1);
+    });
+
+    test("labelEditor blames the view change that committed late, not the step after it", async ({
+      page,
+    }) => {
+      // a commit 300ms after each view change lands after the view held still, while the case moves on
+      const harness = sabotaged(() => {
+        const viewport = document.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+        if (!viewport) throw new Error("demo: no diagram-js viewport layer");
+        // canvas.viewbox(box) writes transform.baseVal, which queues no MutationRecord in Chromium
+        const viewOf = () => {
+          const matrix = viewport.getCTM();
+          return matrix ? `${matrix.a} ${matrix.d} ${matrix.e} ${matrix.f}` : "";
+        };
+        let seen = viewOf();
+        const watch = () => {
+          const view = viewOf();
+          if (view !== seen) {
+            seen = view;
+            window.setTimeout(() => {
+              const field = document.activeElement;
+              if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+            }, 300);
+          }
+          window.requestAnimationFrame(watch);
+        };
+        window.requestAnimationFrame(watch);
+      });
+      const failure = await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on zoom in committed the open label editor/,
+        /label editor: a click on Fit committed the open label editor/,
+        /label editor: Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
+        /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
+        /label editor: a second Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+        /label editor: a container resize committed the open label editor/,
+      ]);
+      expect(failure).not.toMatch(/labelEditor\.open/);
     });
 
     test("appearance fails for a renderer colour on the armed tool's icon", async ({ page }) => {

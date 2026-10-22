@@ -154,13 +154,14 @@ export interface ShellConformanceCase {
  * canvas only), `focusHandBack` (a pointer click on a zoom control or a palette tool leaves the focus
  * on the canvas, Enter and Space on zoom in leave it on the button), `create` (Enter on the first
  * creating palette entry places one selected element in the free rectangle and focuses the canvas),
- * `labelEditor` (the shell's zoom, fit and refit never commit or close an open label editor,
- * contract L5), `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested
- * from a light-only modeler: nothing turns dark, `color-scheme` light everywhere, the canvas
- * surround and the palette's tool colours from the roles; the web app's mode and its Appearance
- * group) and `cleanup` (after `destroy` no shell element, class, attribute or key handling
- * remains); then the web column's `webChrome`, `emptyState`, `toasts`, `problemsList` and
- * `dropZone`, which assert in the other hosts that nothing of them shows.
+ * `labelEditor` (the shell's zoom, fit and refit never commit an open label editor, contract L5,
+ * and leave it open with the typed text, which L5 recommends and the shell kit requires),
+ * `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested from a light-only
+ * modeler: nothing turns dark, `color-scheme` light everywhere, the canvas surround and the
+ * palette's tool colours from the roles; the web app's mode and its Appearance group) and `cleanup`
+ * (after `destroy` no shell element, class, attribute or key handling remains); then the web
+ * column's `webChrome`, `emptyState`, `toasts`, `problemsList` and `dropZone`, which assert in the
+ * other hosts that nothing of them shows.
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
   return createCases();

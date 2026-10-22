@@ -796,6 +796,16 @@ text.
   (`HTMLElement.click()`, `detail` 0) and dispatches the keys at the canvas `<svg>`, so the focus
   stays in the editor: a real click on Fit, or a real key on the focused canvas, would take it out
   first and blame a renderer that commits on blur for the user's click elsewhere.
+- With an editor open, a user reaches only the refit on resize, `restore` and `setState`: a real
+  click on the zoom panel commits through the blur, and keys typed in the editor never reach the
+  shell (it leaves keys from a text field alone). The scripted clicks and the keys at the canvas
+  drive the shell's other viewbox writes, which go through the same `canvas.viewbox(box)`.
+- Each step is judged once the view held still and 500ms more, so a late commit (a debounced resize
+  handler) counts against the step that caused it. Stopping at the first commit would open the
+  editor for the next step while that step's commits are still pending, and blame the next step.
+- The case requires the keep-open that L5 only recommends: an editor the view change closes without
+  a commit drops the typed text, so `labelEditor` fails it, where the contract kit's L5 case only
+  advises.
 - `restore` and `setState` write the viewbox through the same `canvas.viewbox(box)` as the fit, so the
   case covers them through it; the re-import before a `restore` is the contract kit's L1 interaction
   case. A harness without `labelEditor` reports a skip, one that declares it `absent` (a notation

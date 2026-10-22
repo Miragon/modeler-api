@@ -1037,7 +1037,7 @@ describe("focusHandBackProblems", () => {
   });
 });
 
-describe("label editor checks (contract L5)", () => {
+describe("label editor checks (contract L5, and the keep-open it recommends)", () => {
   const EDITING: LabelEditorFacts = {
     editing: true,
     focused: "textarea.demo-label-editor",
@@ -1098,10 +1098,10 @@ describe("label editor checks (contract L5)", () => {
     expect(
       labelEditorStepProblems(step({ after: { ...EDITING, editing: false, focused: "<body>", text: "" } })),
     ).toEqual([
-      'label editor: after a click on Fit the focus is on <body>, not in the label editor; it stays open with the typed "Renamed box 1" (contract L5)',
+      'label editor: after a click on Fit the focus is on <body>, not in the label editor; it stays open with the typed "Renamed box 1" (L5 recommends it, the shell kit requires it)',
     ]);
     expect(labelEditorStepProblems(step({ after: { ...EDITING, text: "" } }))).toEqual([
-      'label editor: after a click on Fit the focused field holds "", expected the typed "Renamed box 1" (contract L5)',
+      'label editor: after a click on Fit the focused field holds "", expected the typed "Renamed box 1" (L5 recommends it, the shell kit requires it)',
     ]);
   });
 

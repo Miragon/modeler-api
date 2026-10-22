@@ -843,7 +843,10 @@ export interface LabelEditorStepFacts {
   documentChanged: boolean;
 }
 
-/** Contract L5: a view change the host makes neither commits nor closes the open label editor. */
+/**
+ * A view change the host makes never commits the open label editor (contract L5), and it leaves the
+ * editor open with the typed text: L5 only recommends that, the shell kit requires it.
+ */
 export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
   const { step, typed, after } = facts;
   const problems: string[] = [];
@@ -856,11 +859,11 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
     );
   } else if (!after.editing) {
     problems.push(
-      `label editor: after ${step} the focus is on ${after.focused}, not in the label editor; it stays open with the typed "${typed}" (contract L5)`,
+      `label editor: after ${step} the focus is on ${after.focused}, not in the label editor; it stays open with the typed "${typed}" (L5 recommends it, the shell kit requires it)`,
     );
   } else if (!holdsTyped(after, typed)) {
     problems.push(
-      `label editor: after ${step} the focused field holds "${after.text}", expected the typed "${typed}" (contract L5)`,
+      `label editor: after ${step} the focused field holds "${after.text}", expected the typed "${typed}" (L5 recommends it, the shell kit requires it)`,
     );
   }
   return problems;
