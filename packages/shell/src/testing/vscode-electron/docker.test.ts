@@ -8,6 +8,7 @@ import {
   readdirSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -263,6 +264,16 @@ describe("prepareResultsDirectory", () => {
     write(join(directory, "wardley-open-failure.png"));
     write(join(directory, "vscode-logs", "run", "main.log"));
     expect(prepareResultsDirectory(directory)).toBe(true);
+    expect(readdirSync(directory)).toEqual([DOCKER_RESULTS_MARKER]);
+  });
+
+  it("empties the directory in place, so a bind mount of it stays valid", () => {
+    const directory = freshDirectory();
+    prepareResultsDirectory(directory);
+    write(join(directory, "wardley-light.png"));
+    const before = statSync(directory).ino;
+    expect(prepareResultsDirectory(directory)).toBe(true);
+    expect(statSync(directory).ino).toBe(before);
     expect(readdirSync(directory)).toEqual([DOCKER_RESULTS_MARKER]);
   });
 

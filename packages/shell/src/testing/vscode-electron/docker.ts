@@ -221,7 +221,12 @@ export const DOCKER_RESULTS_MARKER = ".modeler-shell-vscode-docker";
  */
 export function prepareResultsDirectory(directory: string, owned = false): boolean {
   if (owned || existsSync(join(directory, DOCKER_RESULTS_MARKER))) {
-    rmSync(directory, { recursive: true, force: true });
+    // emptied in place, never removed: Docker Desktop's file sharing can keep the bind mount on a
+    // directory removed just before the run, and the copy back into its replacement then fails
+    if (existsSync(directory)) {
+      for (const entry of readdirSync(directory))
+        rmSync(join(directory, entry), { recursive: true, force: true });
+    }
   }
   if (existsSync(directory) && readdirSync(directory).length > 0) return false;
   mkdirSync(directory, { recursive: true });
