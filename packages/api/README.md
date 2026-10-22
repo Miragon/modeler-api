@@ -81,6 +81,22 @@ session has its current box at once, not the one of the last import. The box
 is the element's own shape (a connection: the box around its waypoints),
 without an external label.
 
+Optional `contentBounds()` (1.3) gives the box of the CONTENT in diagram
+coordinates: what a host fits the view to when it fits itself
+(`fitOnImport: false`, the modeler shell's viewport), or `undefined` while
+there is nothing to fit (an empty diagram). Hosts feature-detect it
+(`typeof modeler.contentBounds === "function"`) instead of reaching into a
+renderer's services (Wardley's `panConstraint`). The content is everything the
+canvas draws of the document: the box covers every `elements.bounds` box and
+whatever the notation always draws (Wardley's plot with its axes, so a map
+without components still has a box and `undefined` is no emptiness test). It
+is tight, with no padding of its own: a host's fit adds its margins. Like
+`elements.bounds` it ignores zoom and scroll, reads the live canvas, and before
+the first import returns `undefined` or a box without throwing; a viewer that
+exposes it follows the same rules. It sits on the modeler next to the view
+state rather than on `elements`: a fit frames the whole canvas, and a notation
+without addressable elements still has content to fit.
+
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
 event, nothing in the imported document or on its undo history, nothing
@@ -192,9 +208,11 @@ L1 interaction case reports a skip; with `openInteraction` but without
 `interactionState` only its keep-and-reopen half does. A modeler without
 `elements.bounds` skips the bounds case; with it, a harness without
 `moveElement` skips only its move half, one without `viewState` only its
-diagram-coordinates half. Without `openInteraction` or `viewState` the L5
-interaction case reports a skip; without `commitInteraction` only its commit
-halves do.
+diagram-coordinates half. A modeler without `contentBounds` skips the
+content-bounds case; with it, a harness without `viewState` skips only its
+view half, and a modeler without `elements.bounds` only its covering half.
+Without `openInteraction` or `viewState` the L5 interaction case reports a
+skip; without `commitInteraction` only its commit halves do.
 
 **Every rejection is probed.** `invalidTexts` lists what MUST reject; the kit
 does not take `[]` on trust. The L7 probe case derives damaged forms from
@@ -260,6 +278,15 @@ listed id must give a finite box with a non-negative size and an unknown id
 once) and after `moveElement` (the moved element's box changed position).
 `setViewState(viewState)` must leave every box as it was: they are diagram
 coordinates. A viewer that exposes `bounds` is held to the same listing rules.
+
+**The content box is verified around every element.** With `contentBounds`
+present, it must not throw and must give `undefined` or a finite box with a
+non-negative size before the first import; after importing each canonical text
+and after `mutate` it must give a finite box as soon as an element is listed,
+and that box must cover every element's finite `elements.bounds` box (the new
+element included, so a box measured at the last import fails).
+`setViewState(viewState)` must leave it as it was. A viewer that exposes
+`contentBounds` is held to the same rules after an import.
 
 **Element identity is verified through names.** After an unrelated edit, and
 after an export → import into the same instance, a fresh instance and the

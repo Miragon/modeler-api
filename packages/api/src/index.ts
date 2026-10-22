@@ -85,7 +85,8 @@ export interface ElementInfo {
   name?: string;
 }
 
-/** an element's box in diagram coordinates, as `ElementsSurface.bounds` reports it */
+/** a box in diagram coordinates: an element's, as `ElementsSurface.bounds`
+ *  reports it, or the content's, as `CollaborativeModeler.contentBounds` does */
 export interface ElementBounds {
   x: number;
   y: number;
@@ -165,7 +166,9 @@ export interface ElementsSurface {
  *     import leaves the view FITTED to the content (the defined post-import
  *     view, the same for the same document and host — a host that wants to
  *     keep the user's viewport across a remote re-import snapshots before
- *     and restores after); before the first import `getViewState()` returns
+ *     and restores after, and one that fits the view itself passes
+ *     `fitOnImport: false` and fits to `contentBounds()`, 1.3, where the
+ *     modeler has it); before the first import `getViewState()` returns
  *     `undefined` or a state `setViewState` accepts, and never throws. The
  *     readback may be a NORMALISED form of what was set (a diagram-js
  *     viewbox comes back rounded, with scale/inner/outer) — what must hold
@@ -225,6 +228,30 @@ export interface CollaborativeModeler {
   /** opaque viewport snapshot (zoom/scroll) — JSON-serializable (L5) */
   getViewState(): unknown;
   setViewState(state: unknown): void;
+
+  /**
+   * the box of the CONTENT in diagram coordinates — what a host fits the
+   * view to when it fits itself (`fitOnImport: false`, the modeler shell's
+   * viewport) — or `undefined` while there is nothing to fit (an empty
+   * diagram). Optional (1.3): hosts feature-detect it (`typeof
+   * modeler.contentBounds === "function"`) instead of reaching into a
+   * renderer's services; a renderer's own fit stays its business (L5).
+   *
+   * The content is everything the canvas draws of the document: the box
+   * covers every box `elements.bounds` reports, and whatever the notation
+   * always draws (Wardley's plot with its axes — a map without components
+   * still has a box, so `undefined` is no emptiness test). It is tight: no
+   * padding and no room for chrome of its own, since a host's fit adds its
+   * margins (the shell's fit insets) on top. Like `elements.bounds` it is in
+   * the canvas's own coordinate space, which zoom and scroll leave alone,
+   * and it reads the LIVE canvas: an element created or moved in this
+   * session counts at once. Before the first import it returns `undefined`
+   * or a box, and never throws. A viewer that exposes it follows the same
+   * rules. It sits next to the view state rather than on `elements`: a fit
+   * frames the whole canvas, and a notation without addressable elements
+   * still has content to fit.
+   */
+  contentBounds?(): ElementBounds | undefined;
 
   readonly elements?: ElementsSurface;
 

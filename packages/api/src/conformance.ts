@@ -247,6 +247,67 @@ const describeBox = (box: ElementBounds | undefined): string =>
     ? "undefined"
     : `{ x: ${box.x}, y: ${box.y}, width: ${box.width}, height: ${box.height} }`;
 
+type ContentBounded = CollaborativeModeler & { contentBounds(): ElementBounds | undefined };
+
+const hasContentBounds = (m: CollaborativeModeler): m is ContentBounded =>
+  typeof m.contentBounds === "function";
+
+/** what floating-point sums of diagram coordinates may differ by — far below a pixel */
+const EDGE_TOLERANCE = 1e-6;
+
+const covers = (outer: ElementBounds, inner: ElementBounds): boolean =>
+  inner.x >= outer.x - EDGE_TOLERANCE &&
+  inner.y >= outer.y - EDGE_TOLERANCE &&
+  inner.x + inner.width <= outer.x + outer.width + EDGE_TOLERANCE &&
+  inner.y + inner.height <= outer.y + outer.height + EDGE_TOLERANCE;
+
+/** `contentBounds()` copied, or `undefined` — a throw, a non-finite box or a negative size fails */
+function contentBoxOf(m: ContentBounded, when: string): ElementBounds | undefined {
+  let box: ElementBounds | undefined;
+  try {
+    box = m.contentBounds();
+  } catch (e) {
+    fail(`contentBounds() threw ${when}: ${String(e)}`);
+  }
+  if (box === undefined) return undefined;
+  if (!isFiniteBox(box)) {
+    fail(
+      `contentBounds() ${when} is ${describeBox(box)} — the content box must be finite with a non-negative size, or undefined when there is nothing to fit`,
+    );
+  }
+  return { x: box.x, y: box.y, width: box.width, height: box.height };
+}
+
+/**
+ * the content box around everything the elements surface lists: defined as
+ * soon as one element is listed, and around each element's own box. An
+ * element box that is itself broken is the bounds case's failure, not this one's
+ */
+function expectContentAroundElements(m: ContentBounded, when: string): ElementBounds | undefined {
+  const box = contentBoxOf(m, when);
+  const listed = m.elements?.list() ?? [];
+  if (box === undefined) {
+    if (listed.length > 0) {
+      fail(
+        `contentBounds() ${when} is undefined while elements.list() reports ${listed.length} element(s) — undefined means there is nothing to fit`,
+      );
+    }
+    return undefined;
+  }
+  if (m.elements && hasBounds(m.elements)) {
+    for (const { id } of listed) {
+      const element = m.elements.bounds(id);
+      if (!isFiniteBox(element)) continue;
+      if (!covers(box, element)) {
+        fail(
+          `contentBounds() ${when} is ${describeBox(box)}, which does not cover elements.bounds('${id}') = ${describeBox(element)} — the content box holds every element (and reads the live canvas)`,
+        );
+      }
+    }
+  }
+  return box;
+}
+
 /** every listed element's box, copied — a listed id without a finite box fails */
 function boxesOf(elements: BoundedElements, when: string): Map<string, ElementBounds> {
   const boxes = new Map<string, ElementBounds>();
@@ -1215,6 +1276,60 @@ export function conformanceCases(): ConformanceCase[] {
               boxesOf(viewer.elements, "on the viewer after an import");
               if (viewer.elements.bounds("__modeler_api_no_such_id__") !== undefined)
                 fail("the viewer's elements.bounds(unknown id) must return undefined");
+            }
+          }
+          if (unverified.length > 0) return skip(unverified.join("; "));
+        } finally {
+          m.destroy();
+          viewer?.destroy();
+        }
+      },
+    },
+    {
+      name: "contentBounds (when present): a finite box in diagram coordinates around every listed element, live after a new element, unchanged by zoom and scroll",
+      async run(h) {
+        const settle = h.settle ?? defaultSettle;
+        const m = await h.create();
+        let viewer: CollaborativeModeler | undefined;
+        try {
+          if (!hasContentBounds(m))
+            return skip("the modeler exposes no contentBounds (optional, 1.3) — nothing to verify");
+          contentBoxOf(m, "before the first import");
+          for (const [index, text] of h.canonicalTexts.entries()) {
+            await importOrFail(m, text, `importText(canonicalTexts[${index}]) rejected`);
+            expectContentAroundElements(m, `after importing canonicalTexts[${index}]`);
+          }
+          // a box cached at the last import gives itself away here: the
+          // element the session created lies outside it, or it has none
+          await importOrFail(m, h.canonicalTexts[0] ?? "", "importText(canonicalTexts[0]) rejected");
+          await h.mutate(m);
+          await settle();
+          const atRest = expectContentAroundElements(m, "after a user mutation added an element");
+          const unverified: string[] = [];
+          if (h.viewState !== undefined) {
+            m.setViewState(h.viewState);
+            const viewed = contentBoxOf(m, "after setViewState");
+            if (!same(viewed, atRest)) {
+              fail(
+                `contentBounds() changed with the view (${describeBox(atRest)} → ${describeBox(viewed)}) — the content box is in diagram coordinates, which zoom and scroll leave alone`,
+              );
+            }
+          } else {
+            unverified.push(
+              "viewState is undefined — that the content box is independent of the view was not verified",
+            );
+          }
+          if (!m.elements || !hasBounds(m.elements)) {
+            unverified.push(
+              "the modeler exposes no elements.bounds — that the content box covers every element was not verified",
+            );
+          }
+          if (h.createReadonly) {
+            viewer = await h.createReadonly();
+            if (hasContentBounds(viewer)) {
+              contentBoxOf(viewer, "on the viewer before the first import");
+              await importOrFail(viewer, h.canonicalTexts[0] ?? "", "the viewer rejected canonicalTexts[0]");
+              expectContentAroundElements(viewer, "on the viewer after an import");
             }
           }
           if (unverified.length > 0) return skip(unverified.join("; "));

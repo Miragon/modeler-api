@@ -86,6 +86,8 @@ const CASE = {
     "elements (when present, recommended): ids created on two peers at the same time do not collide",
   bounds:
     "elements.bounds (when present): a finite box in diagram coordinates for every listed id, undefined for an unknown one, live after a new element and a move",
+  contentBounds:
+    "contentBounds (when present): a finite box in diagram coordinates around every listed element, live after a new element, unchanged by zoom and scroll",
   l6Total: "L6: export is total after imports, user mutations and undo",
   l6Foreign: "L6: foreign content survives an import → export round-trip",
   l7NoTrace: "L7: a rejected import leaves no trace",
@@ -198,7 +200,7 @@ describe("the conforming reference modeler", () => {
     expect(counter?.advisories).toEqual([expect.stringContaining("allocated the same id ('line_1')")]);
   });
 
-  test("a modeler without elements.bounds (optional) skips exactly the bounds case", async () => {
+  test("a modeler without elements.bounds (optional) skips the bounds case and the covering half of the content-bounds case", async () => {
     const withoutBounds = async (): Promise<ReferenceModeler> => {
       const m = createReferenceModeler();
       if (!m.elements) throw new Error("the reference exposes an elements surface");
@@ -207,7 +209,34 @@ describe("the conforming reference modeler", () => {
     };
     const h = harness({}, { create: withoutBounds });
     expect(await failingCases(h)).toEqual([]);
-    expect((await skippedCases(h)).skipped).toEqual([CASE.bounds]);
+    expect((await skippedCases(h)).skipped).toEqual([CASE.bounds, CASE.contentBounds].sort());
+    const content = await conformanceCases()
+      .find((c) => c.name === CASE.contentBounds)
+      ?.run(h);
+    expect(content?.skipped).toMatch(
+      /no elements\.bounds — that the content box covers every element was not verified/,
+    );
+  });
+
+  test("a modeler without contentBounds (optional, 1.3) skips exactly the content-bounds case", async () => {
+    const withoutContentBounds = async (): Promise<CollaborativeModeler> => {
+      const { contentBounds: _dropped, ...m } = createReferenceModeler();
+      return m;
+    };
+    const h = harness({}, { create: withoutContentBounds });
+    expect(await failingCases(h)).toEqual([]);
+    expect((await skippedCases(h)).skipped).toEqual([CASE.contentBounds]);
+  });
+
+  test("the content box is the union of the drawn elements, undefined while nothing is drawn, and follows a move", async () => {
+    const m = createReferenceModeler();
+    expect(m.contentBounds?.()).toBeUndefined();
+    await m.importText("alpha\nbeta\n");
+    expect(m.contentBounds?.()).toEqual({ x: 0, y: 0, width: 40, height: 64 });
+    m.moveLine("alpha", 40, 24);
+    expect(m.contentBounds?.()).toEqual({ x: 0, y: 24, width: 80, height: 40 });
+    await m.importText("title: Empty\n");
+    expect(m.contentBounds?.()).toBeUndefined();
   });
 
   test("a moved element's offset is document content: it survives export → import", async () => {
@@ -259,6 +288,7 @@ describe("the conforming reference modeler", () => {
     expect(sparse.skipped).toEqual(
       [
         CASE.bounds,
+        CASE.contentBounds,
         CASE.l1Interaction,
         CASE.l2Idempotent,
         CASE.l3Config,
@@ -274,7 +304,8 @@ describe("the conforming reference modeler", () => {
     );
     // undo without redo: the undo half is verified, the redo half reports a skip
     expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
-    // bounds without a move: the listing, the new element and the view are verified, the move reports a skip
+    // bounds without a move: the listing, the new element and the view are verified, the move reports a skip;
+    // the content box needs no move
     expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([CASE.bounds]);
     // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a
     // skip; the L5 case checks the keep-open through the commit instead
@@ -285,9 +316,10 @@ describe("the conforming reference modeler", () => {
     expect((await skippedCases(harness({}, { commitInteraction: undefined }))).skipped).toEqual([
       CASE.l5Interaction,
     ]);
-    // a view change needs a view to change to: without viewState the L5 interaction case skips too
+    // a view change needs a view to change to: without viewState the L5 interaction case skips too,
+    // and both box cases report their view half
     expect((await skippedCases(harness({}, { viewState: undefined }))).skipped).toEqual(
-      [CASE.l5RoundTrip, CASE.l5Interaction, CASE.bounds].sort(),
+      [CASE.l5RoundTrip, CASE.l5Interaction, CASE.bounds, CASE.contentBounds].sort(),
     );
     // one canonical text (L4 fails it anyway): the interaction case says which leg it could not run
     const interaction = conformanceCases().find((c) => c.name === CASE.l1Interaction);
@@ -423,8 +455,13 @@ describe("broken variants fail exactly their law's case set", () => {
     expectFailures({ destroyThrowsTwice: true }, [CASE.destroy, CASE.viewer]));
   test("a viewer that emits on import → exactly the viewer case", () =>
     expectFailures({ viewerEmits: true }, [CASE.viewer]));
-  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer legs of the id round-trip and the bounds case", () =>
-    expectFailures({ viewerImportThrows: true }, [CASE.viewer, CASE.elementsRoundTrip, CASE.bounds]));
+  test("a viewer whose importText throws (no command stack) → the viewer case and the viewer legs of the id round-trip and both box cases", () =>
+    expectFailures({ viewerImportThrows: true }, [
+      CASE.viewer,
+      CASE.elementsRoundTrip,
+      CASE.bounds,
+      CASE.contentBounds,
+    ]));
   test("a viewer that cannot reveal (no selection service) → exactly the viewer case", () =>
     expectFailures({ viewerCannotReveal: true }, [CASE.viewer]));
   test("a viewer whose import keeps the viewport → exactly the viewer case", () =>
@@ -489,6 +526,60 @@ describe("broken variants fail exactly their law's case set", () => {
       /moveElement returned '__never_listed__', an id elements\.list\(\) did not report/,
     );
   });
+  // ── the content box hosts fit to (contract 1.3) ───────────────────────────
+  const contentCase = conformanceCases().find((c) => c.name === CASE.contentBounds);
+  test("a content box measured at the last import (a new element lies outside it) → exactly the content-bounds case", async () => {
+    await expectFailures({ contentBoundsOfImportedOnly: true }, [CASE.contentBounds]);
+    await expect(contentCase?.run(harness({ contentBoundsOfImportedOnly: true }))).rejects.toThrow(
+      /after a user mutation added an element .* does not cover elements\.bounds\('zz-\d+'\)/,
+    );
+  });
+  test("a content box in screen coordinates (it moves with zoom and scroll) → exactly the content-bounds case", () =>
+    expectFailures({ contentBoundsInViewCoordinates: true }, [CASE.contentBounds]));
+  test("a content box of the elements' positions, not their sizes → exactly the content-bounds case", () =>
+    expectFailures({ contentBoundsOfPositionsOnly: true }, [CASE.contentBounds]));
+  test("a NaN content box before the first import → exactly the content-bounds case", () =>
+    expectFailures({ contentBoundsUnmeasuredBeforeImport: true }, [CASE.contentBounds]));
+  test("a content box that throws before the first import → exactly the content-bounds case", async () => {
+    const throwsBeforeImport = async (): Promise<CollaborativeModeler> => {
+      const m = createReferenceModeler();
+      let imported = false;
+      return {
+        ...m,
+        importText: async (text) => {
+          const result = await m.importText(text);
+          imported = true;
+          return result;
+        },
+        contentBounds: () => {
+          if (!imported) throw new Error("no root element yet");
+          return m.contentBounds?.();
+        },
+      };
+    };
+    await expectFailures({}, [CASE.contentBounds], { create: throwsBeforeImport });
+    await expect(contentCase?.run(harness({}, { create: throwsBeforeImport }))).rejects.toThrow(
+      /contentBounds\(\) threw before the first import/,
+    );
+  });
+  test("a content box that is undefined while elements are listed → exactly the content-bounds case", () =>
+    expectFailures({ contentBoundsAlwaysUndefined: true }, [CASE.contentBounds]));
+  test("a content box that is undefined while elements are listed, without elements.bounds → exactly the content-bounds case", async () => {
+    const withoutBounds = async (): Promise<ReferenceModeler> => {
+      const m = createReferenceModeler({ contentBoundsAlwaysUndefined: true });
+      if (!m.elements) throw new Error("the reference exposes an elements surface");
+      const { bounds: _dropped, ...elements } = m.elements;
+      return { ...m, elements };
+    };
+    await expect(contentCase?.run(harness({}, { create: withoutBounds }))).rejects.toThrow(
+      /undefined while elements\.list\(\) reports \d+ element/,
+    );
+  });
+  test("a viewer whose content box misses the elements' sizes → exactly the content-bounds case", () =>
+    expectFailures({}, [CASE.contentBounds], {
+      createReadonly: async () => createReferenceModeler({ contentBoundsOfPositionsOnly: true }, false),
+    }));
+
   test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
     expectFailures({ commitInteractionOnViewChange: true }, [CASE.l5Interaction]));
   test("a host's view change that commits the open label editor with its change events muted → exactly the L5 interaction case", () =>
@@ -519,6 +610,9 @@ describe("broken variants fail exactly their law's case set", () => {
     expect(root.apiVersionsCompatible("0.3.1", "0.4.0")).toBe(false);
     expect(root.apiVersionsCompatible("1.2.0", "1.9.3")).toBe(true);
     expect(root.apiVersionsCompatible("1.2.0", "2.0.0")).toBe(false);
+    // an optional surface is a minor: a 1.2 renderer binds to a 1.3 host and the other way round
+    expect(root.apiVersionsCompatible("1.2.0", "1.3.0")).toBe(true);
+    expect(root.apiVersionsCompatible("1.3.0", "1.2.0")).toBe(true);
   });
 
   test("hosts bind from the package root: apiVersionsCompatible is there, and /conformance re-exports the same function", () => {

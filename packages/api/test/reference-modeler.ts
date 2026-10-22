@@ -151,6 +151,18 @@ export interface Flaws {
   /** a move re-creates the element under a fresh id (a delete + create pair), so a host loses the
    *  element it outlined */
   moveChangesId?: boolean;
+  /** contentBounds answers the box measured at the last import — an element created in the session
+   *  lies outside it (designIQ's cached plot box, before the contract had the surface) */
+  contentBoundsOfImportedOnly?: boolean;
+  /** contentBounds reports screen coordinates — the box moves with zoom and scroll */
+  contentBoundsInViewCoordinates?: boolean;
+  /** contentBounds spans the elements' positions, not their sizes: their right and bottom edges
+   *  stick out of it */
+  contentBoundsOfPositionsOnly?: boolean;
+  /** contentBounds measures before anything was drawn: a NaN box before the first import */
+  contentBoundsUnmeasuredBeforeImport?: boolean;
+  /** contentBounds answers undefined whatever the canvas shows — the host never fits */
+  contentBoundsAlwaysUndefined?: boolean;
 }
 
 export interface ReferenceModeler extends CollaborativeModeler {
@@ -243,18 +255,34 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   };
   const ids = (): string[] =>
     flaws.positionalIds ? entries.map((_e, i) => `l${entries.length - i}`) : entries.map((e) => e.id);
+  /** where an element is drawn: row n, moved by its offset, 8 units per character */
+  const drawnBox = (e: Entry, row: number): ElementBounds => ({
+    x: e.at?.x ?? 0,
+    y: row * ROW_HEIGHT + (e.at?.y ?? 0),
+    width: 8 * Math.max(1, e.text.length),
+    height: 24,
+  });
+  /** the box as the screen shows it at the current view */
+  const inView = (box: ElementBounds): ElementBounds =>
+    view === undefined
+      ? box
+      : {
+          x: box.x * view.zoom - view.scrollX,
+          y: box.y * view.zoom,
+          width: box.width * view.zoom,
+          height: box.height * view.zoom,
+        };
   const liveBoxes = (): Map<string, ElementBounds> => {
     const reported = ids();
     return new Map(
       entries.map((e, row) => {
-        const x = e.at?.x ?? 0;
-        const width = 8 * Math.max(1, e.text.length);
+        const drawn = drawnBox(e, row);
         const unplaced = flaws.boundsUnplacedOnImport && !e.created;
         const box = {
-          x: unplaced ? Number.NaN : flaws.boundsSignedSize ? x + width : x,
-          y: unplaced ? Number.NaN : row * ROW_HEIGHT + (e.at?.y ?? 0),
-          width: flaws.boundsSignedSize ? -width : width,
-          height: 24,
+          x: unplaced ? Number.NaN : flaws.boundsSignedSize ? drawn.x + drawn.width : drawn.x,
+          y: unplaced ? Number.NaN : drawn.y,
+          width: flaws.boundsSignedSize ? -drawn.width : drawn.width,
+          height: drawn.height,
         };
         return [reported[row] ?? e.id, box];
       }),
@@ -271,13 +299,27 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       if (!firstReadBoxes.has(id)) firstReadBoxes.set(id, live);
       return firstReadBoxes.get(id);
     }
-    if (!flaws.boundsInViewCoordinates || view === undefined) return live;
-    return {
-      x: live.x * view.zoom - view.scrollX,
-      y: live.y * view.zoom,
-      width: live.width * view.zoom,
-      height: live.height * view.zoom,
-    };
+    return flaws.boundsInViewCoordinates ? inView(live) : live;
+  };
+  /** the box around every drawn element, `undefined` without one */
+  const drawnContent = (): ElementBounds | undefined => {
+    const boxes = entries.map(drawnBox);
+    if (boxes.length === 0) return undefined;
+    const sized = !flaws.contentBoundsOfPositionsOnly;
+    const left = Math.min(...boxes.map((b) => b.x));
+    const top = Math.min(...boxes.map((b) => b.y));
+    const right = Math.max(...boxes.map((b) => b.x + (sized ? b.width : 0)));
+    const bottom = Math.max(...boxes.map((b) => b.y + (sized ? b.height : 0)));
+    return { x: left, y: top, width: right - left, height: bottom - top };
+  };
+  let importedContent: ElementBounds | undefined;
+  const contentBounds = (): ElementBounds | undefined => {
+    if (flaws.contentBoundsAlwaysUndefined) return undefined;
+    if (!imported && flaws.contentBoundsUnmeasuredBeforeImport) {
+      return { x: Number.NaN, y: Number.NaN, width: Number.NaN, height: Number.NaN };
+    }
+    const content = flaws.contentBoundsOfImportedOnly ? importedContent : drawnContent();
+    return content && flaws.contentBoundsInViewCoordinates ? inView(content) : content;
   };
   /** a pre-import call the wedging variant never recovers from */
   const touchBeforeImport = (): void => {
@@ -341,6 +383,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   const modeler: ReferenceModeler = {
     meta,
     elements,
+    contentBounds,
     attachTo: () => undefined,
     async importText(text: string): Promise<ImportResult> {
       if (!editable && flaws.viewerImportThrows) throw new Error("No provider for commandStack");
@@ -392,6 +435,7 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       if (!keeps || view === undefined) view = { ...fittedView };
       imported = true;
       importedBoxes = liveBoxes();
+      importedContent = drawnContent();
       // the flawed import completes the open label editor once it rendered
       if (flaws.commitInteractionOnImport) commitLabel();
       // an import never commits an open label editor (L1): it stays open on
