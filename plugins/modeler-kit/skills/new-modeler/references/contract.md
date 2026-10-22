@@ -21,8 +21,9 @@ also exposes `diagram`, the wrapped diagram-js instance (`get`, `on`, `off`) for
 as menus and exports, `elements` with `bounds`, and, since 1.3, `contentBounds()`: the tight box of
 everything the canvas draws, in diagram coordinates and `undefined` while nothing is drawn, which a
 host fits to instead of reaching into the renderer's services. Compute it from the model, as the
-template's `ContentBounds` does: a box measured on the live SVG changes with the zoom wherever it
-holds text. The aligned options since 1.2:
+template's [`ContentBounds.ts`](../assets/template/packages/renderer/src/io/ContentBounds.ts) does:
+a box measured on the live SVG changes with the zoom wherever it holds text. The aligned options
+since 1.2:
 
 | Option         | The renderer does                                                                                                                                                                                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
