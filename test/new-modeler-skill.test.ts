@@ -1143,6 +1143,7 @@ describe("the template's VS Code smoke workflows", () => {
       "package.json",
       "package-lock.json",
       "e2e/package.json",
+      "tsconfig.base.json",
       ".github/workflows/ci.yml",
       ".github/workflows/vscode-smoke.yml",
       ".github/workflows/vscode-smoke-weekly.yml",
@@ -1152,6 +1153,9 @@ describe("the template's VS Code smoke workflows", () => {
     });
     it("runs when a file moved out of apps/vscode", () => {
       expect(afterChanging({ "docs/extension.ts": "a" }, ["apps/vscode/src/extension.ts"])).toBe("true");
+    });
+    it("runs when only a file with a non-ASCII name changed in apps/vscode", () => {
+      expect(afterChanging({ "apps/vscode/test/Übersicht.example": "b" })).toBe("true");
     });
     it.each(["push", "merge_group"])("compares a %s with its base too", (event) => {
       afterChanging({ "README.md": "b" });

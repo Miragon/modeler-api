@@ -106,9 +106,11 @@ workflow, so it reports to `ci-ok` on every run instead of being a check of its 
 filter skips. Its first job decides whether VS Code starts: on a pull request, a push or a merge
 group it compares the change with its base (the pull request's base, the commit before the push,
 the merge group's base) and starts VS Code only when `package-lock.json`, any `package.json`,
-`apps/vscode/`, `packages/`, `ci.yml`, the two smoke workflows or the setup action changed. A
-scheduled or manual run, and a run without a base to compare with (a new branch), always start
-it. It runs the newest stable VS Code and the `engines.vscode` floor, read from
+`apps/vscode/`, `packages/`, `tsconfig.base.json` (the bundles and the libraries' `dist` are built
+with its compiler options), `ci.yml`, the two smoke workflows or the setup action changed. The diff
+lists a moved file under its old path too and a non-ASCII path unquoted, so neither slips past the
+patterns. A scheduled or manual run, and a run without a base to compare with (a new branch),
+always start it. It runs the newest stable VS Code and the `engines.vscode` floor, read from
 `apps/vscode/package.json`, each cached by version, and its last job always reports: a skip
 reaches `ci-ok` as a success with a notice.
 

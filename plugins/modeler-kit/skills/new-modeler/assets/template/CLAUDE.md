@@ -48,7 +48,8 @@ Build the packages before the tests: workspace dependencies resolve to `dist`.
   kit is filled, so a skip or an advisory fails `npm run test:browser`.
 - CI: `ci-ok` is the merge gate (required, with the PR title check). A new job in `ci.yml` goes
   into its `needs`. The VS Code smoke test runs in CI when a change touches `apps/vscode/`,
-  `packages/`, a `package.json` or the lockfile, every week, and before each publish of the VSIX.
+  `packages/`, a `package.json`, the lockfile or `tsconfig.base.json`, every week, and before each
+  publish of the VSIX.
   See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci).
 - Comments only where they explain why.
 
