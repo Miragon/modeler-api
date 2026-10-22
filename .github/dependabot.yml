@@ -1,16 +1,16 @@
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
     labels:
-      - 'dependencies'
-    rebase-strategy: 'auto'
+      - "dependencies"
+    rebase-strategy: "auto"
     open-pull-requests-limit: 10
     commit-message:
-      prefix: 'chore'
-      include: 'scope'
+      prefix: "chore"
+      include: "scope"
     cooldown:
       default-days: 5
       semver-major-days: 14
@@ -19,30 +19,30 @@ updates:
     groups:
       npm-minor-patch:
         applies-to: version-updates
-        patterns: ['*']
-        update-types: ['minor', 'patch']
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
       npm-security:
         applies-to: security-updates
-        patterns: ['*']
+        patterns: ["*"]
 
-  - package-ecosystem: 'github-actions'
+  - package-ecosystem: "github-actions"
     directories:
-      - '/'
-      - '/.github/actions/*'
+      - "/"
+      - "/.github/actions/*"
     schedule:
-      interval: 'monthly'
+      interval: "monthly"
     labels:
-      - 'dependencies'
-    rebase-strategy: 'auto'
+      - "dependencies"
+    rebase-strategy: "auto"
     commit-message:
-      prefix: 'chore'
-      include: 'scope'
+      prefix: "chore"
+      include: "scope"
     cooldown:
       default-days: 5
     groups:
       github-actions:
         applies-to: version-updates
-        patterns: ['*']
+        patterns: ["*"]
       github-actions-security:
         applies-to: security-updates
-        patterns: ['*']
+        patterns: ["*"]
