@@ -145,6 +145,10 @@ Everything is managed via **Conventional Commits** — primarily `feat`, `fix`, 
 - Pin **all** dependencies to exact versions — no version ranges (`^`/`~`/`>=`/`*`), internal
   workspace deps included (use the current local workspace version). See
   [`.claude/rules/package-json-fixed-versions.md`](.claude/rules/package-json-fixed-versions.md).
+  The exception is `peerDependencies`: the libraries a host shares (`zod`, `diagram-js`, `didi`,
+  `tiny-svg`) are caret-ranged peers, mirrored by exact devDependencies and pinned exactly by the
+  apps. [`peer-dependencies.test.ts`](packages/renderer/test/peer-dependencies.test.ts) checks that
+  every range admits its devDependency, the apps' pins and what the other peers require.
 - Contributor onboarding in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Code Style
