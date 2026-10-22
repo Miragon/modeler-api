@@ -61,16 +61,16 @@ needs one manual round:
 `apps/vscode` is the `vscode` component. When it releases, two jobs in the environment
 `vscode-marketplace` build it (`npm run build:vscode`), package the VSIX with
 `npx vsce package --no-dependencies` (the bundles carry everything; `.vscodeignore` keeps `src`,
-tests and maps out), smoke-test the files of that VSIX, unpacked, in the newest stable VS Code
-(the [smoke test](shell.md#the-vs-code-smoke-test) with `VSCODE_SMOKE_EXTENSION`, so a VSIX that
-does not open, save or switch themes is never uploaded) and publish it with
+tests and maps out), smoke-test the files of that VSIX, unpacked, in the newest stable VS Code (the
+[smoke test](shell.md#the-vs-code-smoke-test) with `VSCODE_SMOKE_EXTENSION`, so a VSIX that does not
+open, save or switch themes is never uploaded) and publish it with
 `npx vsce publish --packagePath …` (secret `VSCE_PUBLISH`) and `npx ovsx publish --packagePath …`
 (secret `OVSX_PUBLISH`; `ovsx` is an exact devDependency, so `npx` runs the pinned version). The
-publisher is `miragon-gmbh`; the extension needs `icon`, `repository`, a `README.md` and a
-`LICENSE` in `apps/vscode`, and `engines.vscode` at the floor `@types/vscode` is pinned to. Add the extension to the Miragon modeler extension pack
-(`Miragon/vscode-modeler-collection`) after its first release. A manual run of the release
-workflow with `dry_run` packs the libraries and packages and smoke-tests the VSIX without
-releasing anything.
+publisher is `miragon-gmbh`; the extension needs `icon`, `repository`, a `README.md` and a `LICENSE`
+in `apps/vscode`, and `engines.vscode` at the floor `@types/vscode` is pinned to. Add the extension
+to the Miragon modeler extension pack (`Miragon/vscode-modeler-collection`) after its first release.
+A manual run of the release workflow with `dry_run` packs the libraries and packages and smoke-tests
+the VSIX without releasing anything.
 
 The web app is no npm package and is not published by release-please; deploy `main` with the
 hosting of your choice (the five use Netlify with a `netlify.toml`).
