@@ -3,12 +3,14 @@ import { registerShellConformance, type ShellSkip } from '@miragon/modeler-shell
 import { EXAMPLE } from '../../apps/webapp/src/example.js';
 import { linkHash } from '../../apps/webapp/src/link.js';
 import { THEMES } from '../../apps/webapp/src/themes.js';
+import { labelEditorHooks } from './support/label-editor.js';
 
 /**
  * The shell's conformance kit against the real web app (the `web` host): geometry at three
- * sizes, ARIA and keys, keyboard creation from the palette, the light-only mode under any system
- * setting, the start screen, toasts, the problems list, the drop zone and a clean teardown. The
- * harness declares what the app does not have; every other skip fails the suite.
+ * sizes, ARIA and keys, keyboard creation from the palette, the label editor across the shell's
+ * zoom, fit and refit, the light-only mode under any system setting, the start screen, toasts, the
+ * problems list, the drop zone and a clean teardown. The harness declares what the app does not
+ * have; every other skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]) =>
   skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
@@ -70,6 +72,9 @@ test.describe('web app: shell conformance', () => {
           );
         },
       },
+      labelEditor: labelEditorHooks((page) =>
+        page.evaluate(() => window.app!.modeler.exportText()),
+      ),
       drop: {
         // A .__EXT__ file has no MIME type the browser knows; a picture is refused while dragged.
         accepted: { name: 'diagram.__EXT__', type: '', text: EXAMPLE },

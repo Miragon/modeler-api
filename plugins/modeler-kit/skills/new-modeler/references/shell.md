@@ -100,13 +100,20 @@ kit's harness, and the kit asserts that they never show.
 [`e2e/tests/`](../assets/template/e2e/tests/)): geometry at three sizes (±1 px), ARIA and keys,
 keys that never reach VS Code, focus hand-back, appearance (the kit requests dark, dark with high
 contrast and light with high contrast: a light-only modeler stays light, never half-dark), keyboard
-creation, the read-only lock, the web column and a clean `destroy`.
+creation, the label editor across the shell's zoom, fit and refit, the read-only lock, the web column
+and a clean `destroy`.
 
 - `ide`: a Vite test page runs the webview's `main.ts` inside `installVsCodeWebviewStub` (with
   `stubOptionsFromSearch`), opened with `vsCodeStubSearch(requested)`; the page, not the bundle,
   publishes the handles on `window`. `show.invalid` posts an update the renderer rejects.
 - `web`: the app's own page with its link format. A navigation that only changes the fragment keeps
   the page, so `open` waits for the diagram, not just for the app.
+- `labelEditor` (modeler-shell 0.4.0 or later): `open` double-clicks a node and types a new text on
+  every call, `documentChanged` compares `modeler.exportText()` with the text at `open` (template:
+  [`label-editor.ts`](../assets/template/e2e/tests/support/label-editor.ts)). The kit then zooms,
+  fits and resizes through the shell and expects no commit and the typed text still in the editor
+  (L5), so the label editor stays open across a view change, follows its element and commits only
+  on the user's gestures.
 - `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap.
 - Add the smoke test of the production webview bundle behind `renderWebviewHtml` that fails on any
   CSP violation (template:
