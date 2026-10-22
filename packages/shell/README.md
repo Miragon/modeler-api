@@ -581,15 +581,18 @@ keeps its browsers: `~/Library/Caches/miragon-modeler-shell/vscode-test` on macO
 `%LOCALAPPDATA%\miragon-modeler-shell\vscode-test` on Windows. Every modeler on the machine shares
 it, `npm ci` does not delete it, and since it is outside the repository neither Git nor `eslint .`
 walks the unpacked VS Code. Since 0.3.3 runs may use it at the same time, in one modeler or in
-several: a run unpacks a VS Code version the cache does not have yet into a folder of its own inside
-the cache and then moves it in with one rename, so no run deletes or overwrites the VS Code another
-one starts. When two runs download the same version at once, the first one done puts it into the
-cache and the other one uses that copy. A cache on a file system that refuses symbolic links (FAT,
+several, as long as every one of them uses modeler-shell 0.3.3 or later: a run unpacks a VS Code
+version the cache does not have yet into a folder of its own inside the cache and then moves it in
+with one rename, so no run deletes or overwrites the VS Code another one starts. When two runs
+download the same version at once, the first one done puts it into the cache and the other one uses
+that copy. A modeler still on 0.3.2 or older deletes and unpacks in the cache in place, as
+`@vscode/test-electron` does, so while it downloads a version it can break a run of another modeler
+and be broken by one, until it upgrades. A cache on a file system that refuses symbolic links (FAT,
 for one) loses this protection once it holds an install: a run then uses it directly, as before
-0.3.3, and says so in its log. A `cachePath` inside the repository (`.vscode-test`, the
-default of `@vscode/test-electron` itself) needs an entry in `.gitignore` and one in ESLint's
-`ignores` (`"**/.vscode-test/**"`): the flat config does not read `.gitignore`, so `eslint .` would
-lint the downloaded VS Code, fail with hundreds of errors and block every commit behind a lint hook.
+0.3.3, and says so in its log. A `cachePath` inside the repository (`.vscode-test`, the default of
+`@vscode/test-electron` itself) needs an entry in `.gitignore` and one in ESLint's `ignores`
+(`"**/.vscode-test/**"`): the flat config does not read `.gitignore`, so `eslint .` would lint the
+downloaded VS Code, fail with hundreds of errors and block every commit behind a lint hook.
 
 **macOS, locally.** Give the file a script of its own,
 `"test:vscode-smoke": "node --test apps/vscode/test-smoke/vscode-smoke.test.ts"`, build the extension
@@ -684,7 +687,9 @@ What it does:
 With the image and VS Code cached a run takes about 10 s on an Apple silicon Mac (Event Storming
 10.4 s, Wardley Maps 9.3 s, `npm ci` included); the very first run about 75 s (the image 38 s, the
 VS Code download 22 s). Paths in the test's own output are the container's (`/work/…`). Runs in
-parallel share the cache volume, also while one of them downloads a new VS Code version. `docker
+parallel share the cache volume, also while one of them downloads a new VS Code version, as long as
+every modeler that runs on it uses modeler-shell 0.3.3 or later; one still on 0.3.2 or older can
+break the others while it downloads and be broken by them. `docker
 volume rm modeler-shell-vscode-cache modeler-shell-npm-cache` starts over (the VS Code volume holds
 about 1 GB per version). Without the command, the
 same in plain Docker (the image's Dockerfile from `vsCodeSmokeDockerfile`):

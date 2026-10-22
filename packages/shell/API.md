@@ -2516,7 +2516,9 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    run cannot write to is read as it is. One on a file system that refuses symbolic links (FAT, for
    one) goes to `downloadAndUnzipVSCode` directly once it holds an install, as before 0.3.3 and so
    without this protection, and the run logs "resolve: <cachePath> cannot hold links (EPERM), so this
-   run uses it directly, unprotected from runs at the same time".
+   run uses it directly, unprotected from runs at the same time". All of this holds when every run
+   on `cachePath` uses 0.3.3 or later: a run of 0.3.2 or older still deletes and unpacks in place,
+   so it can break a concurrent run of a newer driver and be broken by one.
 2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
    `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
    VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release
