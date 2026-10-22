@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.2](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.7.1...vscode-v0.7.2) (2026-10-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-renderer bumped from 0.4.0 to 0.4.1
+
 ## [0.7.1](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.7.0...vscode-v0.7.1) (2026-10-21)
 
 

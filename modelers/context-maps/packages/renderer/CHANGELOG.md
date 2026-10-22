@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.4.0...renderer-v0.4.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **renderer:** accept didi 12 in the peer range ([#84](https://github.com/Miragon/context-maps-modeler/issues/84)) ([b1d5ed2](https://github.com/Miragon/context-maps-modeler/commit/b1d5ed2ac6b556625b3d0e4a0f3fedee91dcb7b3))
+
 ## [0.4.0](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.3.0...renderer-v0.4.0) (2026-10-21)
 
 
