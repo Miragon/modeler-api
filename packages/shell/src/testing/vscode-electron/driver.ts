@@ -5,6 +5,7 @@ import { basename, join, resolve } from "node:path";
 import type { ProgressReport, ProgressReporter } from "@vscode/test-electron";
 import type { ElectronApplication, FrameLocator, Page } from "playwright-core";
 import type { Appearance, ChromeIsland, Size, Theme } from "../../core/index.js";
+import { resolveInSharedCache } from "./cache.js";
 import {
   DEFAULT_WINDOW_SIZE,
   customEditorViewType,
@@ -106,8 +107,8 @@ export interface VsCodeSmokeOptions {
   /** `stable`, `insiders` or `1.96.0`; default the newest stable release that satisfies `engines.vscode`. */
   vscodeVersion?: string | undefined;
   /**
-   * Where `@vscode/test-electron` keeps its downloads; default `defaultVsCodeCachePath`, in the OS's
-   * cache directory.
+   * Where `@vscode/test-electron` keeps its downloads, which runs may share at the same time; default
+   * `defaultVsCodeCachePath`, in the OS's cache directory.
    */
   cachePath?: string | undefined;
   /** The window's content size; default 1280 × 800. */
@@ -344,16 +345,18 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
         log(`resolve: ${messageOf(error)}`);
       },
     };
-    const cachePath = resolve(
-      options.cachePath ?? defaultVsCodeCachePath(process.platform, process.env, homedir()),
-    );
-    // @vscode/test-electron creates only the last directory of the path
-    await mkdir(cachePath, { recursive: true });
-    const path = await peers.download({
-      ...(options.vscodeVersion ? { version: options.vscodeVersion } : {}),
-      cachePath,
-      extensionDevelopmentPath: extensionPath,
-      reporter,
+    const path = await resolveInSharedCache({
+      cachePath: resolve(
+        options.cachePath ?? defaultVsCodeCachePath(process.platform, process.env, homedir()),
+      ),
+      download: (cachePath) =>
+        peers.download({
+          ...(options.vscodeVersion ? { version: options.vscodeVersion } : {}),
+          cachePath,
+          extensionDevelopmentPath: extensionPath,
+          reporter,
+        }),
+      log: (line) => log(`resolve: ${line}`),
     });
     log(`resolve: VS Code ${result.vscodeVersion ?? "?"} at ${path}`);
     if (!(await exists(path))) {

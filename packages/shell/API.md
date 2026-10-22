@@ -2503,6 +2503,22 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    directory, outside the repository and shared by every modeler on the machine; without
    `vscodeVersion` the newest stable release that satisfies the extension's `engines.vscode`). A
    `cachePath` inside the repository needs entries in `.gitignore` and in ESLint's `ignores`.
+   Concurrent runs share the cache (0.3.3): `downloadAndUnzipVSCode` gets a private folder
+   `.download-<random>` inside `cachePath` with a link to every install there, finds a cached
+   version through its link and unpacks a new one into the private folder, from where the driver
+   moves it into `cachePath` with one rename. When another run has moved the same version in first,
+   the run uses that install and deletes its own copy ("resolve: another run installed <folder>
+   first, this run uses that one"). Only an install `downloadAndUnzipVSCode` rejects (an outdated
+   Insiders build, a download an older driver left unfinished) is replaced, by one run at a time:
+   that run holds the folder `.replacing-<folder>` in `cachePath` while it moves the rejected install
+   aside, and a lock older than a minute, left by a killed run, is taken over. A private folder its
+   run could not remove (killed mid-download) goes with the first run a day later. A `cachePath` the
+   run cannot write to is read as it is. One on a file system that refuses symbolic links (FAT, for
+   one) goes to `downloadAndUnzipVSCode` directly once it holds an install, as before 0.3.3 and so
+   without this protection, and the run logs "resolve: <cachePath> cannot hold links (EPERM), so this
+   run uses it directly, unprotected from runs at the same time". All of this holds when every run
+   on `cachePath` uses 0.3.3 or later: a run of 0.3.2 or older still deletes and unpacks in place,
+   so it can break a concurrent run of a newer driver and be broken by one.
 2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
    `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
    VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release
@@ -2590,9 +2606,8 @@ it("Event Storming in a real VS Code", { timeout: 600_000 }, async () => {
 ```
 
 Run it on its own (`vitest run --config apps/vscode/test-smoke/vitest.config.ts`, with
-`fileParallelism: false`), not in the unit project: it needs a display and the extension's build,
-and two runs that download the same VS Code at once would write into the same cache. How to run it on
-macOS and in Linux CI, and why the driver works the way it does, is in the
+`fileParallelism: false`), not in the unit project: it needs a display and the extension's build.
+How to run it on macOS and in Linux CI, and why the driver works the way it does, is in the
 [README](README.md#smoke-tests-in-a-real-vs-code) and the
 [implementation notes](../../docs/shell/implementation-notes.md#vs-code-smoke-tests-in-a-real-vs-code).
 
