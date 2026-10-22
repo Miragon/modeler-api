@@ -82,10 +82,41 @@ on the major `typescript-eslint` accepts (Dependabot ignores the next major).
 `test-browser` and `e2e` in the `mcr.microsoft.com/playwright:v<version>-noble` image whose version
 `playwright-version` reads from the root `devDependencies` (bump image and `playwright` together;
 `npx playwright install --with-deps chromium` in a plain runner works as well),
-`pin-check`, `dependency-review`, and `vscode-smoke` (a real VS Code under `xvfb-run -a`, on a
-manual run and on pull requests labelled `vscode-smoke`). A shared setup action installs the Node
-version of `engines` and runs `npm ci`. Every `uses:` is pinned to a commit SHA with the tag as a
-comment.
+`pin-check`, `dependency-review`, `vscode-smoke` (the reusable
+[`vscode-smoke.yml`](../assets/template/.github/workflows/vscode-smoke.yml)) and `ci-ok`. A
+shared setup action installs the Node version of `engines` and runs `npm ci`. Every `uses:` is
+pinned to a commit SHA with the tag as a comment.
+
+### The merge gate
+
+`ci-ok` runs after every other job of `ci.yml`, also when one failed (`if: always()`), and fails
+when any of them failed, was cancelled or was skipped, with one error line per job. Only
+`dependency-review` may be skipped, outside pull requests, where its own `if:` skips it. Make
+`ci-ok` and the PR title check `validate-pr-title` the only required checks on `main`: a required
+check that is skipped counts as passed, so a list of required jobs lets a lint failure through
+that skips `e2e` and `test-browser`, and Dependabot's auto-merge waits only for the listed checks.
+A new job in `ci.yml` goes into the `needs` of `ci-ok`; one that its own `if:` skips on some
+events also goes into `SKIPPED_BY_DESIGN` for those events. Switch the required checks once
+`ci-ok` has run on `main`, since GitHub offers only checks it has seen.
+
+### The VS Code smoke test in CI
+
+[`vscode-smoke.yml`](../assets/template/.github/workflows/vscode-smoke.yml) is a reusable
+workflow, so it reports to `ci-ok` on every run instead of being a check of its own that a path
+filter skips. Its first job decides whether VS Code starts: on a pull request, a push or a merge
+group it compares the change with its base (the pull request's base, the commit before the push,
+the merge group's base) and starts VS Code only when `package-lock.json`, any `package.json`,
+`apps/vscode/`, `packages/`, `ci.yml`, the two smoke workflows or the setup action changed. A
+scheduled or manual run, and a run without a base to compare with (a new branch), always start
+it. It runs the newest stable VS Code and the `engines.vscode` floor, read from
+`apps/vscode/package.json`, each cached by version, and its last job always reports: a skip
+reaches `ci-ok` as a success with a notice.
+
+[`vscode-smoke-weekly.yml`](../assets/template/.github/workflows/vscode-smoke-weekly.yml) runs it
+every Monday, because a new VS Code release can break the extension without a change in the
+repository, and its job `alert` opens the issue "VS Code smoke: the weekly run failed" or comments
+on the open one. Only `alert` gets `issues: write`: GitHub rejects a called workflow whose jobs
+ask for more permissions than the caller grants, even a job that would be skipped.
 
 [`codeql.yml`](../assets/template/.github/workflows/codeql.yml) runs CodeQL's
 `javascript-typescript` analysis from source (`build-mode: none`) on pull requests, on pushes to

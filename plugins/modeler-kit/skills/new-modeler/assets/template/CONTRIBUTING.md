@@ -11,8 +11,32 @@ npm run build
 The Husky pre-commit hook runs lint-staged and `npm run lint` only; run `npm test`,
 `npm run test:browser` and `npm run depcruise` before you push, and after a change to the
 extension or the webview `npm run build:vscode && npm run test:vscode-smoke`, which opens the
-built extension in a real VS Code (CI runs it when a pull request has the label `vscode-smoke`).
-Every commit is signed (`git commit -S`).
+built extension in a real VS Code (`VSCODE_VERSION=1.96.0` picks another VS Code; CI runs it
+when a change touches the extension, see [CI](#ci)). Every commit is signed (`git commit -S`).
+
+## CI
+
+`ci-ok`, the last job of `.github/workflows/ci.yml`, is the merge gate: it and the PR title check
+`validate-pr-title` are the only required checks on `main`. It runs after every other CI job, also
+when one failed, and fails when any of them failed, was cancelled or was skipped. A required
+check that is skipped counts as passed, so a list of required jobs would let a lint failure that
+skips `e2e` through, and Dependabot's auto-merge waits only for the checks on that list. Only
+`dependency-review` may be skipped, outside pull requests, where its own `if:` skips it.
+
+- **A new job in `ci.yml` goes into the `needs` of `ci-ok`**, or nothing waits for it. A job whose
+  own `if:` skips it on some events also goes into `SKIPPED_BY_DESIGN` for those events.
+- **The VS Code smoke test** (`.github/workflows/vscode-smoke.yml`, which `ci.yml` calls) reports
+  to `ci-ok` on every run. A first job compares the change with its base (the pull request's base,
+  the commit before a push, the merge group's base) and starts VS Code only when one of these
+  changed: `package-lock.json`, any `package.json`, `apps/vscode/`, `packages/`, `ci.yml`, the two
+  smoke workflows or the setup action. Otherwise it passes with a notice. Without a base to
+  compare with (a new branch), on the weekly schedule and on a manual run it always starts VS
+  Code, the newest stable release and the `engines.vscode` floor of `apps/vscode/package.json`.
+- **Every Monday** `vscode-smoke-weekly.yml` runs it, because a new VS Code release can break the
+  extension without a change here; a failure opens the issue "VS Code smoke: the weekly run
+  failed", or comments on it while it is open.
+- **The release** smoke-tests the VSIX it publishes, unpacked, in the newest stable VS Code, before
+  it uploads it to the Marketplace and Open VSX.
 
 ## Commits and releases
 

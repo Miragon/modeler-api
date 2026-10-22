@@ -81,10 +81,27 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-version: 24
+      # The smoke test imports the DSL through node_modules, which resolves to its dist.
+      - run: npm run build
       - run: npm run build:vscode
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
+      # The files of the VSIX itself, unpacked, in the newest stable VS Code: what users install,
+      # not the folder it was packed from.
+      - name: Smoke-test the VSIX
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-marketplace
+          path: test-results/vscode-smoke/
+          retention-days: 7
       - name: Publish to the VS Code Marketplace
         working-directory: apps/vscode
         run: npx vsce publish --packagePath __REPO__.vsix
@@ -103,10 +120,24 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-version: 24
+      - run: npm run build
       - run: npm run build:vscode
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
+      - name: Smoke-test the VSIX
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-open-vsx
+          path: test-results/vscode-smoke/
+          retention-days: 7
       - name: Publish to Open VSX
         working-directory: apps/vscode
         run: npx ovsx publish --packagePath __REPO__.vsix --pat "$OVSX_PAT"
@@ -127,3 +158,16 @@ jobs:
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
+      - name: Smoke-test the VSIX
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-dry-run
+          path: test-results/vscode-smoke/
+          retention-days: 7

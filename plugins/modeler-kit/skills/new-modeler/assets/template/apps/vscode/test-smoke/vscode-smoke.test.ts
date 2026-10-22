@@ -10,10 +10,15 @@ import { WEBVIEW_THEMES } from '../src/themes.js';
  * Code's frames, a canvas edit that dirties the tab, save and undo through VS Code's keybindings,
  * and the theme bridge under VS Code's four default themes, with a screenshot each. The first run
  * downloads VS Code into the OS's cache directory (about 350 MB, 0.9 GB unpacked).
+ *
+ * VSCODE_VERSION picks the VS Code (`stable`, `1.96.0`; default the newest stable release that
+ * satisfies engines.vscode), so CI runs the engines floor too. VSCODE_SMOKE_EXTENSION points at
+ * another build of the extension: the release smoke-tests the unpacked VSIX it is about to upload.
  */
 it('__DISPLAY_NAME__ in a real VS Code', { timeout: 600_000 }, async () => {
   const result = await runVsCodeSmoke({
-    extensionPath: fileURLToPath(new URL('..', import.meta.url)),
+    extensionPath:
+      process.env.VSCODE_SMOKE_EXTENSION || fileURLToPath(new URL('..', import.meta.url)),
     fixture: { fileName: 'order-fulfilment.__EXT__', text: EXAMPLE_DIAGRAM },
     parse(text) {
       const { diagnostics } = parseText(text);
@@ -24,6 +29,7 @@ it('__DISPLAY_NAME__ in a real VS Code', { timeout: 600_000 }, async () => {
     themes: WEBVIEW_THEMES,
     name: '__NOTATION__',
     screenshotDir: 'test-results/vscode-smoke',
+    vscodeVersion: process.env.VSCODE_VERSION || undefined,
     log: console.log,
   });
   console.log(formatVsCodeSmoke(result));

@@ -134,8 +134,13 @@ bridge resolves for the modeler's `themes`, with a screenshot each. Template:
   display and the built extension, and a window opens for a few seconds. The first run downloads
   VS Code (about 350 MB) into the OS's cache directory, outside the repository and shared by every
   modeler on the machine, so neither `.gitignore` nor ESLint needs an entry.
-- CI runs it in the job `vscode-smoke` under `xvfb-run -a`, on a manual run and on pull requests
-  with the label `vscode-smoke`, and uploads the screenshots.
+- `VSCODE_VERSION` picks the VS Code (`stable`, `1.96.0`; default the newest stable release that
+  satisfies `engines.vscode`), `VSCODE_SMOKE_EXTENSION` another build of the extension, such as an
+  unpacked VSIX.
+- CI runs it under `xvfb-run -a` on the newest stable VS Code and the `engines.vscode` floor when
+  a change touches the extension's inputs, every week, and on the VSIX before each publish, and
+  uploads the screenshots (see [repository](repository.md#the-vs-code-smoke-test-in-ci) and
+  [releases](releases.md#vs-code-marketplace-and-open-vsx)).
 - The default edit, `createFromPalette`, presses Enter on the first creating palette entry and then
   Escape. A notation without such an entry passes its own `edit` (locators on `webview`, keys on
   `page`), and one whose edit takes more than one undo step sets `undoSteps`. A failed check is in

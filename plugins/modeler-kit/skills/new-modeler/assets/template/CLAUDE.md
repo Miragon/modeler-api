@@ -28,8 +28,8 @@ ESLint (`npm run lint`) and dependency-cruiser (`npm run depcruise`).
   `npm run test:e2e` (the `@miragon/modeler-shell` conformance kit on the `web` and `ide` hosts;
   ports `E2E_PORT`, `E2E_WEBVIEW_PORT`)
 - `npm run test:vscode-smoke`: the built extension in a real VS Code (`npm run build` and
-  `npm run build:vscode` first; a window opens, on Linux run it under `xvfb-run -a`; CI runs it on
-  a manual run and on pull requests labelled `vscode-smoke`)
+  `npm run build:vscode` first; a window opens, on Linux run it under `xvfb-run -a`;
+  `VSCODE_VERSION` picks the VS Code, default the newest stable release)
 - `npm run lint` (ESLint + every tsconfig) · `npm run format` · `npm run depcruise`
 
 Build the packages before the tests: workspace dependencies resolve to `dist`.
@@ -46,6 +46,10 @@ Build the packages before the tests: workspace dependencies resolve to `dist`.
 - The renderer implements `@miragon/modeler-api` (`createCollaborativeModeler`,
   `createCollaborativeViewer`, notation `__NOTATION__`); every harness hook of the conformance
   kit is filled, so a skip or an advisory fails `npm run test:browser`.
+- CI: `ci-ok` is the merge gate (required, with the PR title check). A new job in `ci.yml` goes
+  into its `needs`. The VS Code smoke test runs in CI when a change touches `apps/vscode/`,
+  `packages/`, a `package.json` or the lockfile, every week, and before each publish of the VSIX.
+  See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci).
 - Comments only where they explain why.
 
 ## Design system (mandatory)

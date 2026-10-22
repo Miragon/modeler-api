@@ -1,0 +1,148 @@
+name: VS Code smoke
+
+# The built extension in a real VS Code, on the newest stable release and on the engines floor.
+# CI calls it on every event so that ci-ok always gets its result; VS Code itself runs only when a
+# path it depends on changed, because each run downloads VS Code (about 350 MB per version) and
+# needs an X server. The weekly run and a manual run always run it.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.paths.outputs.run }}
+      versions: ${{ steps.versions.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - id: versions
+        name: Read the engines floor
+        run: |
+          list="$(node -p "JSON.stringify(['stable', require('./apps/vscode/package.json').engines.vscode.match(/\d+\.\d+\.\d+/)[0]])")"
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+          echo "VS Code versions: $list"
+
+      # No third-party path filter: a skipped job would reach ci-ok as an unexpected skip, and the
+      # decision has to fail towards running when there is nothing to compare with.
+      - id: paths
+        name: Decide from the changed paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        run: |
+          relevant() {
+            case "$1" in
+              package-lock.json | package.json | */package.json) return 0 ;;
+              apps/vscode/* | packages/*) return 0 ;;
+              .github/workflows/ci.yml | .github/workflows/vscode-smoke.yml | .github/workflows/vscode-smoke-weekly.yml) return 0 ;;
+              .github/actions/setup/*) return 0 ;;
+            esac
+            return 1
+          }
+          decide() {
+            echo "run=$1" >> "$GITHUB_OUTPUT"
+            echo "$2"
+            exit 0
+          }
+          case "$EVENT" in
+            pull_request | push | merge_group) ;;
+            *) decide true "$EVENT: runs always" ;;
+          esac
+          if [[ ! "$BASE" =~ ^[0-9a-f]{40}$ || "$BASE" =~ ^0+$ ]]; then
+            decide true "no base commit to compare with ('$BASE'): runs"
+          fi
+          if ! git fetch --no-tags --depth=1 origin "$BASE"; then
+            decide true "the base $BASE cannot be fetched: runs"
+          fi
+          if ! changed="$(git diff --no-renames --name-only "$BASE" HEAD)"; then
+            decide true "no diff against the base $BASE: runs"
+          fi
+          while IFS= read -r path; do
+            if [ -n "$path" ] && relevant "$path"; then
+              decide true "$path changed since $BASE: runs"
+            fi
+          done <<< "$changed"
+          decide false "no path the smoke test depends on changed since $BASE: skips"
+
+  smoke:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        vscode: ${{ fromJSON(needs.changes.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+
+      # The cache key needs the version before the test resolves it; the test then runs exactly it.
+      - id: vscode
+        name: Resolve the VS Code version and its cache folder
+        env:
+          REQUESTED: ${{ matrix.vscode }}
+        run: |
+          version="$REQUESTED"
+          if [ "$version" = stable ]; then
+            version="$(curl -fsSL https://update.code.visualstudio.com/api/releases/stable | jq -r '.[0]')"
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::no VS Code version for $REQUESTED: '$version'"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "cache=${XDG_CACHE_HOME:-$HOME/.cache}/miragon-modeler-shell/vscode-test" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.vscode.outputs.cache }}
+          key: vscode-${{ runner.os }}-${{ runner.arch }}-${{ steps.vscode.outputs.version }}
+
+      # The smoke test imports the DSL through node_modules, which resolves to its dist.
+      - run: npm run build
+      - run: npm run build:vscode
+      # VS Code needs an X server; -a picks a free display number.
+      - run: xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: ${{ steps.vscode.outputs.version }}
+
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-${{ matrix.vscode }}
+          path: test-results/vscode-smoke/
+          retention-days: 7
+
+  # Always a job that ends green or red, so the caller never sees the skip of the smoke job as
+  # its result.
+  result:
+    needs: [changes, smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          CHANGES: ${{ needs.changes.result }}
+          RUN: ${{ needs.changes.outputs.run }}
+          SMOKE: ${{ needs.smoke.result }}
+        run: |
+          if [ "$CHANGES" != success ]; then
+            echo "::error::changes: $CHANGES"
+            exit 1
+          fi
+          if [ "$RUN" != true ]; then
+            echo "::notice::No path the VS Code smoke test depends on changed, so it did not run."
+            exit 0
+          fi
+          if [ "$SMOKE" != success ]; then
+            echo "::error::smoke: $SMOKE"
+            exit 1
+          fi
+          echo "The VS Code smoke test passed on every version."

@@ -67,8 +67,10 @@ known version), and the new repository's Dependabot moves them on.
    downloads it). All green before the first commit, which is signed (`git commit -S -m "feat: …"`).
 5. **GitHub**: the environments `npm` and `vscode-marketplace`, the secrets `VSCE_PUBLISH` and
    `OVSX_PUBLISH` (in `vscode-marketplace`), the release-please app (`RELEASE_PLEASE_APP_CLIENT_ID`,
-   `RELEASE_PLEASE_APP_PRIVATE_KEY`), required signed commits and the CI checks on `main`. The
-   first release of every npm package is published by hand once, see
+   `RELEASE_PLEASE_APP_PRIVATE_KEY`), required signed commits, and `ci-ok` (the CI gate) and
+   `validate-pr-title` as the only required checks on `main`, once `ci-ok` has run there (see
+   [repository](references/repository.md#the-merge-gate)). The first release of every npm
+   package is published by hand once, see
    [releases](references/releases.md#first-release-of-a-package).
 6. Replace the toy notation, test by test: the grammar in `packages/dsl`, the model in
    `packages/schema-model`, shapes and tools in `packages/renderer`, the fixtures of the
@@ -95,9 +97,11 @@ known version), and the new repository's Dependabot moves them on.
 
 ## Done when
 
-- CI is green: lint, format, depcruise, pin check, unit tests, `test:browser` with zero skips and
-  zero advisories of the contract kit, `test:e2e` with both shell kits and the CSP smoke test of
-  the production webview bundle, the web app's `check:build`.
+- CI is green, which `ci-ok` sums up: lint, format, depcruise, pin check, unit tests,
+  `test:browser` with zero skips and zero advisories of the contract kit, `test:e2e` with both
+  shell kits and the CSP smoke test of the production webview bundle, the web app's
+  `check:build`, and the VS Code smoke test on the newest stable VS Code and the `engines.vscode`
+  floor.
 - `npm run test:vscode-smoke` passes: edit, save, undo and VS Code's four default themes in a real
   VS Code ([shell](references/shell.md#the-vs-code-smoke-test)).
 - The renderer's `meta.apiVersion` is the pinned `MODELER_API_VERSION`, and the factories accept
