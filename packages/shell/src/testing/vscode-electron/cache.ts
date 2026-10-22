@@ -1,6 +1,7 @@
 import { rmSync } from "node:fs";
 import { lstat, mkdir, mkdtemp, readdir, rename, rm, stat, symlink } from "node:fs/promises";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 /** Names a run's private download folder inside the shared cache. */
 export const PRIVATE_DOWNLOAD_PREFIX = ".download-";
@@ -11,8 +12,18 @@ export const PRIVATE_DOWNLOAD_PREFIX = ".download-";
  */
 export const ABANDONED_DOWNLOAD_MS = 24 * 60 * 60 * 1000;
 
+/** Names the lock a run holds while it moves a rejected install out of the shared cache. */
+export const REPLACING_PREFIX = ".replacing-";
+
+/**
+ * How old the lock of a run that never removed it (killed while it moved an install) has to be
+ * before another run takes it over: far longer than the check and the rename it guards take.
+ */
+export const ABANDONED_REPLACE_MS = 60 * 1000;
+
 const PUBLISH_ATTEMPTS = 10;
 const PUBLISH_RETRY_MS = 100;
+const REPLACE_POLL_MS = 50;
 
 export interface SharedCacheOptions {
   /** The cache every run on the machine shares. */
@@ -121,23 +132,53 @@ async function publish(
     const current = await identityOf(shared);
     if (current === undefined) {
       // Windows refuses the rename while a virus scanner still holds a file of the new install.
-      await new Promise((done) => setTimeout(done, PUBLISH_RETRY_MS * attempt));
+      await delay(PUBLISH_RETRY_MS * attempt);
       continue;
     }
     if (current !== rejected) {
       log(`another run installed ${shared} first, this run uses that one`);
       return;
     }
-    const aside = `${unpacked}.rejected-${attempt}`;
+    if (await moveAsideWhileRejected(shared, rejected, `${unpacked}.rejected-${attempt}`)) replaced = true;
+  }
+}
+
+/**
+ * Moves the rejected install at `shared` to `aside`, unless it is no longer there. Runs that found
+ * the same rejected install take turns: one that looked just before another one replaced it would
+ * otherwise move out the new install, which that run may have started already.
+ */
+async function moveAsideWhileRejected(shared: string, rejected: string, aside: string): Promise<boolean> {
+  const lock = join(dirname(shared), `${REPLACING_PREFIX}${basename(shared)}`);
+  await takeLock(lock);
+  try {
+    if ((await identityOf(shared)) !== rejected) return false;
+    await rename(shared, aside);
+    return true;
+  } catch (error) {
+    if (codeOf(error) === "ENOENT") return false;
+    throw error;
+  } finally {
+    // A lock left behind only holds up the next replace until it counts as abandoned.
+    await rm(lock, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+async function takeLock(lock: string): Promise<void> {
+  for (;;) {
     try {
-      await rename(shared, aside);
+      await mkdir(lock);
+      return;
     } catch (error) {
-      if (codeOf(error) === "ENOENT") continue;
-      throw error;
+      if (codeOf(error) !== "EEXIST") throw error;
     }
-    replaced = (await identityOf(aside)) === rejected;
-    // Another run may have replaced it between the check and the move; its install goes back.
-    if (!replaced) await rename(aside, shared).catch(() => undefined);
+    const age = await lstat(lock).then(
+      (stats) => Date.now() - stats.mtimeMs,
+      () => undefined,
+    );
+    if (age === undefined) continue;
+    if (age > ABANDONED_REPLACE_MS) await rm(lock, { recursive: true, force: true });
+    else await delay(REPLACE_POLL_MS);
   }
 }
 

@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { chmod, mkdir, readdir, stat, symlink, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, rm, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -7,7 +7,13 @@ import { ProgressReportStage, download, type ProgressReport } from "@vscode/test
 import { afterAll, describe, expect, it } from "vitest";
 
 import { fakeTestElectron, readInstall, writeInstall } from "../../../test/support/test-electron.js";
-import { ABANDONED_DOWNLOAD_MS, PRIVATE_DOWNLOAD_PREFIX, resolveInSharedCache } from "./cache.js";
+import {
+  ABANDONED_DOWNLOAD_MS,
+  ABANDONED_REPLACE_MS,
+  PRIVATE_DOWNLOAD_PREFIX,
+  REPLACING_PREFIX,
+  resolveInSharedCache,
+} from "./cache.js";
 
 const directory = mkdtempSync(join(tmpdir(), "modeler-shell-cache-"));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -123,6 +129,61 @@ describe("resolveInSharedCache", () => {
     expect(lines).toEqual([
       `replaced ${join(cachePath, fake.folderName)}, which @vscode/test-electron did not accept`,
     ]);
+  });
+
+  it("waits while another run moves out the rejected install, then replaces what is still there", async () => {
+    const cachePath = await emptyCache();
+    const fake = fakeTestElectron();
+    await writeInstall(join(cachePath, fake.folderName), "cut short", false);
+    const lock = join(cachePath, `${REPLACING_PREFIX}${fake.folderName}`);
+    await mkdir(lock);
+    let downloaded!: () => void;
+    const isDownloaded = new Promise<void>((done) => (downloaded = done));
+    let finished = false;
+
+    const resolving = resolveInSharedCache({
+      cachePath,
+      download: async (path) => {
+        const executable = await fake.download({ cachePath: path });
+        downloaded();
+        return executable;
+      },
+    }).finally(() => (finished = true));
+    await isDownloaded;
+    await delay(300);
+    expect(finished).toBe(false);
+    await rm(lock, { recursive: true });
+
+    expect(await resolving).toBe(join(cachePath, fake.folderName, "code"));
+    expect(await readInstall(join(cachePath, fake.folderName))).toEqual({
+      code: "A",
+      app: "A",
+      complete: true,
+    });
+    expect(await readdir(cachePath)).toEqual([fake.folderName]);
+  });
+
+  it("takes over the lock of a run killed while it moved out a rejected install", async () => {
+    const cachePath = await emptyCache();
+    const fake = fakeTestElectron();
+    await writeInstall(join(cachePath, fake.folderName), "cut short", false);
+    const lock = join(cachePath, `${REPLACING_PREFIX}${fake.folderName}`);
+    await mkdir(lock);
+    const longAgo = new Date(Date.now() - ABANDONED_REPLACE_MS - 60_000);
+    await utimes(lock, longAgo, longAgo);
+
+    const executable = await resolveInSharedCache({
+      cachePath,
+      download: (path) => fake.download({ cachePath: path }),
+    });
+
+    expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+    expect(await readInstall(join(cachePath, fake.folderName))).toEqual({
+      code: "A",
+      app: "A",
+      complete: true,
+    });
+    expect(await readdir(cachePath)).toEqual([fake.folderName]);
   });
 
   it("leaves the shared cache as it was when the download fails", async () => {

@@ -1551,7 +1551,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   The driver now gives `downloadAndUnzipVSCode` a private folder `.download-<random>` inside the
   cache with a link to every install of the cache, and moves a new install into the cache with one
   `rename`. Decisions:
-  - _A rename, not a lock._ A lock directory needs a stale timeout: a killed container leaves its
+  - _A rename, not a lock around the download._ A lock directory needs a stale timeout: a killed container leaves its
     lock behind, process IDs mean nothing across containers, and two waiters that see the same
     stale lock at once both take it. The rename needs no timeout, a killed run cannot block or
     break another one, and it works per version: a run that needs a cached version never waits for
@@ -1571,6 +1571,18 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
     moved aside and replaced. Replacing an Insiders build breaks a run that still uses the old one,
     as `@vscode/test-electron` itself does; a run of 0.3.2 or earlier on the same cache still
     deletes and unpacks in place.
+  - _One replace at a time._ Runs that found the same rejected install all want it out of the way.
+    One that looked at it just before another one moved it aside and put its own install in moved
+    out that new install, which its run may have started already, and when it could not put it back
+    deleted it with its private folder. Six processes that published at once into a cache holding
+    an unfinished install hit this in 11 of 120 rounds on macOS: a run's executable went missing
+    while the run read it. The look and the move aside therefore happen under a lock folder
+    `.replacing-<folder>` in the cache. Unlike a lock around the download it guards milliseconds,
+    and only the rare replace, so one older than a minute counts as left by a killed run and is
+    taken over; two runs that take over the same abandoned lock at once both hold it, which needs a
+    run killed within those milliseconds first. Putting an install into an empty place needs no
+    lock, since a rename never replaces a folder that holds files. With the lock none of the 120
+    rounds failed.
   - _Leftovers._ A run removes its private folder, on `process.exit` too. A run killed during the
     download (SIGKILL, `docker kill`, a SIGINT no handler catches) leaves it; the first run a day
     later removes it.

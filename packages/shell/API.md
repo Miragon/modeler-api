@@ -2509,9 +2509,11 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    moves it into `cachePath` with one rename. When another run has moved the same version in first,
    the run uses that install and deletes its own copy ("resolve: another run installed <folder>
    first, this run uses that one"). Only an install `downloadAndUnzipVSCode` rejects (an outdated
-   Insiders build, a download an older driver left unfinished) is replaced. A private folder its run
-   could not remove (killed mid-download) goes with the first run a day later. A `cachePath` the run
-   cannot write to is read as it is.
+   Insiders build, a download an older driver left unfinished) is replaced, by one run at a time:
+   that run holds the folder `.replacing-<folder>` in `cachePath` while it moves the rejected install
+   aside, and a lock older than a minute, left by a killed run, is taken over. A private folder its
+   run could not remove (killed mid-download) goes with the first run a day later. A `cachePath` the
+   run cannot write to is read as it is.
 2. **launch**: `_electron.launch` with the downloaded executable and `vsCodeLaunchArgs`: a throwaway
    `--user-data-dir` and `--extensions-dir` in the OS temp directory, `--extensionDevelopmentPath`,
    VS Code's own test-runner flags (no sandbox, no GPU sandbox, no updates, no welcome page, release
