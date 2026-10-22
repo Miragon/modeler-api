@@ -7,11 +7,13 @@ import { DiagramViewport, type Viewport } from "./viewport.js";
 /**
  * What `connectDiagramJs` reads of a renderer's `@miragon/modeler-api` contract instance
  * (`createCollaborativeModeler(…)`), typed structurally like the diagram-js services: the content
- * bounds the contract reports since 1.3.
+ * bounds the contract reports since 1.3. `object &` keeps a contract instance from before 1.3, which
+ * shares no member with a type of only optional ones, assignable, so a host can pass it next to its
+ * own `contentBounds` and drop that fallback once the renderer reports them.
  */
-export interface CollaborativeModelerLike {
+export type CollaborativeModelerLike = object & {
   contentBounds?(): Bounds | undefined;
-}
+};
 
 export interface ConnectOptions {
   /**

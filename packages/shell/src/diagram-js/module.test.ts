@@ -4,11 +4,11 @@ import EditorActionsExport from "diagram-js/lib/features/editor-actions/index.js
 import KeyboardExport from "diagram-js/lib/features/keyboard/index.js";
 import PaletteExport from "diagram-js/lib/features/palette/index.js";
 import ZoomScrollExport from "diagram-js/lib/navigation/zoomscroll/index.js";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { defaultMessages, fitViewbox, type Bounds, type Insets, type Size } from "../core/index.js";
 import { mountShell, type PaletteRegistration, type ShellHandle } from "../dom/index.js";
-import { connectDiagramJs } from "./connect.js";
+import { connectDiagramJs, type CollaborativeModelerLike } from "./connect.js";
 import { shellModule } from "./module.js";
 import type { ModuleDeclarationLike } from "./types.js";
 
@@ -711,6 +711,32 @@ describe("connectDiagramJs", () => {
     expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
     expect(connection.viewport.canFit()).toBe(false);
     expect(modeler.contentBounds).not.toHaveBeenCalled();
+  });
+
+  it("takes a contract instance from before 1.3 next to the host's own contentBounds, and fits to those", () => {
+    // what a renderer on contract 1.2 returns: no contentBounds, no member a 1.3 one would add
+    class ContractInstanceBefore13 {
+      importText(_text: string): Promise<{ warnings: string[] }> {
+        return Promise.resolve({ warnings: [] });
+      }
+      exportText(): string {
+        return "";
+      }
+      destroy(): void {}
+    }
+    expectTypeOf<ContractInstanceBefore13>().toExtend<CollaborativeModelerLike>();
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    const hostBounds = vi.fn(() => ({ x: 0, y: 0, width: 120, height: 80 }));
+    const modeler = new ContractInstanceBefore13();
+    const connection = connectDiagramJs(shell.handle, diagram, { modeler, contentBounds: hostBounds });
+    eventBus(diagram).fire("import.done", {});
+    expect(hostBounds).toHaveBeenCalled();
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
+    expect(connection.viewport.canFit()).toBe(true);
+    expect(() => connectDiagramJs(fakeShell().handle, createDiagram(), { modeler })).toThrow(
+      /needs the content bounds/,
+    );
   });
 
   it("throws, binding nothing, without contentBounds and without a contract instance that reports them", () => {

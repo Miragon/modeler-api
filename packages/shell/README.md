@@ -217,7 +217,8 @@ The content bounds come from `contentBounds`, or, since 0.4, from the renderer's
 instance: with a renderer on `@miragon/modeler-api` 1.3, `connectDiagramJs(shell, diagram, { modeler })`
 (`modeler` from `createCollaborativeModeler(…)`, `diagram` its diagram-js instance) fits to the
 contract's `contentBounds()`, so the host needs to know none of the renderer's services. An explicit
-`contentBounds` still wins, for a renderer before 1.3 or a host that fits to other bounds.
+`contentBounds` still wins, for a renderer before 1.3 or a host that fits to other bounds; a host may
+pass both while its renderer is on 1.2 and drop its own once the renderer reports them.
 
 `mountVsCodeShell` stops every key the webview handles on `document`, before VS Code's listener on
 `window` forwards it to the workbench, and keeps the webview in the mode the extension resolved: a
