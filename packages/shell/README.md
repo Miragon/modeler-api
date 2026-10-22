@@ -345,7 +345,8 @@ the geometry of every island (±1px), ARIA and the keyboard models, that every c
 once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that a
 pointer click on the zoom panel or a palette tool hands the focus to the canvas while Enter and Space
 leave it on the button, that nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
-Enter on a creating palette entry adds one selected element, that an invalid file locks the canvas,
+Enter on a creating palette entry adds one selected element, that the shell's zoom, fit and refit
+neither commit nor close an open label editor (contract L5), that an invalid file locks the canvas,
 and that `destroy()` leaves nothing behind. Five more cases cover the web column (`webChrome`,
 `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded hosts they assert that
 none of it shows.
@@ -384,6 +385,8 @@ import { registerShellConformance, vsCodeStubSearch } from "@miragon/modeler-she
 
 test.describe("shell conformance", () => {
   test.describe.configure({ timeout: 60_000 }); // geometry measures three sizes
+  let opens = 0;
+  let exportedAtOpen = "";
   registerShellConformance(
     {
       host: "ide",
@@ -401,6 +404,19 @@ test.describe("shell conformance", () => {
           window.modeler.destroy();
           window.shell.destroy();
         });
+      },
+      labelEditor: {
+        // like a user: a double-click on a shape, then typing; a new text on every call
+        async open(page) {
+          await page.locator(".djs-shape[data-element-id]").first().dblclick();
+          const typed = `Renamed ${++opens}`;
+          await page.keyboard.type(typed);
+          exportedAtOpen = await page.evaluate(() => window.modeler.exportText());
+          return typed;
+        },
+        async documentChanged(page) {
+          return (await page.evaluate(() => window.modeler.exportText())) !== exportedAtOpen;
+        },
       },
       show: {
         async legend(page) {
@@ -487,8 +503,10 @@ registerShellConformance(
 
 The harness opens the modeler with the appearance the kit requests, the way its host would; for
 the `embedded` host the kit puts the foreign page itself in that mode. A skip names the harness
-field it misses (`{ hook: "legend", reason }`; `hook: "destroy"` without a `destroy`; `hook: "open"`
-when the opened document lacks what a case needs, such as a shape for `readOnly`); without `onSkip`
+field it misses (`{ hook: "legend", reason }`; `hook: "labelEditor"` without a `labelEditor`, or
+`absent: ["labelEditor"]` for a notation without labels on the canvas; `hook: "destroy"` without a
+`destroy`; `hook: "open"` when the opened document lacks what a case needs, such as a shape for
+`readOnly`); without `onSkip`
 the kit warns on the console. What each case asserts, and what the kit installs in the page, is
 listed in [API.md][api].
 

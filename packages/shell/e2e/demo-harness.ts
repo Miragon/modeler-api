@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import type { Appearance, ShellHost, Theme } from "../src/index.js";
 import { vsCodeStubSearch, type ShellConformanceHarness, type ShowHooks } from "../src/testing.js";
 import { colorThemeKindOf } from "../src/testing-vscode-stub.js";
+import { demoLabelEditor } from "./label-editor-hooks.js";
 
 /**
  * What the demo's foreign page (demo.css) puts around the embedded root's container: 40px page
@@ -30,7 +31,8 @@ const LIGHT: Appearance = { theme: "light" };
 /**
  * The kit's harness for the demo page, as a modeler's e2e suite writes it for its webview: the
  * demo mounts legend and inspector slots, the show hooks open them through `window.__demo.shell`,
- * and `invalid` puts the demo into its invalid-file state as a failed import would.
+ * `invalid` puts the demo into its invalid-file state as a failed import would, and `labelEditor`
+ * edits a box's label.
  */
 export function demoHarness(
   host: ShellHost,
@@ -103,6 +105,7 @@ export function demoHarness(
       await page.evaluate(() => window.__demo?.destroy());
     },
     show,
+    labelEditor: demoLabelEditor((page) => page.evaluate(() => window.__demo?.documentChanges() ?? 0)),
     absent: without,
   };
 }

@@ -23,7 +23,13 @@ import {
   type ToastStatus,
 } from "../src/index.js";
 import { connectDiagramJs, type DiagramJsConnection } from "../src/diagram-js.js";
-import { addSampleShapes, createDemoDiagram, createDemoModeler, type DemoFlaws } from "./demo-diagram.js";
+import {
+  addSampleShapes,
+  countDocumentChanges,
+  createDemoDiagram,
+  createDemoModeler,
+  type DemoFlaws,
+} from "./demo-diagram.js";
 
 /**
  * The web-app variant of the demo (`/web.html`): every 0.2 web-host option of `mountShell`, the way
@@ -46,7 +52,13 @@ let captions = true;
 const app = document.getElementById("app");
 if (!app) throw new Error("web demo: #app is missing");
 
-const flaws: DemoFlaws = { noKeyboardCreate: false, canvasUnlocked: false, noSelectAll: false };
+const flaws: DemoFlaws = {
+  noKeyboardCreate: false,
+  canvasUnlocked: false,
+  noSelectAll: false,
+  commitLabelOnViewChange: false,
+  closeLabelOnViewChange: false,
+};
 
 // The diagram first, so a modeler's document keydown listeners would precede the shell's.
 const canvasElement = document.createElement("div");
@@ -58,6 +70,7 @@ const diagram = createDemoDiagram(canvasElement, {
   // palette moves below 784px.
   extraShapes: 14,
 });
+const documentChanges = countDocumentChanges(diagram);
 const modeling = diagram.get<Modeling>("modeling");
 const elementRegistry = diagram.get<ElementRegistry>("elementRegistry");
 const selection = diagram.get<Selection>("selection");
@@ -268,6 +281,7 @@ const webDemo = {
   connection,
   diagram,
   flaws,
+  documentChanges,
   showProblems,
   startScreen,
   setInvalid,

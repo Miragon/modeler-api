@@ -23,7 +23,13 @@ declare global {
         canvasUnlocked: boolean;
         /** Cmd/Ctrl+A on the canvas does nothing, so VS Code runs its Select All (case `keys`). */
         noSelectAll: boolean;
+        /** The label editor commits on every view change, as before contract 1.2 (case `labelEditor`). */
+        commitLabelOnViewChange: boolean;
+        /** The label editor closes without a commit on every view change (case `labelEditor`). */
+        closeLabelOnViewChange: boolean;
       };
+      /** Commands that changed the diagram so far, the demo's document changes (case `labelEditor`). */
+      documentChanges(): number;
       /**
        * The invalid-file state as a host shows it: `shell.setReadOnly(true)` and the status box,
        * both with `INVALID_STATUS_DELAY_MS`; `false` clears both at once. `?invalid` uses it.
@@ -38,6 +44,7 @@ declare global {
       shell: ShellHandle;
       connection: DiagramJsConnection;
       flaws: NonNullable<Window["__demo"]>["flaws"];
+      documentChanges(): number;
       /** The pill with two items: an error on the first box, a warning without an element. */
       showProblems(): void;
       /** A fresh visit without a document: an empty board behind the start screen. */

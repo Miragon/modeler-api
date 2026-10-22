@@ -304,6 +304,48 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("labelEditor fails when a view change commits the open label editor", async ({ page }) => {
+      // the renderers built against contract 1.1 completed direct editing on canvas.viewbox.changing
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.commitLabelOnViewChange = true;
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on Fit committed the open label editor \(labelEditor\.documentChanged\); a view change the host makes never commits it \(contract L5\)/,
+        /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+        /label editor: a container resize committed the open label editor/,
+      ]);
+    });
+
+    test("labelEditor fails when the shell's fit takes the focus from the label editor", async ({ page }) => {
+      // the demo's editor commits when it loses the focus, as the renderers' do
+      const harness = sabotaged(() => {
+        const viewport = window.__demo!.connection.viewport;
+        const fit = viewport.fit.bind(viewport);
+        viewport.fit = (options) => {
+          fit(options);
+          viewport.focus?.();
+        };
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on Fit committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+      ]);
+    });
+
+    test("labelEditor fails when a view change closes the label editor and drops the typed text", async ({
+      page,
+    }) => {
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.closeLabelOnViewChange = true;
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: after a click on Fit the focus is on \S+, not in the label editor; it stays open with the typed "Renamed box \d+" \(contract L5\)/,
+        /label editor: after Shift\+1 on the canvas the focus is on \S+, not in the label editor/,
+        /label editor: after a container resize the focus is on \S+, not in the label editor/,
+      ]);
+    });
+
     test("appearance fails for a renderer colour on the armed tool's icon", async ({ page }) => {
       // the lasso icon of Event Storming computed to rgb(29, 30, 33) from a renderer rule
       const harness = sabotaged(() => {
@@ -378,6 +420,18 @@ test.describe("saboteurs", () => {
     );
     expect(failure).toMatch(/focus: after Space on zoom in the focus is on svg/);
     expect(failure).not.toMatch(/after a click/);
+  });
+
+  test("labelEditor fails for a documentChanged probe that never sees the commit", async ({ page }) => {
+    const base = demoHarness("ide");
+    const harness: ShellConformanceHarness<Page> = {
+      ...base,
+      sizes: WIDE_ONLY,
+      labelEditor: { open: base.labelEditor!.open, documentChanged: async () => false },
+    };
+    await expect(runCase("labelEditor", page, harness)).rejects.toThrow(
+      /label editor: a click on an empty spot of the canvas after the view changes left labelEditor\.documentChanged false, so the case proved nothing/,
+    );
   });
 
   test("geometry and aria fail for an island the harness declares absent", async ({ page }) => {

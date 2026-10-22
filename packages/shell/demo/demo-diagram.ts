@@ -3,6 +3,9 @@ import type ElementFactory from "diagram-js/lib/core/ElementFactory";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type EventBus from "diagram-js/lib/core/EventBus";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import BaseRenderer from "diagram-js/lib/draw/BaseRenderer";
+import type DefaultRenderer from "diagram-js/lib/draw/DefaultRenderer";
 import ContextPadModule from "diagram-js/lib/features/context-pad";
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
 import type { ContextPadEntries } from "diagram-js/lib/features/context-pad/ContextPadProvider";
@@ -30,7 +33,7 @@ import type Selection from "diagram-js/lib/features/selection/Selection";
 import MoveCanvasModule from "diagram-js/lib/navigation/movecanvas";
 import ZoomScrollModule from "diagram-js/lib/navigation/zoomscroll";
 import type { Element, Parent, Shape } from "diagram-js/lib/model/Types";
-import type { ModuleDeclaration } from "didi";
+import type { Injector, ModuleDeclaration } from "didi";
 
 import { PALETTE_TOOL_ICON, iconMarkup, type Bounds, type Point } from "../src/index.js";
 import { shellModule, type CollaborativeModelerLike } from "../src/diagram-js.js";
@@ -46,6 +49,13 @@ export interface DemoFlaws {
   canvasUnlocked: boolean;
   /** Cmd/Ctrl+A on the canvas does nothing, so VS Code runs its own Select All (case `keys`). */
   noSelectAll: boolean;
+  /**
+   * The label editor commits on every view change (`canvas.viewbox.changing`), as the renderers
+   * built against contract 1.1 did (case `labelEditor`).
+   */
+  commitLabelOnViewChange: boolean;
+  /** The label editor closes without a commit on every view change, dropping the typed text (case `labelEditor`). */
+  closeLabelOnViewChange: boolean;
 }
 
 /** What the demo modeler reads from the page around it, at the moment it needs it. */
@@ -263,15 +273,204 @@ class DemoSelectAll {
   }
 }
 
+/** A demo box with the label the label editor writes. */
+type LabelledShape = Shape & { demoLabel?: string | undefined };
+
+const UPDATE_LABEL = "demo.label.update";
+
+/** Diagram units; the editor scales it with the zoom, so it covers the label it replaces. */
+const LABEL_FONT_SIZE = 13;
+
+function isBox(element: unknown): element is LabelledShape {
+  return (
+    typeof element === "object" &&
+    element !== null &&
+    "parent" in element &&
+    Boolean(element.parent) &&
+    !("waypoints" in element)
+  );
+}
+
+interface UpdateLabelContext {
+  shape: LabelledShape;
+  label: string;
+  oldLabel?: string | undefined;
+}
+
+/** One undoable command per committed label: the demo's document change. */
+class UpdateLabelHandler {
+  static $inject: string[] = [];
+
+  execute(context: UpdateLabelContext): Element[] {
+    context.oldLabel = context.shape.demoLabel;
+    context.shape.demoLabel = context.label;
+    return [context.shape];
+  }
+
+  revert(context: UpdateLabelContext): Element[] {
+    context.shape.demoLabel = context.oldLabel;
+    return [context.shape];
+  }
+}
+
+/** The box as diagram-js draws it, its label in the middle. */
+class DemoLabelRenderer extends BaseRenderer {
+  static $inject = ["eventBus", "defaultRenderer"];
+
+  constructor(
+    eventBus: EventBus,
+    private readonly defaultRenderer: DefaultRenderer,
+  ) {
+    super(eventBus, 1500);
+  }
+
+  override canRender(element: Element): boolean {
+    return isBox(element) && Boolean(element.demoLabel);
+  }
+
+  override drawShape(visuals: SVGElement, shape: LabelledShape): SVGElement {
+    const box = this.defaultRenderer.drawShape(visuals, shape);
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("class", "demo-label");
+    text.setAttribute("x", String(shape.width / 2));
+    text.setAttribute("y", String(shape.height / 2));
+    text.setAttribute("font-size", String(LABEL_FONT_SIZE));
+    text.textContent = shape.demoLabel ?? "";
+    visuals.append(text);
+    return box;
+  }
+
+  override getShapePath(shape: Shape): string {
+    return this.defaultRenderer.getShapePath(shape);
+  }
+}
+
+/**
+ * In-place label editing the way the renderers of contract 1.2 do it: only the user's gestures
+ * commit (Enter, leaving the field, a click or drag on the canvas), a view change keeps the field
+ * open and moves it along (L5), a read-only canvas opens none (guide §13.5).
+ */
+class DemoLabelEditing {
+  static $inject = ["canvas", "eventBus", "commandStack", "injector", "demoHooks"];
+
+  private field: HTMLTextAreaElement | undefined;
+  private shape: LabelledShape | undefined;
+
+  constructor(
+    private readonly canvas: Canvas,
+    eventBus: EventBus,
+    private readonly commandStack: CommandStack,
+    private readonly injector: Injector,
+    private readonly hooks: DemoHooks,
+  ) {
+    commandStack.registerHandler(UPDATE_LABEL, UpdateLabelHandler);
+    eventBus.on("element.dblclick", (event: { element?: unknown }) => {
+      if (isBox(event.element)) this.activate(event.element);
+    });
+    eventBus.on(["element.mousedown", "drag.init"], () => this.complete());
+    eventBus.on("canvas.viewbox.changing", () => {
+      if (this.hooks.flaws.commitLabelOnViewChange) this.complete();
+      else if (this.hooks.flaws.closeLabelOnViewChange) this.cancel();
+    });
+    eventBus.on("canvas.viewbox.changed", () => this.place());
+    eventBus.on("shape.remove", (event: { element?: unknown }) => {
+      if (event.element === this.shape) this.cancel();
+    });
+    eventBus.on("diagram.destroy", () => this.cancel());
+  }
+
+  private activate(shape: LabelledShape): void {
+    if (isCanvasLocked(this.hooks)) return;
+    this.complete();
+    this.injector.get<ContextPad | null>("contextPad", false)?.close();
+    const field = document.createElement("textarea");
+    field.className = "demo-label-editor";
+    field.setAttribute("aria-label", "Label");
+    field.value = shape.demoLabel ?? "";
+    field.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        this.complete();
+        this.canvas.focus();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        this.cancel();
+        this.canvas.focus();
+      }
+    });
+    field.addEventListener("blur", () => {
+      if (this.field === field) this.complete();
+    });
+    this.field = field;
+    this.shape = shape;
+    this.place();
+    this.canvas.getContainer().append(field);
+    field.focus();
+    field.select();
+  }
+
+  private complete(): void {
+    const { field, shape } = this;
+    if (!field || !shape) return;
+    this.close();
+    const label = field.value.replace(/\s+/g, " ").trim();
+    if (label !== (shape.demoLabel ?? "")) {
+      this.commandStack.execute(UPDATE_LABEL, { shape, label } satisfies UpdateLabelContext);
+    }
+  }
+
+  private cancel(): void {
+    this.close();
+  }
+
+  private close(): void {
+    const field = this.field;
+    this.field = undefined;
+    this.shape = undefined;
+    field?.remove();
+  }
+
+  private place(): void {
+    const { field, shape } = this;
+    if (!field || !shape) return;
+    const box = this.canvas.getAbsoluteBBox(shape);
+    Object.assign(field.style, {
+      left: `${box.x}px`,
+      top: `${box.y}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+      fontSize: `${LABEL_FONT_SIZE * this.canvas.zoom()}px`,
+    });
+  }
+}
+
+/** Counts the commands that changed the diagram (create, move, delete, a label): its document changes. */
+export function countDocumentChanges(diagram: Diagram): () => number {
+  let changes = 0;
+  diagram.get<EventBus>("eventBus").on("commandStack.changed", () => {
+    changes += 1;
+  });
+  return () => changes;
+}
+
 /** A minimal diagram-js modeler with palette, built before the shell is mounted. */
 export function createDemoDiagram(container: HTMLElement, hooks: DemoHooks): Diagram {
   const demoModule: ModuleDeclaration = {
-    __init__: ["demoPaletteProvider", "demoRules", "demoContextPadProvider", "demoSelectAll"],
+    __init__: [
+      "demoPaletteProvider",
+      "demoRules",
+      "demoContextPadProvider",
+      "demoSelectAll",
+      "demoLabelRenderer",
+      "demoLabelEditing",
+    ],
     demoHooks: ["value", hooks],
     demoPaletteProvider: ["type", DemoPaletteProvider],
     demoRules: ["type", DemoRules],
     demoContextPadProvider: ["type", DemoContextPadProvider],
     demoSelectAll: ["type", DemoSelectAll],
+    demoLabelRenderer: ["type", DemoLabelRenderer],
+    demoLabelEditing: ["type", DemoLabelEditing],
   };
   return new Diagram({
     canvas: { container },

@@ -32,7 +32,13 @@ import {
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
 
 import tokens from "../fixtures/tokens/cd-tokens.generated.json";
-import { addSampleShapes, createDemoDiagram, createDemoModeler, type DemoFlaws } from "./demo-diagram.js";
+import {
+  addSampleShapes,
+  countDocumentChanges,
+  createDemoDiagram,
+  createDemoModeler,
+  type DemoFlaws,
+} from "./demo-diagram.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
@@ -143,7 +149,13 @@ if (host === "web") {
   }
 }
 
-const flaws: DemoFlaws = { noKeyboardCreate: false, canvasUnlocked: false, noSelectAll: false };
+const flaws: DemoFlaws = {
+  noKeyboardCreate: false,
+  canvasUnlocked: false,
+  noSelectAll: false,
+  commitLabelOnViewChange: false,
+  closeLabelOnViewChange: false,
+};
 
 // the diagram first, so document keydown listeners of a modeler would precede the shell's
 const canvasElement = document.createElement("div");
@@ -152,6 +164,8 @@ const diagram = createDemoDiagram(canvasElement, {
   isReadOnly: () => shell.isReadOnly(),
   freeRectCenter: () => connection.viewport.freeRectCenter(),
 });
+
+const documentChanges = countDocumentChanges(diagram);
 
 const options = {
   canvas: canvasElement,
@@ -244,6 +258,7 @@ const demo = {
   diagram,
   vscode: vscodeHost,
   flaws,
+  documentChanges,
   setInvalid,
   destroy(): void {
     if (destroyed) return;

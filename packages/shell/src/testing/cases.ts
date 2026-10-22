@@ -97,6 +97,7 @@ import {
   pillPopupAriaProblems,
   webModeProblems,
 } from "./web-checks.js";
+import { labelEditorCase } from "./label-editor-case.js";
 import { createWebCases } from "./web-cases.js";
 import {
   DEFAULT_SIZES,
@@ -1140,7 +1141,10 @@ const cleanupCase: ShellConformanceCase = {
   },
 };
 
-/** The cases of every host: those of 0.1, extended for the web column, and the focus hand-back of 0.2.2. */
+/**
+ * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2
+ * and the label editor of 0.4.
+ */
 export function createBaseCases(): ShellConformanceCase[] {
   return [
     geometryCase,
@@ -1148,6 +1152,7 @@ export function createBaseCases(): ShellConformanceCase[] {
     keysCase,
     focusHandBackCase,
     createCase,
+    labelEditorCase,
     readOnlyCase,
     appearanceCase,
     cleanupCase,

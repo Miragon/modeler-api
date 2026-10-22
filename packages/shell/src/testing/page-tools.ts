@@ -448,6 +448,43 @@ export const removeInjectedProbe = (_: null): void => {
   for (const cleanup of tools.cleanups.splice(0)) cleanup();
 };
 
+/**
+ * Activates the first match of `selector` inside the root with `HTMLElement.click()`: its action
+ * runs as on a click, but no pointer moves the focus (`detail` is 0, as for Enter or Space).
+ */
+export const scriptedClickProbe = ({ root, selector }: { root: string; selector: string }): boolean => {
+  const element = document.querySelector(root)?.querySelector<HTMLElement>(selector);
+  if (!element) return false;
+  element.click();
+  return true;
+};
+
+/** A key the kit delivers to the canvas `<svg>` without focusing it. */
+export interface CanvasKey {
+  key: string;
+  code: string;
+  ctrlKey?: boolean;
+  shiftKey?: boolean;
+}
+
+/** Dispatches `keydown` and `keyup` of `key` at the canvas `<svg>`; the focus stays where it is. */
+export const canvasKeyProbe = ({ root, key }: { root: string; key: CanvasKey }): boolean => {
+  const svg = document.querySelector(root)?.querySelector(".djs-container > svg");
+  if (!svg) return false;
+  const init: KeyboardEventInit = {
+    key: key.key,
+    code: key.code,
+    ctrlKey: key.ctrlKey === true,
+    shiftKey: key.shiftKey === true,
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  };
+  svg.dispatchEvent(new KeyboardEvent("keydown", init));
+  svg.dispatchEvent(new KeyboardEvent("keyup", init));
+  return true;
+};
+
 /** Makes the canvas `<svg>` handle `key` (`preventDefault`), as a modeler's own canvas binding would. */
 export const canvasHandlesProbe = ({ root, key }: { root: string; key: string }): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import type { Theme } from "../src/index.js";
 import type { DropFixtures, ShellConformanceHarness, ShowHooks } from "../src/testing.js";
+import { demoLabelEditor } from "./label-editor-hooks.js";
 
 export interface WebDemoHarnessOptions {
   /** The modes the demo modeler declares; default `["light"]`, as every modeler today. */
@@ -82,6 +83,7 @@ export function webDemoHarness(options: WebDemoHarnessOptions = {}): ShellConfor
     },
     show,
     drop: WEB_DROP,
+    labelEditor: demoLabelEditor((page) => page.evaluate(() => window.__webDemo?.documentChanges() ?? 0)),
     absent: without,
   };
 }

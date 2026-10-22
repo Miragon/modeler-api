@@ -49,6 +49,7 @@ describe("shellConformanceCases", () => {
       "keys",
       "focusHandBack",
       "create",
+      "labelEditor",
       "readOnly",
       "appearance",
       "cleanup",
@@ -77,6 +78,7 @@ describe("registerShellConformance", () => {
       "shell conformance: keys",
       "shell conformance: focusHandBack",
       "shell conformance: create",
+      "shell conformance: labelEditor",
       "shell conformance: readOnly",
       "shell conformance: appearance",
       "shell conformance: cleanup",
@@ -115,6 +117,62 @@ describe("registerShellConformance", () => {
       ],
     ]);
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it("skips the label editor case without harness.labelEditor, before opening anything", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    await register(harness({ open }), onSkip).get("shell conformance: labelEditor")!({ page: emptyPage() });
+    expect(onSkip.mock.calls).toEqual([
+      [
+        "labelEditor",
+        [
+          {
+            hook: "labelEditor",
+            reason:
+              "harness.labelEditor is undefined: that the shell's zoom, fit and refit never commit or close an open label editor was not verified",
+          },
+        ],
+      ],
+    ]);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("does not report a label editor the harness declares absent, and fails one it also gives", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    await register(harness({ open, absent: ["labelEditor"] }), onSkip).get("shell conformance: labelEditor")!(
+      {
+        page: emptyPage(),
+      },
+    );
+    expect(onSkip).not.toHaveBeenCalled();
+    const labelEditor = { open: async () => "Renamed", documentChanged: async () => false };
+    await expect(
+      register(harness({ open, labelEditor, absent: ["labelEditor"] })).get(
+        "shell conformance: labelEditor",
+      )!({
+        page: emptyPage(),
+      }),
+    ).rejects.toThrow(
+      '@miragon/modeler-shell conformance: labelEditor (ide host)\n- harness: absent lists "labelEditor", but harness.labelEditor is given',
+    );
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("opens the harness for the label editor case and needs the shell root before the editor", async () => {
+    const open = vi.fn(async () => {});
+    const labelEditor = { open: vi.fn(async () => "Renamed"), documentChanged: async () => false };
+    await expect(
+      register(harness({ open, labelEditor })).get("shell conformance: labelEditor")!({ page: emptyPage() }),
+    ).rejects.toThrow(
+      '@miragon/modeler-shell conformance: labelEditor (ide host)\n- no element matches the shell root selector ".cd-shell"',
+    );
+    expect(open).toHaveBeenCalledWith(expect.anything(), {
+      size: { width: 1280, height: 900 },
+      requested: { theme: "light" },
+    });
+    expect(labelEditor.open).not.toHaveBeenCalled();
   });
 
   it("does not report a hook the harness declares absent", async () => {

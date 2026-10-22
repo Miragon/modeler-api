@@ -72,10 +72,30 @@ export interface DropFixtures {
 export type ShowHook = keyof ShowHooks;
 
 /**
- * What a harness can lack: a show hook, the web app's drop zone (`drop`), or problems that point at
- * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects).
+ * How the `labelEditor` case opens the modeler's label editor and sees a commit of it (0.4).
  */
-export type AbsentFeature = ShowHook | "drop" | "problemSelection";
+export interface LabelEditorHooks<P extends PageLike = PageLike> {
+  /**
+   * Opens the label editor on an element of the opened document the way a user does (a
+   * double-click) and types text the element's label does not hold yet, without committing it (no
+   * Enter, no click elsewhere). Resolves with the typed text once the editor has the keyboard focus
+   * and holds it. The case calls it again after a step that committed or closed the editor, on the
+   * view that step left.
+   */
+  open(page: P): Promise<string>;
+  /**
+   * Whether the document changed since `open` last resolved: what the host would save or hand to
+   * its peers (a content change of the modeler, an edit message to the extension).
+   */
+  documentChanged(page: P): Promise<boolean>;
+}
+
+/**
+ * What a harness can lack: a show hook, the web app's drop zone (`drop`), problems that point at
+ * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects), or
+ * a label editor (`labelEditor`: the notation has no labels to edit on the canvas).
+ */
+export type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor";
 
 export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
@@ -92,6 +112,11 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   /** Web host: the files the `dropZone` case drops; without them (and not `absent`) it is skipped with `hook: "drop"`. */
   drop?: DropFixtures | undefined;
   /**
+   * 0.4: the modeler's label editor for the `labelEditor` case; without it (and not `absent`) the
+   * case is skipped with `hook: "labelEditor"`.
+   */
+  labelEditor?: LabelEditorHooks<P> | undefined;
+  /**
    * The islands and states the modeler does not have. An absent hook is not reported as skipped,
    * and `geometry` and `aria` assert that its island is never visible. Listing a hook that `show`
    * also gives fails every case that uses it.
@@ -104,10 +129,10 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
 /** One part of a case the harness could not feed. */
 export interface ShellSkip {
   /**
-   * The harness field that would feed it: a show hook, `destroy`, or `open` when the document it
-   * opens lacks what the case needs (a shape on the canvas).
+   * The harness field that would feed it: a show hook, `drop`, `labelEditor`, `destroy`, or `open`
+   * when the document it opens lacks what the case needs (a shape on the canvas).
    */
-  hook: ShowHook | "drop" | "destroy" | "open";
+  hook: ShowHook | "drop" | "labelEditor" | "destroy" | "open";
   reason: string;
 }
 
@@ -129,12 +154,13 @@ export interface ShellConformanceCase {
  * canvas only), `focusHandBack` (a pointer click on a zoom control or a palette tool leaves the focus
  * on the canvas, Enter and Space on zoom in leave it on the button), `create` (Enter on the first
  * creating palette entry places one selected element in the free rectangle and focuses the canvas),
- * `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested from a light-only
- * modeler: nothing turns dark, `color-scheme` light everywhere, the canvas surround and the
- * palette's tool colours from the roles; the web app's mode and its Appearance group) and `cleanup`
- * (after `destroy` no shell element, class, attribute or key handling remains); then the web
- * column's `webChrome`, `emptyState`, `toasts`, `problemsList` and `dropZone`, which assert in the
- * other hosts that nothing of them shows.
+ * `labelEditor` (the shell's zoom, fit and refit never commit or close an open label editor,
+ * contract L5), `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested
+ * from a light-only modeler: nothing turns dark, `color-scheme` light everywhere, the canvas
+ * surround and the palette's tool colours from the roles; the web app's mode and its Appearance
+ * group) and `cleanup` (after `destroy` no shell element, class, attribute or key handling
+ * remains); then the web column's `webChrome`, `emptyState`, `toasts`, `problemsList` and
+ * `dropZone`, which assert in the other hosts that nothing of them shows.
  */
 export function shellConformanceCases(): ShellConformanceCase[] {
   return createCases();

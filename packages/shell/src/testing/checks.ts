@@ -5,6 +5,7 @@ import {
   type AriaFacts,
   type CanvasStateFacts,
   type FocusPlaceFacts,
+  type LabelEditorFacts,
   type MenuEntryFacts,
   type MenuFacts,
   type PaletteColorEntry,
@@ -678,13 +679,13 @@ export function harnessHookProblems<P extends PageLike>(
 ): string[] {
   return hooks
     .filter((hook) =>
-      hook === "drop"
-        ? harness.absent?.includes("drop") && harness.drop
+      hook === "drop" || hook === "labelEditor"
+        ? harness.absent?.includes(hook) && harness[hook]
         : hook !== "problemSelection" && harness.absent?.includes(hook) && harness.show?.[hook],
     )
     .map((hook) =>
-      hook === "drop"
-        ? 'harness: absent lists "drop", but harness.drop is given'
+      hook === "drop" || hook === "labelEditor"
+        ? `harness: absent lists "${hook}", but harness.${hook} is given`
         : `harness: absent lists "${hook}", but show.${hook} is given`,
     );
 }
@@ -796,6 +797,85 @@ export function createProblems(facts: CreateFacts): string[] {
     );
   }
   return problems;
+}
+
+/** The focused field holds the typed text. */
+function holdsTyped(facts: LabelEditorFacts, typed: string): boolean {
+  return facts.editing && facts.text.includes(typed);
+}
+
+/** Right after `labelEditor.open`: the editor has the focus and the typed text, and nothing changed yet. */
+export function labelEditorOpenProblems(
+  typed: string,
+  facts: LabelEditorFacts,
+  documentChanged: boolean,
+): string[] {
+  const problems: string[] = [];
+  if (typed === "") {
+    problems.push("label editor: labelEditor.open typed nothing, so the case would prove nothing");
+  } else if (!facts.editing) {
+    problems.push(
+      `label editor: after labelEditor.open the focus is on ${facts.focused}, expected the label editor (a text field) holding "${typed}"`,
+    );
+  } else if (!holdsTyped(facts, typed)) {
+    problems.push(
+      `label editor: after labelEditor.open the focused field holds "${facts.text}", expected the typed "${typed}"`,
+    );
+  }
+  if (documentChanged) {
+    problems.push(
+      "label editor: labelEditor.documentChanged reports a change right after labelEditor.open; typing alone changes no document, so it counts from the moment open resolved",
+    );
+  }
+  return problems;
+}
+
+/** One view change the shell made over the open label editor, and what it left. */
+export interface LabelEditorStepFacts {
+  /** What the kit did ("a click on Fit", "Shift+1 on the canvas"). */
+  step: string;
+  /** What `labelEditor.open` typed. */
+  typed: string;
+  /** The view before the step (`LabelEditorFacts.view`). */
+  viewBefore: string | null;
+  after: LabelEditorFacts;
+  /** `labelEditor.documentChanged` after the step. */
+  documentChanged: boolean;
+}
+
+/** Contract L5: a view change the host makes neither commits nor closes the open label editor. */
+export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
+  const { step, typed, after } = facts;
+  const problems: string[] = [];
+  if (after.view === null || after.view === facts.viewBefore) {
+    problems.push(`label editor: ${step} left the view as it was, so it proved nothing about a view change`);
+  }
+  if (facts.documentChanged) {
+    problems.push(
+      `label editor: ${step} committed the open label editor (labelEditor.documentChanged); a view change the host makes never commits it (contract L5)`,
+    );
+  } else if (!after.editing) {
+    problems.push(
+      `label editor: after ${step} the focus is on ${after.focused}, not in the label editor; it stays open with the typed "${typed}" (contract L5)`,
+    );
+  } else if (!holdsTyped(after, typed)) {
+    problems.push(
+      `label editor: after ${step} the focused field holds "${after.text}", expected the typed "${typed}" (contract L5)`,
+    );
+  }
+  return problems;
+}
+
+/**
+ * After every step kept the editor open: the user's own commit, a click on an empty spot of the
+ * canvas, must show in `labelEditor.documentChanged`, or the steps proved nothing.
+ */
+export function labelEditorCommitProblems(documentChanged: boolean): string[] {
+  return documentChanged
+    ? []
+    : [
+        "label editor: a click on an empty spot of the canvas after the view changes left labelEditor.documentChanged false, so the case proved nothing; open types text the element's label does not hold yet, and documentChanged reports the commit a click elsewhere makes",
+      ];
 }
 
 /** The read-only marks once the invalid-file state shows (guide §5.12, §13.5). */
