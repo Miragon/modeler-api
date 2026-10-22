@@ -64,8 +64,13 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   (`vsce package --no-dependencies`), unpacks the VSIX outside the repository and runs the shell's
   `runVsCodeSmoke` on it: open, the default palette edit, save (`parseDocumentText`, one more
   context, canonical text), undo and VS Code's four default themes, screenshots in
-  `test-results/vscode-smoke/`. Opt-in (needs a display, downloads VS Code once); CI runs it in
-  `vscode-smoke.yml`, not in `ci.yml`.
+  `test-results/vscode-smoke/`. No retry: the driver (0.3.2) reads the save only once the tab is
+  clean and the file holds still, so a failed save check is the extension's, not a race; the
+  driver's failures are a soft assertion, so another step's failure cannot hide the save's. Opt-in
+  (needs a display, downloads VS Code once); CI runs it in `vscode-smoke.yml` under `xvfb-run -a`,
+  not in `ci.yml`. Locally run `npm run test:vscode:docker` (the shell's
+  `modeler-shell-vscode-docker`: the same test in a Linux container, no window, no focus taken);
+  `npm run test:vscode` opens a real VS Code window on macOS.
 
 ## Monorepo (npm workspaces)
 
@@ -112,9 +117,11 @@ violating import fails `npm run lint` and `npm run depcruise`.
 - `npm test` — Vitest (unit; includes the VS Code host against a `vscode` mock) ·
   `npm run test:browser` — renderer and the contract kit in Chromium · `npm run test:e2e` —
   Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`, default 5180) and the VS Code
-  webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) · `npm run test:vscode` — the
-  packaged extension in a real VS Code (macOS as is, Linux under `xvfb-run -a`;
-  `VSCODE_SMOKE_VERSION` picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
+  webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) · `npm run test:vscode:docker`
+  — the packaged extension in a real VS Code inside Docker, without a window (the local way;
+  `-- --env VSCODE_SMOKE_VERSION=1.96.0` picks the version) · `npm run test:vscode` — the same on
+  the host, for CI (Linux under `xvfb-run -a`) and for a visible window on macOS
+  (`VSCODE_SMOKE_VERSION` picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
 - `npm run notices -w apps/vscode` — regenerate `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test
   fails when it is stale)
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)
