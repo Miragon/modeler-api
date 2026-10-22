@@ -66,12 +66,20 @@ export interface PageTools {
   facts(element: Element): ElementFacts;
   /**
    * The accessible name of a control whose role takes its name from content (a button, a menu
-   * item), as assistive technology computes it (accname 1.2): `aria-labelledby`, else a non-empty
-   * `aria-label`, else the text of its content without `aria-hidden="true"`, `hidden`,
-   * `display: none` and `visibility: hidden` parts, a descendant's `aria-label` standing for its
-   * content. Whitespace collapsed and trimmed.
+   * item), by this subset of accname 1.2: the elements `aria-labelledby` names, else a non-empty
+   * `aria-label`, else the text of its content, else `title`. The content leaves out
+   * `aria-hidden="true"`, `hidden` and `display: none` subtrees and text under `visibility: hidden`;
+   * a rendered descendant's `aria-label` (an `<img>`'s `alt`) stands for its own content, and a
+   * descendant that is not `display: inline` is read apart from its neighbours. Not covered: CSS
+   * generated content (`::before`, `::after`), and an element CSS shows despite its `hidden`
+   * attribute still counts as hidden. Whitespace collapsed and trimmed.
    */
   accessibleName(element: Element): string;
+  /**
+   * The accessible description from `aria-describedby`: the text of the elements it names, read as
+   * `accessibleName` reads content, an element named there counting even when it is hidden itself.
+   */
+  accessibleDescription(element: Element): string;
 }
 
 export type ToolWindow = Window & { __modelerShellConformance?: PageTools };
@@ -130,6 +138,7 @@ export const installPageTools = (_: null): void => {
     element.getAttribute("aria-hidden") === "true" ||
     element.hasAttribute("hidden") ||
     getComputedStyle(element).display === "none";
+  const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
   const contentText = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
       // visibility inherits, but a descendant may turn it back on, so it is read per text node
@@ -139,20 +148,30 @@ export const installPageTools = (_: null): void => {
     if (node.nodeType !== Node.ELEMENT_NODE) return "";
     const element = node as Element;
     if (hiddenSubtree(element)) return "";
-    const label = element.getAttribute("aria-label")?.trim();
-    if (label) return label;
-    return [...element.childNodes].map(contentText).join("");
+    const style = getComputedStyle(element);
+    const rendered = style.visibility !== "hidden";
+    const alternative =
+      (rendered && element.getAttribute("aria-label")?.trim()) ||
+      (rendered && element.localName === "img" && element.getAttribute("alt")) ||
+      [...element.childNodes].map(contentText).join("");
+    // Chrome reads anything but an inline box (a block, a flex item, an inline-block, display:
+    // contents) apart from its neighbours; an engine that computes no display reads as inline
+    return ["", "inline"].includes(style.display) ? alternative : ` ${alternative} `;
   };
   const ownName = (element: Element): string =>
-    element.getAttribute("aria-label")?.trim() || [...element.childNodes].map(contentText).join("");
-  const accessibleName = (element: Element): string => {
-    const labelledBy = (element.getAttribute("aria-labelledby") ?? "")
+    collapse(element.getAttribute("aria-label") ?? "") ||
+    collapse([...element.childNodes].map(contentText).join(""));
+  const referenced = (element: Element, attribute: string): Element[] =>
+    (element.getAttribute(attribute) ?? "")
       .split(/\s+/)
       .map((id) => (id ? document.getElementById(id) : null))
       .filter((target): target is HTMLElement => target !== null);
-    const text = labelledBy.length > 0 ? labelledBy.map(ownName).join(" ") : ownName(element);
-    return text.replace(/\s+/g, " ").trim();
-  };
+  const accessibleName = (element: Element): string =>
+    collapse(referenced(element, "aria-labelledby").map(ownName).join(" ")) ||
+    ownName(element) ||
+    collapse(element.getAttribute("title") ?? "");
+  const accessibleDescription = (element: Element): string =>
+    collapse(referenced(element, "aria-describedby").map(ownName).join(" "));
   const tools: PageTools = {
     keys: [],
     documentKeys: [],
@@ -213,6 +232,7 @@ export const installPageTools = (_: null): void => {
       };
     },
     accessibleName,
+    accessibleDescription,
   };
   const recorder = (into: RecordedKey[]) => (event: KeyboardEvent) => {
     if (modifierKeys.includes(event.key)) return;

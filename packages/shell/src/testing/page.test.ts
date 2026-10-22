@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { cleanup, installFakes, mount, setBox } from "../../test/support/dom.js";
+import type { MenuGroups } from "../dom/types.js";
 import { menuOpenProblems } from "./checks.js";
 import {
   ariaProbe,
@@ -304,6 +305,7 @@ describe("probes in a page", () => {
     expect(aria?.status?.visible).toBe(false);
 
     const menu = await inPage(page, menuProbe, { root: ".cd-shell" });
+    const noChip = { shortcut: "", keyShortcuts: null, description: "" };
     expect(menu?.items).toEqual([
       {
         role: "menuitemradio",
@@ -312,8 +314,17 @@ describe("probes in a page", () => {
         disabled: null,
         haspopup: null,
         group: "Level",
+        ...noChip,
       },
-      { role: "menuitem", name: "Export as PNG", checked: null, disabled: null, haspopup: null, group: null },
+      {
+        role: "menuitem",
+        name: "Export as PNG",
+        checked: null,
+        disabled: null,
+        haspopup: null,
+        group: null,
+        ...noChip,
+      },
     ]);
 
     document.documentElement.setAttribute("data-cd-theme", "light");
@@ -477,13 +488,54 @@ describe("probes in a page", () => {
       <button role="menuitem" aria-label=" ">Export <span hidden>as</span><span style="display: none">to</span> PNG</button>
       <button role="menuitem" aria-label="Open file">Open…</button>
       <button role="menuitem" aria-labelledby="n1 missing n2" aria-label="Ignored">Ignored</button>
-      <button role="menuitem"><span style="visibility: hidden">Gone <b style="visibility: visible">Shown</b></span> <svg aria-label="Warning"></svg></button>`;
+      <button role="menuitem"><span style="visibility: hidden">Gone <b style="visibility: visible">Shown</b></span> <svg aria-label="Warning"></svg></button>
+      <button role="menuitem"><span style="visibility: hidden" aria-label="Hidden label">x</span>Save…</button>
+      <button role="menuitem"><img alt="Picture"> Insert…</button>
+      <button role="menuitem"><span style="display: block">Keyboard</span><span style="display: inline-block">map…</span></button>
+      <button role="menuitem" title="Tooltip name"><span aria-hidden="true">X</span></button>`;
     for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
-    const names = ["Keyboard shortcuts…", "Export PNG", "Open file", "Map size…", "Shown Warning"];
+    const names = [
+      "Keyboard shortcuts…",
+      "Export PNG",
+      "Open file",
+      "Map size…",
+      "Shown Warning",
+      "Save…",
+      "Picture Insert…",
+      "Keyboard map…",
+      "Tooltip name",
+    ];
     const items = (await inPage(page, menuProbe, { root: ".cd-shell" }))?.items ?? [];
     expect(items.map((item) => item.name)).toEqual(names);
     const entries = (await inPage(page, menuEntriesProbe, { root: ".cd-shell" })) ?? [];
     expect(entries.map((entry) => entry.name)).toEqual(names);
+  });
+
+  it("reads a menu item's shortcut chip, aria-keyshortcuts and description", async () => {
+    const root = buildShell();
+    const menu = root.querySelector('[role="menu"]')!;
+    menu.innerHTML = `
+      <button role="menuitem" aria-keyshortcuts="Meta+E">Export as SVG<span class="cd-shell-menu-shortcut" aria-hidden="true">⌘E</span></button>
+      <button role="menuitem" aria-describedby="c2 missing">Go to diagram<span id="c2" class="cd-shell-menu-shortcut" aria-hidden="true"> G  then D </span></button>
+      <button role="menuitem" aria-describedby="c3">Print<span id="c3" class="cd-shell-menu-shortcut" hidden>⌘P</span></button>
+      <button role="menuitem">Plain</button>`;
+    for (const element of menu.querySelectorAll("[role^='menuitem'], .cd-shell-menu-shortcut")) {
+      place(element, 0, 0, 10, 10);
+    }
+    const items = (await inPage(page, menuProbe, { root: ".cd-shell" }))?.items ?? [];
+    expect(
+      items.map(({ name, shortcut, keyShortcuts, description }) => ({
+        name,
+        shortcut,
+        keyShortcuts,
+        description,
+      })),
+    ).toEqual([
+      { name: "Export as SVG", shortcut: "⌘E", keyShortcuts: "Meta+E", description: "" },
+      { name: "Go to diagram", shortcut: "G then D", keyShortcuts: null, description: "G then D" },
+      { name: "Print", shortcut: "", keyShortcuts: null, description: "⌘P" },
+      { name: "Plain", shortcut: "", keyShortcuts: null, description: "" },
+    ]);
   });
 
   it("tells whether the focus is on the canvas <svg> or on the control the kit activated", async () => {
@@ -524,18 +576,25 @@ describe("the shell's own menu through the kit", () => {
     });
   });
 
-  /** The menu open on a Help group of one dialog entry with the "?" chip. */
-  async function openDialogEntry(label: string) {
-    const { shell } = mount({
-      menu: { help: [{ kind: "dialog", id: "shortcuts", label, shortcut: "?", onSelect() {} }] },
-    });
+  /** The menu open on `groups`, every item and chip with a box, read by the kit's menu probe. */
+  async function openMenu(groups: MenuGroups) {
+    const { shell } = mount({ menu: groups });
     shell.menu.open();
     const { dropdown } = shell.menu;
-    for (const element of [dropdown, ...dropdown.querySelectorAll("[role^='menuitem']")]) {
+    const boxed = dropdown.querySelectorAll("[role^='menuitem'], .cd-shell-menu-shortcut");
+    for (const element of [dropdown, ...boxed]) {
       setBox(element, { left: 12, top: 60, width: 248, height: 36 });
     }
+    return { dropdown, facts: async () => (await inPage(page, menuProbe, { root: "#app" }))! };
+  }
+
+  /** The menu open on a Help group of one dialog entry with the "?" chip. */
+  async function openDialogEntry(label: string) {
+    const { dropdown, facts } = await openMenu({
+      help: [{ kind: "dialog", id: "shortcuts", label, shortcut: "?", onSelect() {} }],
+    });
     expect(dropdown.querySelector(".cd-shell-menu-shortcut")?.textContent).toBe("?");
-    return (await inPage(page, menuProbe, { root: "#app" }))!;
+    return facts();
   }
 
   it("passes a dialog entry with a shortcut chip: the chip is no part of its name", async () => {
@@ -548,6 +607,28 @@ describe("the shell's own menu through the kit", () => {
     const facts = await openDialogEntry("Keyboard shortcuts");
     expect(menuOpenProblems(facts, "first")).toEqual([
       'menu: "Keyboard shortcuts" opens a dialog, so its label ends with "…" (U+2026)',
+    ]);
+  });
+
+  it("passes chips aria-keyshortcuts cannot name, as they describe their entries", async () => {
+    const { dropdown, facts } = await openMenu({
+      export: [
+        { kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
+        { kind: "action", id: "print", label: "Print", shortcut: "⌘P", ariaKeyShortcuts: "", onSelect() {} },
+      ],
+    });
+    const described = await facts();
+    expect(described.items.map(({ name, description }) => [name, description])).toEqual([
+      ["Go to diagram", "G then D"],
+      ["Print", "⌘P"],
+    ]);
+    expect(menuOpenProblems(described, "first")).toEqual([]);
+    for (const item of dropdown.querySelectorAll("[aria-describedby]")) {
+      item.removeAttribute("aria-describedby");
+    }
+    expect(menuOpenProblems(await facts(), "first")).toEqual([
+      'menu: "Go to diagram" shows the shortcut "G then D" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
+      'menu: "Print" shows the shortcut "⌘P" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
     ]);
   });
 });

@@ -245,6 +245,13 @@ still acts on its target, also on the canvas.
   [Container, not window](#container-not-window)).
 - An action of the File or Model group clicked with a pointer hands the focus to the canvas instead
   of the trigger (see [Focus after a click](#focus-after-a-click)).
+- The shortcut chip of an action or dialog entry is `aria-hidden`. Read as content, it joins the
+  entry's accessible name: Chrome named the entries "Keyboard shortcuts… ?" and "Export as SVG ⌘E",
+  a screen reader heard the key twice next to `aria-keyshortcuts`, and a dialog entry's name no
+  longer ended with "…". Where `aria-keyshortcuts` names no key (`ariaKeyShortcuts: ""`, a chip
+  such as "G then D"), the chip describes the entry through `aria-describedby` instead. An element
+  referenced there counts even though it is `aria-hidden`, so the name stays clean and the key still
+  reaches assistive technology.
 
 ## Palette
 

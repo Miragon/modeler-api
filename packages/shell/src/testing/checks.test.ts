@@ -36,6 +36,7 @@ import type {
   CanvasStateFacts,
   MenuEntryFacts,
   MenuFacts,
+  MenuItemFacts,
   ModeFacts,
   PaletteColorEntry,
   PaletteColorFacts,
@@ -363,6 +364,8 @@ describe("optionalIslandProblems", () => {
   });
 });
 
+const noChip = { shortcut: "", keyShortcuts: null, description: "" };
+
 function openMenu(overrides: Partial<MenuFacts> = {}): MenuFacts {
   return {
     expanded: "true",
@@ -376,6 +379,7 @@ function openMenu(overrides: Partial<MenuFacts> = {}): MenuFacts {
         disabled: null,
         haspopup: null,
         group: "Level",
+        ...noChip,
       },
       {
         role: "menuitemcheckbox",
@@ -384,8 +388,17 @@ function openMenu(overrides: Partial<MenuFacts> = {}): MenuFacts {
         disabled: null,
         haspopup: null,
         group: null,
+        ...noChip,
       },
-      { role: "menuitem", name: "Export as PNG", checked: null, disabled: null, haspopup: null, group: null },
+      {
+        role: "menuitem",
+        name: "Export as PNG",
+        checked: null,
+        disabled: null,
+        haspopup: null,
+        group: null,
+        ...noChip,
+      },
       {
         role: "menuitem",
         name: "Keyboard shortcuts…",
@@ -393,6 +406,7 @@ function openMenu(overrides: Partial<MenuFacts> = {}): MenuFacts {
         disabled: null,
         haspopup: "dialog",
         group: null,
+        ...noChip,
       },
     ],
     active: 0,
@@ -419,6 +433,7 @@ describe("menu checks", () => {
           disabled: null,
           haspopup: null,
           group: null,
+          ...noChip,
         },
         {
           role: "menuitem",
@@ -427,8 +442,9 @@ describe("menu checks", () => {
           disabled: null,
           haspopup: "dialog",
           group: null,
+          ...noChip,
         },
-        { role: "menuitem", name: "", checked: null, disabled: null, haspopup: null, group: null },
+        { role: "menuitem", name: "", checked: null, disabled: null, haspopup: null, group: null, ...noChip },
       ],
     });
     expect(menuOpenProblems(facts, "first")).toEqual([
@@ -438,6 +454,32 @@ describe("menu checks", () => {
       'menu: "Keyboard shortcuts..." opens a dialog, so its label ends with "…" (U+2026)',
       "menu: item 3 has no accessible name",
       "menu: focus is on no entry, expected the first entry",
+    ]);
+  });
+
+  it("requires that assistive technology hears a shortcut chip, by aria-keyshortcuts or the description", () => {
+    const action = (overrides: Partial<MenuItemFacts>): MenuItemFacts => ({
+      role: "menuitem",
+      name: "Export as SVG",
+      checked: null,
+      disabled: null,
+      haspopup: null,
+      group: null,
+      ...noChip,
+      ...overrides,
+    });
+    const facts = openMenu({
+      items: [
+        action({ shortcut: "⌘E", keyShortcuts: "Meta+E" }),
+        action({ name: "Go to diagram", shortcut: "G then D", description: "G then D" }),
+        action({ name: "Keyboard shortcuts…", haspopup: "dialog", shortcut: "?", keyShortcuts: "?" }),
+        action({ name: "Print", shortcut: "⌘P" }),
+        action({ name: "About", shortcut: "F1", keyShortcuts: "", description: "Version and licences" }),
+      ],
+    });
+    expect(menuOpenProblems(facts, "first")).toEqual([
+      'menu: "Print" shows the shortcut "⌘P" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
+      'menu: "About" shows the shortcut "F1" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
     ]);
   });
 

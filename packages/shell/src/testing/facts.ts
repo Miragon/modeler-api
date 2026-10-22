@@ -184,6 +184,11 @@ export interface MenuItemFacts {
   haspopup: string | null;
   /** `aria-label` of the enclosing `role="group"`; `null` outside a group. */
   group: string | null;
+  /** Text of the visible shortcut chip (`.cd-shell-menu-shortcut`); empty without one. */
+  shortcut: string;
+  keyShortcuts: string | null;
+  /** The accessible description (`aria-describedby`, `PageTools.accessibleDescription`). */
+  description: string;
 }
 
 export interface MenuFacts {
@@ -216,6 +221,7 @@ export const menuProbe = ({ root }: { root: string }): MenuFacts | null => {
     menu: menu ? tools.facts(menu) : null,
     items: items.map((item) => {
       const group = item.closest('[role="group"]');
+      const chip = item.querySelector(".cd-shell-menu-shortcut");
       return {
         role: item.getAttribute("role") ?? "",
         name: tools.accessibleName(item),
@@ -223,6 +229,9 @@ export const menuProbe = ({ root }: { root: string }): MenuFacts | null => {
         disabled: item.getAttribute("aria-disabled"),
         haspopup: item.getAttribute("aria-haspopup"),
         group: group && menu?.contains(group) ? (group.getAttribute("aria-label") ?? "") : null,
+        shortcut: chip && tools.visible(chip) ? (chip.textContent ?? "").replace(/\s+/g, " ").trim() : "",
+        keyShortcuts: item.getAttribute("aria-keyshortcuts"),
+        description: tools.accessibleDescription(item),
       };
     }),
     active: items.findIndex((item) => item === document.activeElement),
