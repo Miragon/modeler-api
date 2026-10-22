@@ -4,13 +4,23 @@
  * compile against their current sources, so a release or a rename here fails `npm test` instead of
  * a new modeler repository later.
  */
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { devNull, tmpdir } from "node:os";
 import { basename, dirname, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { parse as parseYaml } from "yaml";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PLUGIN = join(ROOT, "plugins/modeler-kit");
@@ -872,6 +882,292 @@ describe("the template's VS Code smoke step", () => {
         `${name} ${pin} in ${range}`,
       ).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The template's CI gate
+// ---------------------------------------------------------------------------------------------
+
+interface WorkflowStep {
+  id?: string;
+  run?: string;
+  env?: Record<string, string>;
+  uses?: string;
+}
+interface WorkflowJob {
+  name?: string;
+  if?: string;
+  needs?: string | string[];
+  uses?: string;
+  permissions?: Record<string, string>;
+  steps?: WorkflowStep[];
+  [key: string]: unknown;
+}
+interface Workflow {
+  on: Record<string, unknown>;
+  permissions?: Record<string, string>;
+  jobs: Record<string, WorkflowJob>;
+}
+
+/** A workflow of the template; an empty one when the file is missing, so each test names the gap. */
+function workflow(name: string): Workflow {
+  const file = join(TEMPLATE, ".github/workflows", name);
+  return existsSync(file) ? (parseYaml(readText(file)) as Workflow) : { on: {}, jobs: {} };
+}
+const needsOf = (job: WorkflowJob): string[] => [job.needs ?? []].flat();
+const SMOKE_WORKFLOW = "./.github/workflows/vscode-smoke.yml";
+const MISSING_STEP = "echo 'the step is missing'; exit 1";
+
+/** A step's script under GitHub's default shell for `run` (bash -e), with only `env` set. */
+function runScript(script: string, env: Record<string, string>, cwd = ROOT) {
+  const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
+    cwd,
+    env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
+    encoding: "utf8",
+  });
+  const lines = `${result.stdout}${result.stderr}`.split("\n").filter(Boolean);
+  return { code: result.status, errors: lines.filter((line) => line.startsWith("::error::")), lines };
+}
+
+/** Runs a step that writes `name=value` lines to GITHUB_OUTPUT and returns those outputs. */
+function stepOutputs(script: string, env: Record<string, string>, cwd: string) {
+  const directory = mkdtempSync(join(tmpdir(), "modeler-kit-step-"));
+  try {
+    const output = join(directory, "output");
+    writeFileSync(output, "");
+    const run = runScript(script, { ...env, GITHUB_OUTPUT: output }, cwd);
+    expect(run.code, run.lines.join("\n")).toBe(0);
+    return Object.fromEntries(
+      readText(output)
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]),
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+describe("the template's CI gate", () => {
+  const ci = workflow("ci.yml");
+  const gate = ci.jobs["ci-ok"] ?? {};
+  const others = Object.keys(ci.jobs).filter((id) => id !== "ci-ok");
+  const gateStep = gate.steps?.[0] ?? {};
+
+  it("has ci-ok need every other CI job, run after failures and check nothing out", () => {
+    expect(gate).toMatchObject({
+      name: "ci-ok",
+      if: "always()",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 5,
+    });
+    expect(needsOf(gate).sort()).toEqual([...others].sort());
+    expect(gate.steps?.map((step) => step.uses).filter(Boolean)).toEqual([]);
+    expect(gateStep.env?.NEEDS).toBe("${{ toJSON(needs) }}");
+  });
+
+  it("accepts a skip only from the jobs whose own `if:` skips them on the event", () => {
+    const conditional = others.filter((id) => ci.jobs[id]!.if !== undefined);
+    expect(conditional).toEqual(["dependency-review"]);
+    expect(ci.jobs["dependency-review"]!.if).toBe("github.event_name == 'pull_request'");
+    expect(gateStep.env?.SKIPPED_BY_DESIGN).toBe(
+      "${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}",
+    );
+  });
+
+  describe("fails on any job that did not succeed", () => {
+    const verdict = (results: Record<string, string>, skippedByDesign = "") => {
+      const needs = Object.fromEntries(
+        others.map((id) => [id, { result: results[id] ?? "success", outputs: {} }]),
+      );
+      return runScript(gateStep.run ?? MISSING_STEP, {
+        NEEDS: JSON.stringify(needs),
+        SKIPPED_BY_DESIGN: skippedByDesign,
+      });
+    };
+
+    it("passes when every job succeeded", () => {
+      expect(verdict({})).toMatchObject({ code: 0, errors: [] });
+    });
+    it("passes when dependency-review is skipped outside a pull request", () => {
+      expect(verdict({ "dependency-review": "skipped" }, "dependency-review")).toMatchObject({
+        code: 0,
+        errors: [],
+      });
+    });
+    it("fails when dependency-review is skipped on a pull request", () => {
+      expect(verdict({ "dependency-review": "skipped" })).toMatchObject({
+        code: 1,
+        errors: ["::error::dependency-review: skipped"],
+      });
+    });
+    it("fails on a failed job", () => {
+      expect(verdict({ test: "failure" })).toMatchObject({ code: 1, errors: ["::error::test: failure"] });
+    });
+    it("fails on a cancelled job", () => {
+      expect(verdict({ "vscode-smoke": "cancelled" })).toMatchObject({
+        code: 1,
+        errors: ["::error::vscode-smoke: cancelled"],
+      });
+    });
+    it("fails on a failed lint and the jobs it skipped", () => {
+      expect(verdict({ lint: "failure", "test-browser": "skipped", e2e: "skipped" })).toMatchObject({
+        code: 1,
+        errors: ["::error::lint: failure", "::error::test-browser: skipped", "::error::e2e: skipped"],
+      });
+    });
+  });
+});
+
+describe("the template's VS Code smoke workflows", () => {
+  const ci = workflow("ci.yml");
+  const smoke = workflow("vscode-smoke.yml");
+  const weekly = workflow("vscode-smoke-weekly.yml");
+  const release = workflow("release-please.yml");
+  const step = (id: string) => smoke.jobs.changes?.steps?.find((candidate) => candidate.id === id) ?? {};
+
+  it("are one reusable workflow that CI and the weekly run call, with no path filter", () => {
+    expect(Object.keys(smoke.on).sort()).toEqual(["workflow_call", "workflow_dispatch"]);
+    expect(smoke.permissions).toEqual({ contents: "read" });
+    expect(ci.jobs["vscode-smoke"]).toEqual({ uses: SMOKE_WORKFLOW });
+    expect(Object.keys(weekly.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
+    expect(weekly.jobs["vscode-smoke"]).toEqual({ uses: SMOKE_WORKFLOW });
+  });
+
+  it("end with a job that always reports, after the smoke test or its skip", () => {
+    expect(smoke.jobs.smoke).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run == 'true'" });
+    expect(smoke.jobs.result).toMatchObject({ if: "always()" });
+    expect(needsOf(smoke.jobs.result!).sort()).toEqual(["changes", "smoke"]);
+  });
+
+  it("open or update the tracking issue from the weekly run only, the one job that writes issues", () => {
+    expect(weekly.jobs.alert).toMatchObject({
+      needs: "vscode-smoke",
+      if: "failure()",
+      permissions: { issues: "write" },
+    });
+    expect(weekly.jobs.alert!.steps?.[0]?.env?.TITLE).toBe("VS Code smoke: the weekly run failed");
+    expect(Object.values(smoke.jobs).filter((job) => job.permissions !== undefined)).toEqual([]);
+  });
+
+  it("run stable and the engines floor, read from apps/vscode at run time", () => {
+    const engines = readJson<{ engines: { vscode: string } }>(join(TEMPLATE, "apps/vscode/package.json"))
+      .engines.vscode;
+    expect(stepOutputs(step("versions").run ?? MISSING_STEP, {}, TEMPLATE)).toEqual({
+      list: JSON.stringify(["stable", engines.replace(/^\^/, "")]),
+    });
+    expect(smoke.jobs.smoke!.strategy).toEqual({
+      "fail-fast": false,
+      matrix: { vscode: "${{ fromJSON(needs.changes.outputs.versions) }}" },
+    });
+    const run = smoke.jobs.smoke!.steps!.find((candidate) => candidate.run?.includes("test:vscode-smoke"));
+    expect(run?.env).toEqual({ VSCODE_VERSION: "${{ steps.vscode.outputs.version }}" });
+    expect(readText(join(TEMPLATE, `${SMOKE_STEP}vscode-smoke.test.ts`))).toContain(
+      "vscodeVersion: process.env.VSCODE_VERSION",
+    );
+  });
+
+  it("smoke-test the packed VSIX in every job that publishes it, before the upload", () => {
+    const publishing = Object.entries(release.jobs).filter(([, job]) =>
+      job.steps?.some((candidate) => /\b(vsce|ovsx) publish\b/.test(candidate.run ?? "")),
+    );
+    expect(publishing.map(([id]) => id).sort()).toEqual(["publish-open-vsx", "publish-vscode"]);
+    for (const [id, job] of publishing) {
+      const runs = job.steps!.map((candidate) => candidate.run ?? "");
+      const packed = runs.findIndex((run) => run.includes("vsce package"));
+      const smoked = runs.findIndex((run) => run.includes("xvfb-run -a npm run test:vscode-smoke"));
+      const published = runs.findIndex((run) => /\b(vsce|ovsx) publish\b/.test(run));
+      expect([id, packed < smoked && smoked < published && packed >= 0]).toEqual([id, true]);
+      expect(job.steps![smoked]!.env).toMatchObject({
+        VSCODE_VERSION: "stable",
+        VSCODE_SMOKE_EXTENSION: "${{ runner.temp }}/vsix/extension",
+      });
+    }
+    expect(readText(join(TEMPLATE, `${SMOKE_STEP}vscode-smoke.test.ts`))).toContain(
+      "process.env.VSCODE_SMOKE_EXTENSION ||",
+    );
+  });
+
+  describe("decide from the changed paths whether VS Code runs", () => {
+    const git = (cwd: string, ...args: string[]) =>
+      execFileSync("git", args, {
+        cwd,
+        encoding: "utf8",
+        env: { ...process.env, GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: "1" },
+      }).trim();
+    const sandbox = mkdtempSync(join(tmpdir(), "modeler-kit-paths-"));
+    const work = join(sandbox, "work");
+    git(sandbox, "init", "-q", "--bare", "origin.git");
+    git(sandbox, "init", "-q", "-b", "main", "work");
+    git(work, "remote", "add", "origin", join(sandbox, "origin.git"));
+    const commit = (files: Record<string, string>, remove: string[] = []) => {
+      for (const [path, text] of Object.entries(files)) {
+        mkdirSync(dirname(join(work, path)), { recursive: true });
+        writeFileSync(join(work, path), text);
+      }
+      for (const path of remove) git(work, "rm", "-q", path);
+      git(work, "add", "-A");
+      git(
+        work,
+        "-c",
+        "user.name=kit",
+        "-c",
+        "user.email=kit@example.invalid",
+        "commit",
+        "-q",
+        "-m",
+        "change",
+      );
+      git(work, "push", "-q", "origin", "main");
+      return git(work, "rev-parse", "HEAD");
+    };
+    const base = commit({ "README.md": "a", "docs/guide.md": "a", "apps/vscode/src/extension.ts": "a" });
+    afterAll(() => rmSync(sandbox, { recursive: true, force: true }));
+
+    const decision = (event: string, baseSha: string) =>
+      stepOutputs(step("paths").run ?? MISSING_STEP, { EVENT: event, BASE: baseSha }, work).run;
+    const afterChanging = (files: Record<string, string>, remove: string[] = []) => {
+      git(work, "reset", "-q", "--hard", base);
+      git(work, "push", "-q", "--force", "origin", "main");
+      commit(files, remove);
+      return decision("pull_request", base);
+    };
+
+    it("skips when only paths outside the extension's inputs changed", () => {
+      expect(afterChanging({ "README.md": "b", "docs/guide.md": "b" })).toBe("false");
+    });
+    it.each([
+      "apps/vscode/src/extension.ts",
+      "packages/dsl/src/index.ts",
+      "package.json",
+      "package-lock.json",
+      "e2e/package.json",
+      ".github/workflows/ci.yml",
+      ".github/workflows/vscode-smoke.yml",
+      ".github/workflows/vscode-smoke-weekly.yml",
+      ".github/actions/setup/action.yml",
+    ])("runs when %s changed", (path) => {
+      expect(afterChanging({ [path]: "b" })).toBe("true");
+    });
+    it("runs when a file moved out of apps/vscode", () => {
+      expect(afterChanging({ "docs/extension.ts": "a" }, ["apps/vscode/src/extension.ts"])).toBe("true");
+    });
+    it.each(["push", "merge_group"])("compares a %s with its base too", (event) => {
+      afterChanging({ "README.md": "b" });
+      expect(decision(event, base)).toBe("false");
+    });
+    it.each([
+      ["a zero base (a new branch)", "0".repeat(40)],
+      ["no base", ""],
+      ["a base the remote does not have", "1".repeat(40)],
+    ])("runs with %s", (_, baseSha) => {
+      afterChanging({ "README.md": "b" });
+      expect(decision("push", baseSha)).toBe("true");
+    });
+    it.each(["schedule", "workflow_dispatch"])("always runs on %s", (event) => {
+      expect(decision(event, "")).toBe("true");
+    });
   });
 });
 
