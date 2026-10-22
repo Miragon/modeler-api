@@ -18,7 +18,9 @@ same way (template: [`collaborative.ts`](../assets/template/packages/renderer/sr
 Both take one options object that extends `CollaborativeModelerOptions` with the renderer's own
 (`additionalModules` for the shell's `shellModule`), and return a `CollaborativeModeler` that
 also exposes `diagram`, the wrapped diagram-js instance (`get`, `on`, `off`) for host wiring such
-as menus and exports, and `elements` with `bounds`. The aligned options since 1.2:
+as menus and exports, `elements` with `bounds`, and, since 1.3, `contentBounds()`: the tight box of
+everything the canvas draws, in diagram coordinates and `undefined` while nothing is drawn, which a
+host fits to instead of reaching into the renderer's services. The aligned options since 1.2:
 
 | Option         | The renderer does                                                                                                                                                                                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
