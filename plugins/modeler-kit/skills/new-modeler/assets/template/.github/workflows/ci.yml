@@ -135,6 +135,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Require every job to succeed
+        shell: bash
         env:
           NEEDS: ${{ toJSON(needs) }}
           # Skipped by their own `if:` on this event, so a skip is their expected result here:
@@ -142,15 +143,21 @@ jobs:
           # compare on a push, a merge group or a manual run.
           SKIPPED_BY_DESIGN: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
         run: |
-          results="$(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<< "$NEEDS")"
+          set -euo pipefail
+          results=$(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<< "$NEEDS")
+          if [[ -z "$results" ]]; then
+            echo "::error::ci-ok needs no job"
+            exit 1
+          fi
           failed=0
           while read -r job result; do
-            if [ "$result" = success ]; then continue; fi
-            if [ "$result" = skipped ] && [[ " $SKIPPED_BY_DESIGN " == *" $job "* ]]; then
+            if [[ "$result" == success ]]; then
+              echo "$job: success"
+            elif [[ "$result" == skipped && " $SKIPPED_BY_DESIGN " == *" $job "* ]]; then
               echo "$job: skipped by design on this event"
-              continue
+            else
+              echo "::error::$job: $result"
+              failed=1
             fi
-            echo "::error::$job: $result"
-            failed=1
           done <<< "$results"
           exit "$failed"

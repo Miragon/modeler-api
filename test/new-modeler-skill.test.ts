@@ -892,6 +892,7 @@ describe("the template's VS Code smoke step", () => {
 interface WorkflowStep {
   id?: string;
   run?: string;
+  shell?: string;
   env?: Record<string, string>;
   uses?: string;
 }
@@ -900,6 +901,7 @@ interface WorkflowJob {
   if?: string;
   needs?: string | string[];
   uses?: string;
+  strategy?: { matrix?: Record<string, unknown> };
   permissions?: Record<string, string>;
   steps?: WorkflowStep[];
   [key: string]: unknown;
@@ -919,9 +921,9 @@ const needsOf = (job: WorkflowJob): string[] => [job.needs ?? []].flat();
 const SMOKE_WORKFLOW = "./.github/workflows/vscode-smoke.yml";
 const MISSING_STEP = "echo 'the step is missing'; exit 1";
 
-/** A step's script under GitHub's default shell for `run` (bash -e), with only `env` set. */
+/** A step's script as `shell: bash` runs it (bash -eo pipefail), with only `env` set. */
 function runScript(script: string, env: Record<string, string>, cwd = ROOT) {
-  const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
+  const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", script], {
     cwd,
     env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
     encoding: "utf8",
@@ -964,7 +966,7 @@ describe("the template's CI gate", () => {
     });
     expect(needsOf(gate).sort()).toEqual([...others].sort());
     expect(gate.steps?.map((step) => step.uses).filter(Boolean)).toEqual([]);
-    expect(gateStep.env?.NEEDS).toBe("${{ toJSON(needs) }}");
+    expect(gateStep).toMatchObject({ shell: "bash", env: { NEEDS: "${{ toJSON(needs) }}" } });
   });
 
   it("accepts a skip only from the jobs whose own `if:` skips them on the event", () => {
@@ -977,9 +979,9 @@ describe("the template's CI gate", () => {
   });
 
   describe("fails on any job that did not succeed", () => {
-    const verdict = (results: Record<string, string>, skippedByDesign = "") => {
+    const verdict = (results: Record<string, string>, skippedByDesign = "", jobs = others) => {
       const needs = Object.fromEntries(
-        others.map((id) => [id, { result: results[id] ?? "success", outputs: {} }]),
+        jobs.map((id) => [id, { result: results[id] ?? "success", outputs: {} }]),
       );
       return runScript(gateStep.run ?? MISSING_STEP, {
         NEEDS: JSON.stringify(needs),
@@ -1017,6 +1019,9 @@ describe("the template's CI gate", () => {
         errors: ["::error::lint: failure", "::error::test-browser: skipped", "::error::e2e: skipped"],
       });
     });
+    it("fails when it needs no job at all", () => {
+      expect(verdict({}, "", [])).toMatchObject({ code: 1, errors: ["::error::ci-ok needs no job"] });
+    });
   });
 });
 
@@ -1025,7 +1030,9 @@ describe("the template's VS Code smoke workflows", () => {
   const smoke = workflow("vscode-smoke.yml");
   const weekly = workflow("vscode-smoke-weekly.yml");
   const release = workflow("release-please.yml");
-  const step = (id: string) => smoke.jobs.changes?.steps?.find((candidate) => candidate.id === id) ?? {};
+  const smokeJob = smoke.jobs["vscode-smoke"] ?? {};
+  const step = (job: WorkflowJob | undefined, id: string) =>
+    job?.steps?.find((candidate) => candidate.id === id) ?? {};
 
   it("are one reusable workflow that CI and the weekly run call, with no path filter", () => {
     expect(Object.keys(smoke.on).sort()).toEqual(["workflow_call", "workflow_dispatch"]);
@@ -1035,10 +1042,13 @@ describe("the template's VS Code smoke workflows", () => {
     expect(weekly.jobs["vscode-smoke"]).toEqual({ uses: SMOKE_WORKFLOW });
   });
 
-  it("end with a job that always reports, after the smoke test or its skip", () => {
-    expect(smoke.jobs.smoke).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run == 'true'" });
-    expect(smoke.jobs.result).toMatchObject({ if: "always()" });
-    expect(needsOf(smoke.jobs.result!).sort()).toEqual(["changes", "smoke"]);
+  it("end in a job that succeeds when the smoke test is skipped, so CI never sees the skip", () => {
+    expect(Object.keys(smoke.jobs)).toEqual(["changes", "vscode-smoke", "skipped"]);
+    expect(smokeJob).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run == 'true'" });
+    expect(smoke.jobs.skipped).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run != 'true'" });
+    expect(smoke.jobs.skipped!.steps?.map((candidate) => candidate.run)).toEqual([
+      expect.stringMatching(/^echo "::notice title=VS Code smoke skipped::/),
+    ]);
   });
 
   it("open or update the tracking issue from the weekly run only, the one job that writes issues", () => {
@@ -1054,14 +1064,18 @@ describe("the template's VS Code smoke workflows", () => {
   it("run stable and the engines floor, read from apps/vscode at run time", () => {
     const engines = readJson<{ engines: { vscode: string } }>(join(TEMPLATE, "apps/vscode/package.json"))
       .engines.vscode;
-    expect(stepOutputs(step("versions").run ?? MISSING_STEP, {}, TEMPLATE)).toEqual({
-      list: JSON.stringify(["stable", engines.replace(/^\^/, "")]),
+    expect(smokeJob.strategy).toEqual({ "fail-fast": false, matrix: { vscode: ["stable", "minimum"] } });
+    expect(
+      stepOutputs(
+        step(smokeJob, "vscode").run ?? MISSING_STEP,
+        { CHANNEL: "minimum", HOME: tmpdir() },
+        TEMPLATE,
+      ),
+    ).toEqual({
+      version: engines.replace(/^\^/, ""),
+      cache: join(tmpdir(), ".cache/miragon-modeler-shell/vscode-test"),
     });
-    expect(smoke.jobs.smoke!.strategy).toEqual({
-      "fail-fast": false,
-      matrix: { vscode: "${{ fromJSON(needs.changes.outputs.versions) }}" },
-    });
-    const run = smoke.jobs.smoke!.steps!.find((candidate) => candidate.run?.includes("test:vscode-smoke"));
+    const run = smokeJob.steps?.find((candidate) => candidate.run?.includes("test:vscode-smoke"));
     expect(run?.env).toEqual({ VSCODE_VERSION: "${{ steps.vscode.outputs.version }}" });
     expect(readText(join(TEMPLATE, `${SMOKE_STEP}vscode-smoke.test.ts`))).toContain(
       "vscodeVersion: process.env.VSCODE_VERSION",
@@ -1125,8 +1139,23 @@ describe("the template's VS Code smoke workflows", () => {
     const base = commit({ "README.md": "a", "docs/guide.md": "a", "apps/vscode/src/extension.ts": "a" });
     afterAll(() => rmSync(sandbox, { recursive: true, force: true }));
 
+    const baseOf: Record<string, string> = {
+      pull_request: "PULL_REQUEST_BASE_SHA",
+      push: "PUSH_BEFORE_SHA",
+      merge_group: "MERGE_GROUP_BASE_SHA",
+    };
     const decision = (event: string, baseSha: string) =>
-      stepOutputs(step("paths").run ?? MISSING_STEP, { EVENT: event, BASE: baseSha }, work).run;
+      stepOutputs(
+        step(smoke.jobs.changes, "decide").run ?? MISSING_STEP,
+        {
+          EVENT_NAME: event,
+          PULL_REQUEST_BASE_SHA: "",
+          PUSH_BEFORE_SHA: "",
+          MERGE_GROUP_BASE_SHA: "",
+          ...(baseOf[event] ? { [baseOf[event]]: baseSha } : {}),
+        },
+        work,
+      ).run;
     const afterChanging = (files: Record<string, string>, remove: string[] = []) => {
       git(work, "reset", "-q", "--hard", base);
       git(work, "push", "-q", "--force", "origin", "main");

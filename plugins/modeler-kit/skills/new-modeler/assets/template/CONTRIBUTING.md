@@ -26,13 +26,13 @@ skips `e2e` through, and Dependabot's auto-merge waits only for the checks on th
 - **A new job in `ci.yml` goes into the `needs` of `ci-ok`**, or nothing waits for it. A job whose
   own `if:` skips it on some events also goes into `SKIPPED_BY_DESIGN` for those events.
 - **The VS Code smoke test** (`.github/workflows/vscode-smoke.yml`, which `ci.yml` calls) reports
-  to `ci-ok` on every run. A first job compares the change with its base (the pull request's base,
-  the commit before a push, the merge group's base) and starts VS Code only when one of these
-  changed: `package-lock.json`, any `package.json`, `apps/vscode/`, `packages/`,
-  `tsconfig.base.json`, `ci.yml`, the two smoke workflows or the setup action. Otherwise it passes
-  with a notice. Without a base to compare with (a new branch), on the weekly schedule and on a
-  manual run it always starts VS Code, the newest stable release and the `engines.vscode` floor of
-  `apps/vscode/package.json`.
+  to `ci-ok` on every run. Its job `changes` compares the change with its base (the pull request's
+  base, the commit before a push, the merge group's base) and starts VS Code only when one of
+  these changed: `package-lock.json`, any `package.json`, `apps/vscode/`, `packages/`,
+  `tsconfig.base.json`, `ci.yml`, the two smoke workflows or the setup action. Otherwise its job
+  `skipped` passes with a notice. Without a base to compare with (a new branch), on the weekly
+  schedule and on a manual run it always starts VS Code: `stable`, the newest stable release, and
+  `minimum`, the `engines.vscode` floor of `apps/vscode/package.json`.
 - **Every Monday** `vscode-smoke-weekly.yml` runs it, because a new VS Code release can break the
   extension without a change here; a failure opens the issue "VS Code smoke: the weekly run
   failed", or comments on it while it is open.

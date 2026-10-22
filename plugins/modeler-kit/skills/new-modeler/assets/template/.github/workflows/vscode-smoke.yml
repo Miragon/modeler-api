@@ -1,9 +1,9 @@
 name: VS Code smoke
 
-# The built extension in a real VS Code, on the newest stable release and on the engines floor.
-# CI calls it on every event so that ci-ok always gets its result; VS Code itself runs only when a
-# path it depends on changed, because each run downloads VS Code (about 350 MB per version) and
-# needs an X server. The weekly run and a manual run always run it.
+# The built extension in a real VS Code (apps/vscode/test-smoke, `npm run test:vscode-smoke`), on
+# the newest stable VS Code and on the oldest that engines.vscode accepts. CI calls it as its job
+# vscode-smoke, so a red smoke fails ci-ok, the merge gate; vscode-smoke-weekly.yml calls it to
+# catch a new VS Code release, and it alerts when that run fails.
 on:
   workflow_call:
   workflow_dispatch:
@@ -12,67 +12,73 @@ permissions:
   contents: read
 
 jobs:
+  # The smoke costs a VS Code download (about 350 MB per version) and two runs, wasted on a change
+  # that cannot reach the extension. A path filter on the trigger is no way out: CI has to report
+  # this job on every run.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run: ${{ steps.paths.outputs.run }}
-      versions: ${{ steps.versions.outputs.list }}
+      run: ${{ steps.decide.outputs.run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - id: versions
-        name: Read the engines floor
-        run: |
-          list="$(node -p "JSON.stringify(['stable', require('./apps/vscode/package.json').engines.vscode.match(/\d+\.\d+\.\d+/)[0]])")"
-          echo "list=$list" >> "$GITHUB_OUTPUT"
-          echo "VS Code versions: $list"
-
-      # No third-party path filter: a skipped job would reach ci-ok as an unexpected skip, and the
-      # decision has to fail towards running when there is nothing to compare with.
-      - id: paths
-        name: Decide from the changed paths
+      # The extension bundles every package from source and the test imports the DSL from its dist
+      # (esbuild and tsup, both with the compiler options of tsconfig.base.json), the lockfile's
+      # resolved versions are inlined, and the setup action installs them.
+      - id: decide
+        name: Decide whether a path the extension depends on changed
+        shell: bash
         env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
         run: |
-          relevant() {
-            case "$1" in
-              package-lock.json | package.json | */package.json) return 0 ;;
-              apps/vscode/* | packages/*) return 0 ;;
-              .github/workflows/ci.yml | .github/workflows/vscode-smoke.yml | .github/workflows/vscode-smoke-weekly.yml) return 0 ;;
-              tsconfig.base.json | .github/actions/setup/*) return 0 ;;
-            esac
-            return 1
-          }
+          set -euo pipefail
           decide() {
             echo "run=$1" >> "$GITHUB_OUTPUT"
             echo "$2"
-            exit 0
           }
-          case "$EVENT" in
-            pull_request | push | merge_group) ;;
-            *) decide true "$EVENT: runs always" ;;
+          is_relevant() {
+            case "$1" in
+              package-lock.json | package.json | */package.json) ;;
+              apps/vscode/* | packages/*) ;;
+              tsconfig.base.json | .github/actions/setup/*) ;;
+              .github/workflows/ci.yml | .github/workflows/vscode-smoke.yml | .github/workflows/vscode-smoke-weekly.yml) ;;
+              *) return 1 ;;
+            esac
+          }
+          case "$EVENT_NAME" in
+            pull_request) base="$PULL_REQUEST_BASE_SHA" ;;
+            push) base="$PUSH_BEFORE_SHA" ;;
+            merge_group) base="$MERGE_GROUP_BASE_SHA" ;;
+            *)
+              decide true "A $EVENT_NAME run always runs the smoke."
+              exit 0
+              ;;
           esac
-          if [[ ! "$BASE" =~ ^[0-9a-f]{40}$ || "$BASE" =~ ^0+$ ]]; then
-            decide true "no base commit to compare with ('$BASE'): runs"
-          fi
-          if ! git fetch --no-tags --depth=1 origin "$BASE"; then
-            decide true "the base $BASE cannot be fetched: runs"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            decide true "No base commit to compare with: the smoke runs."
+            exit 0
           fi
           # --no-renames lists a moved file under its old path too, and quotePath=false keeps a
-          # non-ASCII path unquoted, so both still match a pattern of relevant().
-          if ! changed="$(git -c core.quotePath=false diff --no-renames --name-only "$BASE" HEAD)"; then
-            decide true "no diff against the base $BASE: runs"
+          # non-ASCII path unquoted, so both still match a pattern above.
+          if ! git fetch --no-tags --depth=1 origin "$base" ||
+            ! changed=$(git -c core.quotePath=false diff --no-renames --name-only "$base" HEAD); then
+            decide true "Cannot compare with the base $base: the smoke runs."
+            exit 0
           fi
+          relevant=()
           while IFS= read -r path; do
-            if [ -n "$path" ] && relevant "$path"; then
-              decide true "$path changed since $BASE: runs"
-            fi
+            if [[ -n "$path" ]] && is_relevant "$path"; then relevant+=("$path"); fi
           done <<< "$changed"
-          decide false "no path the smoke test depends on changed since $BASE: skips"
+          if [[ ${#relevant[@]} -gt 0 ]]; then
+            decide true "${#relevant[@]} relevant path(s) changed since $base, the smoke runs: ${relevant[*]}"
+          else
+            decide false "No relevant path changed since $base: the smoke is skipped."
+          fi
 
-  smoke:
+  vscode-smoke:
     needs: changes
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
@@ -80,25 +86,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        vscode: ${{ fromJSON(needs.changes.outputs.versions) }}
+        vscode: [stable, minimum]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
 
       # The cache key needs the version before the test resolves it; the test then runs exactly it.
+      # The minimum comes from engines.vscode at run time, so raising the floor moves the smoke along.
       - id: vscode
         name: Resolve the VS Code version and its cache folder
+        shell: bash
         env:
-          REQUESTED: ${{ matrix.vscode }}
+          CHANNEL: ${{ matrix.vscode }}
         run: |
-          version="$REQUESTED"
-          if [ "$version" = stable ]; then
-            version="$(curl -fsSL https://update.code.visualstudio.com/api/releases/stable | jq -r '.[0]')"
+          if [[ "$CHANNEL" == minimum ]]; then
+            version=$(node -p "require('./apps/vscode/package.json').engines.vscode.match(/\d+\.\d+\.\d+/)?.[0]")
+          else
+            version=$(curl -fsSL https://update.code.visualstudio.com/api/releases/stable | jq -r '.[0]')
           fi
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::no VS Code version for $REQUESTED: '$version'"
+            echo "::error::No VS Code version for $CHANNEL: '$version'"
             exit 1
           fi
+          echo "VS Code $CHANNEL: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "cache=${XDG_CACHE_HOME:-$HOME/.cache}/miragon-modeler-shell/vscode-test" >> "$GITHUB_OUTPUT"
 
@@ -122,29 +132,12 @@ jobs:
           path: test-results/vscode-smoke/
           retention-days: 7
 
-  # Always a job that ends green or red, so the caller never sees the skip of the smoke job as
-  # its result.
-  result:
-    needs: [changes, smoke]
-    if: always()
+  # A skipped smoke ends in a job that succeeds, so the caller sees success, never a skip that
+  # ci-ok would have to tell apart from a skip after a failure.
+  skipped:
+    needs: changes
+    if: needs.changes.outputs.run != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - env:
-          CHANGES: ${{ needs.changes.result }}
-          RUN: ${{ needs.changes.outputs.run }}
-          SMOKE: ${{ needs.smoke.result }}
-        run: |
-          if [ "$CHANGES" != success ]; then
-            echo "::error::changes: $CHANGES"
-            exit 1
-          fi
-          if [ "$RUN" != true ]; then
-            echo "::notice::No path the VS Code smoke test depends on changed, so it did not run."
-            exit 0
-          fi
-          if [ "$SMOKE" != success ]; then
-            echo "::error::smoke: $SMOKE"
-            exit 1
-          fi
-          echo "The VS Code smoke test passed on every version."
+      - run: echo "::notice title=VS Code smoke skipped::No path the extension depends on changed."

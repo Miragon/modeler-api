@@ -101,18 +101,18 @@ events also goes into `SKIPPED_BY_DESIGN` for those events. Switch the required 
 
 ### The VS Code smoke test in CI
 
-[`vscode-smoke.yml`](../assets/template/.github/workflows/vscode-smoke.yml) is a reusable
-workflow, so it reports to `ci-ok` on every run instead of being a check of its own that a path
-filter skips. Its first job decides whether VS Code starts: on a pull request, a push or a merge
-group it compares the change with its base (the pull request's base, the commit before the push,
-the merge group's base) and starts VS Code only when `package-lock.json`, any `package.json`,
+[`vscode-smoke.yml`](../assets/template/.github/workflows/vscode-smoke.yml) is a reusable workflow,
+so it reports to `ci-ok` on every run instead of being a check of its own that a path filter skips.
+Of its three jobs, `changes` decides whether VS Code starts: on a pull request, a push or a merge
+group it compares the change with its base (the pull request's base, the commit before the push, the
+merge group's base) and starts VS Code only when `package-lock.json`, any `package.json`,
 `apps/vscode/`, `packages/`, `tsconfig.base.json` (the bundles and the libraries' `dist` are built
 with its compiler options), `ci.yml`, the two smoke workflows or the setup action changed. The diff
 lists a moved file under its old path too and a non-ASCII path unquoted, so neither slips past the
-patterns. A scheduled or manual run, and a run without a base to compare with (a new branch),
-always start it. It runs the newest stable VS Code and the `engines.vscode` floor, read from
-`apps/vscode/package.json`, each cached by version, and its last job always reports: a skip
-reaches `ci-ok` as a success with a notice.
+patterns. A scheduled or manual run, and a run without a base to compare with (a new branch), always
+start it. `vscode-smoke` runs the matrix `stable` (the newest stable VS Code) and `minimum` (the
+`engines.vscode` floor, read from `apps/vscode/package.json` at run time), each cached by version.
+When `changes` skips it, `skipped` succeeds with a notice, so the skip reaches `ci-ok` as a success.
 
 [`vscode-smoke-weekly.yml`](../assets/template/.github/workflows/vscode-smoke-weekly.yml) runs it
 every Monday, because a new VS Code release can break the extension without a change in the
