@@ -245,9 +245,12 @@ export interface CollaborativeModeler {
    * margins (the shell's fit insets) on top. Like `elements.bounds` it is in
    * the canvas's own coordinate space, which zoom and scroll leave alone,
    * and it reads the LIVE canvas: an element created or moved in this
-   * session counts at once. Before the first import it returns `undefined`
-   * or a box, and never throws. A viewer that exposes it follows the same
-   * rules. It sits next to the view state rather than on `elements`: a fit
+   * session counts at once. A browser measures SVG text differently at each
+   * zoom (Chromium lays it out at the scaled font size), so a renderer
+   * computes the box from its model, or measures it once per content change
+   * and keeps it across view changes. Before the first import it returns
+   * `undefined` or a box, and never throws. A viewer that exposes it follows
+   * the same rules. It sits next to the view state rather than on `elements`: a fit
    * frames the whole canvas, and a notation without addressable elements
    * still has content to fit.
    */
@@ -290,11 +293,12 @@ export interface DiagramPoint {
  *
  * A renderer accepts both. One that needs the rectangle itself (a pan
  * constraint) and is given only `center` works there as it does without
- * the option: it assumes no host chrome and keeps margins of its own.
+ * the option: it assumes no host chrome, with whatever margins of its own
+ * it uses then.
  *
  * The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free
  * area: given `insets` a renderer may fit into the free rectangle or keep
- * its own fit, and given only `center`, which names no rectangle, it fits
+ * its own fit, and given only `center`, which names no rectangle, it MAY fit
  * as it does without the option, keeping the padding it uses then (Context
  * Maps keeps the room its palette needs) — the reading all five published
  * renderers conform to, which no kit case checks; a host whose first view
@@ -333,8 +337,8 @@ export interface CollaborativeModelerOptions {
    * the post-import view is then the host's to set, and L5's fit is the
    * host's fit. The conformance kit runs with the default. Whether the
    * renderer's own fit uses `freeArea` is its choice (see `FreeArea`): with
-   * `insets` it may fit into the free rectangle, with only `center` it keeps
-   * the padding it uses without the option
+   * `insets` it may fit into the free rectangle, with only `center` it may
+   * keep the padding it uses without the option
    */
   fitOnImport?: boolean | undefined;
   /**

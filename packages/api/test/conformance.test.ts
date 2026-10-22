@@ -228,6 +228,42 @@ describe("the conforming reference modeler", () => {
     expect((await skippedCases(h)).skipped).toEqual([CASE.contentBounds]);
   });
 
+  test("a content box measured in float32 on fractional coordinates (getBBox on the live SVG) is NOT a violation", async () => {
+    const h = harness({ contentBoundsMeasuredInFloat32: true });
+    const m = createReferenceModeler({ contentBoundsMeasuredInFloat32: true });
+    await m.importText("alpha\nbeta\ngamma\n");
+    m.addLine("zz-0");
+    const content = m.contentBounds?.();
+    const bottomShortfalls = (m.elements?.list() ?? []).map(({ id }) => {
+      const element = m.elements?.bounds?.(id);
+      return element && content ? element.y + element.height - (content.y + content.height) : 0;
+    });
+    // the variant proves the tolerance only where float32 falls short by more than float64 noise
+    expect(Math.max(...bottomShortfalls)).toBeGreaterThan(1e-6);
+    expect(await failingCases(h)).toEqual([]);
+    expect((await skippedCases(h)).skipped).toEqual([]);
+  });
+
+  test("a content box around a plot the notation always draws (Wardley), a box before the first import and on a document without elements, is NOT a violation", async () => {
+    const h = harness({ contentBoundsWithPlot: true });
+    const m = createReferenceModeler({ contentBoundsWithPlot: true });
+    expect(m.contentBounds?.()).toBeDefined();
+    await m.importText("title: Tea\n");
+    expect(m.elements?.list()).toEqual([]);
+    expect(m.contentBounds?.()).toBeDefined();
+    expect(await failingCases(h)).toEqual([]);
+    expect((await skippedCases(h)).skipped).toEqual([]);
+    const withoutElements = harness(
+      { contentBoundsWithPlot: true },
+      { canonicalTexts: ["title: Tea\n", "alpha\nbeta\ngamma\n"] },
+    );
+    await expect(
+      conformanceCases()
+        .find((c) => c.name === CASE.contentBounds)
+        ?.run(withoutElements),
+    ).resolves.toBeUndefined();
+  });
+
   test("the content box is the union of the drawn elements, undefined while nothing is drawn, and follows a move", async () => {
     const m = createReferenceModeler();
     expect(m.contentBounds?.()).toBeUndefined();

@@ -92,10 +92,13 @@ whatever the notation always draws (Wardley's plot with its axes, so a map
 without components still has a box and `undefined` is no emptiness test). It
 is tight, with no padding of its own: a host's fit adds its margins. Like
 `elements.bounds` it ignores zoom and scroll, reads the live canvas, and before
-the first import returns `undefined` or a box without throwing; a viewer that
-exposes it follows the same rules. It sits on the modeler next to the view
-state rather than on `elements`: a fit frames the whole canvas, and a notation
-without addressable elements still has content to fit.
+the first import returns `undefined` or a box without throwing. A browser
+measures SVG text differently at each zoom (Chromium lays it out at the scaled
+font size), so a renderer computes the box from its model, or measures it once
+per content change and keeps it across view changes. A viewer that exposes it
+follows the same rules. It sits on the modeler next to the view state rather
+than on `elements`: a fit frames the whole canvas, and a notation without
+addressable elements still has content to fit.
 
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
@@ -151,15 +154,16 @@ aliases for one minor release of that renderer, then go: `freeRectInsets`
 `freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
 Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. A renderer given only
 `center` that needs the rectangle itself (a pan constraint) works there as it
-does without the option: no host chrome, its own margins. A viewer factory
-takes the same type and ignores `undoRedoKeys`. The kit's `create()` keeps
-`fitOnImport` at its default: L5 checks the modeler's own fit.
+does without the option: no host chrome, with whatever margins of its own it
+uses then. A viewer factory takes the same type and ignores `undoRedoKeys`.
+The kit's `create()` keeps `fitOnImport` at its default: L5 checks the
+modeler's own fit.
 
 The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free area:
 given `insets` a renderer may fit into the free rectangle (Wardley, Context
 Maps) or keep its own fit (Event Storming, Team Topologies, Value Chain), and
-given only `center`, which names no rectangle, it fits as it does without the
-option, keeping the padding it uses then (Context Maps keeps the room its
+given only `center`, which names no rectangle, it MAY fit as it does without
+the option, keeping the padding it uses then (Context Maps keeps the room its
 palette needs, and a test pins it). All five published renderers conform to
 this reading; no kit case checks it, since `create()` takes no options. A host
 whose first view must leave its chrome free passes `fitOnImport: false` and
@@ -294,9 +298,11 @@ present, it must not throw and must give `undefined` or a finite box with a
 non-negative size before the first import; after importing each canonical text
 and after `mutate` it must give a finite box as soon as an element is listed,
 and that box must cover every element's finite `elements.bounds` box (the new
-element included, so a box measured at the last import fails).
-`setViewState(viewState)` must leave it as it was. A viewer that exposes
-`contentBounds` is held to the same rules after an import.
+element included, so a box measured at the last import fails), give or take
+what float32 rounding takes off a box measured on the live SVG (`getBBox`): a
+thousandth of a unit, or 2^-20 of the edge where that is more.
+`setViewState(viewState)` must leave it as it was. A viewer that exposes `contentBounds` is held to the
+same rules after an import.
 
 **Element identity is verified through names.** After an unrelated edit, and
 after an export → import into the same instance, a fresh instance and the

@@ -252,14 +252,24 @@ type ContentBounded = CollaborativeModeler & { contentBounds(): ElementBounds | 
 const hasContentBounds = (m: CollaborativeModeler): m is ContentBounded =>
   typeof m.contentBounds === "function";
 
-/** what floating-point sums of diagram coordinates may differ by — far below a pixel */
-const EDGE_TOLERANCE = 1e-6;
+/**
+ * how far a content edge may fall short of an element's edge: a box measured on the live SVG
+ * (`getBBox`) comes back in float32, which rounds 123.4 to 123.4000015…, and that rounding grows
+ * with the coordinate. A thousandth of a unit, or 2^-20 of the edge where that is more, stays far
+ * below a pixel and far below what a stale or unsized box misses by
+ */
+const edgeTolerance = (edge: number): number => Math.max(1e-3, Math.abs(edge) * 2 ** -20);
 
-const covers = (outer: ElementBounds, inner: ElementBounds): boolean =>
-  inner.x >= outer.x - EDGE_TOLERANCE &&
-  inner.y >= outer.y - EDGE_TOLERANCE &&
-  inner.x + inner.width <= outer.x + outer.width + EDGE_TOLERANCE &&
-  inner.y + inner.height <= outer.y + outer.height + EDGE_TOLERANCE;
+const covers = (outer: ElementBounds, inner: ElementBounds): boolean => {
+  const right = outer.x + outer.width;
+  const bottom = outer.y + outer.height;
+  return (
+    inner.x >= outer.x - edgeTolerance(outer.x) &&
+    inner.y >= outer.y - edgeTolerance(outer.y) &&
+    inner.x + inner.width <= right + edgeTolerance(right) &&
+    inner.y + inner.height <= bottom + edgeTolerance(bottom)
+  );
+};
 
 /** `contentBounds()` copied, or `undefined` — a throw, a non-finite box or a negative size fails */
 function contentBoxOf(m: ContentBounded, when: string): ElementBounds | undefined {
