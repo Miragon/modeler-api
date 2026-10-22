@@ -115,6 +115,15 @@ release; until it does, the host passes the renderer's own names (`freeRectInset
 Wardley's `keyboard: { undoRedo }`), or both. After that the renderer's own names stay deprecated
 aliases for one minor release of that renderer.
 
+The content bounds go the other way. Since 1.3 the contract reports them (`contentBounds()`, tight,
+in diagram coordinates, `undefined` while there is nothing to fit), so `connectDiagramJs` reads them
+from the renderer's contract instance (`modeler`) when the host passes no `contentBounds` of its own.
+Before, every host had to know where each renderer keeps them (Event Storming's `boardBounds`,
+Wardley's `panConstraint`, which designIQ reached into). The renderer's own fit after an import is
+not the shell's concern: whether it uses the free area is the renderer's choice (contract 1.3 docs of
+`FreeArea`), and a host on the shell passes `fitOnImport: false`, since the viewport fits after
+every import.
+
 The shell talks to diagram-js only through public services and events (`canvas`, `zoomScroll`,
 `keyboard`, `palette`, `eventBus`). It never reads private fields such as `palette._container`, which
 hosts still do today (Miragon/design-iq#136): the palette's container comes with the `palette.create`

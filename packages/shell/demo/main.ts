@@ -32,7 +32,7 @@ import {
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
 
 import tokens from "../fixtures/tokens/cd-tokens.generated.json";
-import { addSampleShapes, createDemoDiagram, demoContentBounds, type DemoFlaws } from "./demo-diagram.js";
+import { addSampleShapes, createDemoDiagram, createDemoModeler, type DemoFlaws } from "./demo-diagram.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
@@ -185,7 +185,7 @@ const shell: ShellHandle =
     : mountShell(root, { ...options, host, ...(host === "web" ? { appearance } : {}) });
 
 const connection: DiagramJsConnection = connectDiagramJs(shell, diagram, {
-  contentBounds: () => demoContentBounds(diagram),
+  modeler: createDemoModeler(diagram),
 });
 const stopPersisting = vscode ? persistView(vscode, connection.viewport) : undefined;
 

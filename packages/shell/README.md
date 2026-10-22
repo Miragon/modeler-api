@@ -213,6 +213,12 @@ vscode.postMessage({ type: "ready" });
 export const webview = { shell, modeler, connection, ready };
 ```
 
+The content bounds come from `contentBounds`, or, since 0.4, from the renderer's contract
+instance: with a renderer on `@miragon/modeler-api` 1.3, `connectDiagramJs(shell, diagram, { modeler })`
+(`modeler` from `createCollaborativeModeler(…)`, `diagram` its diagram-js instance) fits to the
+contract's `contentBounds()`, so the host needs to know none of the renderer's services. An explicit
+`contentBounds` still wins, for a renderer before 1.3 or a host that fits to other bounds.
+
 `mountVsCodeShell` stops every key the webview handles on `document`, before VS Code's listener on
 `window` forwards it to the workbench, and keeps the webview in the mode the extension resolved: a
 modeler declaring `["light"]` stays light under any VS Code theme, high contrast passes, and VS

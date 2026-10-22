@@ -23,7 +23,7 @@ import {
   type ToastStatus,
 } from "../src/index.js";
 import { connectDiagramJs, type DiagramJsConnection } from "../src/diagram-js.js";
-import { addSampleShapes, createDemoDiagram, demoContentBounds, type DemoFlaws } from "./demo-diagram.js";
+import { addSampleShapes, createDemoDiagram, createDemoModeler, type DemoFlaws } from "./demo-diagram.js";
 
 /**
  * The web-app variant of the demo (`/web.html`): every 0.2 web-host option of `mountShell`, the way
@@ -208,7 +208,7 @@ const shell: ShellHandle = mountShell(app, {
 });
 
 const connection: DiagramJsConnection = connectDiagramJs(shell, diagram, {
-  contentBounds: () => demoContentBounds(diagram),
+  modeler: createDemoModeler(diagram),
 });
 
 /** Two problems for the list (guide §5.10): an error on the first box, a warning without an element. */

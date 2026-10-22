@@ -33,7 +33,7 @@ import type { Element, Parent, Shape } from "diagram-js/lib/model/Types";
 import type { ModuleDeclaration } from "didi";
 
 import { PALETTE_TOOL_ICON, iconMarkup, type Bounds, type Point } from "../src/index.js";
-import { shellModule } from "../src/diagram-js.js";
+import { shellModule, type CollaborativeModelerLike } from "../src/diagram-js.js";
 
 /**
  * Faults the kit's saboteur specs switch on at runtime (`window.__demo.flaws`), each breaking one
@@ -311,6 +311,14 @@ export function addSampleShapes(diagram: Diagram): void {
     modeling.createShape(elementFactory.createShape({ width: 160, height: 100 }), { x, y }, root);
   }
   eventBus.fire("import.done", { warnings: [] });
+}
+
+/**
+ * The demo's stand-in for a renderer's contract instance (`createCollaborativeModeler(…)`): the
+ * `contentBounds()` of `@miragon/modeler-api` 1.3, which `connectDiagramJs` fits to by default.
+ */
+export function createDemoModeler(diagram: Diagram): CollaborativeModelerLike {
+  return { contentBounds: () => demoContentBounds(diagram) };
 }
 
 /** Bounds of every shape; `undefined` for an empty diagram. */

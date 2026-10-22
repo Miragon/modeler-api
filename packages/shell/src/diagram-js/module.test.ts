@@ -6,7 +6,7 @@ import PaletteExport from "diagram-js/lib/features/palette/index.js";
 import ZoomScrollExport from "diagram-js/lib/navigation/zoomscroll/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { defaultMessages, type Insets } from "../core/index.js";
+import { defaultMessages, fitViewbox, type Bounds, type Insets, type Size } from "../core/index.js";
 import { mountShell, type PaletteRegistration, type ShellHandle } from "../dom/index.js";
 import { connectDiagramJs } from "./connect.js";
 import { shellModule } from "./module.js";
@@ -663,6 +663,65 @@ describe("connectDiagramJs", () => {
     bounds = { x: 0, y: 0, width: 120, height: 80 };
     eventBus(diagram).fire("elements.changed", { elements: [] });
     expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
+  });
+
+  it("fits to the contentBounds() of the contract instance in options.modeler by default (@miragon/modeler-api 1.3)", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    const canvas = diagram.get<{ getSize(): Size; viewbox(box?: Bounds): unknown }>("canvas");
+    const size = { width: 800, height: 600 };
+    vi.spyOn(canvas, "getSize").mockReturnValue(size);
+    // happy-dom has no SVG transform list, which the viewbox getter reads.
+    const viewbox = vi
+      .spyOn(canvas, "viewbox")
+      .mockImplementation((box?: Bounds) => (box ? undefined : { x: 0, y: 0, scale: 1 }));
+    // a class, so the method only works when the shell calls it on the instance
+    class ContractInstance {
+      box: Bounds | undefined;
+      contentBounds(): Bounds | undefined {
+        return this.box;
+      }
+    }
+    const modeler = new ContractInstance();
+    const connection = connectDiagramJs(shell.handle, diagram, { modeler });
+    eventBus(diagram).fire("import.done", {});
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
+
+    modeler.box = { x: 100, y: 50, width: 400, height: 300 };
+    eventBus(diagram).fire("elements.changed", { elements: [] });
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
+    viewbox.mockClear();
+    connection.viewport.fit({ animate: false });
+    const fitted = fitViewbox(modeler.box, size, shell.handle.fitInsets());
+    expect(fitted).toBeDefined();
+    expect(viewbox).toHaveBeenLastCalledWith({
+      x: fitted?.x,
+      y: fitted?.y,
+      width: fitted?.width,
+      height: fitted?.height,
+    });
+  });
+
+  it("takes an explicit contentBounds over the contract instance's", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    const modeler = { contentBounds: vi.fn(() => ({ x: 0, y: 0, width: 120, height: 80 })) };
+    const connection = connectDiagramJs(shell.handle, diagram, { modeler, contentBounds: () => undefined });
+    eventBus(diagram).fire("import.done", {});
+    expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
+    expect(connection.viewport.canFit()).toBe(false);
+    expect(modeler.contentBounds).not.toHaveBeenCalled();
+  });
+
+  it("throws, binding nothing, without contentBounds and without a contract instance that reports them", () => {
+    const diagram = createDiagram();
+    const shell = fakeShell();
+    const message =
+      /needs the content bounds: pass options\.contentBounds, or options\.modeler with contentBounds\(\) \(@miragon\/modeler-api 1\.3\)/;
+    expect(() => connectDiagramJs(shell.handle, diagram, {})).toThrow(message);
+    expect(() => connectDiagramJs(shell.handle, diagram, { modeler: {} })).toThrow(message);
+    expect(shell.setZoomTarget).not.toHaveBeenCalled();
+    expect(shell.registrations).toHaveLength(0);
   });
 
   it("unbinds itself on diagram.destroy", () => {
