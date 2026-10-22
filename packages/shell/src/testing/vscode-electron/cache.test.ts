@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { mkdir, readdir, stat, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, stat, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ProgressReportStage, download, type ProgressReport } from "@vscode/test-electron";
@@ -154,6 +154,30 @@ describe("resolveInSharedCache", () => {
       `${PRIVATE_DOWNLOAD_PREFIX}in-progress`,
       fake.folderName,
     ]);
+  });
+
+  // root writes through any mode bits
+  it.skipIf(process.getuid?.() === 0)("reads a cache it cannot write to as it is", async () => {
+    const cachePath = await emptyCache();
+    const fake = fakeTestElectron();
+    await writeInstall(join(cachePath, fake.folderName), "earlier run");
+    const cachePaths: string[] = [];
+    await chmod(cachePath, 0o555);
+    try {
+      const executable = await resolveInSharedCache({
+        cachePath,
+        download: (path) => {
+          cachePaths.push(path);
+          return fake.download({ cachePath: path });
+        },
+      });
+
+      expect(executable).toBe(join(cachePath, fake.folderName, "code"));
+      expect(cachePaths).toEqual([cachePath]);
+      expect(fake.unpacked).toEqual([]);
+    } finally {
+      await chmod(cachePath, 0o755);
+    }
   });
 
   it("returns an executable outside the private folder as it is and moves nothing", async () => {

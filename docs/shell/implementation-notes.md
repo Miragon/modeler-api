@@ -1574,6 +1574,9 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   - _Leftovers._ A run removes its private folder, on `process.exit` too. A run killed during the
     download (SIGKILL, `docker kill`, a SIGINT no handler catches) leaves it; the first run a day
     later removes it.
+  - _A cache the run cannot write to_ (`EACCES`, `EPERM`, `EROFS` for the private folder) gets
+    `downloadAndUnzipVSCode` directly, as before: a cached version still resolves, and a run that
+    cannot write to the cache cannot break it for another one.
   - With the change, the same two staggered runs both passed (the second one logged "another run
     installed … first, this run uses that one"), as did two runs started at the same moment; the
     cache then held one install and no private folder, and a third run resolved through the link in

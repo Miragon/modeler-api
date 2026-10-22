@@ -36,7 +36,12 @@ export async function resolveInSharedCache({
 }: SharedCacheOptions): Promise<string> {
   await mkdir(cachePath, { recursive: true });
   await removeAbandonedDownloads(cachePath);
-  const privateCache = await mkdtemp(join(cachePath, PRIVATE_DOWNLOAD_PREFIX));
+  const privateCache = await mkdtemp(join(cachePath, PRIVATE_DOWNLOAD_PREFIX)).catch((error: unknown) => {
+    // A cache this run cannot write to, it cannot break for another run either.
+    if (isReadOnly(error)) return undefined;
+    throw error;
+  });
+  if (!privateCache) return download(cachePath);
   // process.exit skips `finally`; a killed run leaves its folder to removeAbandonedDownloads.
   const removePrivateCacheNow = () => rmSync(privateCache, { recursive: true, force: true, maxRetries: 3 });
   process.once("exit", removePrivateCacheNow);
@@ -143,6 +148,11 @@ async function identityOf(path: string): Promise<string | undefined> {
 
 function codeOf(error: unknown): unknown {
   return error instanceof Error && "code" in error ? error.code : undefined;
+}
+
+function isReadOnly(error: unknown): boolean {
+  const code = codeOf(error);
+  return code === "EACCES" || code === "EPERM" || code === "EROFS";
 }
 
 /** A rename onto a directory that is there already: ENOTEMPTY or EEXIST, on Windows EPERM or EACCES. */
