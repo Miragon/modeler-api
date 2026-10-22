@@ -34,12 +34,13 @@ export interface SharedCacheOptions {
 }
 
 /**
- * Resolves VS Code in a cache that concurrent runs share, without a lock. `@vscode/test-electron`
- * deletes a version folder without its completion marker and unpacks into it again, so two runs on
- * one folder delete and overwrite each other's install. `download` therefore gets a private folder
- * inside `cachePath` that links every install of the shared cache: a cached version resolves
- * through its link, a new one is unpacked there and moved into the shared cache with one rename.
- * The shared cache only ever gains complete installs. Returns the executable in the shared cache.
+ * Resolves VS Code in a cache that concurrent runs share, with no lock around the download.
+ * `@vscode/test-electron` deletes a version folder without its completion marker and unpacks into it
+ * again, so two runs on one folder delete and overwrite each other's install. `download` therefore
+ * gets a private folder inside `cachePath` that links every install of the shared cache: a cached
+ * version resolves through its link, a new one is unpacked there and moved into the shared cache
+ * with one rename. The shared cache only ever gains complete installs. Returns the executable in
+ * the shared cache.
  */
 export async function resolveInSharedCache({
   cachePath,
