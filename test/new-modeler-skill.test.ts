@@ -420,6 +420,17 @@ describe("the template's package.json files and workflows", () => {
     );
     expect(missing).toEqual([]);
   });
+
+  it("give the vendored design-system files the same header line in the skill and the template", () => {
+    const HEADER =
+      /\/\* Vendored unchanged from Miragon\/corporate-identity \(design system \d+\.\d+\.\d+, [^)]+\)\. Do not edit; re-copy to update\. \*\//g;
+    const headers = [
+      join(SKILL, "references/design-system.md"),
+      join(TEMPLATE, "packages/renderer/src/theme/README.md"),
+    ].map((file) => [...readText(file).matchAll(HEADER)].map(([line]) => line));
+    expect(headers[0]).toHaveLength(1);
+    expect(headers[1]).toEqual(headers[0]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
