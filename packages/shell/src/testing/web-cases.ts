@@ -73,6 +73,7 @@ import {
   toastStackProblems,
   toastLiftProbes,
   toastTimingProblems,
+  toastWidthProblems,
   topRowProblems,
   zoomRowBottomProblems,
   zoomRowProbes,
@@ -517,11 +518,13 @@ async function toastAnatomy<P extends PageLike>(
     const text = `Conformance: a ${status} toast`;
     await show(page, { status, text });
     await settle(page);
-    const toast = (await toasts(page, root))?.toasts.find((candidate) => candidate.text.includes(text));
+    const shown = await toasts(page, root);
+    const toast = shown?.toasts.find((candidate) => candidate.text.includes(text));
     if (!toast) {
       problems.push(`toasts: show.toast with a ${status} toast shows nothing`);
       continue;
     }
+    if (shown?.stack) problems.push(...toastWidthProblems(toast, status, shown.stack.box.width));
     const persistent = toastLiveRegion(before, status) !== undefined;
     const reached = (facts: ToastsFacts | null): boolean =>
       toastLiveRegion(facts?.live ?? [], status)?.text.includes(text) ?? false;

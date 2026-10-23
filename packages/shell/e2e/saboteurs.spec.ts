@@ -362,6 +362,18 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("toasts fails when every card spans the stack's full width", async ({ page }) => {
+      // §8's min(480px, 100% − 24px) read as the card's width instead of its maximum
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = '[data-chrome="toasts"] > [data-status] { align-self: stretch !important; }';
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /toasts: the success toast's card is 480px wide for [\d.]+px of content; a card is as wide as its content, at most the stack's 480px/,
+      ]);
+    });
+
     test("toasts fails when the stack rises for its own column instead of its widest card's", async ({
       page,
     }) => {

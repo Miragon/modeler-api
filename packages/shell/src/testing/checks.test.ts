@@ -86,6 +86,7 @@ import {
   toastLiftProbes,
   toastStackProblems,
   toastTimingProblems,
+  toastWidthProblems,
   topRowProblems,
   webModeProblems,
   zoomRowBottomProblems,
@@ -2031,10 +2032,20 @@ describe("toasts (guide §8)", () => {
     buttons: [{ name: "Close", text: "", client: { x: 860, y: 821 } }],
     topmost: true,
     focused: false,
+    contentWidth: 480,
     ...extra,
   });
 
   const heard = { persistent: true, announced: true };
+
+  it("wants each card as wide as its content, at most the stack", () => {
+    const short = { box: { left: 520, top: 800, width: 240, height: 42 }, contentWidth: 240 };
+    expect(toastWidthProblems(toast("Link copied", short), "success", 480)).toEqual([]);
+    expect(toastWidthProblems(toast("A long sentence", { contentWidth: 900 }), "warning", 480)).toEqual([]);
+    expect(toastWidthProblems(toast("Link copied", { contentWidth: 146 }), "success", 480)).toEqual([
+      "toasts: the success toast's card is 480px wide for 146px of content; a card is as wide as its content, at most the stack's 480px (guide §8)",
+    ]);
+  });
 
   it("wants the text in a persistent alert region for errors and status otherwise, and a Close icon button", () => {
     expect(toastAnatomyProblems(toast("Saved"), "success", "en", heard)).toEqual([]);

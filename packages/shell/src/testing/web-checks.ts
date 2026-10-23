@@ -784,6 +784,18 @@ export function toastAnatomyProblems(
   return problems;
 }
 
+/**
+ * Guide §8 (design system 1.15.0): a card is as wide as its content, at most the stack's
+ * `min(480px, 100% − 24px)`, so a short toast stays short and the stack rises only for wide cards.
+ */
+export function toastWidthProblems(toast: ToastFacts, status: ToastStatus, stackWidth: number): string[] {
+  const expected = Math.min(toast.contentWidth, stackWidth);
+  if (Math.abs(toast.box.width - expected) <= GEOMETRY_TOLERANCE_PX + 1e-6) return [];
+  return [
+    `toasts: the ${status} toast's card is ${round(toast.box.width)}px wide for ${round(toast.contentWidth)}px of content; a card is as wide as its content, at most the stack's ${round(stackWidth)}px (guide §8)`,
+  ];
+}
+
 /** Texts of the visible toasts that contain one of `texts`, in stack order. */
 export function shownToasts(toasts: readonly ToastFacts[], texts: readonly string[]): string[] {
   return toasts.flatMap((toast) => texts.filter((text) => toast.text.includes(text)));

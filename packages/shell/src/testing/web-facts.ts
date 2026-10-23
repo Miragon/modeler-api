@@ -391,6 +391,8 @@ export interface ToastFacts {
   /** Whether the card is what a pointer at its centre reaches (nothing in the top layer above it). */
   topmost: boolean;
   focused: boolean;
+  /** The card's width at `width: max-content` without width limits: what its content needs. */
+  contentWidth: number;
 }
 
 /** One of the toasts' live regions (`.cd-shell-live [role]`), rendered whether a toast shows or not. */
@@ -434,6 +436,22 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
     const rect = element.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   };
+  // Measured and restored in one task, so no frame ever paints the probe's width.
+  const contentWidth = (card: HTMLElement): number => {
+    const saved = ["width", "min-width", "max-width"].map(
+      (property) =>
+        [property, card.style.getPropertyValue(property), card.style.getPropertyPriority(property)] as const,
+    );
+    card.style.setProperty("width", "max-content", "important");
+    card.style.setProperty("min-width", "0", "important");
+    card.style.setProperty("max-width", "none", "important");
+    const width = card.getBoundingClientRect().width;
+    for (const [property, value, priority] of saved) {
+      if (value) card.style.setProperty(property, value, priority);
+      else card.style.removeProperty(property);
+    }
+    return width;
+  };
   return {
     stack: stack
       ? {
@@ -461,6 +479,7 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
           })),
         topmost: hit !== null && toast.contains(hit),
         focused: toast.contains(document.activeElement),
+        contentWidth: contentWidth(toast),
       };
     }),
     strays: [...document.querySelectorAll(".cd-shell-toast")]
