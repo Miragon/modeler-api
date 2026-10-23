@@ -310,19 +310,22 @@ const geometryCase: ShellConformanceCase = {
 };
 
 /**
- * Where the legend's start state flips (guide §5.10, §5.15): a phone, 390 × 844, keeps it closed
- * although it is higher than 820px; one pixel wider than 440px it opens as before.
+ * Guide §5.10 since 0.5 (product decision of 2026-10-24): without a stored state the legend starts
+ * closed in every container: a phone, 390 × 844, one pixel wider than 440px, where 0.4 opened it,
+ * and the wide desktop size.
  */
-const LEGEND_START: ReadonlyArray<{ size: Size; open: boolean }> = [
-  { size: { width: 390, height: 844 }, open: false },
-  { size: { width: SHELL.veryNarrow + 1, height: 900 }, open: true },
+const LEGEND_START_SIZES: readonly Size[] = [
+  { width: 390, height: 844 },
+  { width: SHELL.veryNarrow + 1, height: 900 },
+  { width: 1280, height: 900 },
 ];
 
 /**
- * Guide §5.10: `open` loads the modeler as on a first visit, without a stored legend state, so the
- * shell's default decides; at 390 × 844 the legend is closed, at 441 × 900 open. The kit's page
- * tools go in before each `open`: if they survive it, the page kept its document and the shell its
- * earlier start state, which is the harness's fault, not the shell's.
+ * `open` loads the modeler as on a first visit, without a stored legend state, so the shell's
+ * default decides: closed at every size. A stored `legend.open` is outside the case, because
+ * `open` has no way to pass one. The kit's page tools go in before each `open`: if they survive it,
+ * the page kept its document and the shell its earlier start state, which is the harness's fault,
+ * not the shell's.
  */
 const legendStartCase: ShellConformanceCase = {
   name: "legendStart",
@@ -339,7 +342,7 @@ const legendStartCase: ShellConformanceCase = {
     }
     const root = harness.root ?? DEFAULT_ROOT;
     const problems: string[] = [];
-    for (const { size, open } of LEGEND_START) {
+    for (const size of LEGEND_START_SIZES) {
       await page.evaluate(installPageTools, null);
       await openHarness(page, harness, { size, requested: LIGHT });
       const kept = keptDocumentProblems(size, (await page.evaluate(pageToolsKeptProbe, null)) === true);
@@ -347,7 +350,7 @@ const legendStartCase: ShellConformanceCase = {
       await settle(page);
       const measurement = await measureChrome(page, root);
       const shown = measurement.open.legend || Boolean(measurement.islands.legend);
-      problems.push(...legendStartProblems({ container: measurement.container, open: shown }, open));
+      problems.push(...legendStartProblems({ container: measurement.container, open: shown }));
     }
     return finish("legendStart", harness.host, problems, []);
   },

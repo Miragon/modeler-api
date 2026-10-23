@@ -38,13 +38,15 @@ export function decidePaletteRow(input: PaletteRowInput): PaletteRow {
 }
 
 /**
- * The legend starts open unless the container is at most `SHELL.low` high or at most
- * `SHELL.veryNarrow` wide (guide §5.10, §5.15): up to 440px the fit reserves no room for the open
- * card, so it would cover the diagram. Without `containerWidth` only the height decides.
+ * Without a stored state the legend starts closed in every container (guide §5.10, product decision
+ * of 2026-10-24); a stored `legend.open` still wins, and the user opens it from the Model group's
+ * Legend checkbox.
+ *
+ * @deprecated Since 0.5 always `false`, whatever the container; the arguments are ignored. Pass the
+ * stored state as `legend.open` and leave the default to the shell.
  */
-export function legendStartsOpen(containerHeight: number, containerWidth?: number): boolean {
-  if (containerWidth !== undefined && containerWidth <= SHELL.veryNarrow) return false;
-  return containerHeight > SHELL.low;
+export function legendStartsOpen(_containerHeight?: number, _containerWidth?: number): boolean {
+  return false;
 }
 
 export interface TooltipPlacementInput {

@@ -187,17 +187,17 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("legendStart fails when only the container height decides the legend's start state", async ({
-      page,
-    }) => {
-      // shell 0.3.3 (modeler-api#51): a 390 × 844 phone opened the legend over the fitted diagram
+    test("legendStart fails a shell that opens the legend by default", async ({ page }) => {
+      // shell 0.4's rule, open above 440px width and 820px height, before the decision of 2026-10-24
       const harness = sabotaged(() => {
-        if (document.querySelector(".cd-shell")!.clientHeight > 820)
-          window.__demo!.shell.legend?.setOpen(true);
+        const root = document.querySelector(".cd-shell")!;
+        if (root.clientWidth > 440 && root.clientHeight > 820) window.__demo!.shell.legend?.setOpen(true);
       });
-      await expectOnlyCaseFails(page, harness, "legendStart", [
-        /legend: open on first load in a 390 × 844 container; without a stored state it starts closed up to 440px width/,
+      const failure = await expectOnlyCaseFails(page, harness, "legendStart", [
+        /legend: open on first load in a 441 × 900 container; without a stored state it starts closed in every container/,
+        /legend: open on first load in a 1280 × 900 container; without a stored state it starts closed in every container/,
       ]);
+      expect(failure).not.toMatch(/390 × 844/);
     });
 
     test("geometry fails for a second-row tooltip centred in the container", async ({ page }) => {
@@ -837,7 +837,7 @@ test.describe("saboteurs", () => {
     expect(failure).toMatch(
       /legendStart \(web host\)\n- harness: open kept the page's document at 441 × 900 \(a navigation that changes only the URL fragment keeps it\)/,
     );
-    expect(failure).not.toMatch(/legend: closed on first load/);
+    expect(failure).not.toMatch(/legend: open on first load/);
     expect(await runCase("legendStart", page, fragmentOnly(true))).toBeUndefined();
   });
 
@@ -845,6 +845,11 @@ test.describe("saboteurs", () => {
     const base = demoHarness("ide");
     const harness: ShellConformanceHarness<Page> = {
       ...base,
+      // the legend starts closed since 0.5, so the modeler that lies about it opens it itself
+      async open(target, context) {
+        await base.open(target, context);
+        await target.evaluate(() => window.__demo?.shell.legend?.setOpen(true));
+      },
       sizes: WIDE_ONLY,
       show: { ...base.show, legend: undefined },
       absent: ["legend"],

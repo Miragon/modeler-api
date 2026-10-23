@@ -5,7 +5,6 @@ import {
   detectPlatform,
   fitInsets,
   legalLineHeight,
-  legendStartsOpen,
   resolveMessages,
   toastStackBottom,
   zoomRowRaised,
@@ -452,9 +451,6 @@ function renderShell(
       primary.setCollapsed(collapsed);
       setState("data-primary", collapsed ? "collapsed" : null);
     }
-    if (legend && !legend.isStarted()) {
-      legend.start(options.legend?.open ?? legendStartsOpen(size.height, size.width));
-    }
     updateBottomRow();
     placeHint();
   }
@@ -526,7 +522,7 @@ function renderShell(
   if (legal) resizeObserver?.observe(legal.element);
   ledger.defer(() => resizeObserver?.disconnect());
 
-  if (legend && options.legend?.open !== undefined) legend.start(options.legend.open);
+  legend?.start(options.legend?.open ?? false);
   updateLayout();
 
   const keyTarget: HTMLElement | Document = keyScope === "root" ? root : ownerDocument;

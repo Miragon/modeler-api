@@ -50,22 +50,19 @@ describe("decidePaletteRow (guide §5.15)", () => {
   });
 });
 
-describe("legendStartsOpen (guide §5.10)", () => {
-  it("starts closed up to 820px container height", () => {
-    expect(legendStartsOpen(820)).toBe(false);
-    expect(legendStartsOpen(821)).toBe(true);
-    expect(legendStartsOpen(400)).toBe(false);
-    expect(legendStartsOpen(1200)).toBe(true);
-    expect(legendStartsOpen(820, 1280)).toBe(false);
-    expect(legendStartsOpen(821, 1280)).toBe(true);
+describe("legendStartsOpen (guide §5.10, deprecated)", () => {
+  it.each([
+    [844, 390],
+    [900, 441],
+    [900, 1280],
+    [1200, 1920],
+  ])("is false at %i high and %i wide: without a stored state the legend starts closed", (height, width) => {
+    expect(legendStartsOpen(height, width)).toBe(false);
   });
 
-  it("starts closed up to 440px container width, however high the container is", () => {
-    expect(legendStartsOpen(844, 390)).toBe(false);
-    expect(legendStartsOpen(900, 440)).toBe(false);
-    expect(legendStartsOpen(1200, 320)).toBe(false);
-    expect(legendStartsOpen(900, 441)).toBe(true);
-    expect(legendStartsOpen(700, 441)).toBe(false);
+  it("is false without arguments and with only a height", () => {
+    expect(legendStartsOpen()).toBe(false);
+    expect(legendStartsOpen(1200)).toBe(false);
   });
 });
 

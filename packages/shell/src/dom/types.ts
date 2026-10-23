@@ -170,13 +170,13 @@ export interface LegendOptions {
   /** Renders the legend rows into `body` once (classes `cd-shell-legend-*`, see API.md). */
   render(body: HTMLElement): void;
   /**
-   * Start state the host remembered, which wins over the container; default (also `undefined`)
-   * `legendStartsOpen(container height, container width)`.
+   * Start state the host remembered (VS Code webview state, local storage); default (also
+   * `undefined`) closed, in every container.
    */
   open?: boolean | undefined;
   /**
    * Every change of the open state (close button, menu checkbox, `setOpen`, `toggle`), so the host
-   * can persist it; not the automatic start decision.
+   * can persist it; not the start state.
    */
   onToggle?: ((open: boolean) => void) | undefined;
   /** Append the "Legend" checkbox to the Model group; default `true`. */
