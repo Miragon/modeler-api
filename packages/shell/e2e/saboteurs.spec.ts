@@ -845,6 +845,11 @@ test.describe("saboteurs", () => {
     const base = demoHarness("ide");
     const harness: ShellConformanceHarness<Page> = {
       ...base,
+      // the legend starts closed since 0.5, so the modeler that lies about it opens it itself
+      async open(target, context) {
+        await base.open(target, context);
+        await target.evaluate(() => window.__demo?.shell.legend?.setOpen(true));
+      },
       sizes: WIDE_ONLY,
       show: { ...base.show, legend: undefined },
       absent: ["legend"],
