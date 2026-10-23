@@ -294,7 +294,7 @@ interface KeyContext {
   inTextField: boolean; // target matches TEXT_FIELD_SELECTOR or isContentEditable
   menuOpen: boolean; // the shell's dropdown
   dialogOpen: boolean; // any shown [role="dialog"], [role="alertdialog"] or <dialog open>, modal or not
-  modalOpen: boolean; // one of them with aria-modal="true" or :modal
+  modalOpen: boolean; // one of them with aria-modal="true" or :modal; only this blocks the keys (§5.8: a dialog is modal)
   defaultPrevented: boolean; // the canvas or the modeler handled the key
   startScreen?: boolean; // web: the start screen shows; the chrome keys go to the browser
 }
@@ -1222,7 +1222,9 @@ interface LegalLineOptions {
 - Always rendered in the web host, also on the start screen ("die Zeile Rechtliches, die eine
   öffentliche Seite immer zeigt", §8). Copyright, URLs and the two German labels are those of the
   corporate-identity docs-site kit (`miragon/legal.ts`); `messages.copyright` and `messages.legal`
-  translate, the URLs and "Impressum"/"Datenschutz" never do.
+  translate, the URLs and "Impressum"/"Datenschutz" never do. The copyright links to
+  `https://www.miragon.io/`, everywhere since design system 1.15.0 (Miragon/corporate-identity#37),
+  the docs-site kit included.
 - One line, 13px, line height 20px, at `left: 12px; bottom: 12px`, glass (§5.3) without border and
   shadow, padding `0 8px`, radius `sm`, links `--cd-ui-link` (underlined on hover and focus, always
   in high contrast and forced colours), separators `--cd-ui-text-leise`, layer 20. Pill and legend
@@ -1241,7 +1243,8 @@ interface LegalLineOptions {
   the legal line's measured right edge. The root then carries `data-zoom-row="raised"`, the zoom
   panel stands above the legal line at `bottom: 40px` like the pill (8px above a wrapped line), the
   fit keeps 92px at the bottom (`FitLayout.zoomRaised`), and up to 440px the legend's lowest position
-  is 88px. §5.10 and §5.15 do not settle this case; it is the shell's rule until the guide does.
+  is 88px. Guide §5.10 states this rule, and the wrapping above, since design system 1.15.0
+  (Miragon/corporate-identity#37).
 
 ```ts
 // ./core
@@ -1474,7 +1477,7 @@ interface ToastHandle {
   (Lucide `x`, `aria-label` "Close", `aria-describedby` the toast's text, so three Close buttons
   are told apart). Slide and fade in from `translateY(8px)` over 250ms, out the same way; none under
   reduced motion. A card is as wide as its content, at most the stack's width, as in the Wardley and
-  Team Topologies web apps (§8's `min(480px, 100% − 24px)` read as the maximum).
+  Team Topologies web apps (§8's `min(480px, 100% − 24px)` is the maximum, design system 1.15.0).
 - **Screen readers** (§8, §12): two live regions in the root, rendered from mount on and visually
   hidden (`.cd-shell-live`): `role="status"` with `aria-live="polite"`, and `role="alert"`. A toast's
   text goes into the alert region for danger, else into the status region, 100ms after the region
@@ -1501,7 +1504,7 @@ interface ToastHandle {
   above the highest of those (`toastStackBottom` with `cardWidth`, recomputed in the layout pass,
   whenever a toast comes or goes, and whenever the pill, the inspector or the start screen changes;
   a bottom sheet hides zoom panel and pill). At 1280px with a GitHub link the legal line ends 7.5px
-  before the 480px column, so "Link copied" (146px) stays at 12 while a full-width card rises to 40. §8 does not settle this case; it is the shell's rule until the guide does.
+  before the 480px column, so "Link copied" (146px) stays at 12 while a full-width card rises to 40. Guide §8 states this rule since design system 1.15.0 (Miragon/corporate-identity#37).
 
 ### Empty state (§8)
 
@@ -1536,7 +1539,8 @@ interface EmptyStateOptions {
   line break): "Or drop a .storm file here
   · Open a file… ⌘O". It is part of the hint, not a third action (§8 keeps exactly two buttons), and
   runs `file.open.onSelect` without leaving the start screen: the modeler ends it once the file has
-  loaded.
+  loaded. Guide §8 states the link, and the browser's chrome keys above, since design system 1.15.0
+  (Miragon/corporate-identity#37).
 - Either button hides the card (`setEmptyState(false)`), moves the focus to the canvas `<svg>` and
   then runs its handler. `setEmptyState(true)` while the focus is in the work chrome or the canvas
   moves it to "New diagram"; a focus on the legal line or a toast stays. The Komet is not draggable
@@ -2307,7 +2311,8 @@ host:
   (`registerShellConformance(harness, test)` from `@playwright/test`). It installs one page global,
   `__modelerShellConformance`, with `keydown` recorders on `window` and `document`, and briefly
   injects stand-ins marked `data-modeler-shell-conformance` (an input, a textarea, an editable label,
-  a modal dialog, a popover, a focus target) into the shell root.
+  a modal dialog, a popover, a `<dialog>` opened with `show()` and one with `showModal()`, a focus
+  target) into the shell root.
 - `geometry` takes about 10s per host; wrap the registration in
   `test.describe.configure({ timeout: 60_000 })`.
 - `registerShellConformance` calls `test` inside the kit, so a runner reports every case at the

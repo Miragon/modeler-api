@@ -525,8 +525,8 @@ the modeler know the same key.
 **Guide [§5.8][guide-5.8].** Rule: in its own document the keys work wherever the focus is, except in
 text fields and while a dialog is open; embedded in a foreign page only while the focus is inside the
 modeler. In the web app Cmd/Ctrl + `+`, `-` and `0` zoom the diagram, not the page, except in text
-fields and dialogs. The shell reads "dialogs" as modal dialogs: a non-modal popover (the problems
-list) does not block the keys; whether §5.8 means that too is an open question for the guide.
+fields and dialogs. A dialog there is a modal dialog: a non-modal popover (the problems list) does
+not block the keys (since design system 1.15.0, [corporate-identity#37][ci-37]).
 
 - Own document (VS Code webview, web app, iframe): one `keydown` listener on `document`, bubble
   phase. The diagram-js keyboard on the `<svg>` has run by then, so `defaultPrevented` tells the
@@ -1087,8 +1087,9 @@ the contract's `appearance` surface (a later 1.x minor) an embedded modeler stay
 The web column of guide §5.2 (0.2): what a Miragon web app shows around the canvas that the IDE and
 embedded hosts leave to their host. `mountShell({ host: "web" })` renders it; the API is in
 [`API.md`](../../packages/shell/API.md), "Web host (0.2)". The Wardley Maps web app was the
-reference implementation for this chrome; these notes record where the shell had to settle a case
-the guide leaves open.
+reference implementation for this chrome. Where the guide left a case open, the shell chose a
+reading; the product owner decided each of them on 2026-10-23, and design system 1.15.0
+([corporate-identity#37][ci-37]) states them as rules, worded as in these notes.
 
 ### Primary action and the label collapse
 
@@ -1112,21 +1113,25 @@ the guide leaves open.
 
 **Guide [§5.10][guide-5.10], [§2][guide-2].** Rule: the web app's bottom left stacks the legal line at
 `bottom: 12px`, then the pill at 40, then the legend at 40 or 88; the line is 13px/20px on glass
-without border and shadow, its links in `--cd-ui-link`; "Impressum" and "Datenschutz" stay German
-with `lang="de"`.
+without border and shadow, its links in `--cd-ui-link`; "© Miragon GmbH" links to the home page;
+"Impressum" and "Datenschutz" stay German with `lang="de"`. Where the zoom panel would come closer
+than 8px to the line, it rises to `bottom: 40px` like the pill, the bottom-row tooltip with it; in
+a narrow container the line wraps between its entries, grows upwards and lifts everything stacked
+above it by its height.
 
 - Copyright, URLs and labels are the docs-site kit's (`miragon/legal.ts` in corporate-identity):
   `https://www.miragon.io/`, `/impressum/`, `/datenschutz/`, each `target="_blank"` with
   `rel="noopener noreferrer"`, separated by `aria-hidden` middle dots, in a `<nav aria-label>`.
-  Every link has `aria-describedby` on one hidden "Opens in a new tab" (technique G201). The kit
-  renders the copyright as plain text; the shell links it to the home page as the Wardley web app
-  does, which the product owner may still settle either way.
-- The guide places the zoom panel at `bottom: 12px` and the legal line at `bottom: 12px` and does
-  not say what happens where they meet. With a GitHub link the line is about 391px wide, so they
-  meet below about 600px. `zoomRowRaised` decides with the measured boxes (less than 8px between
-  them) and the zoom panel then stands at `bottom: 40px` like the pill; the fit keeps 92px at the
-  bottom, and up to 440px the legend's lowest position is 88px. The bottom-row tooltip moves with
-  it (8px above the raised panel, 88px).
+  Every link has `aria-describedby` on one hidden "Opens in a new tab" (technique G201). The
+  copyright links to `https://www.miragon.io/`, as in the Wardley web app; the docs-site kit
+  rendered it as plain text. The product owner decided that it links everywhere, in the docs-site
+  kit too (design system 1.15.0, [corporate-identity#37][ci-37]).
+- The guide places the zoom panel at `bottom: 12px` and the legal line at `bottom: 12px`; until
+  design system 1.15.0 it did not say what happens where they meet. With a GitHub link the line is
+  about 391px wide, so they meet below about 600px. `zoomRowRaised` decides with the measured
+  boxes (less than 8px between them) and the zoom panel then stands at `bottom: 40px` like the
+  pill; the fit keeps 92px at the bottom, and up to 440px the legend's lowest position is 88px. The
+  bottom-row tooltip moves with it (8px above the raised panel, 88px).
 - Where the line is wider than the container allows (`100cqw − 24px`; with a GitHub link below
   about 415px), it wraps between its entries instead of scrolling: a scrolled line cut Datenschutz
   mid-word at 320px and hid GitHub, with no visible way to scroll (WCAG 1.4.10; Datenschutz must be
@@ -1134,13 +1139,17 @@ with `lang="de"`.
   `bottom: 12px`; the shell measures its height in whole lines (`legalLineHeight`) into
   `--modeler-shell-legal-height` on the root, and the pill, the problems popover, the legend, the
   raised zoom panel and the fit's bottom (`FitLayout.legalHeight`) stand on it. The kit checks at
-  320px that every link lies whole inside the line.
+  320px that every link lies whole inside the line and on one line, that each separator stands on
+  the line of the link after it, and that the pill, the legend and the zoom panel stand on the
+  wrapped line; it measures the raised zoom row 4px and 12px from its 8px limit.
 
 ### Toasts
 
 **Guide [§8][guide-8], [§9][guide-9].** Rule: toasts sit bottom centre at `bottom: 12px`, at most three,
 the newest at the bottom; about 2.8s, errors about 5s, paused while hovered or focused; one with an
-action never closes by itself; layer 60.
+action never closes by itself; layer 60. Each card is as wide as its content, at most
+`min(480px, 100% − 24px)`. The stack rises 8px above the zoom panel, the legal line or the pill only
+where the centred column of its widest card would come closer than 8px to one of them.
 
 - Layer 60 loses against a `showModal()` dialog, which lives in the top layer. The stack is
   therefore a `popover="manual"` in the web host, hidden and shown again with a toast that arrives
@@ -1153,10 +1162,10 @@ action never closes by itself; layer 60.
 - In the embedded host the stack is absolute inside the root (a foreign page's top layer is not the
   modeler's to use).
 - `toastStackBottom` keeps the centred column of the widest card 8px above a zoom panel, legal
-  line or pill it would come closer than 8px to horizontally, and 12px otherwise (guide §8 does not
-  settle the collision). The column is the card's, not the stack's 480px: at 1280px with a GitHub
-  link the legal line ends 7.5px before the stack, and testing the stack lifted every toast to 40
-  although "Link copied" (146px) stands far from the line. It is recomputed in the layout pass,
+  line or pill it would come closer than 8px to horizontally, and 12px otherwise (guide §8 since
+  design system 1.15.0, [corporate-identity#37][ci-37]). The column is the card's, not the stack's
+  480px: at 1280px with a GitHub link the legal line ends 7.5px before the stack, and testing the
+  stack lifted every toast to 40 although "Link copied" (146px) stands far from the line. It is recomputed in the layout pass,
   whenever a toast comes or goes, and whenever the pill, the inspector (a bottom sheet hides zoom
   panel and pill) or the start screen changes.
 - Screen readers hear toasts through two live regions in the root, rendered from mount on and
@@ -1173,7 +1182,9 @@ action never closes by itself; layer 60.
   (an animation that never runs, in a hidden stack or under a page's `animation: none`, never fires
   it); under reduced motion the toast goes at once.
 - Cards are as wide as their content, at most the stack's `min(480px, 100cqw − 24px)`, as in the
-  Wardley and Team Topologies web apps.
+  Wardley and Team Topologies web apps: §8's width is the cards' maximum, not their width (design
+  system 1.15.0). The kit measures each card at `max-content` and the lift where the widest card's
+  column keeps 12px and 4px to the bottom row.
 
 ### Problems popover
 
@@ -1202,6 +1213,9 @@ it, `role="dialog"` without `aria-modal`, titled "Problems"; a click on a row se
 
 **Guide [§8][guide-8].** Rule: on a fresh start the web app shows the empty-state card and hides the
 work chrome; only the card and the legal line are visible; once someone starts, the chrome appears.
+The hint ends in a text link "Open a file…" to the File group's Open… with its shortcut chip, and
+the chrome keys belong to the browser there, so page zoom stays possible (WCAG 1.4.4; both since
+design system 1.15.0, [corporate-identity#37][ci-37]).
 
 - The work chrome (menu trigger, primary action, palette, zoom panel, pill, legend, status box, hint,
   inspector) gets `visibility: hidden`, which also removes it from the tab order and the
