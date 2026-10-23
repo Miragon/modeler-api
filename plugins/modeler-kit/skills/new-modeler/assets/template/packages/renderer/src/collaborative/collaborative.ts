@@ -14,6 +14,7 @@ import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
 import type EventBus from 'diagram-js/lib/core/EventBus';
 import type Selection from 'diagram-js/lib/features/selection/Selection';
 import type { DiagramOptions } from '../BaseViewer.js';
+import type ContentBounds from '../io/ContentBounds.js';
 import { Modeler } from '../Modeler.js';
 import { NavigatedViewer } from '../NavigatedViewer.js';
 import { isNodeShape, type NodeShape } from '../model/di-types.js';
@@ -34,6 +35,8 @@ export type DiagramElementsSurface = ElementsSurface & Required<Pick<ElementsSur
 export interface CollaborativeDiagram extends CollaborativeModeler {
   readonly elements: DiagramElementsSurface;
   readonly diagram: Modeler | NavigatedViewer;
+  /** The tight box of the nodes (contract 1.3), `undefined` on an empty canvas. */
+  contentBounds(): ElementBounds | undefined;
 }
 
 interface ViewState {
@@ -81,6 +84,7 @@ function collaborative(
   const canvas = diagram.get<Canvas>('canvas');
   const elementRegistry = diagram.get<ElementRegistry>('elementRegistry');
   const selection = diagram.get<Selection>('selection');
+  const content = diagram.get<ContentBounds>('contentBounds');
   const contentListeners = new Set<() => void>();
   let destroyed = false;
   let lastExport = '';
@@ -161,6 +165,8 @@ function collaborative(
       if (destroyed || !isViewState(state)) return;
       canvas.viewbox({ x: state.x, y: state.y, width: state.width, height: state.height });
     },
+    // No padding: a host's fit adds its own margins (the shell's fit insets).
+    contentBounds: () => (destroyed ? undefined : content.contentBounds(0)),
     destroy() {
       if (destroyed) return;
       try {

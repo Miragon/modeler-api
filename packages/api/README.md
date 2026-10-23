@@ -81,6 +81,25 @@ session has its current box at once, not the one of the last import. The box
 is the element's own shape (a connection: the box around its waypoints),
 without an external label.
 
+Optional `contentBounds()` (1.3) gives the box of the CONTENT in diagram
+coordinates: what a host fits the view to when it fits itself
+(`fitOnImport: false`, the modeler shell's viewport), or `undefined` while
+there is nothing to fit (an empty diagram). Hosts feature-detect it
+(`typeof modeler.contentBounds === "function"`) instead of reaching into a
+renderer's services (Wardley's `panConstraint`). The content is everything the
+canvas draws of the document: the box covers every `elements.bounds` box and
+whatever the notation always draws (Wardley's plot with its axes, so a map
+without components still has a box and `undefined` is no emptiness test). It
+is tight, with no padding of its own: a host's fit adds its margins. Like
+`elements.bounds` it ignores zoom and scroll, reads the live canvas, and before
+the first import returns `undefined` or a box without throwing. A browser
+measures SVG text differently at each zoom (Chromium lays it out at the scaled
+font size), so a renderer computes the box from its model, or measures it once
+per content change and keeps it across view changes. A viewer that exposes it
+follows the same rules. It sits on the modeler next to the view state rather
+than on `elements`: a fit frames the whole canvas, and a notation without
+addressable elements still has content to fit.
+
 An interaction in progress during an import (an open label editor, a popup
 with typed input) never commits during or because of it (L1): no change
 event, nothing in the imported document or on its undo history, nothing
@@ -114,7 +133,7 @@ host's aligned options.
 | Option         | Meaning                                                                                                                                                                                                                                                           | Default             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | `freeArea`     | the part of the canvas no host chrome covers — `{ insets }` (px from the container's edges, e.g. `shell.fitInsets()`) or `{ center }` (diagram coordinates, e.g. `viewport.freeRectCenter()`), each a function, never both; keyboard creation lands in its centre | the whole container |
-| `fitOnImport`  | fit the content after every import (the fitted view of L5); `false` when the host's chrome fits it itself                                                                                                                                                         | `true`              |
+| `fitOnImport`  | fit the content after every import (the fitted view of L5), into the free rectangle or with the renderer's own padding (see below); `false` when the host's chrome fits it itself                                                                                 | `true`              |
 | `undoRedoKeys` | bind Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z and Cmd/Ctrl+Y to the canvas history; `false` when the host owns the document's history (VS Code)                                                                                                                               | `true`              |
 
 ```ts
@@ -134,10 +153,21 @@ aliases for one minor release of that renderer, then go: `freeRectInsets`
 (Wardley, Event Storming, Context Maps) is `freeArea: { insets }`,
 `freeRectCenter` (Team Topologies, Value Chain) is `freeArea: { center }`, and
 Wardley's `keyboard: { undoRedo }` is `undoRedoKeys`. A renderer given only
-`center` that needs the rectangle itself (a pan constraint) treats the whole
-container as free. A viewer factory takes the same type and ignores
-`undoRedoKeys`. The kit's `create()` keeps `fitOnImport` at its default: L5
-checks the modeler's own fit.
+`center` that needs the rectangle itself (a pan constraint) works there as it
+does without the option: no host chrome, with whatever margins of its own it
+uses then. A viewer factory takes the same type and ignores `undoRedoKeys`.
+The kit's `create()` keeps `fitOnImport` at its default: L5 checks the
+modeler's own fit.
+
+The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free area:
+given `insets` a renderer may fit into the free rectangle (Wardley, Context
+Maps) or keep its own fit (Event Storming, Team Topologies, Value Chain), and
+given only `center`, which names no rectangle, it MAY fit as it does without
+the option, keeping the padding it uses then (Context Maps keeps the room its
+palette needs, and a test pins it). All five published renderers conform to
+this reading; no kit case checks it, since `create()` takes no options. A host
+whose first view must leave its chrome free passes `fitOnImport: false` and
+fits itself, to `contentBounds()` where the renderer has it.
 
 ## The conformance kit
 
@@ -192,9 +222,11 @@ L1 interaction case reports a skip; with `openInteraction` but without
 `interactionState` only its keep-and-reopen half does. A modeler without
 `elements.bounds` skips the bounds case; with it, a harness without
 `moveElement` skips only its move half, one without `viewState` only its
-diagram-coordinates half. Without `openInteraction` or `viewState` the L5
-interaction case reports a skip; without `commitInteraction` only its commit
-halves do.
+diagram-coordinates half. A modeler without `contentBounds` skips the
+content-bounds case; with it, a harness without `viewState` skips only its
+view half, and a modeler without `elements.bounds` only its covering half.
+Without `openInteraction` or `viewState` the L5 interaction case reports a
+skip; without `commitInteraction` only its commit halves do.
 
 **Every rejection is probed.** `invalidTexts` lists what MUST reject; the kit
 does not take `[]` on trust. The L7 probe case derives damaged forms from
@@ -260,6 +292,17 @@ listed id must give a finite box with a non-negative size and an unknown id
 once) and after `moveElement` (the moved element's box changed position).
 `setViewState(viewState)` must leave every box as it was: they are diagram
 coordinates. A viewer that exposes `bounds` is held to the same listing rules.
+
+**The content box is verified around every element.** With `contentBounds`
+present, it must not throw and must give `undefined` or a finite box with a
+non-negative size before the first import; after importing each canonical text
+and after `mutate` it must give a finite box as soon as an element is listed,
+and that box must cover every element's finite `elements.bounds` box (the new
+element included, so a box measured at the last import fails), give or take
+what float32 rounding takes off a box measured on the live SVG (`getBBox`): a
+thousandth of a unit, or 2^-20 of the edge where that is more.
+`setViewState(viewState)` must leave it as it was. A viewer that exposes `contentBounds` is held to the
+same rules after an import.
 
 **Element identity is verified through names.** After an unrelated edit, and
 after an export → import into the same instance, a fresh instance and the

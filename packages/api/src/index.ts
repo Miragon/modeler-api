@@ -85,7 +85,8 @@ export interface ElementInfo {
   name?: string;
 }
 
-/** an element's box in diagram coordinates, as `ElementsSurface.bounds` reports it */
+/** a box in diagram coordinates: an element's, as `ElementsSurface.bounds`
+ *  reports it, or the content's, as `CollaborativeModeler.contentBounds` does */
 export interface ElementBounds {
   x: number;
   y: number;
@@ -165,7 +166,9 @@ export interface ElementsSurface {
  *     import leaves the view FITTED to the content (the defined post-import
  *     view, the same for the same document and host — a host that wants to
  *     keep the user's viewport across a remote re-import snapshots before
- *     and restores after); before the first import `getViewState()` returns
+ *     and restores after, and one that fits the view itself passes
+ *     `fitOnImport: false` and fits to `contentBounds()`, 1.3, where the
+ *     modeler has it); before the first import `getViewState()` returns
  *     `undefined` or a state `setViewState` accepts, and never throws. The
  *     readback may be a NORMALISED form of what was set (a diagram-js
  *     viewbox comes back rounded, with scale/inner/outer) — what must hold
@@ -226,6 +229,33 @@ export interface CollaborativeModeler {
   getViewState(): unknown;
   setViewState(state: unknown): void;
 
+  /**
+   * the box of the CONTENT in diagram coordinates — what a host fits the
+   * view to when it fits itself (`fitOnImport: false`, the modeler shell's
+   * viewport) — or `undefined` while there is nothing to fit (an empty
+   * diagram). Optional (1.3): hosts feature-detect it (`typeof
+   * modeler.contentBounds === "function"`) instead of reaching into a
+   * renderer's services; a renderer's own fit stays its business (L5).
+   *
+   * The content is everything the canvas draws of the document: the box
+   * covers every box `elements.bounds` reports, and whatever the notation
+   * always draws (Wardley's plot with its axes — a map without components
+   * still has a box, so `undefined` is no emptiness test). It is tight: no
+   * padding and no room for chrome of its own, since a host's fit adds its
+   * margins (the shell's fit insets) on top. Like `elements.bounds` it is in
+   * the canvas's own coordinate space, which zoom and scroll leave alone,
+   * and it reads the LIVE canvas: an element created or moved in this
+   * session counts at once. A browser measures SVG text differently at each
+   * zoom (Chromium lays it out at the scaled font size), so a renderer
+   * computes the box from its model, or measures it once per content change
+   * and keeps it across view changes. Before the first import it returns
+   * `undefined` or a box, and never throws. A viewer that exposes it follows
+   * the same rules. It sits next to the view state rather than on `elements`: a fit
+   * frames the whole canvas, and a notation without addressable elements
+   * still has content to fit.
+   */
+  contentBounds?(): ElementBounds | undefined;
+
   readonly elements?: ElementsSurface;
 
   /** tear down DOM + listeners; further calls on the instance are undefined
@@ -262,8 +292,17 @@ export interface DiagramPoint {
  *    there is none (a 0×0 container) — the shell's `viewport.freeRectCenter()`.
  *
  * A renderer accepts both. One that needs the rectangle itself (a pan
- * constraint) and is given only `center` treats the whole container as
- * free, as it does without the option.
+ * constraint) and is given only `center` works there as it does without
+ * the option: it assumes no host chrome, with whatever margins of its own
+ * it uses then.
+ *
+ * The post-import fit (`fitOnImport`, L5's fitted view) MAY use the free
+ * area: given `insets` a renderer may fit into the free rectangle or keep
+ * its own fit, and given only `center`, which names no rectangle, it MAY fit
+ * as it does without the option, keeping the padding it uses then (Context
+ * Maps keeps the room its palette needs) — the reading all five published
+ * renderers conform to, which no kit case checks; a host whose first view
+ * must leave its chrome free passes `fitOnImport: false` and fits itself.
  */
 export type FreeArea =
   | { insets: () => FreeAreaInsets; center?: never }
@@ -296,7 +335,10 @@ export interface CollaborativeModelerOptions {
    * fitted view L5 defines. A host whose chrome fits the content itself
    * (the modeler shell's viewport fits into the free area) passes false:
    * the post-import view is then the host's to set, and L5's fit is the
-   * host's fit. The conformance kit runs with the default
+   * host's fit. The conformance kit runs with the default. Whether the
+   * renderer's own fit uses `freeArea` is its choice (see `FreeArea`): with
+   * `insets` it may fit into the free rectangle, with only `center` it may
+   * keep the padding it uses without the option
    */
   fitOnImport?: boolean | undefined;
   /**

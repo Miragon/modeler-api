@@ -1650,8 +1650,12 @@ interface PaletteLike {
 
 const shellModule: ModuleDeclarationLike;
 
+type CollaborativeModelerLike = object & {
+  contentBounds?(): Bounds | undefined; // 0.4: @miragon/modeler-api 1.3, the renderer's contract instance
+}; // `object &`: an instance from before 1.3, without contentBounds, is assignable too
 interface ConnectOptions {
-  contentBounds(): Bounds | undefined; // tight, no padding: the fit insets are the only margin (§5.9)
+  modeler?: CollaborativeModelerLike; // 0.4: its contentBounds() is the default for contentBounds
+  contentBounds?(): Bounds | undefined; // tight, no padding (§5.9); given, it wins; 0.4: optional with modeler
   isEmpty?(): boolean; // §13.5 empty file (no element); default: the content bounds are empty
   prefersReducedMotion?(): boolean;
 }
@@ -1745,7 +1749,13 @@ the palette over; `destroy()` (idempotent, also run on `diagram.destroy`) unregi
 unbinds the zoom target and the hint sync and destroys the viewport, while the keyboard guard stays
 until `diagram.destroy`. `contentBounds` returns the tight bounds of the content, without a padding
 of its own (Event Storming: `boardBounds.contentBounds(0)`, not its default of 120px): the shell's fit
-insets are the only margin (§5.9), and a padding would add to them.
+insets are the only margin (§5.9), and a padding would add to them. Since 0.4 the host may leave it
+out and pass the renderer's contract instance as `modeler` instead: a renderer on
+`@miragon/modeler-api` 1.3 reports these bounds itself (`contentBounds()`, tight, in diagram
+coordinates, `undefined` while there is nothing to fit), and the viewport calls it on the instance.
+An explicit `contentBounds` wins over it, so a host may pass both while a renderer is still on 1.2
+(an instance without `contentBounds` is a valid `modeler`) and drop its own once the renderer reports
+them. Without either, `connectDiagramJs` throws before it binds anything.
 
 **`Viewport`** (§5.8, §5.9):
 
