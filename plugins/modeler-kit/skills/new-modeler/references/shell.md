@@ -114,7 +114,8 @@ and a clean `destroy`.
   fits and resizes through the shell and expects no commit (L5) and the typed text still in the
   editor (L5 recommends it, the shell kit requires it), so the label editor stays open across a view
   change, follows its element and commits only on the user's gestures.
-- `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap.
+- `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap. In VS Code
+  a menu without a Model action (no File group there) adds `absent: ["canvasMenuAction"]`.
 - Add the smoke test of the production webview bundle behind `renderWebviewHtml` that fails on any
   CSP violation (template:
   [`webview-bundle.spec.ts`](../assets/template/e2e/tests/vscode/webview-bundle.spec.ts)).
