@@ -684,10 +684,10 @@ async function toastLift<P extends PageLike>(
   await settle(page);
   const measured = await measureChrome(page, root);
   const viewport = await inPage(page, viewportProbe, null);
-  const frame = { width: viewport.width - measured.container.width, height: viewport.height };
+  const frameWidth = viewport.width - measured.container.width;
   const problems: string[] = [];
   for (const probe of toastLiftProbes(measured)) {
-    await page.setViewportSize({ width: probe.width + frame.width, height: frame.height });
+    await page.setViewportSize({ width: probe.width + frameWidth, height: viewport.height });
     await settle(page);
     const measurement = await measureChrome(page, root);
     const stack = measurement.islands.toasts;

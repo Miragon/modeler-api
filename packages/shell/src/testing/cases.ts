@@ -718,26 +718,33 @@ const ZOOM_CONTROLS: ReadonlyArray<readonly [ChromeTarget, string]> = [
  * to the canvas, Enter returns it to the trigger (guide §5.4 with the exception of
  * Miragon/corporate-identity#36). `undefined` when the menu has none.
  */
-async function menuActionSteps(page: PageLike, root: string): Promise<FocusHandBackStep[] | undefined> {
+async function menuActionSteps(
+  page: PageLike,
+  root: string,
+): Promise<{ steps: FocusHandBackStep[]; problems: string[] } | undefined> {
   const entry = (await menuEntries(page, root)).find(isCanvasMenuAction);
   if (!entry?.menuId) return undefined;
   const control = `menu entry "${entry.name}"`;
   const item = `[role="menu"] [data-menu-id="${entry.menuId}"]`;
   const trigger = CHROME_TARGET_SELECTORS.menu;
   const steps: FocusHandBackStep[] = [];
-  if (await openMenuByClick(page, root)) {
-    const point = await inPage(page, menuItemProbe, { root, menuId: entry.menuId });
-    if (point) {
-      await page.mouse.click(point.x, point.y);
-      await settle(page);
-      steps.push({
-        control,
-        by: "pointer",
-        focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
-        menuEntry: true,
-      });
-    }
+  const problems: string[] = [];
+  const point = (await openMenuByClick(page, root))
+    ? await inPage(page, menuItemProbe, { root, menuId: entry.menuId })
+    : null;
+  if (point) {
+    await page.mouse.click(point.x, point.y);
+    await settle(page);
+    steps.push({
+      control,
+      by: "pointer",
+      focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
+      menuEntry: true,
+    });
+  } else {
+    problems.push(`focus: no visible ${control} to click in the opened menu`);
   }
+  if (await findOverlay(page, root, "menu")) await closeByEscape(page);
   if ((await openMenuByClick(page, root)) && (await inPage(page, focusProbe, { root, selector: item }))) {
     await page.keyboard.press("Enter");
     await settle(page);
@@ -747,9 +754,11 @@ async function menuActionSteps(page: PageLike, root: string): Promise<FocusHandB
       focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
       menuEntry: true,
     });
+  } else {
+    problems.push(`focus: ${control} cannot take the focus in the opened menu`);
   }
   if (await findOverlay(page, root, "menu")) await closeByEscape(page);
-  return steps;
+  return { steps, problems };
 }
 
 /**
@@ -809,9 +818,11 @@ const focusHandBackCase: ShellConformanceCase = {
     }
 
     const skipped: ShellSkip[] = [];
-    const menuSteps = await menuActionSteps(page, root);
-    if (menuSteps) steps.push(...menuSteps);
-    else if (!harness.absent?.includes("canvasMenuAction")) {
+    const menuAction = await menuActionSteps(page, root);
+    if (menuAction) {
+      steps.push(...menuAction.steps);
+      problems.push(...menuAction.problems);
+    } else if (!harness.absent?.includes("canvasMenuAction")) {
       skipped.push({
         hook: "open",
         reason:
@@ -1244,8 +1255,8 @@ const cleanupCase: ShellConformanceCase = {
 };
 
 /**
- * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2
- * and the label editor of 0.4.
+ * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2,
+ * the legend's start state and the label editor of 0.4.
  */
 export function createBaseCases(): ShellConformanceCase[] {
   return [
