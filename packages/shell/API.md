@@ -2615,7 +2615,17 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    `expectedWebviewAppearance(kind, themes)` without the shell's transition stop, then checks the
    chrome and takes the screenshot (CSS pixels, so the same size on every machine). Before the first
    theme it blurs the webview, so the canvas's focus ring of the keyboard edit is not in the
-   pictures.
+   pictures. Now and then VS Code does not switch on such a write and keeps the previous theme
+   (0.4.1): when the workbench has not switched 2 s after the write, the driver writes the setting
+   again; 2 s later it writes a default theme of neither the requested nor the shown kind, waits
+   for the workbench to show it and writes the requested theme once more. All of it stays within one
+   `timeoutMs`, counted from the first write, after which the theme fails with the theme requested
+   and the one the workbench shows: "themes: Default High Contrast Light: the workbench
+   never switched (no .hc-light): requested Default High Contrast Light, VS Code shows Default High
+   Contrast (.hc-black.vscode-theme-defaults-themes-hc_black-json) after 30.0 s, though the driver
+   wrote the setting 4 times (…)". Every retry is in the log ("themes: Default Dark Modern: the
+   workbench still shows … after 2.0 s, writing the setting again"). A modeler's own retry of a
+   missed theme switch is no longer needed.
 8. **close**: `app.close()`; a VS Code that has not quit after 10 s (a modal dialog) is killed. The
    temporary directory goes, unless `keepTemporaryFiles`, also when Ctrl+C ends the test process
    in the middle of a run.

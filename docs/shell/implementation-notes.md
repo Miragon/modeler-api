@@ -1747,6 +1747,47 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   bridge's message, `data-cd-theme` and `data-cd-kontrast` on `<html>`, and the end of the shell's
   one-frame transition stop. The driver waits for each and only then takes the screenshot. A switch
   took 0.1 to 0.5 s.
+- **A switch VS Code misses (0.4.1).** Now and then VS Code did not switch on such a write, and the
+  workbench kept the previous theme through the driver's whole wait: "Default Dark Modern: the
+  workbench never switched (no .vs-dark)" in Docker runs of Context Maps and Team Topologies (VS Code
+  1.143.0, `linux-arm64`), once in three Event Storming runs, and "Default High Contrast Light: …
+  (no .hc-light)" in Context Maps' CI on `ubuntu-latest` with VS Code 1.143.1, where it failed a
+  pull request after 30 s ([#35](https://github.com/Miragon/modeler-api/issues/35)). Event Storming's
+  smoke test ran the whole test once more on exactly that failure. The driver now retries within the
+  wait (`switchWorkbenchTheme` in `theme-switch.ts`). Decisions:
+  - _Write again after 2 s._ A switch VS Code takes is done within 0.9 s (1 to 876 ms over the
+    runs below, those under load included); a write it missed stayed missed for the 30 s. Writing
+    the same text again is a new change for VS Code's file watcher, which covers a change event that
+    got lost.
+  - _Then through a third theme and back, after another 2 s._ When VS Code read the setting but did
+    not apply it, its configuration already holds the value, and the same text again changes
+    nothing. The driver writes a default theme of neither the requested kind nor the shown one,
+    waits until the workbench shows it (so VS Code read that write, and the two writes cannot merge
+    into one change), and writes the requested theme again.
+  - _Within `timeoutMs`._ The retries are part of the one wait, counted from the first write (each
+    step gets at most a quarter of it): a theme still fails after 30 s, and a switch VS Code takes
+    at once costs nothing more. Every retry is in the log.
+  - _A failure names both themes._ VS Code puts a theme's type class and its own class
+    (`<extension id>-<theme file>`, `vscode-theme-defaults-themes-hc_black-json`) on
+    `.monaco-workbench` in one `classList.add`, so the class after the type class is the theme's.
+    The driver names a theme by the classes it showed earlier in the run: "requested Default High
+    Contrast Light, VS Code shows Default High Contrast (.hc-black.vscode-theme-defaults-themes-hc_black-json)".
+    A theme the run never showed keeps its classes, for VS Code's own default (Dark 2026) after an
+    empty read, say. The failure still starts with "the workbench never switched", which modelers'
+    retries match, so a modeler can drop its retry whenever it updates.
+  - _Measured_ in Docker on an Apple silicon Mac with VS Code 1.143.1 (`linux-arm64`) and the
+    Context Maps extension, the driver linked into its `node_modules`: ten consecutive runs of its
+    smoke test (40 switches), 100 runs of the smoke test's sequence (400 switches) and 1000 switches
+    in ten sessions of 25 rounds through the four themes all switched on the first write, in 1 to
+    382 ms (median 314 ms). With every CPU of the container kept busy by a shell loop, VS Code
+    missed a write in 3 of 130 runs of the sequence; each of the three switched on the rewrite, 2.4
+    s after the first write, and all 130 runs passed. To see the detour at work too, the test put
+    the previous theme back into `settings.json` right after the driver's write of Default Dark
+    Modern, before VS Code read it. 0.4.0 failed both such runs after 30 s with "themes: Default
+    Dark Modern: the workbench never switched (no .vs-dark)". With the retries, six such runs with
+    twelve such switches passed: six switched on the rewrite, 2.1 to 2.4 s after the first write,
+    and six whose rewrite was put back too switched through Default High Contrast, 4.6 to 4.8 s
+    after it.
 - **Screenshots.** Before the first theme the driver blurs the webview: the edit went through the
   keyboard, so the canvas shows its focus ring, which would be in every picture. Screenshots are in
   CSS pixels, the same size on a Retina Mac and on a CI runner.
