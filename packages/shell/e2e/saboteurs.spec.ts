@@ -223,6 +223,23 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("focusHandBack fails when a click on a Model action returns the focus to the trigger", async ({
+      page,
+    }) => {
+      // guide §5.4 before Miragon/corporate-identity#36: every action entry returned the focus to the trigger
+      const harness = sabotaged(() => {
+        document.addEventListener("click", (event) => {
+          const entry = (event.target as Element | null)?.closest?.(
+            '[role="menu"] [data-menu-group="model"][role="menuitem"]',
+          );
+          if (entry) document.querySelector<HTMLElement>('[data-chrome="menu"]')?.focus();
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "focusHandBack", [
+        /focus: after a click on menu entry "Arrange boxes" the focus is on button\S*\[data-chrome="menu"\]\S*, expected the canvas <svg>, so its keys act at once \(guide §5\.4, §5\.8\)/,
+      ]);
+    });
+
     test("readOnly fails when the lock leaves the canvas editable", async ({ page }) => {
       const harness = sabotaged(() => {
         window.__demo!.flaws.canvasUnlocked = true;
@@ -703,6 +720,43 @@ test.describe("saboteurs", () => {
     );
     expect(failure).toMatch(/focus: after Space on zoom in the focus is on svg/);
     expect(failure).not.toMatch(/after a click/);
+  });
+
+  test("focusHandBack fails when Enter on a File action leaves the focus on the canvas", async ({ page }) => {
+    const harness = webSabotaged(() => {
+      document.addEventListener("click", (event) => {
+        const entry = (event.target as Element | null)?.closest?.('[role="menu"] [data-menu-group="file"]');
+        if (entry && event.detail === 0) window.__webDemo!.connection.viewport.focus?.();
+      });
+    });
+    const failure = await runCase("focusHandBack", page, harness).then(
+      () => "passed",
+      (error: unknown) => String(error),
+    );
+    expect(failure).toMatch(
+      /focus: after Enter on menu entry "New diagram" the focus is on svg, expected the menu trigger, where the keyboard left the menu \(guide §5\.4\)/,
+    );
+    expect(failure).not.toMatch(/after a click/);
+  });
+
+  test("focusHandBack skips without a File or Model action, unless the harness declares it absent", async ({
+    page,
+  }) => {
+    const hideArrange = () => {
+      const style = document.createElement("style");
+      style.textContent = '[data-menu-id="arrange"] { display: none !important; }';
+      document.head.append(style);
+    };
+    const skips = await runCase("focusHandBack", page, sabotaged(hideArrange));
+    expect(skips?.skipped).toEqual([
+      {
+        hook: "open",
+        reason:
+          'the menu has no File or Model action without a dialog: the focus after a click on a menu entry was not verified (absent: ["canvasMenuAction"] for a modeler without one)',
+      },
+    ]);
+    const declared = { ...sabotaged(hideArrange), absent: ["canvasMenuAction"] as const };
+    expect(await runCase("focusHandBack", page, declared)).toBeUndefined();
   });
 
   test("labelEditor fails for a documentChanged probe that never sees the commit", async ({ page }) => {

@@ -93,6 +93,8 @@ const menu: MenuGroups = {
         calls.push(`snap:${checked}`);
       },
     },
+    // A Model action without a dialog: after a click the focus goes to the canvas (guide §5.4).
+    { kind: "action", id: "arrange", label: "Arrange boxes", onSelect: () => calls.push("arrange") },
   ],
   export: [
     {

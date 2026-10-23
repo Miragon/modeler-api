@@ -92,10 +92,12 @@ export interface LabelEditorHooks<P extends PageLike = PageLike> {
 
 /**
  * What a harness can lack: a show hook, the web app's drop zone (`drop`), problems that point at
- * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects), or
- * a label editor (`labelEditor`: the notation has no labels to edit on the canvas).
+ * an element (`problemSelection`: the modeler's diagnostics only name lines, so no row selects), a
+ * label editor (`labelEditor`: the notation has no labels to edit on the canvas), or a menu entry
+ * that acts on the canvas (`canvasMenuAction`: no File or Model action without a dialog, as in an
+ * IDE host whose Model group holds only toggles and dialogs).
  */
-export type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor";
+export type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor" | "canvasMenuAction";
 
 export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
@@ -156,8 +158,9 @@ export interface ShellConformanceCase {
  * (roles, names, `aria-expanded`/`-controls`/`-keyshortcuts`/`-disabled`, DOM order, no positive
  * tabindex), `keys` (each chrome key acts exactly once; in the IDE host a `keydown` listener on
  * `window` never fires for a handled key; unmodified `+`/`-` never zoom; select all acts on the
- * canvas only), `focusHandBack` (a pointer click on a zoom control or a palette tool leaves the focus
- * on the canvas, Enter and Space on zoom in leave it on the button), `create` (Enter on the first
+ * canvas only), `focusHandBack` (a pointer click on a zoom control, a palette tool or a File or Model
+ * action without a dialog leaves the focus on the canvas; Enter and Space on zoom in leave it on the
+ * button, Enter on that menu entry returns it to the trigger), `create` (Enter on the first
  * creating palette entry places one selected element in the free rectangle and focuses the canvas),
  * `labelEditor` (the shell's zoom, fit and refit never commit an open label editor, contract L5,
  * and leave it open with the typed text, which L5 recommends and the shell kit requires),

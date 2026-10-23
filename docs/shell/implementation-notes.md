@@ -599,7 +599,10 @@ so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on th
   focus; the legend's close button returns it to the trigger; a problem row already focuses the
   canvas (see [Problems popover](#problems-popover)).
 - Shell conformance (`focusHandBack`) clicks each zoom control and a palette tool with the pointer,
-  each focused by script first, and presses Enter and Space on zoom in.
+  each focused by script first, and presses Enter and Space on zoom in. It also clicks the first File
+  or Model action without a dialog (canvas), then presses Enter on it (trigger), as guide
+  [§5.4][guide-5.4] states since [corporate-identity#36][ci-36]; a modeler without such an entry
+  declares `absent: ["canvasMenuAction"]`.
 
 ### Shortcut labels
 
@@ -1889,6 +1892,7 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 - [ ] `Keyboard`: bound to the canvas `<svg>`, `preventDefault()` without `stopPropagation()`;
       `KeyboardBindings` at default priority 1000.
 
+[ci-36]: https://github.com/Miragon/corporate-identity/issues/36
 [ci-37]: https://github.com/Miragon/corporate-identity/issues/37
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
 [guide-2]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#2-marken-grundlagen

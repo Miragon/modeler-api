@@ -332,6 +332,20 @@ export async function findTarget(
   return inPage(page, targetProbe, { root, selector: CHROME_TARGET_SELECTORS[target] });
 }
 
+/** Viewport centre of the visible item `menuId` of the open menu, for `page.mouse`. */
+export const menuItemProbe = ({
+  root,
+  menuId,
+}: {
+  root: string;
+  menuId: string;
+}): { x: number; y: number } | null => {
+  const item = document.querySelector(root)?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
+  if (!item) return null;
+  const rect = item.getBoundingClientRect();
+  return rect.width > 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
+};
+
 /** Focuses the first match of `selector` inside the root; the description of the focused element. */
 export const focusProbe = ({ root, selector }: { root: string; selector: string }): string | null => {
   const tools = (window as ToolWindow).__modelerShellConformance!;

@@ -47,6 +47,7 @@ import {
   focusTarget,
   inPage,
   injectProbe,
+  menuItemProbe,
   removeInjectedProbe,
   settle,
 } from "./page-tools.js";
@@ -215,7 +216,7 @@ async function fileEntryProblems(page: PageLike, root: string): Promise<string[]
   const problems: string[] = [];
   for (const entry of entries) {
     if (!entry.menuId || !(await openMenuByClick(page, root))) continue;
-    const item = await inPage(page, fileItemProbe, { root, menuId: entry.menuId });
+    const item = await inPage(page, menuItemProbe, { root, menuId: entry.menuId });
     if (!item) {
       await closeByEscape(page);
       continue;
@@ -234,20 +235,6 @@ async function fileEntryProblems(page: PageLike, root: string): Promise<string[]
   }
   return problems;
 }
-
-/** Viewport centre of the visible menu item `menuId`. */
-const fileItemProbe = ({
-  root,
-  menuId,
-}: {
-  root: string;
-  menuId: string;
-}): { x: number; y: number } | null => {
-  const item = document.querySelector(root)?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
-  if (!item) return null;
-  const rect = item.getBoundingClientRect();
-  return rect.width > 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
-};
 
 /** Guide §13.5: File entries stay usable on a read-only canvas. */
 async function lockedFileProblems<P extends PageLike>(

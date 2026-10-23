@@ -11,6 +11,7 @@ import {
   expectedKeyShortcuts,
   focusHandBackProblems,
   harnessHookProblems,
+  isCanvasMenuAction,
   isToolEntry,
   keyReachProblem,
   labelEditorCommitProblems,
@@ -837,6 +838,8 @@ describe("absent islands and the harness's own consistency", () => {
     expect(harnessHookProblems(harness, ["invalid"])).toEqual([
       'harness: absent lists "invalid", but show.invalid is given',
     ]);
+    const withoutMenuAction = { ...harness, absent: ["canvasMenuAction", "problemSelection"] as const };
+    expect(harnessHookProblems(withoutMenuAction, ["canvasMenuAction", "problemSelection"])).toEqual([]);
   });
 
   it("reports a label editor the harness both gives and declares absent", () => {
@@ -1062,6 +1065,63 @@ describe("focusHandBackProblems", () => {
       "focus: after Enter on zoom in the focus is on svg, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
       "focus: after Space on zoom in the focus is on <body>, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
     ]);
+  });
+
+  it("wants a clicked File or Model action on the canvas and Enter on it back on the trigger (guide §5.4)", () => {
+    const onTrigger = {
+      focused: 'button.cd-shell-menu-trigger[data-chrome="menu"]',
+      canvas: false,
+      control: true,
+    };
+    const control = 'menu entry "New diagram"';
+    expect(
+      focusHandBackProblems([
+        { control, by: "pointer", focus: onCanvas, menuEntry: true },
+        { control, by: "Enter", focus: onTrigger, menuEntry: true },
+      ]),
+    ).toEqual([]);
+    expect(
+      focusHandBackProblems([
+        { control, by: "pointer", focus: onTrigger, menuEntry: true },
+        { control, by: "Enter", focus: onCanvas, menuEntry: true },
+      ]),
+    ).toEqual([
+      'focus: after a click on menu entry "New diagram" the focus is on button.cd-shell-menu-trigger[data-chrome="menu"], expected the canvas <svg>, so its keys act at once (guide §5.4, §5.8)',
+      'focus: after Enter on menu entry "New diagram" the focus is on svg, expected the menu trigger, where the keyboard left the menu (guide §5.4)',
+    ]);
+  });
+});
+
+describe("isCanvasMenuAction", () => {
+  const entry = (overrides: Partial<MenuEntryFacts>): MenuEntryFacts => ({
+    name: "New diagram",
+    role: "menuitem",
+    menuId: "new-diagram",
+    disabled: false,
+    group: "file",
+    value: null,
+    checked: null,
+    icon: true,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
+    ...overrides,
+  });
+
+  it("takes the enabled File and Model actions without a dialog", () => {
+    expect(isCanvasMenuAction(entry({}))).toBe(true);
+    expect(isCanvasMenuAction(entry({ group: "model", menuId: "arrange" }))).toBe(true);
+  });
+
+  it("leaves out Export and Help, dialogs, toggles, locked and destructive entries", () => {
+    expect(isCanvasMenuAction(entry({ group: "export" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ group: "help" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ popup: "dialog" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ role: "menuitemcheckbox", group: "model" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ disabled: true }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ danger: true }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ menuId: null }))).toBe(false);
   });
 });
 

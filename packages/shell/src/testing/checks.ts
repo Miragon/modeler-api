@@ -287,29 +287,48 @@ export interface FocusHandBackStep {
   control: string;
   /** A pointer click, or the key that activated the focused control. */
   by: "pointer" | "Enter" | "Space";
+  /** `focus.control` tells whether the focus is on the control, or for a menu entry on the trigger. */
   focus: FocusPlaceFacts;
+  /** A menu entry: Enter and Space return the focus to the menu trigger (guide §5.4). */
+  menuEntry?: boolean;
 }
 
 /**
  * Guide §5.8: after a pointer click on chrome that acts on the canvas the focus is on the canvas
  * `<svg>`, so Delete, the arrows and undo act at once; after Enter or Space it stays on the control,
- * so a keyboard user can press again.
+ * so a keyboard user can press again, and for a menu entry it returns to the trigger (§5.4).
  */
 export function focusHandBackProblems(steps: readonly FocusHandBackStep[]): string[] {
-  return steps.flatMap(({ control, by, focus }) => {
+  return steps.flatMap(({ control, by, focus, menuEntry }) => {
     if (by === "pointer") {
       return focus.canvas
         ? []
         : [
-            `focus: after a click on ${control} the focus is on ${focus.focused}, expected the canvas <svg>, so its keys act at once (guide §5.8)`,
+            `focus: after a click on ${control} the focus is on ${focus.focused}, expected the canvas <svg>, so its keys act at once (guide ${menuEntry ? "§5.4, " : ""}§5.8)`,
           ];
     }
-    return focus.control
-      ? []
-      : [
-          `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
-        ];
+    if (focus.control) return [];
+    return [
+      menuEntry
+        ? `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected the menu trigger, where the keyboard left the menu (guide §5.4)`
+        : `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
+    ];
   });
+}
+
+/**
+ * The File and Model entries guide §5.4 hands to the canvas after a pointer click: an enabled,
+ * non-destructive `menuitem` that opens no dialog in the modeler (`aria-haspopup="dialog"`).
+ */
+export function isCanvasMenuAction(entry: MenuEntryFacts): boolean {
+  return (
+    entry.role === "menuitem" &&
+    (entry.group === "file" || entry.group === "model") &&
+    entry.menuId !== null &&
+    entry.popup !== "dialog" &&
+    !entry.disabled &&
+    !entry.danger
+  );
 }
 
 /** The legend right after `open`, without a stored state (guide §5.10). */
@@ -710,7 +729,10 @@ export function harnessHookProblems<P extends PageLike>(
     .filter((hook) =>
       hook === "drop" || hook === "labelEditor"
         ? harness.absent?.includes(hook) && harness[hook]
-        : hook !== "problemSelection" && harness.absent?.includes(hook) && harness.show?.[hook],
+        : hook !== "problemSelection" &&
+          hook !== "canvasMenuAction" &&
+          harness.absent?.includes(hook) &&
+          harness.show?.[hook],
     )
     .map((hook) =>
       hook === "drop" || hook === "labelEditor"

@@ -15,6 +15,7 @@ import {
   ariaProblems,
   createProblems,
   focusHandBackProblems,
+  isCanvasMenuAction,
   isToolEntry,
   keyReachProblem,
   legendStartProblems,
@@ -84,6 +85,7 @@ import {
   inPage,
   injectProbe,
   leftoverProbe,
+  menuItemProbe,
   removeInjectedProbe,
   settle,
   targetProbe,
@@ -712,9 +714,49 @@ const ZOOM_CONTROLS: ReadonlyArray<readonly [ChromeTarget, string]> = [
 ];
 
 /**
- * Guide §5.8: a pointer click on each zoom control and on a palette tool leaves the focus on the
- * canvas `<svg>`; Enter and Space on zoom in leave it on the button. Each control gets the focus by
- * script first, so a click that keeps it shows as "stays on the control" in every engine.
+ * The first File or Model action of the menu that opens no dialog: a pointer click hands the focus
+ * to the canvas, Enter returns it to the trigger (guide §5.4 with the exception of
+ * Miragon/corporate-identity#36). `undefined` when the menu has none.
+ */
+async function menuActionSteps(page: PageLike, root: string): Promise<FocusHandBackStep[] | undefined> {
+  const entry = (await menuEntries(page, root)).find(isCanvasMenuAction);
+  if (!entry?.menuId) return undefined;
+  const control = `menu entry "${entry.name}"`;
+  const item = `[role="menu"] [data-menu-id="${entry.menuId}"]`;
+  const trigger = CHROME_TARGET_SELECTORS.menu;
+  const steps: FocusHandBackStep[] = [];
+  if (await openMenuByClick(page, root)) {
+    const point = await inPage(page, menuItemProbe, { root, menuId: entry.menuId });
+    if (point) {
+      await page.mouse.click(point.x, point.y);
+      await settle(page);
+      steps.push({
+        control,
+        by: "pointer",
+        focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
+        menuEntry: true,
+      });
+    }
+  }
+  if ((await openMenuByClick(page, root)) && (await inPage(page, focusProbe, { root, selector: item }))) {
+    await page.keyboard.press("Enter");
+    await settle(page);
+    steps.push({
+      control,
+      by: "Enter",
+      focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
+      menuEntry: true,
+    });
+  }
+  if (await findOverlay(page, root, "menu")) await closeByEscape(page);
+  return steps;
+}
+
+/**
+ * Guide §5.8: a pointer click on each zoom control, on a palette tool and on a File or Model action
+ * without a dialog leaves the focus on the canvas `<svg>`; Enter and Space on zoom in leave it on the
+ * button, Enter on the menu entry returns it to the trigger (§5.4). Each zoom control gets the focus
+ * by script first, so a click that keeps it shows as "stays on the control" in every engine.
  */
 const focusHandBackCase: ShellConformanceCase = {
   name: "focusHandBack",
@@ -765,9 +807,20 @@ const focusHandBackCase: ShellConformanceCase = {
         focus: await focusAfter(CHROME_TARGET_SELECTORS["zoom-in"]),
       });
     }
+
+    const skipped: ShellSkip[] = [];
+    const menuSteps = await menuActionSteps(page, root);
+    if (menuSteps) steps.push(...menuSteps);
+    else if (!harness.absent?.includes("canvasMenuAction")) {
+      skipped.push({
+        hook: "open",
+        reason:
+          'the menu has no File or Model action without a dialog: the focus after a click on a menu entry was not verified (absent: ["canvasMenuAction"] for a modeler without one)',
+      });
+    }
     await page.mouse.move(PARK.x, PARK.y);
     problems.push(...focusHandBackProblems(steps));
-    return finish("focusHandBack", harness.host, problems, []);
+    return finish("focusHandBack", harness.host, problems, skipped);
   },
 };
 

@@ -2128,7 +2128,8 @@ interface LabelEditorHooks<P extends PageLike = PageLike> {
 }
 // "problemSelection": the modeler's problems never point at an element (only at lines), so no row selects
 // "labelEditor" (0.4): the notation has no labels to edit on the canvas
-type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor";
+// "canvasMenuAction": no File or Model action without a dialog (an IDE host whose Model group holds toggles and dialogs)
+type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor" | "canvasMenuAction";
 interface ToastFixture {
   status: ToastStatus;
   text: string;
@@ -2257,9 +2258,9 @@ hosts it applies to it asserts that nothing of it shows and passes.
 **0.2.2, the focus hand-back.** One case joins after `keys` (`createBaseCases`) and runs in every
 host:
 
-| Case            | Checks                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `focusHandBack` | §5.8: each zoom control (zoom in, zoom out, the readout, Fit) focused by script, then clicked with the pointer, and a palette tool (`lasso-tool`, else the first enabled tool, Escape afterwards) clicked: the focus is on the canvas `<svg>` (`.djs-container > svg`) or inside it; Enter and then Space on the focused zoom in: the focus stays on the button. Every visible zoom control is required |
+| Case            | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `focusHandBack` | §5.8: each zoom control (zoom in, zoom out, the readout, Fit) focused by script, then clicked with the pointer, and a palette tool (`lasso-tool`, else the first enabled tool, Escape afterwards) clicked: the focus is on the canvas `<svg>` (`.djs-container > svg`) or inside it; Enter and then Space on the focused zoom in: the focus stays on the button. Every visible zoom control is required. §5.4: the first File or Model `menuitem` that opens no dialog (no `aria-haspopup="dialog"`, not `aria-disabled`, not `data-danger`) clicked with the pointer: the focus is on the canvas; focused in the open menu and activated with Enter: the focus is on the menu trigger. Without such an entry it skips with `hook: "open"`, unless `absent` lists `"canvasMenuAction"` |
 
 **0.4, the label editor over the shell's view changes.** One case joins after `create`
 (`createBaseCases`) and runs in every host:
@@ -2277,12 +2278,13 @@ host:
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in
   `absent` is skipped with `hook` set to its name, a missing `drop` or `labelEditor` with `hook` set
-  to that field, a missing `destroy` with `hook: "destroy"`, and a
-  document that lacks what a case needs (a shape a pointer reaches, for `readOnly`) with
-  `hook: "open"`. `absent` lists what the modeler does not have (an island, the `invalid` state, the
-  drop zone or a label editor), which is then never reported, while `geometry` and `aria` assert that
-  the island never shows. Listing a hook in both `show` (or `drop`, `labelEditor`) and `absent`
-  fails every case that uses it. A suite that lists what it lacks can fail on every remaining skip:
+  to that field, a missing `destroy` with `hook: "destroy"`, and a document that lacks what a case
+  needs (a shape a pointer reaches, for `readOnly`; a File or Model action without a dialog, for
+  `focusHandBack`) with `hook: "open"`. `absent` lists what the modeler does not have (an island,
+  the `invalid` state, the drop zone, a label editor or a File or Model action without a dialog),
+  which is then never reported, while `geometry` and `aria` assert that the island never shows.
+  Listing a hook in both `show` (or `drop`, `labelEditor`) and `absent` fails every case that uses
+  it. A suite that lists what it lacks can fail on every remaining skip:
   `onSkip(name, skips) { throw new Error(…) }`.
 - **`show.invalid`** makes the file invalid the way the host does (in a webview: a document update
   the parser rejects), not by calling `shell.setReadOnly` alone: the `readOnly` case also checks the
