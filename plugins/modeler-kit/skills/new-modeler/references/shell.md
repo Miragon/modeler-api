@@ -108,8 +108,8 @@ read-only lock, the web column and a clean `destroy`.
   publishes the handles on `window`. `show.invalid` posts an update the renderer rejects.
 - `web`: the app's own page with its link format. A navigation that only changes the fragment keeps
   the page, so `open` waits for the diagram, not just for the app. With a legend, `open` goes to
-  `about:blank` first: `legendStart` opens twice, each time as a first visit, and fails an `open`
-  that keeps the page.
+  `about:blank` first: the kit's case for the legend's start state opens twice, each time as a first
+  visit, and fails an `open` that keeps the page.
 - `labelEditor` (modeler-shell 0.4.0 or later): `open` double-clicks a node and types a new text on
   every call, `documentChanged` compares `modeler.exportText()` with the text at `open` (template:
   [`label-editor.ts`](../assets/template/e2e/tests/support/label-editor.ts)). The kit then zooms,
