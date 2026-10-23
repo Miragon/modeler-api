@@ -105,10 +105,10 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   themes: readonly Theme[];
   /**
    * Load the modeler with the shell at `size`, as the host would with `requested`, as on a first
-   * visit: without a stored legend state, so the shell's default decides (case `legendStart`).
-   * Each call loads a new document: a navigation that changes only the URL fragment keeps the page,
-   * and with it the legend's earlier start state, so `legendStart` fails it (go to `about:blank`
-   * first). Resolve once the first import is done.
+   * visit: without a stored legend state, so the shell's default decides (case `legendStart`:
+   * closed at every size). Each call loads a new document: a navigation that changes only the URL
+   * fragment keeps the page, and with it the legend's earlier start state, so `legendStart` fails it
+   * (go to `about:blank` first). Resolve once the first import is done.
    */
   open(page: P, context: OpenContext): Promise<void>;
   /** Tear modeler and shell down through the page's own path; `undefined` skips the cleanup case. */
@@ -156,7 +156,7 @@ export interface ShellConformanceCase {
 
 /**
  * The cases: `geometry` (every `data-chrome` island ±1px, per host and breakpoint), `legendStart`
- * (without a stored state the legend starts closed at 390 × 844 and open at 441 × 900), `aria`
+ * (without a stored state the legend starts closed at 390 × 844, 441 × 900 and 1280 × 900), `aria`
  * (roles, names, `aria-expanded`/`-controls`/`-keyshortcuts`/`-disabled`, DOM order, no positive
  * tabindex), `keys` (each chrome key acts exactly once; in the IDE host a `keydown` listener on
  * `window` never fires for a handled key; unmodified `+`/`-` never zoom; select all acts on the

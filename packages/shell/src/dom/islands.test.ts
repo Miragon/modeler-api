@@ -128,44 +128,46 @@ describe("legend (guide §5.10)", () => {
   });
 
   it.each([
-    [900, true],
-    [820, false],
-  ])("starts open above 820px container height (%ipx: %s) without onToggle", (height, open) => {
-    const onToggle = vi.fn();
-    const { shell } = mount({ legend: { render() {}, onToggle } }, { width: 1200, height });
-    expect(shell.legend?.isOpen()).toBe(open);
-    expect(onToggle).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [390, 844, false],
-    [440, 900, false],
-    [441, 900, true],
-  ])("starts closed up to 440px container width (%i × %ipx: %s) without onToggle", (width, height, open) => {
+    [390, 844],
+    [441, 900],
+    [1280, 900],
+    [1920, 1200],
+  ])("starts closed at %i × %ipx without a stored state, and without onToggle", (width, height) => {
     const onToggle = vi.fn();
     const { shell, root } = mount({ legend: { render() {}, onToggle } }, { width, height });
-    expect(shell.legend?.isOpen()).toBe(open);
-    expect(chrome(root, "legend").hidden).toBe(!open);
+    expect(shell.legend?.isOpen()).toBe(false);
+    expect(chrome(root, "legend").hidden).toBe(true);
+    expect(root.hasAttribute("data-legend")).toBe(false);
     expect(onToggle).not.toHaveBeenCalled();
   });
 
   it.each([
     [true, 390, 844],
+    [true, 1280, 900],
     [false, 1280, 900],
   ])("starts as the stored state says (%s at %i × %ipx), whatever the container", (open, width, height) => {
-    const { shell } = mount({ legend: { render() {}, open } }, { width, height });
+    const onToggle = vi.fn();
+    const { shell, root } = mount({ legend: { render() {}, open, onToggle } }, { width, height });
     expect(shell.legend?.isOpen()).toBe(open);
+    expect(chrome(root, "legend").hidden).toBe(!open);
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
-  it("decides the start state at the first non-zero size (a hidden tab first)", () => {
-    const { shell, root } = mount({ legend: { render() {} } }, { width: 0, height: 0 });
+  it("stays closed when a hidden tab gets its first size, and opens from the menu checkbox", () => {
+    const onToggle = vi.fn();
+    const { shell, root } = mount({ legend: { render() {}, onToggle } }, { width: 0, height: 0 });
     expect(shell.legend?.isOpen()).toBe(false);
-    setContainerSize(root, 1200, 1000);
+    setContainerSize(root, 1280, 900);
     FakeResizeObserver.resize(root);
+    expect(shell.legend?.isOpen()).toBe(false);
+    expect(onToggle).not.toHaveBeenCalled();
+    shell.menu.open();
+    const entry = shell.menu.dropdown.querySelector<HTMLElement>('[data-menu-id="legend"]');
+    expect(entry?.getAttribute("aria-checked")).toBe("false");
+    entry?.click();
     expect(shell.legend?.isOpen()).toBe(true);
-    setContainerSize(root, 1200, 600);
-    FakeResizeObserver.resize(root);
-    expect(shell.legend?.isOpen()).toBe(true);
+    expect(root.getAttribute("data-legend")).toBe("open");
+    expect(onToggle.mock.calls).toEqual([[true]]);
   });
 
   it("closes from its button, reports every toggle and moves the focus to the trigger", () => {

@@ -821,14 +821,15 @@ across a window reload, in the web app across sessions.
 
 - VS Code: `vscode.setState`, together with the viewbox (see [VS Code: state](#vs-code-state)).
 - Web app: `localStorage`. Wrap the access in `try`/`catch`: it throws when storage is blocked.
-- Without a stored state the start state (closed up to 820px height and up to 440px width) is
-  decided at the first non-zero container size: a tab hidden at mount reports 0 × 0 and waits for
-  its first real size. A stored state wins at any size.
-- Up to 440px the fit keeps no room for the open legend (see [Fit math](#fit-math)), so on a phone
-  (390 × 844, higher than 820px) an open card covered the left of the fitted diagram. Since design
-  system 1.15.0 ([corporate-identity#37][ci-37], decided for
-  [modeler-api#51](https://github.com/Miragon/modeler-api/issues/51)) it starts closed there; above
-  440px nothing changed.
+- Without a stored state the legend starts closed in every container, from the mount on; the
+  container size does not matter, so a tab hidden at mount needs no first real size for it. A
+  stored state wins at any size, and the user opens the legend from the Model group's Legend
+  checkbox or its card's button.
+- Decided by the product owner on 2026-10-24 (modeler-shell 0.5). This supersedes the rule of
+  design system 1.15.0 ([corporate-identity#37][ci-37], decided for
+  [modeler-api#51](https://github.com/Miragon/modeler-api/issues/51)), under which the legend
+  started closed only up to 820px height and up to 440px width and open otherwise.
+  `legendStartsOpen` stays exported for existing callers, deprecated and always `false`.
 
 ## Status box
 
@@ -1006,8 +1007,8 @@ a `CanvasText` border, icons stay visible.
 
 **Guide [§5.15][guide-5.15].** Rule: the breakpoints measure the container: palette in a second row up
 to 760px width or when less than 16px would stay free next to a top-row island; inspector as bottom
-sheet up to 760px; legend above the bottom row up to 440px; legend starts closed up to 820px height
-and up to 440px width.
+sheet up to 760px; legend above the bottom row up to 440px. Since 2026-10-24 the legend starts
+closed at every size (see [Legend state](#legend-state)), so no breakpoint decides its start state.
 
 - The breakpoints are `@container cd-shell (…)` queries on the shell root. Custom properties cannot be
   used in a container condition, so the queries carry the literal values (`max-width: 760px`,
@@ -1025,9 +1026,9 @@ and up to 440px width.
   that attribute, and fit uses the matching top inset.
 - The palette in the second row scrolls horizontally without a visible scrollbar:
   `overflow-x: auto; scrollbar-width: none`.
-- The legend's start state (closed up to 820px height or 440px width) is state, not style, so it is
-  decided by script from the container height and width (`--cd-shell-niedrig`,
-  `--cd-shell-sehr-schmal`), not by a container query.
+- The legend's start state is state, not style: closed unless the host passes a stored
+  `legend.open`, set by script at mount, never by a container query. `--cd-shell-niedrig` decides
+  nothing about the legend any more.
 
 ## Appearance decision
 

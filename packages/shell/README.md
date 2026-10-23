@@ -342,7 +342,7 @@ modeler passes `problems.onActivate` (an embedding host with a list of its own).
 
 Every modeler runs the kit in its own Playwright suite against its real webview or page. It checks
 the geometry of every island (±1px), that without a stored state the legend starts closed at
-390 × 844 and open at 441 × 900, ARIA and the keyboard models, that every chrome key acts exactly
+390 × 844, 441 × 900 and 1280 × 900, ARIA and the keyboard models, that every chrome key acts exactly
 once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that a
 pointer click on the zoom panel, a palette tool or a File or Model menu action without a dialog
 hands the focus to the canvas while Enter and Space leave it on the zoom button and Enter on that
@@ -512,7 +512,9 @@ registerShellConformance(
 The harness opens the modeler with the appearance the kit requests, the way its host would; for the
 `embedded` host the kit puts the foreign page itself in that mode. Each `open` loads a new document,
 as on a first visit: `legendStart` fails an `open` that changes only the URL fragment, because the
-page keeps the legend's earlier start state (go to `about:blank` first). A skip names the harness
+page keeps the legend's earlier start state (go to `about:blank` first). A stored legend state is
+outside the kit, because `open` has no way to pass one: the legend starts closed unless the host
+passes its stored `legend.open`, which the shell's unit tests cover. A skip names the harness
 field it misses (`{ hook: "legend", reason }`; `hook: "labelEditor"` without a `labelEditor`, or
 `absent: ["labelEditor"]` for a notation without labels on the canvas; `hook: "destroy"` without a
 `destroy`; `hook: "open"` when the opened document lacks what a case needs, such as a shape for
