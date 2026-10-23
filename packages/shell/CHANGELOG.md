@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.4.0...modeler-shell-v0.4.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **shell:** retry a theme switch VS Code did not pick up in the VS Code driver ([2376d54](https://github.com/Miragon/modeler-api/commit/2376d54bb1d7cbebcc183cc69f111cf906233aa7))
+* **shell:** set extensions.autoUpdate to "off" so VS Code does not rewrite the driver's settings ([2376d54](https://github.com/Miragon/modeler-api/commit/2376d54bb1d7cbebcc183cc69f111cf906233aa7))
+
 ## [0.4.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.3...modeler-shell-v0.4.0) (2026-10-23)
 
 
