@@ -19,7 +19,7 @@ npm run build          # the packages (the tests resolve them from dist)
 npm test               # unit tests
 npm run test:browser   # the renderer in Chromium, with the modeler-api conformance kit
 npm run test:e2e       # Playwright: web app and VS Code webview, with the shell conformance kit
-npm run build:vscode && npm run test:vscode-smoke   # the extension in a real VS Code
+npm run test:vscode:docker   # the extension in a real VS Code, in Docker (no window on the host)
 npm run lint           # ESLint and every tsconfig
 npm run dev:webapp     # the web app
 ```

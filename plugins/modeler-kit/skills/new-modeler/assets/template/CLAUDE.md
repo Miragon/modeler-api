@@ -27,9 +27,11 @@ ESLint (`npm run lint`) and dependency-cruiser (`npm run depcruise`).
 - `npm test` · `npm run test:browser` (the `@miragon/modeler-api` conformance kit) ·
   `npm run test:e2e` (the `@miragon/modeler-shell` conformance kit on the `web` and `ide` hosts;
   ports `E2E_PORT`, `E2E_WEBVIEW_PORT`)
-- `npm run test:vscode-smoke`: the built extension in a real VS Code (`npm run build` and
-  `npm run build:vscode` first; a window opens, on Linux run it under `xvfb-run -a`;
-  `VSCODE_VERSION` picks the VS Code, default the newest stable release)
+- `npm run test:vscode:docker`: the extension in a real VS Code inside a Linux container (needs
+  Docker; it builds first, and no window opens on the host). `VSCODE_VERSION` picks the VS Code
+  (default the newest stable release; `1.96.0` is the `engines.vscode` floor).
+  `npm run test:vscode-smoke` is the same without Docker and without the build, for CI under
+  `xvfb-run -a`; on a desktop its VS Code window takes the focus.
 - `npm run lint` (ESLint + every tsconfig) · `npm run format` · `npm run depcruise`
 
 Build the packages before the tests: workspace dependencies resolve to `dist`.

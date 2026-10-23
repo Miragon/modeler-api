@@ -63,8 +63,11 @@ known version), and the new repository's Dependabot moves them on.
    `npx playwright install chromium` and `npm run format` (the placeholders changed line lengths).
 4. Run every check once: `npm run lint`, `npm run format:check`, `npm run depcruise`,
    `npm run build`, `npm test`, `npm run test:browser`, `npm run test:e2e`, `npm run build:webapp`,
-   `npm run build:vscode` and `npm run test:vscode-smoke` (a real VS Code opens; the first run
-   downloads it). All green before the first commit, which is signed (`git commit -S -m "feat: …"`).
+   `npm run build:vscode` and `npm run test:vscode:docker`, once as it is and once with
+   `VSCODE_VERSION=1.96.0` (the `engines.vscode` floor). It runs the built extension in a real VS
+   Code inside a Linux container, so no window opens and takes the focus; it needs Docker, and its
+   first run builds the image and downloads VS Code. All green before the first commit, which is
+   signed (`git commit -S -m "feat: …"`).
 5. **GitHub**: the environments `npm` and `vscode-marketplace`, the secrets `VSCE_PUBLISH` and
    `OVSX_PUBLISH` (in `vscode-marketplace`), the release-please app (`RELEASE_PLEASE_APP_CLIENT_ID`,
    `RELEASE_PLEASE_APP_PRIVATE_KEY`), required signed commits, and `ci-ok` (the CI gate) and
@@ -102,8 +105,9 @@ known version), and the new repository's Dependabot moves them on.
   shell kits and the CSP smoke test of the production webview bundle, the web app's
   `check:build`, and the VS Code smoke test on the newest stable VS Code and the `engines.vscode`
   floor.
-- `npm run test:vscode-smoke` passes: edit, save, undo and VS Code's four default themes in a real
-  VS Code ([shell](references/shell.md#the-vs-code-smoke-test)).
+- `npm run test:vscode:docker` passes on the newest stable VS Code and the `engines.vscode` floor:
+  edit, save, undo and VS Code's four default themes in a real VS Code
+  ([shell](references/shell.md#the-vs-code-smoke-test)).
 - The renderer's `meta.apiVersion` is the pinned `MODELER_API_VERSION`, the factories accept the
   1.2 options `freeArea`, `fitOnImport` and `undoRedoKeys`, and both mounts report
   `contentBounds()` (1.3), which the apps fit to.
