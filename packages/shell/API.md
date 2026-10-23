@@ -2582,9 +2582,10 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    editor's `priority` does not matter), turn off telemetry, updates, the start page, tips,
    experiments, the chat, auto save, Git and the OS's automatic color scheme and high contrast, and
    dispatch keys by key code (`keyboard.dispatch: keyCode`). Extension updates are off with
-   `extensions.autoUpdate: "off"` (0.4.1; `false` before, which VS Code 1.143 migrates by rewriting
-   `settings.json` itself, and that rewrite could undo a theme switch). The environment drops
-   `VSCODE_*` and `ELECTRON_RUN_AS_NODE`. The window's content size becomes `windowSize`.
+   `extensions.autoUpdate: "off"` (0.4.1; `false` before, which VS Code 1.125 and later migrate by
+   rewriting `settings.json` themselves, and that rewrite could undo a theme switch). The
+   environment drops `VSCODE_*` and `ELECTRON_RUN_AS_NODE`. The window's content size becomes
+   `windowSize`.
 3. **open**: the webview frame of the extension (`iframe.webview` whose URL names `extensionId`),
    then its `#active-frame`; waits for `[data-chrome="menu"]`, then `ready`, and checks that every
    island of `chrome` is visible. It records the canvas: shapes, connections and every shape's
@@ -2620,14 +2621,16 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    pictures. Now and then VS Code does not switch on such a write and keeps the previous theme
    (0.4.1): when the workbench has not switched 2 s after the write, the driver writes the setting
    again; 2 s later it writes a default theme of neither the requested nor the shown kind, waits
-   for the workbench to show it and writes the requested theme once more. All of it stays within one
-   `timeoutMs`, counted from the first write, after which the theme fails with the theme requested
-   and the one the workbench shows: "themes: Default High Contrast Light: the workbench
-   never switched (no .hc-light): requested Default High Contrast Light, VS Code shows Default High
-   Contrast (.hc-black.vscode-theme-defaults-themes-hc_black-json) after 30.0 s, though the driver
-   wrote the setting 4 times (…)". Every retry is in the log ("themes: Default Dark Modern: the
-   workbench still shows … after 2.0 s, writing the setting again"). A modeler's own retry of a
-   missed theme switch is no longer needed.
+   for the workbench to show it (until 2 s before the end of `timeoutMs`, so that a slow VS Code
+   cannot show it after the way back) and writes the requested theme once more. When the workbench
+   never showed that detour, the requested theme counts only if the workbench still shows it at the
+   end of `timeoutMs`. All of it stays within one `timeoutMs`, counted from the first write, after
+   which the theme fails with the theme requested and the one the workbench shows: "themes: Default
+   High Contrast Light: the workbench never switched (no .hc-light): requested Default High Contrast
+   Light, VS Code shows Default High Contrast (.hc-black.vscode-theme-defaults-themes-hc_black-json)
+   after 30.0 s, though the driver wrote the setting 4 times (…)". Every retry is in the log
+   ("themes: Default Dark Modern: the workbench still shows … after 2.0 s, writing the setting
+   again"). A modeler's own retry of a missed theme switch is no longer needed.
 8. **close**: `app.close()`; a VS Code that has not quit after 10 s (a modal dialog) is killed. The
    temporary directory goes, unless `keepTemporaryFiles`, also when Ctrl+C ends the test process
    in the middle of a run.

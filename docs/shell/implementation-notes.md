@@ -1764,9 +1764,17 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
     nothing. The driver writes a default theme of neither the requested kind nor the shown one,
     waits until the workbench shows it (so VS Code read that write, and the two writes cannot merge
     into one change), and writes the requested theme again.
-  - _Within `timeoutMs`._ The retries are part of the one wait, counted from the first write (each
-    step gets at most a quarter of it): a theme still fails after 30 s, and a switch VS Code takes
-    at once costs nothing more. Every retry is in the log.
+  - _Wait for the detour until 2 s before the deadline._ Waiting only 2 s for it let a VS Code that
+    applies a write more than 4 s late end on the detour: the workbench showed the requested theme
+    from the first write, the driver accepted it after the way back, and the detour landed during
+    the webview check (reproduced with a fake VS Code at 4.1 to 7 s; no real run came near that,
+    see below). Waiting for the detour keeps every write before the way back done. When the detour
+    never shows, VS Code missed that write too or has not applied it yet, so the driver writes the
+    requested theme 2 s before the deadline and counts it only if the workbench still shows it at
+    the deadline.
+  - _Within `timeoutMs`._ The retries are part of the one wait, counted from the first write (the
+    first two steps get at most a quarter of it each): a theme still fails after 30 s, and a switch
+    VS Code takes at once costs nothing more. Every retry is in the log.
   - _A failure names both themes._ VS Code puts a theme's type class and its own class
     (`<extension id>-<theme file>`, `vscode-theme-defaults-themes-hc_black-json`) on
     `.monaco-workbench` in one `classList.add`, so the class after the type class is the theme's.
@@ -1789,8 +1797,9 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
     and six whose rewrite was put back too switched through Default High Contrast, 4.6 to 4.8 s
     after it.
   - _Where the misses came from._ A test that watched `settings.json` found a second writer, VS
-    Code itself. VS Code 1.143 changed `extensions.autoUpdate` from a boolean to `"on"` and
-    `"off"`, and a configuration migration turns the driver's `false` into `"off"`. The migration
+    Code itself. VS Code 1.125 changed `extensions.autoUpdate` from a boolean to `"on"` and
+    `"off"` (1.124 still has the boolean), and a configuration migration turns the driver's `false`
+    into `"off"`; modelers on any VS Code from 1.125 on were exposed. The migration
     runs once, in the workbench's last start-up phase, which under load falls into the themes step,
     and it writes through VS Code's own model of the file, which can still hold the file from before
     the driver's last write. In the three misses VS Code wrote the file 5, 25 and 41 ms after the

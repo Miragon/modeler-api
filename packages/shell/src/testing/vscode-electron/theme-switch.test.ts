@@ -52,6 +52,8 @@ interface FakeVsCodeOptions {
   shows: VsCodeColorTheme;
   /** From a write VS Code notices to the workbench's switch. */
   latencyMs?: number;
+  /** `latencyMs` of single writes, counted from 0. */
+  writeLatenciesMs?: Readonly<Record<number, number>>;
   /** Writes, counted from 0, whose change VS Code's file watcher never reports. */
   missedWrites?: readonly number[];
   /** Writes VS Code reads into its configuration without applying the theme. */
@@ -66,17 +68,23 @@ function fakeVsCode(options: FakeVsCodeOptions) {
   let shown = options.shows;
   let configured = options.shows.name;
   const writes: { colorTheme: string; at: number }[] = [];
+  const switches: { colorTheme: string; at: number }[] = [];
   return {
     writes,
+    switches,
     writeSettings: async (colorTheme: string) => {
       const index = writes.push({ colorTheme, at: performance.now() }) - 1;
       if (options.missedWrites?.includes(index)) return;
-      setTimeout(() => {
-        if (colorTheme === configured) return;
-        configured = colorTheme;
-        if (options.unappliedWrites?.includes(index)) return;
-        shown = VSCODE_COLOR_THEMES.find((theme) => theme.name === colorTheme)!;
-      }, options.latencyMs ?? 200);
+      setTimeout(
+        () => {
+          if (colorTheme === configured) return;
+          configured = colorTheme;
+          if (options.unappliedWrites?.includes(index)) return;
+          shown = VSCODE_COLOR_THEMES.find((theme) => theme.name === colorTheme)!;
+          switches.push({ colorTheme, at: performance.now() });
+        },
+        options.writeLatenciesMs?.[index] ?? options.latencyMs ?? 200,
+      );
     },
     readWorkbench: async () => workbenchClasses(shown),
   };
@@ -181,8 +189,61 @@ describe("switchWorkbenchTheme", () => {
     const { outcome } = await runSwitch(vsCode, { theme: DARK, timeoutMs: 1_000 });
 
     expect(outcome.switched).toBe(false);
-    expect(vsCode.writes.map(({ at }) => at - vsCode.writes[0]!.at)).toEqual([0, 300, 600, 900]);
+    // retryAfterMs is a quarter of timeoutMs, and the way back is written that long before the deadline
+    expect(vsCode.writes.map(({ at }) => at - vsCode.writes[0]!.at)).toEqual([0, 300, 600, 800]);
     expect(outcome.ms).toBe(1_000);
+  });
+
+  it.each([4_100, 4_500, 5_000, 7_000])(
+    "waits for a VS Code that takes %i ms to show the detour before writing the way back",
+    async (latencyMs) => {
+      const vsCode = fakeVsCode({ shows: LIGHT, latencyMs });
+      const { outcome } = await runSwitch(vsCode, { theme: DARK, timeoutMs: 30_000 });
+
+      expect(outcome.switched).toBe(true);
+      expect(outcome.written).toEqual([DARK.name, DARK.name, HIGH_CONTRAST.name, DARK.name]);
+      expect(vsCode.switches.map(({ colorTheme }) => colorTheme)).toEqual([
+        DARK.name,
+        HIGH_CONTRAST.name,
+        DARK.name,
+      ]);
+      // nothing switches the workbench away once the driver went on with the switched theme
+      expect(vsCode.switches.at(-1)!.at - vsCode.writes[0]!.at).toBe(outcome.ms);
+      expect(outcome.ms).toBeLessThan(30_000);
+    },
+  );
+
+  it("writes the setting again when VS Code missed the detour too, and checks it at the deadline", async () => {
+    const vsCode = fakeVsCode({ shows: LIGHT, latencyMs: 300, missedWrites: [0, 1, 2] });
+    const { outcome, lines } = await runSwitch(vsCode, { theme: DARK, timeoutMs: 30_000 });
+
+    expect(outcome.switched).toBe(true);
+    expect(outcome.written).toEqual([DARK.name, DARK.name, HIGH_CONTRAST.name, DARK.name]);
+    expect(vsCode.writes[3]!.at - vsCode.writes[0]!.at).toBe(30_000 - THEME_RETRY_AFTER_MS);
+    expect(outcome.ms).toBe(30_000);
+    expect(lines.slice(2)).toEqual([
+      "Default Dark Modern: the workbench never showed Default High Contrast and shows Default Light Modern " +
+        "(.vs.vscode-theme-defaults-themes-light_modern-json) after 28.0 s, writing the setting again",
+      "Default Dark Modern: the workbench shows it at the deadline, 30.0 s after the first write, on write 4",
+    ]);
+  });
+
+  it("fails when the detour shows only after the way back, as the workbench then ends on the detour", async () => {
+    const vsCode = fakeVsCode({
+      shows: LIGHT,
+      latencyMs: 300,
+      missedWrites: [0, 1],
+      writeLatenciesMs: { 2: 25_000 },
+    });
+    const { outcome } = await runSwitch(vsCode, { theme: DARK, timeoutMs: 30_000 });
+
+    expect(vsCode.switches.map(({ colorTheme }) => colorTheme)).toEqual([DARK.name, HIGH_CONTRAST.name]);
+    expect(outcome.switched).toBe(false);
+    expect(outcome.ms).toBe(30_000);
+    expect(missedThemeSwitch(DARK, outcome, NAMES)).toContain(
+      "requested Default Dark Modern, VS Code shows Default High Contrast " +
+        "(.hc-black.vscode-theme-defaults-themes-hc_black-json) after 30.0 s",
+    );
   });
 
   it("writes the theme the workbench already shows once and returns at once", async () => {

@@ -90,7 +90,10 @@ export function detourTheme(requested: ColorThemeKind, shownType: string | undef
  * its file watcher, and now and then it does not switch at all. Unswitched after `retryAfterMs`, the
  * driver writes the setting again (for a change event VS Code missed); unswitched after another
  * `retryAfterMs`, it switches through `detourTheme` and back (for a change VS Code read but did not
- * apply, which an identical write cannot change). Then it waits for the rest of `timeoutMs`.
+ * apply, which an identical write cannot change). It waits for the detour until `retryAfterMs` before
+ * the deadline, then writes the requested theme and waits for the rest of `timeoutMs`. When the
+ * detour never showed, the requested theme counts only if the workbench still shows it at the
+ * deadline.
  */
 export async function switchWorkbenchTheme(
   options: WorkbenchThemeSwitchOptions,
@@ -119,10 +122,15 @@ export async function switchWorkbenchTheme(
   };
   const describe = () => describeWorkbenchTheme(shown, options.names);
   const elapsed = () => Math.round(performance.now() - started);
-  const outcome = (switched: boolean): WorkbenchThemeSwitch => {
+  const showsAtDeadline = async (kind: ColorThemeKind): Promise<boolean> => {
+    await delay(Math.max(0, deadline - performance.now()));
+    shown = workbenchThemeOf(await options.readWorkbench());
+    return shown.type === workbenchThemeClass(kind);
+  };
+  const outcome = (switched: boolean, how = "switched"): WorkbenchThemeSwitch => {
     if (switched && written.length > 1) {
       log(
-        `${theme.name}: the workbench switched ${seconds(elapsed())} after the first write, on write ${written.length}`,
+        `${theme.name}: the workbench ${how} ${seconds(elapsed())} after the first write, on write ${written.length}`,
       );
     }
     return { switched, shown, written, ms: elapsed() };
@@ -140,9 +148,18 @@ export async function switchWorkbenchTheme(
     `${theme.name}: the workbench still shows ${describe()} after ${seconds(elapsed())}, switching through ${detour.name}`,
   );
   await write(detour);
-  await shows(detour.kind, retryAfterMs);
+  // A VS Code slow enough to show the detour only after the way back would end on the detour.
+  const detourShown = await shows(detour.kind, deadline - retryAfterMs - performance.now());
+  if (detourShown) {
+    await write(theme);
+    return outcome(await shows(theme.kind, Number.POSITIVE_INFINITY));
+  }
+  log(
+    `${theme.name}: the workbench never showed ${detour.name} and shows ${describe()} after ${seconds(elapsed())}, writing the setting again`,
+  );
   await write(theme);
-  return outcome(await shows(theme.kind, Number.POSITIVE_INFINITY));
+  // The detour may still be on its way, so a theme shown before the deadline proves nothing yet.
+  return outcome(await showsAtDeadline(theme.kind), "shows it at the deadline,");
 }
 
 /** The failure of a switch that never happened: the theme requested and the one VS Code shows. */
