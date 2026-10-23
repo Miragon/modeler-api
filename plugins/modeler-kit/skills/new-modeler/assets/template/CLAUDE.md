@@ -46,8 +46,9 @@ Build the packages before the tests: workspace dependencies resolve to `dist`.
 - The renderer implements `@miragon/modeler-api` (`createCollaborativeModeler`,
   `createCollaborativeViewer`, notation `__NOTATION__`); every harness hook of the conformance
   kit is filled, so a skip or an advisory fails `npm run test:browser`.
-- CI: `ci-ok` is the merge gate (required, with the PR title check). A new job in `ci.yml` goes
-  into its `needs`. The VS Code smoke test runs in CI when a change touches `apps/vscode/`,
+- CI: `ci-ok` is the merge gate, so a new job in `ci.yml` goes into its `needs`. `ci-ok` and the
+  PR title check `validate-pr-title` are the checks for the `main` ruleset to require, not the
+  single jobs. The VS Code smoke test runs in CI when a change touches `apps/vscode/`,
   `packages/`, a `package.json`, the lockfile or `tsconfig.base.json`, every week, and before each
   publish of the VSIX.
   See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci-and-the-merge-gate).
