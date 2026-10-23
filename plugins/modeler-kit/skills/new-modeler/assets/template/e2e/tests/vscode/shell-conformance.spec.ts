@@ -5,12 +5,14 @@ import {
   type ShellSkip,
 } from '@miragon/modeler-shell/testing';
 import { WEBVIEW_THEMES } from '../../../apps/vscode/src/themes.js';
+import { labelEditorHooks } from '../support/label-editor.js';
 
 /**
  * The shell's conformance kit against the real VS Code webview inside the shell's VS Code stub
- * (the `ide` host): geometry, ARIA and keys that never reach VS Code, keyboard creation, the
- * read-only lock of an invalid file, the appearance VS Code requests (a light-only modeler stays
- * light, high contrast passes) and a clean teardown.
+ * (the `ide` host): geometry, ARIA and keys that never reach VS Code, keyboard creation, the label
+ * editor across the shell's zoom, fit and refit, the read-only lock of an invalid file, the
+ * appearance VS Code requests (a light-only modeler stays light, high contrast passes) and a clean
+ * teardown.
  */
 const describeSkips = (skips: readonly ShellSkip[]) =>
   skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
@@ -36,6 +38,7 @@ test.describe('VS Code webview: shell conformance', () => {
         });
       },
       absent: ['legend', 'inspector'],
+      labelEditor: labelEditorHooks((page) => page.evaluate(() => window.modeler!.exportText())),
       show: {
         async problems(page) {
           await page.evaluate(() =>

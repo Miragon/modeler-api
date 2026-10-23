@@ -767,16 +767,18 @@ explicit fit (button, Shift+1, command) makes the view automatic again.
 host makes never commits an open label editor or popup input; it should stay open with the typed
 text.
 
-- Every viewbox the shell writes without a gesture on the canvas is such a view change: the first
-  fit, the refit on resize (opening the inspector, a side bar or a bottom panel), `restore` after a
-  re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell
-  never commits or cancels an editor itself.
+- Every viewbox the shell writes is such a view change, asked for by a chrome control or not: zoom in,
+  zoom out and 100 % (buttons, Cmd/Ctrl+Plus, Minus and 0), Fit and Shift+1, the first fit, the refit
+  on resize (opening the inspector, a side bar or a bottom panel), `restore` after a re-import and a
+  stored view (`setState`). Designing for them is the renderer's part; the shell never commits or
+  cancels an editor itself.
+- A pointer click on the zoom panel takes the focus out of the editor before the shell acts (the
+  button takes it on `mousedown`), so a renderer that commits on blur commits then. That is the user's
+  click elsewhere, not the view change.
 - A renderer that completes direct editing on `canvas.viewbox.changing` (the pattern of bpmn-js's
-  `LabelEditingProvider`) commits half-typed input on each of them. All five published renderers do
-  so today: Wardley 0.8.0 (labels and links), Team Topologies 0.11.2, Event Storming 0.3.0, Context
-  Maps 0.3.0 and Value Chain 0.5.0. Their `setViewState` calls `canvas.viewbox()`, so a host's
-  restore after a peer's re-import writes the half-typed label into the shared document, and each
-  fails the kit's L5 interaction case.
+  `LabelEditingProvider`, which every renderer built against contract 1.1 followed) commits half-typed
+  input on each of them. With the host's `restore` after a peer's re-import it writes the half-typed
+  label into the shared document.
 - The fix is the same in every renderer. diagram-js cannot tell a host's `canvas.viewbox(box)` from a
   wheel zoom, so the renderer keeps the editor open across every viewbox change and places it again
   on `canvas.viewbox.changed` (its geometry is the element's box through the new viewbox); it commits
@@ -784,9 +786,30 @@ text.
 - A renderer moves to contract 1.2 with that fix, `elements.bounds` and the harness hooks
   `commitInteraction` and `moveElement` in the same release. Without them the bounds case and the
   commit halves of the L5 interaction case report skips, which fail a kit run whose `onSkip` throws.
-- The contract kit's L5 interaction case opens the editor, calls `setViewState` and expects no change
-  event and an unchanged export; the shell's fit and resize go through `canvas.viewbox`, so a later
-  shell conformance check can drive the same case through them.
+  All five published renderers did: Wardley 0.9.0, Team Topologies 0.12.0, Event Storming 0.4.0,
+  Context Maps 0.4.0 and Value Chain 0.6.0 keep their label editors open across a view change.
+- The contract kit's L5 interaction case calls `setViewState` over an open editor. Shell conformance
+  (`labelEditor`, 0.4) drives the shell's own view changes over one, through `harness.labelEditor`
+  (`open` opens the editor and types, `documentChanged` reports a commit): a click on zoom in and on
+  Fit, Cmd/Ctrl+Plus, Cmd/Ctrl+0 and Shift+1 at the canvas and a container resize, each followed by
+  no document change and the typed text still in the focused field. It clicks by script
+  (`HTMLElement.click()`, `detail` 0) and dispatches the keys at the canvas `<svg>`, so the focus
+  stays in the editor: a real click on Fit, or a real key on the focused canvas, would take it out
+  first and blame a renderer that commits on blur for the user's click elsewhere.
+- With an editor open, a user reaches only the refit on resize, `restore` and `setState`: a real
+  click on the zoom panel commits through the blur, and keys typed in the editor never reach the
+  shell (it leaves keys from a text field alone). The scripted clicks and the keys at the canvas
+  drive the shell's other viewbox writes, which go through the same `canvas.viewbox(box)`.
+- Each step is judged once the view held still and 500ms more, so a late commit (a debounced resize
+  handler) counts against the step that caused it. Stopping at the first commit would open the
+  editor for the next step while that step's commits are still pending, and blame the next step.
+- The case requires the keep-open that L5 only recommends: an editor the view change closes without
+  a commit drops the typed text, so `labelEditor` fails it, where the contract kit's L5 case only
+  advises.
+- `restore` and `setState` write the viewbox through the same `canvas.viewbox(box)` as the fit, so the
+  case covers them through it; the re-import before a `restore` is the contract kit's L1 interaction
+  case. A harness without `labelEditor` reports a skip, one that declares it `absent` (a notation
+  without labels on the canvas) does not.
 
 ## Legend state
 

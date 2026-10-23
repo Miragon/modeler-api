@@ -47,18 +47,22 @@ async function failures(page: Page, harness: ShellConformanceHarness<Page>): Pro
   return failed;
 }
 
-/** The saboteur breaks exactly one rule: `caseName` fails with every pattern, all other cases pass. */
+/**
+ * The saboteur breaks exactly one rule: `caseName` fails with every pattern, all other cases pass.
+ * Resolves with that case's failure.
+ */
 async function expectOnlyCaseFails(
   page: Page,
   harness: ShellConformanceHarness<Page>,
   caseName: string,
   patterns: readonly RegExp[],
-): Promise<void> {
+): Promise<string> {
   const failed = await failures(page, harness);
   expect([...failed.entries()].filter(([name]) => name !== caseName)).toEqual([]);
   const failure = failed.get(caseName);
   expect(failure, `"${caseName}" passed the saboteur`).toBeDefined();
   for (const pattern of patterns) expect(failure).toMatch(pattern);
+  return failure ?? "";
 }
 
 /** The demo harness with `sabotage` applied right after every open. */
@@ -304,6 +308,106 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("labelEditor fails when a view change commits the open label editor", async ({ page }) => {
+      // the renderers built against contract 1.1 completed direct editing on canvas.viewbox.changing
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.commitLabelOnViewChange = true;
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on Fit committed the open label editor \(labelEditor\.documentChanged\); a view change the host makes never commits it \(contract L5\)/,
+        /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+        /label editor: a container resize committed the open label editor/,
+      ]);
+    });
+
+    test("labelEditor fails when the shell's fit takes the focus from the label editor", async ({ page }) => {
+      // the demo's editor commits when it loses the focus, as the renderers' do
+      const harness = sabotaged(() => {
+        const viewport = window.__demo!.connection.viewport;
+        const fit = viewport.fit.bind(viewport);
+        viewport.fit = (options) => {
+          fit(options);
+          viewport.focus?.();
+        };
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on Fit committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+      ]);
+    });
+
+    test("labelEditor fails when a view change closes the label editor and drops the typed text", async ({
+      page,
+    }) => {
+      const harness = sabotaged(() => {
+        window.__demo!.flaws.closeLabelOnViewChange = true;
+      });
+      await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: after a click on Fit the focus is on \S+, not in the label editor; it stays open with the typed "Renamed box \d+" \(L5 recommends it, the shell kit requires it\)/,
+        /label editor: after Shift\+1 on the canvas the focus is on \S+, not in the label editor/,
+        /label editor: after a container resize the focus is on \S+, not in the label editor/,
+      ]);
+    });
+
+    test("labelEditor fails when the label editor commits a moment after a container resize", async ({
+      page,
+    }) => {
+      // a debounced resize handler commits after the refit held still; the demo's editor commits on blur
+      const harness = sabotaged(() => {
+        let pending: number | undefined;
+        window.addEventListener("resize", () => {
+          window.clearTimeout(pending);
+          pending = window.setTimeout(() => {
+            const field = document.activeElement;
+            if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+          }, 300);
+        });
+      });
+      const failure = await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a container resize committed the open label editor/,
+      ]);
+      expect(failure.match(/committed the open label editor/g)).toHaveLength(1);
+    });
+
+    test("labelEditor blames the view change that committed late, not the step after it", async ({
+      page,
+    }) => {
+      // a commit 300ms after each view change lands after the view held still, while the case moves on
+      const harness = sabotaged(() => {
+        const viewport = document.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+        if (!viewport) throw new Error("demo: no diagram-js viewport layer");
+        // canvas.viewbox(box) writes transform.baseVal, which queues no MutationRecord in Chromium
+        const viewOf = () => {
+          const matrix = viewport.getCTM();
+          return matrix ? `${matrix.a} ${matrix.d} ${matrix.e} ${matrix.f}` : "";
+        };
+        let seen = viewOf();
+        const watch = () => {
+          const view = viewOf();
+          if (view !== seen) {
+            seen = view;
+            window.setTimeout(() => {
+              const field = document.activeElement;
+              if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+            }, 300);
+          }
+          window.requestAnimationFrame(watch);
+        };
+        window.requestAnimationFrame(watch);
+      });
+      const failure = await expectOnlyCaseFails(page, harness, "labelEditor", [
+        /label editor: a click on zoom in committed the open label editor/,
+        /label editor: a click on Fit committed the open label editor/,
+        /label editor: Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
+        /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
+        /label editor: a second Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
+        /label editor: Shift\+1 on the canvas committed the open label editor/,
+        /label editor: a container resize committed the open label editor/,
+      ]);
+      expect(failure).not.toMatch(/labelEditor\.open/);
+    });
+
     test("appearance fails for a renderer colour on the armed tool's icon", async ({ page }) => {
       // the lasso icon of Event Storming computed to rgb(29, 30, 33) from a renderer rule
       const harness = sabotaged(() => {
@@ -378,6 +482,18 @@ test.describe("saboteurs", () => {
     );
     expect(failure).toMatch(/focus: after Space on zoom in the focus is on svg/);
     expect(failure).not.toMatch(/after a click/);
+  });
+
+  test("labelEditor fails for a documentChanged probe that never sees the commit", async ({ page }) => {
+    const base = demoHarness("ide");
+    const harness: ShellConformanceHarness<Page> = {
+      ...base,
+      sizes: WIDE_ONLY,
+      labelEditor: { open: base.labelEditor!.open, documentChanged: async () => false },
+    };
+    await expect(runCase("labelEditor", page, harness)).rejects.toThrow(
+      /label editor: a click on an empty spot of the canvas after the view changes left labelEditor\.documentChanged false, so the case proved nothing/,
+    );
   });
 
   test("geometry and aria fail for an island the harness declares absent", async ({ page }) => {

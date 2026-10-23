@@ -615,6 +615,64 @@ export const canvasStateProbe = ({ root }: { root: string }): CanvasStateFacts =
   };
 };
 
+/** Where the typing goes and what the canvas shows, read around each step of the `labelEditor` case. */
+export interface LabelEditorFacts {
+  /** The focus is in a text field: an input, a textarea or editable text. */
+  editing: boolean;
+  /** The focused element, `<body>` when nothing has the focus. */
+  focused: string;
+  /** What the focused text field holds (`value`, or the text of editable text); empty outside one. */
+  text: string;
+  /** The canvas's view, the matrix of the diagram-js viewport layer; `null` without a canvas. */
+  view: string | null;
+}
+
+export const labelEditorProbe = ({ root }: { root: string }): LabelEditorFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const rootElement = document.querySelector(root);
+  if (!rootElement) return null;
+  const active = document.activeElement;
+  const editing =
+    active instanceof HTMLElement && (active.isContentEditable || active.matches("input, textarea"));
+  const text =
+    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+      ? active.value
+      : editing
+        ? (active.textContent ?? "")
+        : "";
+  const viewport = rootElement.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+  const matrix = viewport?.transform?.baseVal?.consolidate?.()?.matrix;
+  const view = matrix
+    ? [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]
+        .map((value) => Math.round(value * 1000) / 1000)
+        .join(" ")
+    : (viewport?.getAttribute("transform") ?? null);
+  return {
+    editing,
+    focused: !active || active === document.body ? "<body>" : tools.describe(active),
+    text,
+    view,
+  };
+};
+
+/**
+ * A point in the viewport where a pointer reaches the canvas itself: the `<svg>` or a drawing of
+ * its root, no element, overlay, field or island above it; `null` when the canvas shows none.
+ */
+export const emptyCanvasSpotProbe = ({ root }: { root: string }): { x: number; y: number } | null => {
+  const svg = document.querySelector(root)?.querySelector(".djs-container > svg");
+  if (!svg) return null;
+  const rect = svg.getBoundingClientRect();
+  const step = 24;
+  for (let y = rect.top + step; y < rect.bottom - step; y += step) {
+    for (let x = rect.left + step; x < rect.right - step; x += step) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit && svg.contains(hit) && !hit.closest(".djs-element")) return { x, y };
+    }
+  }
+  return null;
+};
+
 /** The read-only marks of the root and the status box (guide §5.12, §13.5). */
 export interface ReadOnlyStateFacts {
   readOnly: boolean;

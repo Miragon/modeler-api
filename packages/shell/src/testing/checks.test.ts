@@ -13,6 +13,9 @@ import {
   harnessHookProblems,
   isToolEntry,
   keyReachProblem,
+  labelEditorCommitProblems,
+  labelEditorOpenProblems,
+  labelEditorStepProblems,
   leftoverProblems,
   lockedShapeProblems,
   menuClosedProblems,
@@ -34,6 +37,7 @@ import type {
   AppearanceFacts,
   AriaFacts,
   CanvasStateFacts,
+  LabelEditorFacts,
   MenuEntryFacts,
   MenuFacts,
   MenuItemFacts,
@@ -828,6 +832,20 @@ describe("absent islands and the harness's own consistency", () => {
       'harness: absent lists "invalid", but show.invalid is given',
     ]);
   });
+
+  it("reports a label editor the harness both gives and declares absent", () => {
+    const harness = {
+      host: "ide" as const,
+      themes: ["light" as const],
+      open: async () => {},
+      labelEditor: { open: async () => "Renamed", documentChanged: async () => false },
+      absent: ["labelEditor"] as const,
+    };
+    expect(harnessHookProblems(harness, ["labelEditor"])).toEqual([
+      'harness: absent lists "labelEditor", but harness.labelEditor is given',
+    ]);
+    expect(harnessHookProblems({ ...harness, labelEditor: undefined }, ["labelEditor"])).toEqual([]);
+  });
 });
 
 describe("surroundProblems", () => {
@@ -1015,6 +1033,91 @@ describe("focusHandBackProblems", () => {
       'focus: after a click on palette tool "lasso-tool" the focus is on div.entry, expected the canvas <svg>, so its keys act at once (guide §5.8)',
       "focus: after Enter on zoom in the focus is on svg, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
       "focus: after Space on zoom in the focus is on <body>, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
+    ]);
+  });
+});
+
+describe("label editor checks (contract L5, and the keep-open it recommends)", () => {
+  const EDITING: LabelEditorFacts = {
+    editing: true,
+    focused: "textarea.demo-label-editor",
+    text: "Renamed box 1",
+    view: "1 0 0 1 10 20",
+  };
+
+  function step(overrides: Partial<Parameters<typeof labelEditorStepProblems>[0]> = {}) {
+    return {
+      step: "a click on Fit",
+      typed: "Renamed box 1",
+      viewBefore: "1.35 0 0 1.35 -40 -60",
+      after: EDITING,
+      documentChanged: false,
+      ...overrides,
+    };
+  }
+
+  it("accepts an open editor holding the typed text, the document unchanged", () => {
+    expect(labelEditorOpenProblems("Renamed box 1", EDITING, false)).toEqual([]);
+    expect(labelEditorOpenProblems("box 1", EDITING, false)).toEqual([]);
+  });
+
+  it("reports an open that typed nothing, left no editor or not the typed text, or already changed the document", () => {
+    expect(labelEditorOpenProblems("", EDITING, false)).toEqual([
+      "label editor: labelEditor.open typed nothing, so the case would prove nothing",
+    ]);
+    expect(
+      labelEditorOpenProblems(
+        "Renamed box 1",
+        { ...EDITING, editing: false, focused: "svg", text: "" },
+        false,
+      ),
+    ).toEqual([
+      'label editor: after labelEditor.open the focus is on svg, expected the label editor (a text field) holding "Renamed box 1"',
+    ]);
+    expect(labelEditorOpenProblems("Renamed box 2", EDITING, true)).toEqual([
+      'label editor: after labelEditor.open the focused field holds "Renamed box 1", expected the typed "Renamed box 2"',
+      "label editor: labelEditor.documentChanged reports a change right after labelEditor.open; typing alone changes no document, so it counts from the moment open resolved",
+    ]);
+  });
+
+  it("accepts a view change that keeps the editor open with the typed text", () => {
+    expect(labelEditorStepProblems(step())).toEqual([]);
+  });
+
+  it("reports a commit, and only the commit, when the view change wrote the label", () => {
+    expect(
+      labelEditorStepProblems(
+        step({ documentChanged: true, after: { ...EDITING, editing: false, text: "" } }),
+      ),
+    ).toEqual([
+      "label editor: a click on Fit committed the open label editor (labelEditor.documentChanged); a view change the host makes never commits it (contract L5)",
+    ]);
+  });
+
+  it("reports an editor the view change closed or emptied without a commit", () => {
+    expect(
+      labelEditorStepProblems(step({ after: { ...EDITING, editing: false, focused: "<body>", text: "" } })),
+    ).toEqual([
+      'label editor: after a click on Fit the focus is on <body>, not in the label editor; it stays open with the typed "Renamed box 1" (L5 recommends it, the shell kit requires it)',
+    ]);
+    expect(labelEditorStepProblems(step({ after: { ...EDITING, text: "" } }))).toEqual([
+      'label editor: after a click on Fit the focused field holds "", expected the typed "Renamed box 1" (L5 recommends it, the shell kit requires it)',
+    ]);
+  });
+
+  it("reports a step that left the view as it was, which proves nothing", () => {
+    expect(labelEditorStepProblems(step({ viewBefore: EDITING.view }))).toEqual([
+      "label editor: a click on Fit left the view as it was, so it proved nothing about a view change",
+    ]);
+    expect(labelEditorStepProblems(step({ after: { ...EDITING, view: null } }))).toEqual([
+      "label editor: a click on Fit left the view as it was, so it proved nothing about a view change",
+    ]);
+  });
+
+  it("wants the user's commit after the view changes to show in documentChanged", () => {
+    expect(labelEditorCommitProblems(true)).toEqual([]);
+    expect(labelEditorCommitProblems(false)).toEqual([
+      "label editor: a click on an empty spot of the canvas after the view changes left labelEditor.documentChanged false, so the case proved nothing; open types text the element's label does not hold yet, and documentChanged reports the commit a click elsewhere makes",
     ]);
   });
 });

@@ -7,7 +7,9 @@ import {
   ariaProbe,
   appearanceProbe,
   canvasStateProbe,
+  emptyCanvasSpotProbe,
   focusPlaceProbe,
+  labelEditorProbe,
   menuEntriesProbe,
   menuProbe,
   paletteColorProbe,
@@ -25,6 +27,7 @@ import {
   afterPressProbe,
   armCleanupProbe,
   canvasHandlesProbe,
+  canvasKeyProbe,
   clearKeysProbe,
   findOverlay,
   findTarget,
@@ -33,6 +36,7 @@ import {
   injectProbe,
   leftoverProbe,
   removeInjectedProbe,
+  scriptedClickProbe,
   settle,
 } from "./page-tools.js";
 import {
@@ -292,6 +296,79 @@ describe("probes in a page", () => {
     const later = new KeyboardEvent("keydown", { key: "F9", cancelable: true });
     root.querySelector("svg")!.dispatchEvent(later);
     expect(later.defaultPrevented).toBe(false);
+  });
+
+  it("reads the focused label editor and the view, and acts without moving the focus", async () => {
+    const root = buildShell();
+    const svg = root.querySelector("svg")!;
+    svg.innerHTML = '<g class="viewport" transform="matrix(1.35 0 0 1.35 -40 -60)"></g>';
+    await expect(inPage(page, labelEditorProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      editing: false,
+      focused: "<body>",
+      text: "",
+    });
+    const field = document.createElement("textarea");
+    field.className = "demo-label-editor";
+    field.value = "Renamed box 1";
+    root.querySelector(".djs-container")!.append(field);
+    field.focus();
+    const facts = await inPage(page, labelEditorProbe, { root: ".cd-shell" });
+    expect(facts).toMatchObject({
+      editing: true,
+      focused: "textarea.demo-label-editor",
+      text: "Renamed box 1",
+    });
+    expect(facts?.view).toMatch(/1\.35 0 0 1\.35 -40 -60/);
+    await expect(inPage(page, labelEditorProbe, { root: ".nothing" })).resolves.toBeNull();
+
+    const clicks: number[] = [];
+    root.querySelector('[data-zoom="fit"]')!.addEventListener("click", (event) => {
+      clicks.push((event as MouseEvent).detail);
+    });
+    const keys: string[] = [];
+    svg.addEventListener("keydown", (event) => {
+      const key = event as KeyboardEvent;
+      keys.push(`${key.ctrlKey ? "Control+" : ""}${key.shiftKey ? "Shift+" : ""}${key.code}`);
+    });
+    await expect(
+      inPage(page, scriptedClickProbe, { root: ".cd-shell", selector: '[data-zoom="fit"]' }),
+    ).resolves.toBe(true);
+    await expect(
+      inPage(page, canvasKeyProbe, { root: ".cd-shell", key: { key: "0", code: "Digit0", ctrlKey: true } }),
+    ).resolves.toBe(true);
+    await expect(
+      inPage(page, canvasKeyProbe, { root: ".cd-shell", key: { key: "!", code: "Digit1", shiftKey: true } }),
+    ).resolves.toBe(true);
+    expect(clicks).toEqual([0]);
+    expect(keys).toEqual(["Control+Digit0", "Shift+Digit1"]);
+    expect(document.activeElement).toBe(field);
+    await expect(
+      inPage(page, scriptedClickProbe, { root: ".cd-shell", selector: '[data-zoom="none"]' }),
+    ).resolves.toBe(false);
+    await expect(
+      inPage(page, canvasKeyProbe, { root: ".nothing", key: { key: "0", code: "Digit0" } }),
+    ).resolves.toBe(false);
+  });
+
+  it("finds a spot where a pointer reaches the canvas itself, past elements and chrome", async () => {
+    const root = buildShell();
+    const svg = root.querySelector("svg")!;
+    svg.innerHTML = '<g class="djs-element djs-shape"><rect></rect></g>';
+    place(svg, 41, 41, 200, 120);
+    const shape = svg.querySelector("rect")!;
+    const zoom = root.querySelector('[data-chrome="zoom"]')!;
+    document.elementFromPoint = (x: number, y: number) => (x < 100 ? shape : y > 80 ? zoom : svg);
+    try {
+      await expect(inPage(page, emptyCanvasSpotProbe, { root: ".cd-shell" })).resolves.toEqual({
+        x: 113,
+        y: 65,
+      });
+      document.elementFromPoint = (x: number) => (x < 100 ? shape : zoom);
+      await expect(inPage(page, emptyCanvasSpotProbe, { root: ".cd-shell" })).resolves.toBeNull();
+    } finally {
+      delete (document as { elementFromPoint?: unknown }).elementFromPoint;
+    }
+    await expect(inPage(page, emptyCanvasSpotProbe, { root: ".nothing" })).resolves.toBeNull();
   });
 
   it("snapshots ARIA, menu and appearance facts", async () => {

@@ -2115,8 +2115,18 @@ interface ShowHooks<P extends PageLike = PageLike> {
   toast?(page: P, toast: ToastFixture): Promise<void>; // 0.2, web and embedded: through shell.toast
 }
 type ShowHook = keyof ShowHooks; // … | "emptyState" | "toast"
+// 0.4: how the labelEditor case opens the label editor and sees a commit of it
+interface LabelEditorHooks<P extends PageLike = PageLike> {
+  // a double-click, then type text the label does not hold yet, without committing; resolves with
+  // the typed text once the editor has the focus and holds it; called again after a step that
+  // committed or closed the editor
+  open(page: P): Promise<string>;
+  // whether the document changed since open last resolved (what the host would save or send)
+  documentChanged(page: P): Promise<boolean>;
+}
 // "problemSelection": the modeler's problems never point at an element (only at lines), so no row selects
-type AbsentFeature = ShowHook | "drop" | "problemSelection";
+// "labelEditor" (0.4): the notation has no labels to edit on the canvas
+type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor";
 interface ToastFixture {
   status: ToastStatus;
   text: string;
@@ -2140,11 +2150,12 @@ interface ShellConformanceHarness<P extends PageLike = PageLike> {
   root?: string; // default ".cd-shell"
   show?: ShowHooks<P>;
   drop?: DropFixtures; // 0.2, web: the files the dropZone case drops
-  absent?: readonly AbsentFeature[]; // islands, states and the drop zone the modeler does not have
+  labelEditor?: LabelEditorHooks<P>; // 0.4: the label editor of the labelEditor case
+  absent?: readonly AbsentFeature[]; // islands, states, the drop zone and a label editor the modeler does not have
   sizes?: readonly Size[]; // default 1280 × 900, 720 × 700, 420 × 700
 }
 interface ShellSkip {
-  hook: ShowHook | "drop" | "destroy" | "open"; // the harness field that would feed the skipped part
+  hook: ShowHook | "drop" | "labelEditor" | "destroy" | "open"; // the harness field that would feed the skipped part
   reason: string;
 }
 interface ShellCaseOutcome {
@@ -2248,13 +2259,22 @@ host:
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `focusHandBack` | §5.8: each zoom control (zoom in, zoom out, the readout, Fit) focused by script, then clicked with the pointer, and a palette tool (`lasso-tool`, else the first enabled tool, Escape afterwards) clicked: the focus is on the canvas `<svg>` (`.djs-container > svg`) or inside it; Enter and then Space on the focused zoom in: the focus stays on the button. Every visible zoom control is required |
 
+**0.4, the label editor over the shell's view changes.** One case joins after `create`
+(`createBaseCases`) and runs in every host:
+
+| Case          | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `labelEditor` | contract L5 (`@miragon/modeler-api` 1.2) through the shell's own view changes, with the keep-open L5 only recommends as a requirement of this kit: after `labelEditor.open` (the focus in a text field holding the typed text, the document unchanged) a click on zoom in, a click on Fit, Cmd/Ctrl+Plus, Cmd/Ctrl+0, Cmd/Ctrl+Plus and Shift+1 at the canvas and a container resize (the page narrowed to three quarters of its width, at least 320px: the refit) each change the view and leave `labelEditor.documentChanged` false and the typed text in the focused field, read once the view held still and 500ms more, so a late commit (a debounced resize handler) counts against its step; after a step that committed or closed the editor it opens it again. The clicks run by script (`HTMLElement.click()`, `detail` 0) and the keys are dispatched at the canvas `<svg>`, so the focus stays in the editor and a modeler that commits on blur is not blamed. If no step committed, a click on an empty spot of the canvas (the user's commit) must make `documentChanged` true, or the case proved nothing. Skips with `hook: "labelEditor"` without the hooks (unless `absent` lists `"labelEditor"`) and with `hook: "open"` when the canvas shows no empty spot to click |
+
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in
-  `absent` is skipped with `hook` set to its name, a missing `destroy` with `hook: "destroy"`, and a
+  `absent` is skipped with `hook` set to its name, a missing `drop` or `labelEditor` with `hook` set
+  to that field, a missing `destroy` with `hook: "destroy"`, and a
   document that lacks what a case needs (a shape a pointer reaches, for `readOnly`) with
-  `hook: "open"`. `absent` lists what the modeler does not have (an island or the `invalid` state),
-  which is then never reported, while `geometry` and `aria` assert that the island never shows. Listing a hook in both `show` and `absent` fails every case that uses
-  it. A suite that lists what it lacks can fail on every remaining skip:
+  `hook: "open"`. `absent` lists what the modeler does not have (an island, the `invalid` state, the
+  drop zone or a label editor), which is then never reported, while `geometry` and `aria` assert that
+  the island never shows. Listing a hook in both `show` (or `drop`, `labelEditor`) and `absent`
+  fails every case that uses it. A suite that lists what it lacks can fail on every remaining skip:
   `onSkip(name, skips) { throw new Error(…) }`.
 - **`show.invalid`** makes the file invalid the way the host does (in a webview: a document update
   the parser rejects), not by calling `shell.setReadOnly` alone: the `readOnly` case also checks the
