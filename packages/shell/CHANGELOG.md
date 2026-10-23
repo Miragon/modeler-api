@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.4.1...modeler-shell-v0.5.0) (2026-10-23)
+
+
+### Features
+
+* **shell:** start the legend closed in every container ([#79](https://github.com/Miragon/modeler-api/issues/79)) ([1542838](https://github.com/Miragon/modeler-api/commit/1542838111f604f22ce654e5940601839f3aec14))
+
 ## [0.4.1](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.4.0...modeler-shell-v0.4.1) (2026-10-23)
 
 
