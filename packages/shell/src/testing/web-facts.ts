@@ -135,11 +135,24 @@ export interface TopRowFacts {
   } | null;
 }
 
+/** The page's viewport, which a harness may frame around the shell root (an embedded host). */
+export const viewportProbe = (_: null): { width: number; height: number } => ({
+  width: window.innerWidth,
+  height: window.innerHeight,
+});
+
 /** The legal line and each of its links, relative to the root (guide §5.10). */
 export interface LegalLineFacts {
   container: { width: number; height: number };
   legal: RelativeBox | null;
-  links: Array<{ text: string; box: RelativeBox }>;
+  links: Array<{
+    text: string;
+    box: RelativeBox;
+    /** Vertical centre of each line the link's text renders on, relative to the root. */
+    lines: number[];
+  }>;
+  /** The visible `aria-hidden` separators, each with the index of the link after it in document order. */
+  separators: Array<{ centerY: number; next: number | null }>;
 }
 
 export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | null => {
@@ -147,13 +160,37 @@ export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | nul
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return null;
   const legal = rootElement.querySelector('[data-chrome="legal"]');
+  const rootTop = rootElement.getBoundingClientRect().top + rootElement.clientTop;
+  const text = (element: Element) => (element.textContent ?? "").replace(/\s+/g, " ").trim();
+  const links = [...(legal?.querySelectorAll("a") ?? [])];
+  const linesOf = (link: Element): number[] => {
+    const range = document.createRange();
+    range.selectNodeContents(link);
+    const centres = [...range.getClientRects()]
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => Math.round(rect.top + rect.height / 2 - rootTop));
+    return [...new Set(centres)].filter(
+      (centre, index, all) => all.findIndex((other) => Math.abs(other - centre) < 4) === index,
+    );
+  };
+  const separators = [...(legal?.querySelectorAll('[aria-hidden="true"]') ?? [])].filter(
+    (element) => tools.visible(element) && text(element) !== "" && !element.querySelector("a"),
+  );
   return {
     container: tools.container(rootElement),
     legal: legal && tools.visible(legal) ? tools.box(legal, rootElement) : null,
-    links: [...(legal?.querySelectorAll("a") ?? [])].map((link) => ({
-      text: (link.textContent ?? "").replace(/\s+/g, " ").trim(),
+    links: links.map((link) => ({
+      text: text(link),
       box: tools.box(link, rootElement),
+      lines: linesOf(link),
     })),
+    separators: separators.map((separator) => {
+      const next = links.findIndex(
+        (link) => (separator.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      );
+      const rect = separator.getBoundingClientRect();
+      return { centerY: rect.top + rect.height / 2 - rootTop, next: next === -1 ? null : next };
+    }),
   };
 };
 

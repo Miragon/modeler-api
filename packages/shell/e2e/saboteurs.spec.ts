@@ -97,6 +97,66 @@ function webSabotaged(
   };
 }
 
+/**
+ * Places the toast stack by another reading of guide §8 than the shell's: 8px above every bottom-row
+ * island that comes closer than `limit` to the centred column of the stack itself or of its widest
+ * card, 12px otherwise; the shell's own placement runs first, this one overrides it. Without
+ * `ownLinks` the legal line ends after Datenschutz (about 325px), as for a modeler without links.
+ */
+interface ToastReading {
+  column: "stack" | "card";
+  limit: number;
+  ownLinks: boolean;
+}
+
+function liftToasts({ column, limit, ownLinks }: ToastReading): void {
+  const root = document.querySelector<HTMLElement>(".cd-shell")!;
+  if (!ownLinks) {
+    for (const item of [...root.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item')].slice(2))
+      item.remove();
+  }
+  const place = () => {
+    const stack = root.querySelector<HTMLElement>('[data-chrome="toasts"]');
+    const cards = [...(stack?.querySelectorAll<HTMLElement>(":scope > [data-status]") ?? [])];
+    if (!stack || cards.length === 0) return;
+    const box = root.getBoundingClientRect();
+    const width =
+      column === "stack"
+        ? stack.getBoundingClientRect().width
+        : Math.max(...cards.map((card) => card.getBoundingClientRect().width));
+    const left = box.left + (box.width - width) / 2;
+    let bottom = 12;
+    for (const name of ["zoom", "legal", "problems"]) {
+      const island = root.querySelector(`[data-chrome="${name}"]`);
+      const rect = island?.getBoundingClientRect();
+      if (!island || !rect || rect.width === 0 || getComputedStyle(island).visibility === "hidden") continue;
+      if (Math.max(rect.left - (left + width), left - rect.right) < limit) {
+        bottom = Math.max(bottom, box.bottom - rect.top + 8);
+      }
+    }
+    if (stack.style.bottom !== `${bottom}px`) stack.style.bottom = `${bottom}px`;
+  };
+  new MutationObserver(place).observe(root, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["style"],
+  });
+}
+
+/** The web demo's harness with the toast stack placed by `reading` (`liftToasts`). */
+function toastsLiftedBy(reading: ToastReading): ShellConformanceHarness<Page> {
+  const harness = webDemoHarness();
+  return {
+    ...harness,
+    sizes: WIDE_ONLY,
+    async open(page, context) {
+      await harness.open(page, context);
+      await page.evaluate(liftToasts, reading);
+    },
+  };
+}
+
 test.describe("saboteurs", () => {
   test.describe.configure({ timeout: 60_000 });
 
@@ -224,6 +284,83 @@ test.describe("saboteurs", () => {
       });
       await expectOnlyCaseFails(page, harness, "webChrome", [
         /legal: \[320px wide\] "[^"]+" is cut off or scrolled out of the legal line; it wraps instead/,
+      ]);
+    });
+
+    test("webChrome fails when the zoom row rises only once it overlaps the legal line", async ({ page }) => {
+      // without modeler links the 24px steps measure 13.8px and −10.2px and passed this reading
+      const harness = webSabotaged(() => {
+        for (const item of [...document.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item')].slice(
+          2,
+        ))
+          item.remove();
+        const root = document.querySelector<HTMLElement>(".cd-shell")!;
+        const lower = () => {
+          if (root.getAttribute("data-zoom-row") !== "raised") return;
+          const legal = root.querySelector('[data-chrome="legal"]')!.getBoundingClientRect();
+          const zoom = root.querySelector('[data-chrome="zoom"]')!.getBoundingClientRect();
+          if (root.getBoundingClientRect().right - 12 - zoom.width >= legal.right) {
+            root.removeAttribute("data-zoom-row");
+          }
+        };
+        new MutationObserver(lower).observe(root, { attributes: true, attributeFilter: ["data-zoom-row"] });
+        lower();
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /\[\d+px wide\] zoom: [\d.]+px between the legal line and the zoom panel, but the root lacks data-zoom-row="raised"/,
+      ]);
+    });
+
+    test("webChrome fails when a wrapped legal line leaves a separator at the end of a line", async ({
+      page,
+    }) => {
+      // each separator moved to the link before it, so a wrap leaves it behind
+      const harness = webSabotaged(() => {
+        const legal = document.querySelector('[data-chrome="legal"]')!;
+        const head = document.createElement("span");
+        head.className = "cd-shell-legal-item";
+        const first = legal.querySelector(":scope > a")!;
+        first.replaceWith(head);
+        head.append(first);
+        let previous: Element = head;
+        for (const item of legal.querySelectorAll(".cd-shell-legal-item")) {
+          if (item === head) continue;
+          previous.append(item.querySelector('[aria-hidden="true"]')!);
+          previous = item;
+        }
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /legal: \[320px wide\] the separator before "[^"]+" ends the line above; each separator travels with the link after it/,
+      ]);
+    });
+
+    test("webChrome fails when the pill does not rise with a wrapped legal line", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = '.cd-shell [data-chrome="problems"] { bottom: 40px !important; }';
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "webChrome", [
+        /\[320px wide, a legal line of 2, the pill, the legend\] problems: bottom is 40px, expected 60px \(±1px\)/,
+      ]);
+    });
+
+    test("toasts fails when the stack rises for its own column instead of its widest card's", async ({
+      page,
+    }) => {
+      // without modeler links no default size tells the two columns apart
+      const harness = toastsLiftedBy({ column: "stack", limit: 8, ownLinks: false });
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /\[\d+px wide, the widest card 12px beside the bottom row\] toasts: bottom is 40px, expected 12px \(±1px\)/,
+      ]);
+    });
+
+    test("toasts fails when the stack rises only once its widest card overlaps the bottom row", async ({
+      page,
+    }) => {
+      const harness = toastsLiftedBy({ column: "card", limit: 0, ownLinks: true });
+      await expectOnlyCaseFails(page, harness, "toasts", [
+        /\[\d+px wide, the widest card 4px beside the bottom row\] toasts: bottom is 12px, expected 40px \(±1px\)/,
       ]);
     });
 

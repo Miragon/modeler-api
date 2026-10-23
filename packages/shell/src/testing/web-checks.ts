@@ -1,4 +1,5 @@
 import {
+  LEGAL_LINE_HEIGHT,
   MAX_TOASTS,
   SHELL,
   decideTopRow,
@@ -12,7 +13,7 @@ import {
   type ToastStatus,
 } from "../core/index.js";
 import type { AriaFacts, MenuEntryFacts } from "./facts.js";
-import { GEOMETRY_TOLERANCE_PX, boxMismatches, type IslandBox } from "./geometry.js";
+import { GEOMETRY_TOLERANCE_PX, boxMismatches, type ChromeMeasurement, type IslandBox } from "./geometry.js";
 import type { ModeChange, RecordedKey } from "./page-tools.js";
 import type {
   DropZoneFacts,
@@ -431,6 +432,76 @@ export function legalReachProblems(facts: LegalLineFacts): string[] {
     }
   }
   return problems;
+}
+
+/**
+ * Guide §5.10 (design system 1.15.0): a legal line too wide for its container wraps between its
+ * entries, never inside one, and each separator travels with the link after it, so no line ends
+ * in a separator.
+ */
+export function legalWrapProblems(facts: LegalLineFacts): string[] {
+  if (!facts.legal) return [];
+  const width = round(facts.container.width);
+  const problems: string[] = [];
+  for (const link of facts.links) {
+    if (link.lines.length > 1) {
+      problems.push(
+        `legal: [${width}px wide] "${link.text}" breaks across ${link.lines.length} lines; the line wraps between its entries (guide §5.10)`,
+      );
+    }
+  }
+  for (const separator of facts.separators) {
+    const next = separator.next === null ? undefined : facts.links[separator.next];
+    const line = next?.lines[0];
+    if (!next || line === undefined) continue;
+    if (Math.abs(separator.centerY - line) >= LEGAL_LINE_HEIGHT / 2) {
+      problems.push(
+        `legal: [${width}px wide] the separator before "${next.text}" ends the line above; each separator travels with the link after it (guide §5.10)`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** How far the bottom-row probes stand from the 8px limit, on either side; more than the 1px tolerance. */
+export const BOTTOM_ROW_PROBE_PX = 4;
+
+/** A container width the kit measures at, and the distance the rule under test sees there. */
+export interface BottomRowProbe {
+  width: number;
+  distance: number;
+}
+
+/**
+ * Container widths where the zoom panel at `right: 12px` keeps 4px and 12px to the legal line as
+ * measured (both visible, the line on one line): one on each side of `zoomRowRaised`'s 8px, which
+ * the 24px steps of `webChrome` can step over. Raised at 4px, not at 12px (design system 1.15.0).
+ */
+export function zoomRowProbes(measurement: ChromeMeasurement): BottomRowProbe[] {
+  const { legal, zoom } = measurement.islands;
+  if (!legal || !zoom) return [];
+  const legalRight = legal.left + legal.width;
+  return [SHELL.gap - BOTTOM_ROW_PROBE_PX, SHELL.gap + BOTTOM_ROW_PROBE_PX].map((distance) => ({
+    distance,
+    width: Math.round(legalRight + distance + zoom.width + SHELL.edge),
+  }));
+}
+
+/**
+ * Container widths where the centred column of the widest toast card keeps 12px and 4px to the
+ * nearer of the legal line (left of the column) and the zoom panel (right of it), both as
+ * measured: at 12px the stack stays at `bottom: 12px` although a wider column (the stack's 480px)
+ * would come closer, at 4px it rises above that obstacle (guide §8, design system 1.15.0).
+ */
+export function toastLiftProbes(measurement: ChromeMeasurement): BottomRowProbe[] {
+  const card = measurement.toastCardWidth;
+  const { legal, zoom } = measurement.islands;
+  if (card === undefined || (!legal && !zoom)) return [];
+  return [SHELL.gap + BOTTOM_ROW_PROBE_PX, SHELL.gap - BOTTOM_ROW_PROBE_PX].map((distance) => {
+    const besideLegal = legal ? 2 * (legal.left + legal.width + distance) + card : 0;
+    const besideZoom = zoom ? 2 * (distance + SHELL.edge + zoom.width) + card : 0;
+    return { distance, width: Math.ceil(Math.max(besideLegal, besideZoom)) };
+  });
 }
 
 /**

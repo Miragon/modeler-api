@@ -547,7 +547,7 @@ describe("the web column (0.2)", () => {
     expect(geometryProblems(state, "web")).toEqual([]);
   });
 
-  it("reports a zoom row that does not follow zoomRowRaised (the shell's rule)", () => {
+  it("reports a zoom row that does not follow zoomRowRaised (guide §5.10)", () => {
     const raisedWithRoom = web({ open: { zoomRaised: true }, islands: { zoom: raisedZoom(WIDE) } });
     expect(webRowProblems(raisedWithRoom, "web")).toEqual([
       'zoom: the root carries data-zoom-row="raised" although the zoom panel keeps 703px to the legal line (at least 8px)',

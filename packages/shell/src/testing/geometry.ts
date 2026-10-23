@@ -178,7 +178,7 @@ function sheetOpen(measurement: ChromeMeasurement): boolean {
   return measurement.open.inspector && isNarrow(measurement.container);
 }
 
-/** The bottom of an island as `toastStackBottom` sees it (guide §8, the shell's rule for the bottom row). */
+/** The bottom of an island as `toastStackBottom` sees it (guide §8, the bottom row since design system 1.15.0). */
 export function bottomObstacle(box: IslandBox, container: Size): BottomObstacle {
   return { left: box.left, right: box.left + box.width, top: container.height - box.top };
 }
@@ -477,7 +477,8 @@ export function geometryProblems(
 /**
  * The web app's state attributes for its top and bottom rows: `data-primary="collapsed"` only with
  * a visible primary action, and `data-zoom-row="raised"` exactly when the zoom panel at
- * `bottom: 12px` would keep less than 8px to the legal line (`zoomRowRaised`, the shell's rule).
+ * `bottom: 12px` would keep less than 8px to the legal line (`zoomRowRaised`, guide §5.10 since
+ * design system 1.15.0).
  */
 export function webRowProblems(
   measurement: ChromeMeasurement,

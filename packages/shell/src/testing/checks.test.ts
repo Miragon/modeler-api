@@ -48,6 +48,7 @@ import type {
   PaletteEntryState,
   ShapeFacts,
 } from "./facts.js";
+import type { ChromeMeasurement } from "./geometry.js";
 import type { ElementFacts, LeftoverFacts, ModeChange, RecordedKey } from "./page-tools.js";
 import {
   MIRAGON_DATENSCHUTZ,
@@ -65,6 +66,7 @@ import {
   legalAriaProblems,
   legalContentProblems,
   legalReachProblems,
+  legalWrapProblems,
   lightOnlyMenuProblems,
   menuGroupProblems,
   modeSwitchProblems,
@@ -79,11 +81,13 @@ import {
   speaksEnglish,
   toastAnatomyProblems,
   toastLiveRegion,
+  toastLiftProbes,
   toastStackProblems,
   toastTimingProblems,
   topRowProblems,
   webModeProblems,
   zoomRowBottomProblems,
+  zoomRowProbes,
   type ToastTiming,
 } from "./web-checks.js";
 import type {
@@ -1727,6 +1731,46 @@ describe("legal line content and the zoom row", () => {
     ]);
     expect(zoomRowBottomProblems(undefined, true, container)).toEqual([]);
   });
+
+  const bottomRow = (islands: ChromeMeasurement["islands"], toastCardWidth?: number): ChromeMeasurement => ({
+    container: { width: 1280, height: 900 },
+    paletteRow: "top",
+    islands,
+    open: {
+      legend: false,
+      inspector: false,
+      problems: false,
+      emptyState: false,
+      primaryCollapsed: false,
+      zoomRaised: false,
+    },
+    ...(toastCardWidth === undefined ? {} : { toastCardWidth }),
+  });
+  const legal = { left: 12, top: 868, width: 380.5, height: 20 };
+  const zoom = { left: 1095, top: 848, width: 173, height: 40 };
+
+  it("probes the zoom row 4px on either side of its 8px limit to the measured legal line", () => {
+    // 12 + 380.5 + 4 + 173 + 12 = 581.5
+    expect(zoomRowProbes(bottomRow({ legal, zoom }))).toEqual([
+      { distance: 4, width: 582 },
+      { distance: 12, width: 590 },
+    ]);
+    expect(zoomRowProbes(bottomRow({ zoom }))).toEqual([]);
+  });
+
+  it("probes the toast stack where the widest card's column keeps 12px and 4px to the bottom row", () => {
+    // beside the legal line 2 × (392.5 + 12) + 398.7 = 1207.7, beside the zoom panel 2 × 197 + 398.7
+    expect(toastLiftProbes(bottomRow({ legal, zoom }, 398.7))).toEqual([
+      { distance: 12, width: 1208 },
+      { distance: 4, width: 1192 },
+    ]);
+    // embedded: no legal line, the zoom panel decides: 2 × (12 + 12 + 173) + 200
+    expect(toastLiftProbes(bottomRow({ zoom }, 200))).toEqual([
+      { distance: 12, width: 594 },
+      { distance: 4, width: 578 },
+    ]);
+    expect(toastLiftProbes(bottomRow({ legal, zoom }))).toEqual([]);
+  });
 });
 
 describe("the start screen (guide §8)", () => {
@@ -2031,23 +2075,55 @@ describe("the problems list (guide §5.10)", () => {
       container: { width: 320, height: 700 },
       legal: { left: 12, top: 648, width: 296, height: 40 },
       links: [
-        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 } },
-        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 } },
+        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 }, lines: [658] },
+        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 }, lines: [678] },
       ],
+      separators: [],
     };
     expect(legalReachProblems(facts)).toEqual([]);
     const scrolled = {
       ...facts,
       legal: { left: 12, top: 668, width: 296, height: 20 },
       links: [
-        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 } },
-        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 } },
+        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 }, lines: [678] },
+        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 }, lines: [678] },
       ],
     };
     expect(legalReachProblems(scrolled)).toEqual([
       'legal: [320px wide] "Datenschutz" is cut off or scrolled out of the legal line; it wraps instead (guide §5.10, WCAG 1.4.10)',
     ]);
     expect(legalReachProblems({ ...facts, legal: null })).toEqual([]);
+  });
+
+  it("wants a wrapped legal line broken between its entries, each separator with the link after it", () => {
+    const facts = {
+      container: { width: 320, height: 700 },
+      legal: { left: 12, top: 648, width: 296, height: 40 },
+      links: [
+        { text: "© 2026 Miragon GmbH", box: { left: 20, top: 648, width: 130, height: 20 }, lines: [658] },
+        { text: "Impressum", box: { left: 168, top: 648, width: 66, height: 20 }, lines: [658] },
+        { text: "Datenschutz", box: { left: 32, top: 668, width: 80, height: 20 }, lines: [678] },
+      ],
+      separators: [
+        { centerY: 658, next: 1 },
+        { centerY: 678, next: 2 },
+      ],
+    };
+    expect(legalWrapProblems(facts)).toEqual([]);
+    expect(
+      legalWrapProblems({
+        ...facts,
+        links: [facts.links[0]!, { ...facts.links[1]!, lines: [658, 678] }, facts.links[2]!],
+        separators: [
+          { centerY: 658, next: 1 },
+          { centerY: 658, next: 2 },
+        ],
+      }),
+    ).toEqual([
+      'legal: [320px wide] "Impressum" breaks across 2 lines; the line wraps between its entries (guide §5.10)',
+      'legal: [320px wide] the separator before "Datenschutz" ends the line above; each separator travels with the link after it (guide §5.10)',
+    ]);
+    expect(legalWrapProblems({ ...facts, legal: null })).toEqual([]);
   });
 
   it("wants every row reached by the keyboard and scrolled into the list", () => {
