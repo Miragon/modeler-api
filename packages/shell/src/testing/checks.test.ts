@@ -1873,7 +1873,7 @@ describe("the start screen (guide §8)", () => {
       { variant: "ghost", name: "Show example", height: 36, client: { x: 700, y: 520 } },
     ],
     hint: "Or drop a file here · Open a file… ⌘O",
-    openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O" },
+    openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
     work: [
       { name: "menu", visibility: "hidden", visible: false },
       { name: "palette", visibility: "hidden", visible: false },
@@ -1909,7 +1909,7 @@ describe("the start screen (guide §8)", () => {
     ]);
     expect(
       startScreenOpenProblems(
-        { ...conforming(), openLink: { name: "Browse", keyShortcuts: null, chip: null } },
+        { ...conforming(), openLink: { name: "Browse", keyShortcuts: null, chip: null, underlined: true } },
         fileOpen,
         "en",
       ),
@@ -1920,9 +1920,19 @@ describe("the start screen (guide §8)", () => {
     ]);
     const german = {
       ...conforming(),
-      openLink: { name: "Datei öffnen…", keyShortcuts: "Meta+O", chip: "⌘O" },
+      openLink: { name: "Datei öffnen…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
     };
     expect(startScreenOpenProblems(german, fileOpen, "de")).toEqual([]);
+  });
+
+  it("wants the link underlined at rest, as its colour alone barely parts it from the hint", () => {
+    const plain = {
+      ...conforming(),
+      openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: false },
+    };
+    expect(startScreenOpenProblems(plain, fileOpen, "en")).toEqual([
+      'empty-state: "Open a file…" is not underlined at rest; beside the hint\'s quiet text its colour alone does not mark it as a link (guide §3.5, §8, WCAG 1.4.1)',
+    ]);
   });
 
   it("reports the card's attribute, centre, label, Komet, title, buttons and the work chrome", () => {

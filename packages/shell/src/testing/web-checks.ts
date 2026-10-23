@@ -620,7 +620,9 @@ export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang
 /**
  * Guide §8 (design system 1.15.0): with an Open… in the File group the start screen's hint ends in a
  * text link to it, "Open a file…", with Open…'s shortcut chip and `aria-keyshortcuts`: the menu is
- * hidden there and a drop needs a pointer, so it is the keyboard's way to a file.
+ * hidden there and a drop needs a pointer, so it is the keyboard's way to a file. It is underlined
+ * at rest like a link in body text (§3.5): against the hint's quiet text its colour alone reaches
+ * 1.16:1, dark 1.15:1.
  */
 export function startScreenOpenProblems(
   facts: EmptyStateFacts,
@@ -648,6 +650,11 @@ export function startScreenOpenProblems(
   if (open.shortcut && link.chip !== open.shortcut) {
     problems.push(
       `empty-state: "${link.name}" shows ${link.chip ? `the chip "${link.chip}"` : "no shortcut chip"}, expected "${open.shortcut}" like the File group's Open… (guide §8)`,
+    );
+  }
+  if (!link.underlined) {
+    problems.push(
+      `empty-state: "${link.name}" is not underlined at rest; beside the hint's quiet text its colour alone does not mark it as a link (guide §3.5, §8, WCAG 1.4.1)`,
     );
   }
   return problems;

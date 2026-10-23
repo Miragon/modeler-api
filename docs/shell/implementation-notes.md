@@ -1213,9 +1213,9 @@ it, `role="dialog"` without `aria-modal`, titled "Problems"; a click on a row se
 
 **Guide [§8][guide-8].** Rule: on a fresh start the web app shows the empty-state card and hides the
 work chrome; only the card and the legal line are visible; once someone starts, the chrome appears.
-The hint ends in a text link "Open a file…" to the File group's Open… with its shortcut chip, and
-the chrome keys belong to the browser there, so page zoom stays possible (WCAG 1.4.4; both since
-design system 1.15.0, [corporate-identity#37][ci-37]).
+The hint ends in a text link "Open a file…" to the File group's Open… with its shortcut chip,
+underlined like a link in body text, and the chrome keys belong to the browser there, so page zoom
+stays possible (WCAG 1.4.4; both since design system 1.15.0, [corporate-identity#37][ci-37]).
 
 - The work chrome (menu trigger, primary action, palette, zoom panel, pill, legend, status box, hint,
   inspector) gets `visibility: hidden`, which also removes it from the tab order and the
@@ -1227,6 +1227,11 @@ design system 1.15.0, [corporate-identity#37][ci-37]).
   the start screen. It is part of the hint, not a third action beside the two buttons of §8, and it
   leaves the card up until the modeler's import ends the start screen (a cancelled file picker
   changes nothing).
+- The link is underlined at rest, with a thicker line on hover instead of a second colour (guide
+  §3.5). Against the hint's `--cd-ui-text-leise` its `--cd-ui-link` reaches only 1.16:1, dark 1.15:1,
+  so its colour alone would not mark it as a link (WCAG 1.4.1). Up to shell 0.3.3 it was underlined
+  only on hover, on focus and in high contrast; the `emptyState` case now reads the underline at
+  rest.
 - A closing toast that held the focus on the start screen hands it to "New diagram": the canvas is
   inert and the menu trigger `visibility: hidden`, so both `focus()` calls failed silently and the
   focus fell to `<body>`. The fallback now checks that a target really took the focus.

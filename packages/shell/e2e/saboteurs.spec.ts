@@ -444,6 +444,21 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("emptyState fails when the start screen's Open a file… is underlined only on hover and focus", async ({
+      page,
+    }) => {
+      // shell 0.3.3: at rest the link's colour alone parted it from the hint (1.16:1, dark 1.15:1)
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent =
+          ".cd-shell .cd-shell-empty-state-open:not(:hover, :focus-visible) { text-decoration: none !important; }";
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: "Open a file…" is not underlined at rest; beside the hint's quiet text its colour alone does not mark it as a link \(guide §3\.5, §8, WCAG 1\.4\.1\)/,
+      ]);
+    });
+
     test("emptyState fails when the start screen swallows the browser's Ctrl+0", async ({ page }) => {
       // a stored page zoom could not be reset there (WCAG 1.4.4)
       const harness = webSabotaged(() => {

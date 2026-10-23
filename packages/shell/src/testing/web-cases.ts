@@ -425,6 +425,10 @@ const emptyStateCase: ShellConformanceCase = {
     );
     await show(page);
     await settle(page);
+    // The link's underline is read at rest: hover and focus may add one of their own.
+    await page.mouse.move(PARK.x, PARK.y);
+    await inPage(page, blurProbe, null);
+    await settle(page);
     const container = (await measureChrome(page, root)).container;
     const facts = await startScreen(page, root);
     if (!facts) return finish("emptyState", harness.host, [`no element matches "${root}"`], []);

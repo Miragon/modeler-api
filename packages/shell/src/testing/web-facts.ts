@@ -252,10 +252,10 @@ export interface EmptyStateFacts {
   buttons: Array<{ variant: string | null; name: string; height: number; client: Point }>;
   hint: string | null;
   /**
-   * The last link or button of the hint (the card's last paragraph), with its `aria-keyshortcuts`
-   * and the text of the `kbd` chip after it.
+   * The last link or button of the hint (the card's last paragraph), with its `aria-keyshortcuts`,
+   * the text of the `kbd` chip after it and whether its own `text-decoration-line` underlines it.
    */
-  openLink: { name: string; keyShortcuts: string | null; chip: string | null } | null;
+  openLink: { name: string; keyShortcuts: string | null; chip: string | null; underlined: boolean } | null;
   /** Each island of the work chrome in the DOM, with its computed visibility. */
   work: Array<{ name: string; visibility: string; visible: boolean }>;
   /** The canvas slot (`.cd-shell-canvas`) is `inert`. */
@@ -344,6 +344,7 @@ export const emptyStateProbe = ({
           name: (link.getAttribute("aria-label") ?? link.textContent ?? "").replace(/\s+/g, " ").trim(),
           keyShortcuts: link.getAttribute("aria-keyshortcuts"),
           chip: chip?.textContent?.trim() || null,
+          underlined: getComputedStyle(link).textDecorationLine.split(/\s+/).includes("underline"),
         }
       : null,
     work: parts

@@ -772,7 +772,7 @@ describe("probes of the web column (0.2)", () => {
           <h1 id="es1">Demo Modeler</h1>
           <p>Start a new diagram.</p>
           <div><button data-variant="primary">New diagram</button><button data-variant="ghost">Show example</button></div>
-          <p class="cd-shell-empty-state-hint">Or drop a file here <span aria-hidden="true">·</span> <span><button class="cd-shell-empty-state-open" aria-keyshortcuts="Meta+O">Open a file…</button> <kbd aria-hidden="true">⌘O</kbd></span></p>
+          <p class="cd-shell-empty-state-hint">Or drop a file here <span aria-hidden="true">·</span> <span><button class="cd-shell-empty-state-open" aria-keyshortcuts="Meta+O" style="text-decoration-line: underline">Open a file…</button> <kbd aria-hidden="true">⌘O</kbd></span></p>
         </section>
         <button data-chrome="problems" aria-label="2 problems, 1 error" aria-haspopup="dialog" aria-expanded="false" aria-controls="p1">2 problems</button>
         <nav data-chrome="legal" aria-label="Legal">
@@ -1032,7 +1032,7 @@ describe("probes of the web column (0.2)", () => {
         { variant: "ghost", name: "Show example", height: 36, client: { x: 688, y: 518 } },
       ],
       hint: "Or drop a file here · Open a file… ⌘O",
-      openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O" },
+      openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
       work: [
         { name: "menu", visibility: expect.any(String), visible: true },
         { name: "zoom", visibility: "hidden", visible: false },
@@ -1041,6 +1041,9 @@ describe("probes of the web column (0.2)", () => {
       canvasInert: true,
       legalVisible: true,
     });
+    document.querySelector(".cd-shell-empty-state-open")!.removeAttribute("style");
+    const plain = await inPage(page, emptyStateProbe, { root: ".cd-shell", work: [] });
+    expect(plain?.openLink?.underlined).toBe(false);
   });
 
   it("reads each legal link's lines and the link after each separator", async () => {
