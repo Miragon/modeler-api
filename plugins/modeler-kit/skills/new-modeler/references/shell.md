@@ -39,11 +39,13 @@ last. Neither app has a stylesheet of its own.
   [`menu.sync.test.ts`](../assets/template/apps/vscode/test/menu.sync.test.ts)). Export: PNG first,
   then SVG, then the document format in the web app only (in VS Code the file is the document).
   Help: "Keyboard shortcuts…", a dialog the renderer renders into `shell.root` and removes on
-  `diagram.destroy` (the shell removes only what it added). Its entry shows the "?" chip, which
-  modeler-shell 0.4.0 keeps out of the entry's name (`aria-hidden`), so the name still ends with
-  "…". "?" opens the dialog from anywhere but a text field, another dialog and the start screen: the
-  listener sits on `document` in the capture phase and prevents the key, so the shell keeps it from
-  VS Code. Only the apps pass the key, so a page that embeds the renderer keeps its own keys.
+  `diagram.destroy` (the shell removes only what it added). In the web app its entry shows the
+  "?" chip, which modeler-shell 0.4.0 keeps out of the entry's name (`aria-hidden`), so the name
+  still ends with "…", and "?" opens the dialog from anywhere but a text field, another dialog and
+  the start screen (the listener sits on `document` in the capture phase, ahead of the open menu's
+  type-ahead). Only the web app passes the key: the VS Code webview keeps from VS Code only the keys
+  guide §13.5 gives it and passes every other one on, so its entry has no chip and the dialog opens
+  from the menu; a page that embeds the renderer keeps its own keys.
   View-only toggles in Model set `keepEnabledWhenReadOnly`; entries that change the document go
   through the command stack. The web app's File group comes from the shell's `file` option.
 - **Palette entries.** The shell skins diagram-js's palette (`data-chrome="palette"`, roving focus,

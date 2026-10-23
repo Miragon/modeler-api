@@ -3,7 +3,6 @@ import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
 import '@miragon/modeler-shell/shell.css';
 import {
-  SHORTCUTS_KEY,
   createCollaborativeModeler,
   createShortcutsDialog,
   diagramMenu,
@@ -61,19 +60,19 @@ const shell = mountVsCodeShell(app, {
   themes: WEBVIEW_THEMES,
   canvas: diagram.container,
   messages: { canvas: DIAGRAM_NAME },
-  // In VS Code the file is the document: no text export.
+  // In VS Code the file is the document: no text export. No shortcuts key either: every key the
+  // webview does not need goes on to VS Code (guide §13.5), so the dialog opens from the menu.
   menu: diagramMenu({
     exports: {
       png: { onSelect: () => void exportPicture('png') },
       svg: { onSelect: () => void exportPicture('svg') },
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
-    shortcutsKey: SHORTCUTS_KEY,
   }),
   problems: { onActivate: () => post({ type: 'showProblems' }) },
   emptyHint: { onInsertExample: () => post({ type: 'insertExample' }) },
 });
-const shortcutsDialog = createShortcutsDialog(shell, { shortcutsKey: SHORTCUTS_KEY });
+const shortcutsDialog = createShortcutsDialog(shell);
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
 // Fitted to the contract's contentBounds(); empty means no element, not empty bounds.

@@ -54,7 +54,7 @@ export interface DiagramMenuActions {
 /** The label of the text export, also its row in the shortcuts dialog. */
 export const TEXT_EXPORT_LABEL = 'Export as .__EXT__';
 
-/** The key the apps open the shortcuts dialog with (`createShortcutsDialog`, `diagramMenu`). */
+/** The key the web app opens the shortcuts dialog with (`createShortcutsDialog`, `diagramMenu`). */
 export const SHORTCUTS_KEY = '?';
 
 function exportEntry(id: string, label: string, action: DiagramExport, icon?: DiagramMenuIcon) {

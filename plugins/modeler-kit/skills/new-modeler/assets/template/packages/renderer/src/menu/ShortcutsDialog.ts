@@ -23,7 +23,8 @@ export interface ShortcutsDialogChrome extends ShortcutsChrome {
 export interface ShortcutsDialogOptions {
   /**
    * The key that opens the dialog (`SHORTCUTS_KEY`), also listed in it. Left out, nothing listens:
-   * a page the modeler is embedded in keeps its keys.
+   * the VS Code webview passes every key it does not need on to VS Code (guide §13.5), and a page
+   * the modeler is embedded in keeps its keys.
    */
   readonly shortcutsKey?: string | undefined;
 }
@@ -139,8 +140,7 @@ export function createShortcutsDialog(
     if (chrome.menu.isOpen?.()) chrome.menu.close?.({ restoreFocus: true });
     open();
   };
-  // Capture: the shell's listener on document then sees the key prevented and keeps it from VS
-  // Code, like every key the webview handles (guide §13.5).
+  // Capture: an open menu consumes printable keys for its type-ahead before they bubble.
   if (shortcutsKey) page.addEventListener('keydown', onKey, true);
 
   return {
