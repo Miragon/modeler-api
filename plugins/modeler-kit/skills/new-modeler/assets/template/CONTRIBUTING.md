@@ -18,11 +18,11 @@ see [CI and the merge gate](#ci-and-the-merge-gate)). Every commit is signed (`g
 ## CI and the merge gate
 
 `ci-ok`, the last job of `.github/workflows/ci.yml`, is the merge gate: it and the PR title check
-`validate-pr-title` are the only required checks on `main`. It runs after every other CI job, also
-when one failed, and fails when any of them failed, was cancelled or was skipped. A required
-check that is skipped counts as passed, so a list of required jobs would let a lint failure that
-skips `e2e` through, and Dependabot's auto-merge waits only for the checks on that list. Only
-`dependency-review` may be skipped, outside pull requests, where its own `if:` skips it.
+`validate-pr-title` are the checks for the `main` ruleset to require. It runs after every other CI
+job, also when one failed, and fails when any of them failed, was cancelled or was skipped. A
+required check that is skipped counts as passed, so a list of required jobs would let a lint
+failure that skips `e2e` through, and Dependabot's auto-merge waits only for the checks on that
+list. Only `dependency-review` may be skipped, outside pull requests, where its own `if:` skips it.
 
 - **A new job in `ci.yml` goes into the `needs` of `ci-ok`**, or nothing waits for it. A job whose
   own `if:` skips it on some events also goes into `SKIPPED_BY_DESIGN` for those events.
