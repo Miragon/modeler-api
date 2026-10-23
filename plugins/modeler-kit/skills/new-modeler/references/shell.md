@@ -28,8 +28,11 @@ Template: [`apps/webapp/src/main.ts`](../assets/template/apps/webapp/src/main.ts
    view in the webview state. `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
 
 Stylesheets: the fonts (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, bundled,
-no CDN), the renderer's stylesheet (its entry imports it), then `@miragon/modeler-shell/shell.css`
-last. Neither app has a stylesheet of its own.
+no CDN), the renderer's stylesheet, then `@miragon/modeler-shell/shell.css` last. The renderer's
+entry imports its stylesheet, but the web app imports it by name as well
+(`@miragon/<notation>-renderer/assets/<notation>.css`): the renderer's `sideEffects` lists only its
+CSS, so Vite's production build skips the entry's own import and would ship the chrome without the
+tokens, while the dev server and e2e show nothing wrong. Neither app has a stylesheet of its own.
 
 ## What the renderer hands the shell
 
@@ -89,7 +92,8 @@ last. Neither app has a stylesheet of its own.
 
 - `index.html` is `<html lang="en" class="cd-shell-document" data-cd-theme="light">` with a
   `<!-- miragon-mode -->` marker that the Vite config replaces with `webHeadMarkup(…)`; the web
-  app's `check:build` script verifies the markup and the shell's licence comment in `dist`.
+  app's `check:build` script verifies the markup, the renderer's stylesheet (the tokens and the
+  renderer's rules) and the shell's licence comment in `dist`.
 - The web column: `primary` ("Share", the document in the URL fragment), `legal`, `file`,
   `problems` (rows from `problemSummary`), `emptyState` with the vendored Komet on a fresh start
   (end it with `setEmptyState(false)` on every other start), `dropZone` with extensions and MIME

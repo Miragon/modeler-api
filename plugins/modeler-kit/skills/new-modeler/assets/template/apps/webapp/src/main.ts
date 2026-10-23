@@ -1,8 +1,10 @@
 // Geist and Geist Mono, bundled: no font CDN (offline use, GDPR).
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
-// The renderer's entry imports its stylesheet (the vendored tokens, diagram-js.css, the canvas
-// mapping); the chrome's stylesheet comes after it.
+// The renderer's stylesheet (the vendored tokens, diagram-js.css, the canvas mapping), then the
+// chrome's. Imported by name: the production build drops the renderer entry's own CSS import, since
+// the package declares only its CSS files as side effects.
+import '@miragon/__NOTATION__-renderer/assets/__NOTATION__.css';
 import '@miragon/modeler-shell/shell.css';
 import {
   SHORTCUTS_KEY,

@@ -686,6 +686,7 @@ const NON_API_NAMES = new Map<string, string>([
   ["devDependencies", "package.json"],
   ["devDependency", "package.json"],
   ["peerDependencies", "package.json"],
+  ["sideEffects", "package.json"],
   ["node_modules", "npm"],
   ["LICENSE", "npm and vsce"],
   ["E404", "npm"],
