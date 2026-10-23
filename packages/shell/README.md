@@ -341,16 +341,18 @@ modeler passes `problems.onActivate` (an embedding host with a list of its own).
 ## The conformance kit
 
 Every modeler runs the kit in its own Playwright suite against its real webview or page. It checks
-the geometry of every island (±1px), ARIA and the keyboard models, that every chrome key acts exactly
+the geometry of every island (±1px), that without a stored state the legend starts closed at
+390 × 844 and open at 441 × 900, ARIA and the keyboard models, that every chrome key acts exactly
 once and never reaches VS Code, that the canvas's own keys (Cmd/Ctrl+A) stay on the canvas, that a
-pointer click on the zoom panel or a palette tool hands the focus to the canvas while Enter and Space
-leave it on the button, that nothing is ever half-dark (the painted canvas surround and the palette's colours included), that
-Enter on a creating palette entry adds one selected element, that the shell's zoom, fit and refit
-never commit an open label editor (contract L5) and leave it open with the typed text (L5 recommends
-it, the kit requires it), that an invalid file locks the canvas,
-and that `destroy()` leaves nothing behind. Five more cases cover the web column (`webChrome`,
-`emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded hosts they assert that
-none of it shows.
+pointer click on the zoom panel, a palette tool or a File or Model menu action without a dialog
+hands the focus to the canvas while Enter and Space leave it on the zoom button and Enter on that
+menu entry returns it to the menu trigger, that nothing is ever half-dark (the painted canvas
+surround and the palette's colours included), that Enter on a creating palette entry adds one
+selected element, that the shell's zoom, fit and refit never commit an open label editor (contract
+L5) and leave it open with the typed text (L5 recommends it, the kit requires it), that an invalid
+file locks the canvas, and that `destroy()` leaves nothing behind. Five more cases cover the web
+column (`webChrome`, `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded
+hosts they assert that none of it shows.
 
 For the `ide` host the suite serves a test page that puts a stand-in for VS Code around the
 modeler's webview code: VS Code's default webview styles, `<html>` as `renderWebviewHtml` writes it,
@@ -447,6 +449,11 @@ test.describe("shell conformance", () => {
   );
 });
 ```
+
+Besides the islands, `absent` takes `"drop"`, `"problemSelection"`, `"labelEditor"` and
+`"canvasMenuAction"`. List `"canvasMenuAction"` for a menu without a File or Model action that opens
+no dialog, as in a VS Code webview whose Model group holds only toggles and dialogs: `focusHandBack`
+would otherwise skip with `hook: "open"`, and the `onSkip` above throws on that.
 
 A web app's harness opens its page and adds the web column's hooks and the files to drop. The kit
 emulates the system's colour scheme and contrast (`page.emulateMedia`) before every `open`, so the
