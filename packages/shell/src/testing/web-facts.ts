@@ -135,11 +135,24 @@ export interface TopRowFacts {
   } | null;
 }
 
+/** The page's viewport, which a harness may frame around the shell root (an embedded host). */
+export const viewportProbe = (_: null): { width: number; height: number } => ({
+  width: window.innerWidth,
+  height: window.innerHeight,
+});
+
 /** The legal line and each of its links, relative to the root (guide §5.10). */
 export interface LegalLineFacts {
   container: { width: number; height: number };
   legal: RelativeBox | null;
-  links: Array<{ text: string; box: RelativeBox }>;
+  links: Array<{
+    text: string;
+    box: RelativeBox;
+    /** Vertical centre of each line the link's text renders on, relative to the root. */
+    lines: number[];
+  }>;
+  /** The visible `aria-hidden` separators, each with the index of the link after it in document order. */
+  separators: Array<{ centerY: number; next: number | null }>;
 }
 
 export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | null => {
@@ -147,13 +160,37 @@ export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | nul
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return null;
   const legal = rootElement.querySelector('[data-chrome="legal"]');
+  const rootTop = rootElement.getBoundingClientRect().top + rootElement.clientTop;
+  const text = (element: Element) => (element.textContent ?? "").replace(/\s+/g, " ").trim();
+  const links = [...(legal?.querySelectorAll("a") ?? [])];
+  const linesOf = (link: Element): number[] => {
+    const range = document.createRange();
+    range.selectNodeContents(link);
+    const centres = [...range.getClientRects()]
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => Math.round(rect.top + rect.height / 2 - rootTop));
+    return [...new Set(centres)].filter(
+      (centre, index, all) => all.findIndex((other) => Math.abs(other - centre) < 4) === index,
+    );
+  };
+  const separators = [...(legal?.querySelectorAll('[aria-hidden="true"]') ?? [])].filter(
+    (element) => tools.visible(element) && text(element) !== "" && !element.querySelector("a"),
+  );
   return {
     container: tools.container(rootElement),
     legal: legal && tools.visible(legal) ? tools.box(legal, rootElement) : null,
-    links: [...(legal?.querySelectorAll("a") ?? [])].map((link) => ({
-      text: (link.textContent ?? "").replace(/\s+/g, " ").trim(),
+    links: links.map((link) => ({
+      text: text(link),
       box: tools.box(link, rootElement),
+      lines: linesOf(link),
     })),
+    separators: separators.map((separator) => {
+      const next = links.findIndex(
+        (link) => (separator.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      );
+      const rect = separator.getBoundingClientRect();
+      return { centerY: rect.top + rect.height / 2 - rootTop, next: next === -1 ? null : next };
+    }),
   };
 };
 
@@ -214,6 +251,11 @@ export interface EmptyStateFacts {
   heading: { tag: string; text: string } | null;
   buttons: Array<{ variant: string | null; name: string; height: number; client: Point }>;
   hint: string | null;
+  /**
+   * The last link or button of the hint (the card's last paragraph), with its `aria-keyshortcuts`,
+   * the text of the `kbd` chip after it and whether its own `text-decoration-line` underlines it.
+   */
+  openLink: { name: string; keyShortcuts: string | null; chip: string | null; underlined: boolean } | null;
   /** Each island of the work chrome in the DOM, with its computed visibility. */
   work: Array<{ name: string; visibility: string; visible: boolean }>;
   /** The canvas slot (`.cd-shell-canvas`) is `inert`. */
@@ -241,6 +283,18 @@ export const emptyStateProbe = ({
   ]);
   parts.push(["hint", rootElement.querySelector(".cd-shell-hint")]);
   const legal = rootElement.querySelector('[data-chrome="legal"]');
+  const hintParagraph = [...(card?.querySelectorAll("p") ?? [])]
+    .filter((paragraph) => (paragraph.textContent ?? "").trim() !== "")
+    .at(-1);
+  const link = [...(hintParagraph?.querySelectorAll("a[href], button") ?? [])]
+    .filter((element) => tools.visible(element))
+    .at(-1);
+  const chip = link
+    ? [...(hintParagraph?.querySelectorAll("kbd") ?? [])].find(
+        (kbd) =>
+          tools.visible(kbd) && (link.compareDocumentPosition(kbd) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      )
+    : undefined;
   return {
     shown: rootElement.getAttribute("data-empty-state") === "shown",
     card: card
@@ -285,6 +339,14 @@ export const emptyStateProbe = ({
         .map((paragraph) => (paragraph.textContent ?? "").trim())
         .filter(Boolean)
         .at(-1) ?? null,
+    openLink: link
+      ? {
+          name: (link.getAttribute("aria-label") ?? link.textContent ?? "").replace(/\s+/g, " ").trim(),
+          keyShortcuts: link.getAttribute("aria-keyshortcuts"),
+          chip: chip?.textContent?.trim() || null,
+          underlined: getComputedStyle(link).textDecorationLine.split(/\s+/).includes("underline"),
+        }
+      : null,
     work: parts
       .filter((part): part is [string, Element] => part[1] !== null)
       .map(([name, element]) => ({
@@ -330,6 +392,8 @@ export interface ToastFacts {
   /** Whether the card is what a pointer at its centre reaches (nothing in the top layer above it). */
   topmost: boolean;
   focused: boolean;
+  /** The card's width at `width: max-content` without width limits: what its content needs. */
+  contentWidth: number;
 }
 
 /** One of the toasts' live regions (`.cd-shell-live [role]`), rendered whether a toast shows or not. */
@@ -373,6 +437,22 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
     const rect = element.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   };
+  // Measured and restored in one task, so no frame ever paints the probe's width.
+  const contentWidth = (card: HTMLElement): number => {
+    const saved = ["width", "min-width", "max-width"].map(
+      (property) =>
+        [property, card.style.getPropertyValue(property), card.style.getPropertyPriority(property)] as const,
+    );
+    card.style.setProperty("width", "max-content", "important");
+    card.style.setProperty("min-width", "0", "important");
+    card.style.setProperty("max-width", "none", "important");
+    const width = card.getBoundingClientRect().width;
+    for (const [property, value, priority] of saved) {
+      if (value) card.style.setProperty(property, value, priority);
+      else card.style.removeProperty(property);
+    }
+    return width;
+  };
   return {
     stack: stack
       ? {
@@ -400,6 +480,7 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
           })),
         topmost: hit !== null && toast.contains(hit),
         focused: toast.contains(document.activeElement),
+        contentWidth: contentWidth(toast),
       };
     }),
     strays: [...document.querySelectorAll(".cd-shell-toast")]

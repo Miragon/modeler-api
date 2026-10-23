@@ -1,5 +1,6 @@
 import {
   INVALID_STATUS_DELAY_MS,
+  LEGAL_LINE_HEIGHT,
   TOAST_DURATION_MS,
   TOOLTIP_DELAY_MS,
   type ToastStatus,
@@ -22,6 +23,9 @@ import { ariaProbe, menuProbe, type AriaFacts } from "./facts.js";
 import {
   DEFAULT_ROOT,
   WORK_CHROME,
+  boxMismatches,
+  chromeExpectations,
+  geometryProblems,
   measureChrome,
   webRowProblems,
   type ChromeMeasurement,
@@ -43,6 +47,7 @@ import {
   focusTarget,
   inPage,
   injectProbe,
+  menuItemProbe,
   removeInjectedProbe,
   settle,
 } from "./page-tools.js";
@@ -56,17 +61,22 @@ import {
   labelledWidth,
   legalContentProblems,
   legalReachProblems,
+  legalWrapProblems,
   openPopoverProblems,
   popoverKeyboardProblems,
   primaryActivationProblems,
   primaryTooltipProblems,
   repeatedToastProblems,
+  startScreenOpenProblems,
   toastAnatomyProblems,
   toastLiveRegion,
   toastStackProblems,
+  toastLiftProbes,
   toastTimingProblems,
+  toastWidthProblems,
   topRowProblems,
   zoomRowBottomProblems,
+  zoomRowProbes,
   type ExpectedDrop,
   type PopoverKeyStep,
   type ToastTiming,
@@ -85,6 +95,7 @@ import {
   toastStackTogglesProbe,
   toastsProbe,
   topRowProbe,
+  viewportProbe,
   watchToastStackProbe,
   type DragSpec,
   type DropZoneFacts,
@@ -206,7 +217,7 @@ async function fileEntryProblems(page: PageLike, root: string): Promise<string[]
   const problems: string[] = [];
   for (const entry of entries) {
     if (!entry.menuId || !(await openMenuByClick(page, root))) continue;
-    const item = await inPage(page, fileItemProbe, { root, menuId: entry.menuId });
+    const item = await inPage(page, menuItemProbe, { root, menuId: entry.menuId });
     if (!item) {
       await closeByEscape(page);
       continue;
@@ -226,20 +237,6 @@ async function fileEntryProblems(page: PageLike, root: string): Promise<string[]
   return problems;
 }
 
-/** Viewport centre of the visible menu item `menuId`. */
-const fileItemProbe = ({
-  root,
-  menuId,
-}: {
-  root: string;
-  menuId: string;
-}): { x: number; y: number } | null => {
-  const item = document.querySelector(root)?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
-  if (!item) return null;
-  const rect = item.getBoundingClientRect();
-  return rect.width > 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
-};
-
 /** Guide §13.5: File entries stay usable on a read-only canvas. */
 async function lockedFileProblems<P extends PageLike>(
   page: P,
@@ -255,6 +252,30 @@ async function lockedFileProblems<P extends PageLike>(
     .map(
       (entry) => `menu: File entry "${entry.name}" is aria-disabled on the read-only canvas (guide §13.5)`,
     );
+}
+
+/**
+ * Guide §5.10 (design system 1.15.0): on a wrapped legal line everything stacked above it rises by
+ * the line's height. Shows the pill and the legend where the harness can, then measures every
+ * island at the current (narrowest) width.
+ */
+async function stackOnWrappedLine<P extends PageLike>(
+  page: P,
+  harness: ShellConformanceHarness<P>,
+  root: string,
+): Promise<string[]> {
+  const shown: string[] = [];
+  for (const island of ["problems", "legend"] as const) {
+    const show = harness.show?.[island];
+    if (!show) continue;
+    await show(page);
+    shown.push(island === "problems" ? "the pill" : "the legend");
+  }
+  await settle(page);
+  const measurement = await measureChrome(page, root);
+  const lines = Math.round((measurement.islands.legal?.height ?? LEGAL_LINE_HEIGHT) / LEGAL_LINE_HEIGHT);
+  const state = [`${Math.round(measurement.container.width)}px wide`, `a legal line of ${lines}`, ...shown];
+  return geometryProblems(measurement, "web").map((problem) => `[${state.join(", ")}] ${problem}`);
 }
 
 const webChromeCase: ShellConformanceCase = {
@@ -283,18 +304,27 @@ const webChromeCase: ShellConformanceCase = {
     problems.push(...(await primaryActivation(page, root)));
 
     const { samples, measurements } = await rowSamples(page, root, size.height);
-    for (const measurement of measurements) {
-      problems.push(
-        ...webRowProblems(measurement, "web").map(
-          (problem) => `[${Math.round(measurement.container.width)}px wide] ${problem}`,
-        ),
-        ...zoomRowBottomProblems(
-          measurement.islands.zoom,
-          measurement.open.zoomRaised,
-          measurement.container,
-          measurement.islands.legal?.height,
-        ),
-      );
+    const bottomRowProblems = (measurement: ChromeMeasurement) => [
+      ...webRowProblems(measurement, "web").map(
+        (problem) => `[${Math.round(measurement.container.width)}px wide] ${problem}`,
+      ),
+      ...zoomRowBottomProblems(
+        measurement.islands.zoom,
+        measurement.open.zoomRaised,
+        measurement.container,
+        measurement.islands.legal?.height,
+      ),
+    ];
+    for (const measurement of measurements) problems.push(...bottomRowProblems(measurement));
+    // The 24px steps can pass over the 8px limit of the raised zoom row; measure on both sides of it.
+    const widest = measurements[0];
+    if (widest) {
+      const frame = WIDEST_STEP - widest.container.width;
+      for (const probe of zoomRowProbes(widest)) {
+        await page.setViewportSize({ width: probe.width + frame, height: size.height });
+        await settle(page);
+        problems.push(...bottomRowProblems(await measureChrome(page, root)));
+      }
     }
     if (samples.some((sample) => sample.primary)) {
       const withLabel = labelledWidth(samples);
@@ -319,7 +349,8 @@ const webChromeCase: ShellConformanceCase = {
     await page.setViewportSize({ width: PHONE_WIDTH, height: size.height });
     await settle(page);
     const legalLine = await inPage(page, legalLineProbe, { root });
-    if (legalLine) problems.push(...legalReachProblems(legalLine));
+    if (legalLine) problems.push(...legalReachProblems(legalLine), ...legalWrapProblems(legalLine));
+    problems.push(...(await stackOnWrappedLine(page, harness, root)));
 
     await page.setViewportSize({ width: size.width, height: size.height });
     await settle(page);
@@ -388,12 +419,23 @@ const emptyStateCase: ShellConformanceCase = {
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const lang = await inPage(page, documentLangProbe, null);
+    // The start screen hides the menu, so Open… is read before it shows.
+    const fileOpen = (await menuEntries(page, root)).find(
+      (entry) => entry.group === "file" && entry.menuId === "open",
+    );
     await show(page);
+    await settle(page);
+    // The link's underline is read at rest: hover and focus may add one of their own.
+    await page.mouse.move(PARK.x, PARK.y);
+    await inPage(page, blurProbe, null);
     await settle(page);
     const container = (await measureChrome(page, root)).container;
     const facts = await startScreen(page, root);
     if (!facts) return finish("emptyState", harness.host, [`no element matches "${root}"`], []);
-    const problems = emptyStateProblems(facts, container, lang);
+    const problems = [
+      ...emptyStateProblems(facts, container, lang),
+      ...startScreenOpenProblems(facts, fileOpen, lang),
+    ];
 
     await inPage(page, blurProbe, null);
     const stops: Array<{ owner: string; description: string }> = [];
@@ -404,7 +446,8 @@ const emptyStateCase: ShellConformanceCase = {
     problems.push(...emptyStateTabProblems(stops));
 
     await inPage(page, blurProbe, null);
-    for (const key of ["Control+Equal", "Control+Minus", "Shift+Digit1"]) {
+    // Control+0 too: a low-vision user resets a stored page zoom with it (WCAG 1.4.4).
+    for (const key of ["Control+Equal", "Control+Minus", "Control+Digit0", "Shift+Digit1"]) {
       await inPage(page, clearKeysProbe, null);
       const before = (await inPage(page, afterPressProbe, { root })).zoom;
       await page.keyboard.press(key);
@@ -479,11 +522,13 @@ async function toastAnatomy<P extends PageLike>(
     const text = `Conformance: a ${status} toast`;
     await show(page, { status, text });
     await settle(page);
-    const toast = (await toasts(page, root))?.toasts.find((candidate) => candidate.text.includes(text));
+    const shown = await toasts(page, root);
+    const toast = shown?.toasts.find((candidate) => candidate.text.includes(text));
     if (!toast) {
       problems.push(`toasts: show.toast with a ${status} toast shows nothing`);
       continue;
     }
+    if (shown?.stack) problems.push(...toastWidthProblems(toast, status, shown.stack.box.width));
     const persistent = toastLiveRegion(before, status) !== undefined;
     const reached = (facts: ToastsFacts | null): boolean =>
       toastLiveRegion(facts?.live ?? [], status)?.text.includes(text) ?? false;
@@ -628,6 +673,43 @@ async function toastAboveModal<P extends PageLike>(
   return problems;
 }
 
+/**
+ * Guide §8 (design system 1.15.0): the stack rises only where the centred column of its widest card
+ * would come closer than 8px to the zoom panel, the legal line or the pill. Measured with a toast
+ * that stays, at the two widths of `toastLiftProbes`.
+ */
+async function toastLift<P extends PageLike>(
+  page: P,
+  harness: ShellConformanceHarness<P>,
+  root: string,
+  show: (page: P, toast: ToastFixture) => Promise<void>,
+): Promise<string[]> {
+  await show(page, { status: "info", text: "Conformance: the stack's lift", actionLabel: "Undo" });
+  await settle(page);
+  const measured = await measureChrome(page, root);
+  const viewport = await inPage(page, viewportProbe, null);
+  const frameWidth = viewport.width - measured.container.width;
+  const problems: string[] = [];
+  for (const probe of toastLiftProbes(measured)) {
+    await page.setViewportSize({ width: probe.width + frameWidth, height: viewport.height });
+    await settle(page);
+    const measurement = await measureChrome(page, root);
+    const stack = measurement.islands.toasts;
+    const bottom = chromeExpectations(measurement, harness.host).boxes.toasts?.bottom;
+    if (!stack || bottom === undefined) continue;
+    problems.push(
+      ...boxMismatches("toasts", stack, { bottom }, measurement.container).map(
+        (problem) =>
+          `[${Math.round(measurement.container.width)}px wide, the widest card ${probe.distance}px beside the bottom row] ${problem}`,
+      ),
+    );
+  }
+  await page.setViewportSize(viewport);
+  await settle(page);
+  await dismissAll(page, root);
+  return problems;
+}
+
 const toastsCase: ShellConformanceCase = {
   name: "toasts",
   async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
@@ -663,6 +745,7 @@ const toastsCase: ShellConformanceCase = {
       ...(await toastAnatomy(page, root, show, lang)),
       ...(await toastStack(page, root, show)),
       ...(await toastTiming(page, root, show)),
+      ...(await toastLift(page, harness, root, show)),
     ];
     if (harness.host === "web") problems.push(...(await toastAboveModal(page, root, show)));
     return finish("toasts", harness.host, problems, []);

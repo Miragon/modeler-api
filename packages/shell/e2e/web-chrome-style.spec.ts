@@ -224,18 +224,29 @@ test.describe("web chrome styles", () => {
     ]);
     expect(buttons[0]?.background).toBe(await computed(page, "background-color", "var(--cd-blau)"));
     expect(buttons[1]?.background).toBe("rgba(0, 0, 0, 0)");
-    // The File group's Open… as a text link in the hint: link colour, the hint's 13px, no button skin.
-    const open = await styleOf(page, `${card} .cd-shell-empty-state-open`, [
+    // The File group's Open… as a text link in the hint: link colour, the hint's 13px, no button skin,
+    // underlined at rest like a link in body text (guide §3.5, §8), a thicker line on hover.
+    const link = `${card} .cd-shell-empty-state-open`;
+    const open = await styleOf(page, link, [
       "color",
       "font-size",
       "background-color",
       "border-top-width",
+      "text-decoration-line",
     ]);
     expect(open.color).toBe(await computed(page, "color", "var(--cd-ui-link)"));
-    expect([open["font-size"], open["background-color"], open["border-top-width"]]).toEqual([
-      "13px",
-      "rgba(0, 0, 0, 0)",
-      "0px",
+    expect([
+      open["font-size"],
+      open["background-color"],
+      open["border-top-width"],
+      open["text-decoration-line"],
+    ]).toEqual(["13px", "rgba(0, 0, 0, 0)", "0px", "underline"]);
+    await page.locator(link).hover();
+    const hovered = await styleOf(page, link, ["color", "text-decoration-line", "text-decoration-thickness"]);
+    expect([hovered.color, hovered["text-decoration-line"], hovered["text-decoration-thickness"]]).toEqual([
+      open.color,
+      "underline",
+      "2px",
     ]);
   });
 

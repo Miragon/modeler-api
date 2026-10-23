@@ -137,6 +137,26 @@ describe("legend (guide §5.10)", () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [390, 844, false],
+    [440, 900, false],
+    [441, 900, true],
+  ])("starts closed up to 440px container width (%i × %ipx: %s) without onToggle", (width, height, open) => {
+    const onToggle = vi.fn();
+    const { shell, root } = mount({ legend: { render() {}, onToggle } }, { width, height });
+    expect(shell.legend?.isOpen()).toBe(open);
+    expect(chrome(root, "legend").hidden).toBe(!open);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [true, 390, 844],
+    [false, 1280, 900],
+  ])("starts as the stored state says (%s at %i × %ipx), whatever the container", (open, width, height) => {
+    const { shell } = mount({ legend: { render() {}, open } }, { width, height });
+    expect(shell.legend?.isOpen()).toBe(open);
+  });
+
   it("decides the start state at the first non-zero size (a hidden tab first)", () => {
     const { shell, root } = mount({ legend: { render() {} } }, { width: 0, height: 0 });
     expect(shell.legend?.isOpen()).toBe(false);

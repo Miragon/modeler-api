@@ -257,6 +257,13 @@ export const installPageTools = (_: null): void => {
   scope.__modelerShellConformance = tools;
 };
 
+/**
+ * The helpers are still in the page: the document they went into is still the page's, which a
+ * navigation that changes only the URL fragment keeps.
+ */
+export const pageToolsKeptProbe = (_: null): boolean =>
+  (window as ToolWindow).__modelerShellConformance !== undefined;
+
 /** Runs `pageFunction` in the page after making sure the helpers are installed. */
 export async function inPage<Arg, Result>(
   page: PageLike,
@@ -331,6 +338,20 @@ export async function findTarget(
 ): Promise<TargetFacts | null> {
   return inPage(page, targetProbe, { root, selector: CHROME_TARGET_SELECTORS[target] });
 }
+
+/** Viewport centre of the visible item `menuId` of the open menu, for `page.mouse`. */
+export const menuItemProbe = ({
+  root,
+  menuId,
+}: {
+  root: string;
+  menuId: string;
+}): { x: number; y: number } | null => {
+  const item = document.querySelector(root)?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
+  if (!item) return null;
+  const rect = item.getBoundingClientRect();
+  return rect.width > 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
+};
 
 /** Focuses the first match of `selector` inside the root; the description of the focused element. */
 export const focusProbe = ({ root, selector }: { root: string; selector: string }): string | null => {
@@ -412,12 +433,14 @@ export const clearKeysProbe = (_: null): void => {
   tools.documentKeys.splice(0);
 };
 
-export type InjectedKind = "input" | "textarea" | "contenteditable" | "modal" | "popover" | "focus-target";
+export type InjectedKind =
+  "input" | "textarea" | "contenteditable" | "modal" | "popover" | "dialog" | "modal-dialog" | "focus-target";
 
 /**
  * Adds a stand-in for what modelers render inside the shell (text fields: an input, a textarea, an
- * editable label; a modal dialog, a popover, a plain focus target), inside the root or, once it is
- * gone, the body; focuses it.
+ * editable label; a modal dialog and a popover by their ARIA roles, a `<dialog>` opened with
+ * `show()` or `showModal()`, a plain focus target), inside the root or, once it is gone, the body;
+ * focuses it.
  */
 export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
@@ -426,7 +449,9 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
   const element =
     kind === "input" || kind === "textarea"
       ? document.createElement(kind)
-      : (document.createElement("div") as HTMLElement);
+      : kind === "dialog" || kind === "modal-dialog"
+        ? document.createElement("dialog")
+        : (document.createElement("div") as HTMLElement);
   element.setAttribute("data-modeler-shell-conformance", kind);
   element.style.cssText = "position:absolute;left:0;top:0;width:40px;height:20px;";
   if (kind === "modal" || kind === "popover") {
@@ -438,6 +463,10 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
   else if (kind !== "input" && kind !== "textarea") element.tabIndex = -1;
   host.append(element);
   tools.injected.push(element);
+  if (element instanceof HTMLDialogElement) {
+    if (kind === "modal-dialog") element.showModal();
+    else element.show();
+  }
   element.focus();
   return document.activeElement === element;
 };

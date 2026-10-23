@@ -11,12 +11,15 @@ import {
   expectedKeyShortcuts,
   focusHandBackProblems,
   harnessHookProblems,
+  isCanvasMenuAction,
   isToolEntry,
+  keptDocumentProblems,
   keyReachProblem,
   labelEditorCommitProblems,
   labelEditorOpenProblems,
   labelEditorStepProblems,
   leftoverProblems,
+  legendStartProblems,
   lockedShapeProblems,
   menuClosedProblems,
   menuKeysAtDocumentProblems,
@@ -47,6 +50,7 @@ import type {
   PaletteEntryState,
   ShapeFacts,
 } from "./facts.js";
+import type { ChromeMeasurement } from "./geometry.js";
 import type { ElementFacts, LeftoverFacts, ModeChange, RecordedKey } from "./page-tools.js";
 import {
   MIRAGON_DATENSCHUTZ,
@@ -64,6 +68,7 @@ import {
   legalAriaProblems,
   legalContentProblems,
   legalReachProblems,
+  legalWrapProblems,
   lightOnlyMenuProblems,
   menuGroupProblems,
   modeSwitchProblems,
@@ -76,13 +81,17 @@ import {
   repeatedToastProblems,
   shownToasts,
   speaksEnglish,
+  startScreenOpenProblems,
   toastAnatomyProblems,
   toastLiveRegion,
+  toastLiftProbes,
   toastStackProblems,
   toastTimingProblems,
+  toastWidthProblems,
   topRowProblems,
   webModeProblems,
   zoomRowBottomProblems,
+  zoomRowProbes,
   type ToastTiming,
 } from "./web-checks.js";
 import type {
@@ -831,6 +840,8 @@ describe("absent islands and the harness's own consistency", () => {
     expect(harnessHookProblems(harness, ["invalid"])).toEqual([
       'harness: absent lists "invalid", but show.invalid is given',
     ]);
+    const withoutMenuAction = { ...harness, absent: ["canvasMenuAction", "problemSelection"] as const };
+    expect(harnessHookProblems(withoutMenuAction, ["canvasMenuAction", "problemSelection"])).toEqual([]);
   });
 
   it("reports a label editor the harness both gives and declares absent", () => {
@@ -1001,6 +1012,40 @@ function created(overrides: Partial<CreateFacts> = {}): CreateFacts {
   };
 }
 
+describe("legendStartProblems", () => {
+  const phone = { width: 390, height: 844 };
+  const wide = { width: 441, height: 900 };
+
+  it("accepts a legend closed on a phone and open one pixel above 440px", () => {
+    expect(legendStartProblems({ container: phone, open: false }, false)).toEqual([]);
+    expect(legendStartProblems({ container: wide, open: true }, true)).toEqual([]);
+  });
+
+  it("reports a legend that opens on a phone because only the height decided", () => {
+    expect(legendStartProblems({ container: phone, open: true }, false)).toEqual([
+      "legend: open on first load in a 390 × 844 container; without a stored state it starts closed up to 440px width, where the open card would cover the fitted diagram (guide §5.10, §5.15)",
+    ]);
+  });
+
+  it("reports a legend that stays closed above 440px and 820px", () => {
+    expect(legendStartProblems({ container: wide, open: false }, true)).toEqual([
+      "legend: closed on first load in a 441 × 900 container; without a stored state it starts open above 440px width and 820px height (guide §5.10)",
+    ]);
+  });
+});
+
+describe("keptDocumentProblems", () => {
+  it("accepts an open that loaded a new document", () => {
+    expect(keptDocumentProblems({ width: 441, height: 900 }, false)).toEqual([]);
+  });
+
+  it("blames the harness for an open that kept the page's document", () => {
+    expect(keptDocumentProblems({ width: 441, height: 900 }, true)).toEqual([
+      'harness: open kept the page\'s document at 441 × 900 (a navigation that changes only the URL fragment keeps it), so the shell did not mount again and the legend kept its earlier start state; open loads a new document, as on a first visit (for example after page.goto("about:blank"))',
+    ]);
+  });
+});
+
 describe("focusHandBackProblems", () => {
   const onCanvas = { focused: "svg", canvas: true, control: false };
   const onControl = { focused: "button.cd-shell-target", canvas: false, control: true };
@@ -1034,6 +1079,63 @@ describe("focusHandBackProblems", () => {
       "focus: after Enter on zoom in the focus is on svg, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
       "focus: after Space on zoom in the focus is on <body>, expected it to stay on zoom in, so the next press acts again (guide §5.8)",
     ]);
+  });
+
+  it("wants a clicked File or Model action on the canvas and Enter on it back on the trigger (guide §5.4)", () => {
+    const onTrigger = {
+      focused: 'button.cd-shell-menu-trigger[data-chrome="menu"]',
+      canvas: false,
+      control: true,
+    };
+    const control = 'menu entry "New diagram"';
+    expect(
+      focusHandBackProblems([
+        { control, by: "pointer", focus: onCanvas, menuEntry: true },
+        { control, by: "Enter", focus: onTrigger, menuEntry: true },
+      ]),
+    ).toEqual([]);
+    expect(
+      focusHandBackProblems([
+        { control, by: "pointer", focus: onTrigger, menuEntry: true },
+        { control, by: "Enter", focus: onCanvas, menuEntry: true },
+      ]),
+    ).toEqual([
+      'focus: after a click on menu entry "New diagram" the focus is on button.cd-shell-menu-trigger[data-chrome="menu"], expected the canvas <svg>, so its keys act at once (guide §5.4, §5.8)',
+      'focus: after Enter on menu entry "New diagram" the focus is on svg, expected the menu trigger, where the keyboard left the menu (guide §5.4)',
+    ]);
+  });
+});
+
+describe("isCanvasMenuAction", () => {
+  const entry = (overrides: Partial<MenuEntryFacts>): MenuEntryFacts => ({
+    name: "New diagram",
+    role: "menuitem",
+    menuId: "new-diagram",
+    disabled: false,
+    group: "file",
+    value: null,
+    checked: null,
+    icon: true,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
+    ...overrides,
+  });
+
+  it("takes the enabled File and Model actions without a dialog", () => {
+    expect(isCanvasMenuAction(entry({}))).toBe(true);
+    expect(isCanvasMenuAction(entry({ group: "model", menuId: "arrange" }))).toBe(true);
+  });
+
+  it("leaves out Export and Help, dialogs, toggles, locked and destructive entries", () => {
+    expect(isCanvasMenuAction(entry({ group: "export" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ group: "help" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ popup: "dialog" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ role: "menuitemcheckbox", group: "model" }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ disabled: true }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ danger: true }))).toBe(false);
+    expect(isCanvasMenuAction(entry({ menuId: null }))).toBe(false);
   });
 });
 
@@ -1218,6 +1320,10 @@ describe("read-only checks", () => {
     value: null,
     checked: menuId === "legend" ? "true" : null,
     icon: false,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
   });
 
   it("keeps the Legend toggle, export and help usable; Model entries may lock", () => {
@@ -1453,6 +1559,10 @@ describe("menu groups of the web app", () => {
     value: null,
     checked: null,
     icon: false,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
     ...extra,
   });
   const radio = (value: string, checked: boolean) =>
@@ -1704,6 +1814,46 @@ describe("legal line content and the zoom row", () => {
     ]);
     expect(zoomRowBottomProblems(undefined, true, container)).toEqual([]);
   });
+
+  const bottomRow = (islands: ChromeMeasurement["islands"], toastCardWidth?: number): ChromeMeasurement => ({
+    container: { width: 1280, height: 900 },
+    paletteRow: "top",
+    islands,
+    open: {
+      legend: false,
+      inspector: false,
+      problems: false,
+      emptyState: false,
+      primaryCollapsed: false,
+      zoomRaised: false,
+    },
+    ...(toastCardWidth === undefined ? {} : { toastCardWidth }),
+  });
+  const legal = { left: 12, top: 868, width: 380.5, height: 20 };
+  const zoom = { left: 1095, top: 848, width: 173, height: 40 };
+
+  it("probes the zoom row 4px on either side of its 8px limit to the measured legal line", () => {
+    // 12 + 380.5 + 4 + 173 + 12 = 581.5
+    expect(zoomRowProbes(bottomRow({ legal, zoom }))).toEqual([
+      { distance: 4, width: 582 },
+      { distance: 12, width: 590 },
+    ]);
+    expect(zoomRowProbes(bottomRow({ zoom }))).toEqual([]);
+  });
+
+  it("probes the toast stack where the widest card's column keeps 12px and 4px to the bottom row", () => {
+    // beside the legal line 2 × (392.5 + 12) + 398.7 = 1207.7, beside the zoom panel 2 × 197 + 398.7
+    expect(toastLiftProbes(bottomRow({ legal, zoom }, 398.7))).toEqual([
+      { distance: 12, width: 1208 },
+      { distance: 4, width: 1192 },
+    ]);
+    // embedded: no legal line, the zoom panel decides: 2 × (12 + 12 + 173) + 200
+    expect(toastLiftProbes(bottomRow({ zoom }, 200))).toEqual([
+      { distance: 12, width: 594 },
+      { distance: 4, width: 578 },
+    ]);
+    expect(toastLiftProbes(bottomRow({ legal, zoom }))).toEqual([]);
+  });
 });
 
 describe("the start screen (guide §8)", () => {
@@ -1722,7 +1872,8 @@ describe("the start screen (guide §8)", () => {
       { variant: "primary", name: "New diagram", height: 36, client: { x: 600, y: 520 } },
       { variant: "ghost", name: "Show example", height: 36, client: { x: 700, y: 520 } },
     ],
-    hint: "Or drop a file here",
+    hint: "Or drop a file here · Open a file… ⌘O",
+    openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
     work: [
       { name: "menu", visibility: "hidden", visible: false },
       { name: "palette", visibility: "hidden", visible: false },
@@ -1733,6 +1884,55 @@ describe("the start screen (guide §8)", () => {
 
   it("accepts the card of the guide", () => {
     expect(emptyStateProblems(conforming(), container, "en")).toEqual([]);
+  });
+
+  const fileOpen: MenuEntryFacts = {
+    name: "Open…",
+    role: "menuitem",
+    menuId: "open",
+    disabled: false,
+    group: "file",
+    value: null,
+    checked: null,
+    icon: true,
+    popup: null,
+    keyShortcuts: "Meta+O",
+    shortcut: "⌘O",
+    danger: false,
+  };
+
+  it("wants the hint to end in a link to the File group's Open…, with its keys", () => {
+    expect(startScreenOpenProblems(conforming(), fileOpen, "en")).toEqual([]);
+    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, undefined, "en")).toEqual([]);
+    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, fileOpen, "en")).toEqual([
+      "empty-state: the File group has Open…, but the hint does not end in a text link to it; on the start screen it is the keyboard's way to a file (guide §8)",
+    ]);
+    expect(
+      startScreenOpenProblems(
+        { ...conforming(), openLink: { name: "Browse", keyShortcuts: null, chip: null, underlined: true } },
+        fileOpen,
+        "en",
+      ),
+    ).toEqual([
+      'empty-state: the hint ends in "Browse", expected the link "Open a file…" (guide §8)',
+      'empty-state: "Browse" has no aria-keyshortcuts, expected "Meta+O" like the File group\'s Open…',
+      'empty-state: "Browse" shows no shortcut chip, expected "⌘O" like the File group\'s Open… (guide §8)',
+    ]);
+    const german = {
+      ...conforming(),
+      openLink: { name: "Datei öffnen…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
+    };
+    expect(startScreenOpenProblems(german, fileOpen, "de")).toEqual([]);
+  });
+
+  it("wants the link underlined at rest, as its colour alone barely parts it from the hint", () => {
+    const plain = {
+      ...conforming(),
+      openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: false },
+    };
+    expect(startScreenOpenProblems(plain, fileOpen, "en")).toEqual([
+      'empty-state: "Open a file…" is not underlined at rest; beside the hint\'s quiet text its colour alone does not mark it as a link (guide §3.5, §8, WCAG 1.4.1)',
+    ]);
   });
 
   it("reports the card's attribute, centre, label, Komet, title, buttons and the work chrome", () => {
@@ -1855,10 +2055,20 @@ describe("toasts (guide §8)", () => {
     buttons: [{ name: "Close", text: "", client: { x: 860, y: 821 } }],
     topmost: true,
     focused: false,
+    contentWidth: 480,
     ...extra,
   });
 
   const heard = { persistent: true, announced: true };
+
+  it("wants each card as wide as its content, at most the stack", () => {
+    const short = { box: { left: 520, top: 800, width: 240, height: 42 }, contentWidth: 240 };
+    expect(toastWidthProblems(toast("Link copied", short), "success", 480)).toEqual([]);
+    expect(toastWidthProblems(toast("A long sentence", { contentWidth: 900 }), "warning", 480)).toEqual([]);
+    expect(toastWidthProblems(toast("Link copied", { contentWidth: 146 }), "success", 480)).toEqual([
+      "toasts: the success toast's card is 480px wide for 146px of content; a card is as wide as its content, at most the stack's 480px (guide §8)",
+    ]);
+  });
 
   it("wants the text in a persistent alert region for errors and status otherwise, and a Close icon button", () => {
     expect(toastAnatomyProblems(toast("Saved"), "success", "en", heard)).toEqual([]);
@@ -2008,23 +2218,55 @@ describe("the problems list (guide §5.10)", () => {
       container: { width: 320, height: 700 },
       legal: { left: 12, top: 648, width: 296, height: 40 },
       links: [
-        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 } },
-        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 } },
+        { text: "Impressum", box: { left: 150, top: 648, width: 66, height: 20 }, lines: [658] },
+        { text: "Datenschutz", box: { left: 20, top: 668, width: 80, height: 20 }, lines: [678] },
       ],
+      separators: [],
     };
     expect(legalReachProblems(facts)).toEqual([]);
     const scrolled = {
       ...facts,
       legal: { left: 12, top: 668, width: 296, height: 20 },
       links: [
-        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 } },
-        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 } },
+        { text: "Impressum", box: { left: 150, top: 668, width: 66, height: 20 }, lines: [678] },
+        { text: "Datenschutz", box: { left: 268, top: 668, width: 80, height: 20 }, lines: [678] },
       ],
     };
     expect(legalReachProblems(scrolled)).toEqual([
       'legal: [320px wide] "Datenschutz" is cut off or scrolled out of the legal line; it wraps instead (guide §5.10, WCAG 1.4.10)',
     ]);
     expect(legalReachProblems({ ...facts, legal: null })).toEqual([]);
+  });
+
+  it("wants a wrapped legal line broken between its entries, each separator with the link after it", () => {
+    const facts = {
+      container: { width: 320, height: 700 },
+      legal: { left: 12, top: 648, width: 296, height: 40 },
+      links: [
+        { text: "© 2026 Miragon GmbH", box: { left: 20, top: 648, width: 130, height: 20 }, lines: [658] },
+        { text: "Impressum", box: { left: 168, top: 648, width: 66, height: 20 }, lines: [658] },
+        { text: "Datenschutz", box: { left: 32, top: 668, width: 80, height: 20 }, lines: [678] },
+      ],
+      separators: [
+        { centerY: 658, next: 1 },
+        { centerY: 678, next: 2 },
+      ],
+    };
+    expect(legalWrapProblems(facts)).toEqual([]);
+    expect(
+      legalWrapProblems({
+        ...facts,
+        links: [facts.links[0]!, { ...facts.links[1]!, lines: [658, 678] }, facts.links[2]!],
+        separators: [
+          { centerY: 658, next: 1 },
+          { centerY: 658, next: 2 },
+        ],
+      }),
+    ).toEqual([
+      'legal: [320px wide] "Impressum" breaks across 2 lines; the line wraps between its entries (guide §5.10)',
+      'legal: [320px wide] the separator before "Datenschutz" ends the line above; each separator travels with the link after it (guide §5.10)',
+    ]);
+    expect(legalWrapProblems({ ...facts, legal: null })).toEqual([]);
   });
 
   it("wants every row reached by the keyboard and scrolled into the list", () => {

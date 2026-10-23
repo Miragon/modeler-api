@@ -6,6 +6,7 @@ import {
   legalLineHeight,
   type Appearance,
   type AppearanceChoice,
+  type Size,
 } from "../core/index.js";
 import {
   absentIslandProblems,
@@ -14,8 +15,11 @@ import {
   ariaProblems,
   createProblems,
   focusHandBackProblems,
+  isCanvasMenuAction,
   isToolEntry,
+  keptDocumentProblems,
   keyReachProblem,
+  legendStartProblems,
   leftoverProblems,
   lockedShapeProblems,
   menuClosedProblems,
@@ -81,7 +85,10 @@ import {
   hostPageModeProbe,
   inPage,
   injectProbe,
+  installPageTools,
   leftoverProbe,
+  menuItemProbe,
+  pageToolsKeptProbe,
   removeInjectedProbe,
   settle,
   targetProbe,
@@ -299,6 +306,50 @@ const geometryCase: ShellConformanceCase = {
         emptyState: "the geometry of the start screen",
       }),
     ]);
+  },
+};
+
+/**
+ * Where the legend's start state flips (guide §5.10, §5.15): a phone, 390 × 844, keeps it closed
+ * although it is higher than 820px; one pixel wider than 440px it opens as before.
+ */
+const LEGEND_START: ReadonlyArray<{ size: Size; open: boolean }> = [
+  { size: { width: 390, height: 844 }, open: false },
+  { size: { width: SHELL.veryNarrow + 1, height: 900 }, open: true },
+];
+
+/**
+ * Guide §5.10: `open` loads the modeler as on a first visit, without a stored legend state, so the
+ * shell's default decides; at 390 × 844 the legend is closed, at 441 × 900 open. The kit's page
+ * tools go in before each `open`: if they survive it, the page kept its document and the shell its
+ * earlier start state, which is the harness's fault, not the shell's.
+ */
+const legendStartCase: ShellConformanceCase = {
+  name: "legendStart",
+  async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    assertHooksConsistent("legendStart", harness, ["legend"]);
+    if (harness.absent?.includes("legend")) return undefined;
+    if (!harness.show?.legend) {
+      return finish(
+        "legendStart",
+        harness.host,
+        [],
+        [{ hook: "legend", reason: "show.legend is undefined: the legend's start state was not verified" }],
+      );
+    }
+    const root = harness.root ?? DEFAULT_ROOT;
+    const problems: string[] = [];
+    for (const { size, open } of LEGEND_START) {
+      await page.evaluate(installPageTools, null);
+      await openHarness(page, harness, { size, requested: LIGHT });
+      const kept = keptDocumentProblems(size, (await page.evaluate(pageToolsKeptProbe, null)) === true);
+      if (kept.length > 0) fail("legendStart", harness.host, kept);
+      await settle(page);
+      const measurement = await measureChrome(page, root);
+      const shown = measurement.open.legend || Boolean(measurement.islands.legend);
+      problems.push(...legendStartProblems({ container: measurement.container, open: shown }, open));
+    }
+    return finish("legendStart", harness.host, problems, []);
   },
 };
 
@@ -628,6 +679,14 @@ const keysCase: ShellConformanceCase = {
       await press("Control+Equal", "handled", ONE_STEP_UP, "in a popover");
       await press("Escape", "blocked", undefined, "with a popover open");
     });
+    // Guide §5.8 (design system 1.15.0): only a modal dialog blocks, by role or as a <dialog>.
+    await inside("modal-dialog", "a showModal() <dialog>", async () => {
+      await press("Control+Equal", "blocked", "unchanged", "with a showModal() <dialog> open");
+    });
+    await inside("dialog", "a non-modal <dialog>", async () => {
+      await press("Control+Minus", "handled", 100, "in a non-modal <dialog>");
+      await press("Control+Equal", "handled", ONE_STEP_UP, "in a non-modal <dialog>");
+    });
 
     if (await openMenuByClick(page, root)) {
       await inPage(page, clearKeysProbe, null);
@@ -663,9 +722,58 @@ const ZOOM_CONTROLS: ReadonlyArray<readonly [ChromeTarget, string]> = [
 ];
 
 /**
- * Guide §5.8: a pointer click on each zoom control and on a palette tool leaves the focus on the
- * canvas `<svg>`; Enter and Space on zoom in leave it on the button. Each control gets the focus by
- * script first, so a click that keeps it shows as "stays on the control" in every engine.
+ * The first File or Model action of the menu that opens no dialog: a pointer click hands the focus
+ * to the canvas, Enter returns it to the trigger (guide §5.4 with the exception of
+ * Miragon/corporate-identity#36). `undefined` when the menu has none.
+ */
+async function menuActionSteps(
+  page: PageLike,
+  root: string,
+): Promise<{ steps: FocusHandBackStep[]; problems: string[] } | undefined> {
+  const entry = (await menuEntries(page, root)).find(isCanvasMenuAction);
+  if (!entry?.menuId) return undefined;
+  const control = `menu entry "${entry.name}"`;
+  const item = `[role="menu"] [data-menu-id="${entry.menuId}"]`;
+  const trigger = CHROME_TARGET_SELECTORS.menu;
+  const steps: FocusHandBackStep[] = [];
+  const problems: string[] = [];
+  const point = (await openMenuByClick(page, root))
+    ? await inPage(page, menuItemProbe, { root, menuId: entry.menuId })
+    : null;
+  if (point) {
+    await page.mouse.click(point.x, point.y);
+    await settle(page);
+    steps.push({
+      control,
+      by: "pointer",
+      focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
+      menuEntry: true,
+    });
+  } else {
+    problems.push(`focus: no visible ${control} to click in the opened menu`);
+  }
+  if (await findOverlay(page, root, "menu")) await closeByEscape(page);
+  if ((await openMenuByClick(page, root)) && (await inPage(page, focusProbe, { root, selector: item }))) {
+    await page.keyboard.press("Enter");
+    await settle(page);
+    steps.push({
+      control,
+      by: "Enter",
+      focus: await inPage(page, focusPlaceProbe, { root, selector: trigger }),
+      menuEntry: true,
+    });
+  } else {
+    problems.push(`focus: ${control} cannot take the focus in the opened menu`);
+  }
+  if (await findOverlay(page, root, "menu")) await closeByEscape(page);
+  return { steps, problems };
+}
+
+/**
+ * Guide §5.8: a pointer click on each zoom control, on a palette tool and on a File or Model action
+ * without a dialog leaves the focus on the canvas `<svg>`; Enter and Space on zoom in leave it on the
+ * button, Enter on the menu entry returns it to the trigger (§5.4). Each zoom control gets the focus
+ * by script first, so a click that keeps it shows as "stays on the control" in every engine.
  */
 const focusHandBackCase: ShellConformanceCase = {
   name: "focusHandBack",
@@ -716,9 +824,22 @@ const focusHandBackCase: ShellConformanceCase = {
         focus: await focusAfter(CHROME_TARGET_SELECTORS["zoom-in"]),
       });
     }
+
+    const skipped: ShellSkip[] = [];
+    const menuAction = await menuActionSteps(page, root);
+    if (menuAction) {
+      steps.push(...menuAction.steps);
+      problems.push(...menuAction.problems);
+    } else if (!harness.absent?.includes("canvasMenuAction")) {
+      skipped.push({
+        hook: "open",
+        reason:
+          'the menu has no File or Model action without a dialog: the focus after a click on a menu entry was not verified (absent: ["canvasMenuAction"] for a modeler without one)',
+      });
+    }
     await page.mouse.move(PARK.x, PARK.y);
     problems.push(...focusHandBackProblems(steps));
-    return finish("focusHandBack", harness.host, problems, []);
+    return finish("focusHandBack", harness.host, problems, skipped);
   },
 };
 
@@ -1142,12 +1263,13 @@ const cleanupCase: ShellConformanceCase = {
 };
 
 /**
- * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2
- * and the label editor of 0.4.
+ * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2,
+ * and the legend's start state and the label editor of 0.4.
  */
 export function createBaseCases(): ShellConformanceCase[] {
   return [
     geometryCase,
+    legendStartCase,
     ariaCase,
     keysCase,
     focusHandBackCase,

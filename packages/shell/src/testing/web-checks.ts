@@ -1,4 +1,5 @@
 import {
+  LEGAL_LINE_HEIGHT,
   MAX_TOASTS,
   SHELL,
   decideTopRow,
@@ -12,7 +13,7 @@ import {
   type ToastStatus,
 } from "../core/index.js";
 import type { AriaFacts, MenuEntryFacts } from "./facts.js";
-import { GEOMETRY_TOLERANCE_PX, boxMismatches, type IslandBox } from "./geometry.js";
+import { GEOMETRY_TOLERANCE_PX, boxMismatches, type ChromeMeasurement, type IslandBox } from "./geometry.js";
 import type { ModeChange, RecordedKey } from "./page-tools.js";
 import type {
   DropZoneFacts,
@@ -434,6 +435,76 @@ export function legalReachProblems(facts: LegalLineFacts): string[] {
 }
 
 /**
+ * Guide §5.10 (design system 1.15.0): a legal line too wide for its container wraps between its
+ * entries, never inside one, and each separator travels with the link after it, so no line ends
+ * in a separator.
+ */
+export function legalWrapProblems(facts: LegalLineFacts): string[] {
+  if (!facts.legal) return [];
+  const width = round(facts.container.width);
+  const problems: string[] = [];
+  for (const link of facts.links) {
+    if (link.lines.length > 1) {
+      problems.push(
+        `legal: [${width}px wide] "${link.text}" breaks across ${link.lines.length} lines; the line wraps between its entries (guide §5.10)`,
+      );
+    }
+  }
+  for (const separator of facts.separators) {
+    const next = separator.next === null ? undefined : facts.links[separator.next];
+    const line = next?.lines[0];
+    if (!next || line === undefined) continue;
+    if (Math.abs(separator.centerY - line) >= LEGAL_LINE_HEIGHT / 2) {
+      problems.push(
+        `legal: [${width}px wide] the separator before "${next.text}" ends the line above; each separator travels with the link after it (guide §5.10)`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** How far the bottom-row probes stand from the 8px limit, on either side; more than the 1px tolerance. */
+export const BOTTOM_ROW_PROBE_PX = 4;
+
+/** A container width the kit measures at, and the distance the rule under test sees there. */
+export interface BottomRowProbe {
+  width: number;
+  distance: number;
+}
+
+/**
+ * Container widths where the zoom panel at `right: 12px` keeps 4px and 12px to the legal line as
+ * measured (both visible, the line on one line): one on each side of `zoomRowRaised`'s 8px, which
+ * the 24px steps of `webChrome` can step over. Raised at 4px, not at 12px (design system 1.15.0).
+ */
+export function zoomRowProbes(measurement: ChromeMeasurement): BottomRowProbe[] {
+  const { legal, zoom } = measurement.islands;
+  if (!legal || !zoom) return [];
+  const legalRight = legal.left + legal.width;
+  return [SHELL.gap - BOTTOM_ROW_PROBE_PX, SHELL.gap + BOTTOM_ROW_PROBE_PX].map((distance) => ({
+    distance,
+    width: Math.round(legalRight + distance + zoom.width + SHELL.edge),
+  }));
+}
+
+/**
+ * Container widths where the centred column of the widest toast card keeps 12px and 4px to the
+ * nearer of the legal line (left of the column) and the zoom panel (right of it), both as
+ * measured: at 12px the stack stays at `bottom: 12px` although a wider column (the stack's 480px)
+ * would come closer, at 4px it rises above that obstacle (guide §8, design system 1.15.0).
+ */
+export function toastLiftProbes(measurement: ChromeMeasurement): BottomRowProbe[] {
+  const card = measurement.toastCardWidth;
+  const { legal, zoom } = measurement.islands;
+  if (card === undefined || (!legal && !zoom)) return [];
+  return [SHELL.gap + BOTTOM_ROW_PROBE_PX, SHELL.gap - BOTTOM_ROW_PROBE_PX].map((distance) => {
+    const besideLegal = legal ? 2 * (legal.left + legal.width + distance) + card : 0;
+    const besideZoom = zoom ? 2 * (distance + SHELL.edge + zoom.width) + card : 0;
+    return { distance, width: Math.ceil(Math.max(besideLegal, besideZoom)) };
+  });
+}
+
+/**
  * The zoom panel's bottom in the web app: 12px, 40px while `data-zoom-row="raised"` (on a legal line
  * that wraps, 8px above its measured `legalHeight`).
  */
@@ -543,6 +614,49 @@ export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang
   }
   if (!facts.legalVisible)
     problems.push("empty-state: the legal line is not visible; a public page always shows it (guide §8)");
+  return problems;
+}
+
+/**
+ * Guide §8 (design system 1.15.0): with an Open… in the File group the start screen's hint ends in a
+ * text link to it, "Open a file…", with Open…'s shortcut chip and `aria-keyshortcuts`: the menu is
+ * hidden there and a drop needs a pointer, so it is the keyboard's way to a file. It is underlined
+ * at rest like a link in body text (§3.5): against the hint's quiet text its colour alone reaches
+ * 1.16:1, dark 1.15:1.
+ */
+export function startScreenOpenProblems(
+  facts: EmptyStateFacts,
+  open: MenuEntryFacts | undefined,
+  lang: string,
+): string[] {
+  if (!open) return [];
+  const link = facts.openLink;
+  if (!link) {
+    return [
+      "empty-state: the File group has Open…, but the hint does not end in a text link to it; on the start screen it is the keyboard's way to a file (guide §8)",
+    ];
+  }
+  const problems: string[] = [];
+  if (speaksEnglish(lang) && link.name !== defaultMessages.openFileLink) {
+    problems.push(
+      `empty-state: the hint ends in "${link.name}", expected the link "${defaultMessages.openFileLink}" (guide §8)`,
+    );
+  }
+  if (open.keyShortcuts && link.keyShortcuts !== open.keyShortcuts) {
+    problems.push(
+      `empty-state: "${link.name}" has ${link.keyShortcuts ? `aria-keyshortcuts="${link.keyShortcuts}"` : "no aria-keyshortcuts"}, expected "${open.keyShortcuts}" like the File group's Open…`,
+    );
+  }
+  if (open.shortcut && link.chip !== open.shortcut) {
+    problems.push(
+      `empty-state: "${link.name}" shows ${link.chip ? `the chip "${link.chip}"` : "no shortcut chip"}, expected "${open.shortcut}" like the File group's Open… (guide §8)`,
+    );
+  }
+  if (!link.underlined) {
+    problems.push(
+      `empty-state: "${link.name}" is not underlined at rest; beside the hint's quiet text its colour alone does not mark it as a link (guide §3.5, §8, WCAG 1.4.1)`,
+    );
+  }
   return problems;
 }
 
@@ -675,6 +789,18 @@ export function toastAnatomyProblems(
     );
   }
   return problems;
+}
+
+/**
+ * Guide §8 (design system 1.15.0): a card is as wide as its content, at most the stack's
+ * `min(480px, 100% − 24px)`, so a short toast stays short and the stack rises only for wide cards.
+ */
+export function toastWidthProblems(toast: ToastFacts, status: ToastStatus, stackWidth: number): string[] {
+  const expected = Math.min(toast.contentWidth, stackWidth);
+  if (Math.abs(toast.box.width - expected) <= GEOMETRY_TOLERANCE_PX + 1e-6) return [];
+  return [
+    `toasts: the ${status} toast's card is ${round(toast.box.width)}px wide for ${round(toast.contentWidth)}px of content; a card is as wide as its content, at most the stack's ${round(stackWidth)}px (guide §8)`,
+  ];
 }
 
 /** Texts of the visible toasts that contain one of `texts`, in stack order. */

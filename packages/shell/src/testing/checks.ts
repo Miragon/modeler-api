@@ -1,4 +1,11 @@
-import { INVALID_STATUS_DELAY_MS, type Appearance, type ShellHost, type Theme } from "../core/index.js";
+import {
+  INVALID_STATUS_DELAY_MS,
+  SHELL,
+  type Appearance,
+  type ShellHost,
+  type Size,
+  type Theme,
+} from "../core/index.js";
 import {
   DOM_ORDER,
   type AppearanceFacts,
@@ -280,29 +287,81 @@ export interface FocusHandBackStep {
   control: string;
   /** A pointer click, or the key that activated the focused control. */
   by: "pointer" | "Enter" | "Space";
+  /** `focus.control` tells whether the focus is on the control, or for a menu entry on the trigger. */
   focus: FocusPlaceFacts;
+  /** A menu entry: Enter and Space return the focus to the menu trigger (guide §5.4). */
+  menuEntry?: boolean;
 }
 
 /**
  * Guide §5.8: after a pointer click on chrome that acts on the canvas the focus is on the canvas
  * `<svg>`, so Delete, the arrows and undo act at once; after Enter or Space it stays on the control,
- * so a keyboard user can press again.
+ * so a keyboard user can press again, and for a menu entry it returns to the trigger (§5.4).
  */
 export function focusHandBackProblems(steps: readonly FocusHandBackStep[]): string[] {
-  return steps.flatMap(({ control, by, focus }) => {
+  return steps.flatMap(({ control, by, focus, menuEntry }) => {
     if (by === "pointer") {
       return focus.canvas
         ? []
         : [
-            `focus: after a click on ${control} the focus is on ${focus.focused}, expected the canvas <svg>, so its keys act at once (guide §5.8)`,
+            `focus: after a click on ${control} the focus is on ${focus.focused}, expected the canvas <svg>, so its keys act at once (guide ${menuEntry ? "§5.4, " : ""}§5.8)`,
           ];
     }
-    return focus.control
-      ? []
-      : [
-          `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
-        ];
+    if (focus.control) return [];
+    return [
+      menuEntry
+        ? `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected the menu trigger, where the keyboard left the menu (guide §5.4)`
+        : `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
+    ];
   });
+}
+
+/**
+ * The File and Model entries guide §5.4 hands to the canvas after a pointer click: an enabled,
+ * non-destructive `menuitem` that opens no dialog in the modeler (`aria-haspopup="dialog"`).
+ */
+export function isCanvasMenuAction(entry: MenuEntryFacts): boolean {
+  return (
+    entry.role === "menuitem" &&
+    (entry.group === "file" || entry.group === "model") &&
+    entry.menuId !== null &&
+    entry.popup !== "dialog" &&
+    !entry.disabled &&
+    !entry.danger
+  );
+}
+
+/** The legend right after `open`, without a stored state (guide §5.10). */
+export interface LegendStartFacts {
+  container: Size;
+  /** The root carries `data-legend="open"` or the card is visible. */
+  open: boolean;
+}
+
+/**
+ * Guide §5.10, §5.15: without a stored state the legend starts closed in a container at most 440px
+ * wide (`--cd-shell-sehr-schmal`), where the fit keeps no room for it, or at most 820px high
+ * (`--cd-shell-niedrig`); open otherwise.
+ */
+export function legendStartProblems(facts: LegendStartFacts, expectedOpen: boolean): string[] {
+  if (facts.open === expectedOpen) return [];
+  const at = `${Math.round(facts.container.width)} × ${Math.round(facts.container.height)}`;
+  return [
+    expectedOpen
+      ? `legend: closed on first load in a ${at} container; without a stored state it starts open above ${SHELL.veryNarrow}px width and ${SHELL.low}px height (guide §5.10)`
+      : `legend: open on first load in a ${at} container; without a stored state it starts closed up to ${SHELL.veryNarrow}px width, where the open card would cover the fitted diagram (guide §5.10, §5.15)`,
+  ];
+}
+
+/**
+ * `legendStart` needs a new document per `open`: the shell decides the legend's start state once per
+ * mount, so in a kept page the second size would read the first one's state.
+ */
+export function keptDocumentProblems(size: Size, kept: boolean): string[] {
+  if (!kept) return [];
+  return [
+    `harness: open kept the page's document at ${size.width} × ${size.height} (a navigation that changes only the URL fragment keeps it), so the shell did not mount again and the legend kept its earlier start state; open loads a new document, as on a first visit (for example after page.goto("about:blank"))`,
+  ];
 }
 
 /** A palette entry with the keyboard focus: its tooltip's chip and what it names for assistive technology. */
@@ -681,7 +740,10 @@ export function harnessHookProblems<P extends PageLike>(
     .filter((hook) =>
       hook === "drop" || hook === "labelEditor"
         ? harness.absent?.includes(hook) && harness[hook]
-        : hook !== "problemSelection" && harness.absent?.includes(hook) && harness.show?.[hook],
+        : hook !== "problemSelection" &&
+          hook !== "canvasMenuAction" &&
+          harness.absent?.includes(hook) &&
+          harness.show?.[hook],
     )
     .map((hook) =>
       hook === "drop" || hook === "labelEditor"

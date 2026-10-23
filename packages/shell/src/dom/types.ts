@@ -169,7 +169,10 @@ export interface ProblemsOptions {
 export interface LegendOptions {
   /** Renders the legend rows into `body` once (classes `cd-shell-legend-*`, see API.md). */
   render(body: HTMLElement): void;
-  /** Start state the host remembered; default (also `undefined`) `legendStartsOpen(container height)`. */
+  /**
+   * Start state the host remembered, which wins over the container; default (also `undefined`)
+   * `legendStartsOpen(container height, container width)`.
+   */
   open?: boolean | undefined;
   /**
    * Every change of the open state (close button, menu checkbox, `setOpen`, `toggle`), so the host

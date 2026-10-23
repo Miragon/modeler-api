@@ -47,6 +47,7 @@ import {
   emptyStateProbe,
   focusOwnerProbe,
   focusToastButtonProbe,
+  legalLineProbe,
   modeChangesProbe,
   popoverProbe,
   showModalProbe,
@@ -513,10 +514,19 @@ describe("probes in a page", () => {
       <div role="separator"></div>
       <button role="menuitem" data-menu-id="export-png" data-menu-group="export" aria-disabled="true">Export as PNG</button>
       <div role="separator"></div>
-      <button role="menuitem" data-menu-id="shortcuts" data-menu-group="help">Keyboard shortcuts…</button>
+      <button role="menuitem" data-menu-id="shortcuts" data-menu-group="help" aria-haspopup="dialog">Keyboard shortcuts…</button>
+      <button role="menuitem" data-menu-id="clear" data-menu-group="model" data-danger aria-keyshortcuts="Meta+Backspace">Clear<span class="cd-shell-menu-shortcut" aria-hidden="true">⌘⌫</span></button>
       <button role="menuitem">Foreign</button>`;
     for (const item of menu.querySelectorAll("[role^='menuitem']")) place(item, 0, 0, 10, 10);
-    const rest = { value: null, checked: null, icon: false };
+    const rest = {
+      value: null,
+      checked: null,
+      icon: false,
+      popup: null,
+      keyShortcuts: null,
+      shortcut: null,
+      danger: false,
+    };
     await expect(inPage(page, menuEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
       {
         name: "Big picture",
@@ -551,6 +561,18 @@ describe("probes in a page", () => {
         disabled: false,
         group: "help",
         ...rest,
+        popup: "dialog",
+      },
+      {
+        name: "Clear",
+        role: "menuitem",
+        menuId: "clear",
+        disabled: false,
+        group: "model",
+        ...rest,
+        keyShortcuts: "Meta+Backspace",
+        shortcut: "⌘⌫",
+        danger: true,
       },
       { name: "Foreign", role: "menuitem", menuId: null, disabled: false, group: null, ...rest },
     ]);
@@ -750,7 +772,7 @@ describe("probes of the web column (0.2)", () => {
           <h1 id="es1">Demo Modeler</h1>
           <p>Start a new diagram.</p>
           <div><button data-variant="primary">New diagram</button><button data-variant="ghost">Show example</button></div>
-          <p class="cd-shell-empty-state-hint">Or drop a file here</p>
+          <p class="cd-shell-empty-state-hint">Or drop a file here <span aria-hidden="true">·</span> <span><button class="cd-shell-empty-state-open" aria-keyshortcuts="Meta+O" style="text-decoration-line: underline">Open a file…</button> <kbd aria-hidden="true">⌘O</kbd></span></p>
         </section>
         <button data-chrome="problems" aria-label="2 problems, 1 error" aria-haspopup="dialog" aria-expanded="false" aria-controls="p1">2 problems</button>
         <nav data-chrome="legal" aria-label="Legal">
@@ -785,6 +807,8 @@ describe("probes of the web column (0.2)", () => {
     at('[data-chrome="empty-state"] img', 608, 332, 64, 64);
     at('[data-variant="primary"]', 500, 500, 120, 36);
     at('[data-variant="ghost"]', 628, 500, 120, 36);
+    at(".cd-shell-empty-state-open", 600, 560, 80, 20);
+    at('[data-chrome="empty-state"] kbd', 684, 560, 24, 20);
     at('[data-chrome="problems"]', 12, 820, 120, 40);
     at('[data-chrome="legal"]', 12, 868, 380, 20);
     at('[data-chrome="zoom"]', 1095, 848, 173, 40);
@@ -1007,7 +1031,8 @@ describe("probes of the web column (0.2)", () => {
         { variant: "primary", name: "New diagram", height: 36, client: { x: 560, y: 518 } },
         { variant: "ghost", name: "Show example", height: 36, client: { x: 688, y: 518 } },
       ],
-      hint: "Or drop a file here",
+      hint: "Or drop a file here · Open a file… ⌘O",
+      openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
       work: [
         { name: "menu", visibility: expect.any(String), visible: true },
         { name: "zoom", visibility: "hidden", visible: false },
@@ -1016,6 +1041,35 @@ describe("probes of the web column (0.2)", () => {
       canvasInert: true,
       legalVisible: true,
     });
+    document.querySelector(".cd-shell-empty-state-open")!.removeAttribute("style");
+    const plain = await inPage(page, emptyStateProbe, { root: ".cd-shell", work: [] });
+    expect(plain?.openLink?.underlined).toBe(false);
+  });
+
+  it("reads each legal link's lines and the link after each separator", async () => {
+    const root = buildWebShell();
+    place(root.querySelector('[data-chrome="legal"] a[lang]')!, 160, 868, 66, 20);
+    place(root.querySelector('[data-chrome="legal"] a:not([lang])')!, 20, 848, 130, 40);
+    place(root.querySelector('[data-chrome="legal"] [aria-hidden="true"]')!, 152, 868, 6, 20);
+    const original = Range.prototype.getClientRects;
+    // a range over a link stands for its line boxes: the copyright on two lines, Impressum on one
+    Range.prototype.getClientRects = function (this: Range) {
+      const box = (this.startContainer as Element).getBoundingClientRect();
+      const lines = Math.round(box.height / 20);
+      return Array.from({ length: lines }, (_, line) =>
+        rect(box.left, box.top + line * 20, box.width, 20),
+      ) as unknown as DOMRectList;
+    };
+    try {
+      const facts = await inPage(page, legalLineProbe, { root: ".cd-shell" });
+      expect(facts?.links.map((link) => [link.text, link.lines])).toEqual([
+        ["© 2026 Miragon GmbH", [858, 878]],
+        ["Impressum", [878]],
+      ]);
+      expect(facts?.separators).toEqual([{ centerY: 878, next: 1 }]);
+    } finally {
+      Range.prototype.getClientRects = original;
+    }
   });
 
   it("names the owner of the focus and blurs it", async () => {

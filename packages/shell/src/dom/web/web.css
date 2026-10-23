@@ -205,14 +205,18 @@
   line-height: 1.5;
 }
 
-/* The File group's "Open…" as a text link in the hint: the keyboard's way to a file (guide §8). */
+/*
+ * The File group's "Open…" as a text link in the hint: the keyboard's way to a file (guide §8).
+ * Underlined like a link in body text (guide §3.5): against the hint's quiet text its colour alone
+ * reaches 1.16:1, dark 1.15:1 (WCAG 1.4.1). Hover thickens the line instead of a second colour.
+ */
 .cd-shell .cd-shell-empty-state-open {
   display: inline;
   margin: 0;
   padding: 0;
   color: var(--cd-ui-link);
   font: inherit;
-  text-decoration: none;
+  text-decoration: underline;
   background: transparent;
   border: 0;
   border-radius: 2px;
@@ -220,7 +224,7 @@
 }
 
 .cd-shell .cd-shell-empty-state-open:hover {
-  text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 
 .cd-shell .cd-shell-empty-state-open:focus {
@@ -228,7 +232,6 @@
 }
 
 .cd-shell .cd-shell-empty-state-open:focus-visible {
-  text-decoration: underline;
   outline: 2px solid var(--cd-ui-fokus);
   outline-offset: 2px;
 }

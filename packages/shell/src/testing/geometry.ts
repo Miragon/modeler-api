@@ -178,7 +178,7 @@ function sheetOpen(measurement: ChromeMeasurement): boolean {
   return measurement.open.inspector && isNarrow(measurement.container);
 }
 
-/** The bottom of an island as `toastStackBottom` sees it (guide §8, the shell's rule for the bottom row). */
+/** The bottom of an island as `toastStackBottom` sees it (guide §8, the bottom row since design system 1.15.0). */
 export function bottomObstacle(box: IslandBox, container: Size): BottomObstacle {
   return { left: box.left, right: box.left + box.width, top: container.height - box.top };
 }
@@ -477,7 +477,8 @@ export function geometryProblems(
 /**
  * The web app's state attributes for its top and bottom rows: `data-primary="collapsed"` only with
  * a visible primary action, and `data-zoom-row="raised"` exactly when the zoom panel at
- * `bottom: 12px` would keep less than 8px to the legal line (`zoomRowRaised`, the shell's rule).
+ * `bottom: 12px` would keep less than 8px to the legal line (`zoomRowRaised`, guide §5.10 since
+ * design system 1.15.0).
  */
 export function webRowProblems(
   measurement: ChromeMeasurement,
@@ -600,10 +601,10 @@ export function dropdownProblems(
 export type TooltipRow = "top" | "second-row" | "bottom";
 
 /**
- * Where the chrome tooltip of a control stands (guide §5.6): 8px below the top row (`top: 60px`)
- * or the second row (`top: 112px`), 8px above the bottom row (`bottom: 60px`, above the web app's
- * raised zoom row `bottom: 88px`: give its `bottomRow` of 40); centred on its control and shifted
- * to keep 12px to the sides.
+ * Where the chrome tooltip of a control stands (guide §5.6, §5.15): 8px below the top row
+ * (`top: 60px`) or the second row (`top: 112px`), 8px above the bottom row (`bottom: 60px`, above
+ * the web app's raised zoom row `bottom: 88px`: give its `bottomRow` of 40); centred on its control
+ * in every row, the second one included, and shifted to keep 12px to the sides.
  */
 export function tooltipProblems(
   tooltip: IslandBox,
@@ -620,27 +621,14 @@ export function tooltipProblems(
     row === "bottom"
       ? { left, bottom: bottomRow + rowHeight + gap }
       : { left, top: (row === "top" ? edge : free) + rowHeight + gap };
-  let mismatches = boxMismatches(
-    "tooltip",
-    tooltip,
-    expectedAt(clamp(anchor.left + anchor.width / 2 - tooltip.width / 2)),
-    container,
-    tolerance,
-  );
-  // Guide §5.15 reads "mittig im Container" for the second row; until the guide settles whether
-  // that means the container or the entry, either centre conforms.
-  if (row === "second-row" && mismatches.length > 0) {
-    const inContainer = boxMismatches(
+  return [
+    ...boxMismatches(
       "tooltip",
       tooltip,
-      expectedAt(clamp(container.width / 2 - tooltip.width / 2)),
+      expectedAt(clamp(anchor.left + anchor.width / 2 - tooltip.width / 2)),
       container,
       tolerance,
-    );
-    if (inContainer.length === 0) mismatches = inContainer;
-  }
-  return [
-    ...mismatches,
+    ),
     ...limitViolations(
       "tooltip",
       tooltip,

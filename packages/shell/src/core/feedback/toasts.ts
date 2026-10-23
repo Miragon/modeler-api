@@ -97,7 +97,7 @@ export function toastStackWidth(containerWidth: number): number {
  * its widest card (`cardWidth`, at most `toastStackWidth`, centred) comes closer than `SHELL.gap`
  * horizontally to an obstacle, the stack stands `SHELL.gap` above the highest such obstacle instead
  * (above the legal line 40, above the zoom panel 60, above a raised zoom panel or the web pill 88).
- * Guide §8 does not settle this collision of a narrow container; it is the shell's rule until it does.
+ * Guide §8 states this rule since design system 1.15.0 (Miragon/corporate-identity#37).
  */
 export function toastStackBottom(input: ToastStackInput): number {
   const stackWidth = toastStackWidth(input.containerWidth);

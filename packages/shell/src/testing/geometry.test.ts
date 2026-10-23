@@ -373,7 +373,7 @@ describe("tooltipProblems", () => {
     ).toEqual(["tooltip: top is 60px, expected 112px (±1px)"]);
   });
 
-  it("accepts the second-row tooltip centred in the container as well (guide §5.15, open reading)", () => {
+  it("reports a second-row tooltip centred in the container instead of on its entry (guide §5.15)", () => {
     const entry = { left: 150, top: 68, width: 32, height: 32 };
     const centredInContainer = NARROW.width / 2 - 30;
     expect(
@@ -383,7 +383,7 @@ describe("tooltipProblems", () => {
         "second-row",
         NARROW,
       ),
-    ).toEqual([]);
+    ).toEqual([`tooltip: left is ${centredInContainer}px, expected 136px (±1px)`]);
     expect(
       tooltipProblems({ left: 300, top: 112, width: 60, height: 28 }, entry, "second-row", NARROW),
     ).toEqual(["tooltip: left is 300px, expected 136px (±1px)"]);
@@ -547,7 +547,7 @@ describe("the web column (0.2)", () => {
     expect(geometryProblems(state, "web")).toEqual([]);
   });
 
-  it("reports a zoom row that does not follow zoomRowRaised (the shell's rule)", () => {
+  it("reports a zoom row that does not follow zoomRowRaised (guide §5.10)", () => {
     const raisedWithRoom = web({ open: { zoomRaised: true }, islands: { zoom: raisedZoom(WIDE) } });
     expect(webRowProblems(raisedWithRoom, "web")).toEqual([
       'zoom: the root carries data-zoom-row="raised" although the zoom panel keeps 703px to the legal line (at least 8px)',
