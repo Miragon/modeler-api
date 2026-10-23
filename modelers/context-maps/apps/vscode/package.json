@@ -292,7 +292,7 @@
     "@miragon/context-maps-cml": "0.1.5",
     "@miragon/context-maps-renderer": "0.5.0",
     "@miragon/context-maps-schema-model": "0.4.0",
-    "@miragon/modeler-shell": "0.4.1",
+    "@miragon/modeler-shell": "0.5.0",
     "diagram-js": "15.28.1",
     "didi": "12.0.0",
     "jsonc-parser": "3.3.1",

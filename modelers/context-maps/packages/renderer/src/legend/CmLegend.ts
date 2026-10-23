@@ -8,14 +8,14 @@
  * embedder gets it, replacing the per-host copies the reference apps carried.
  * Hovering a row shows the spelled-out explanation instantly (custom CSS
  * tooltip — a native `title` only appears after the OS hover delay).
- * Collapsed it shrinks to a button in the same corner, never disappearing. It starts open, or
- * closed on a small canvas (`legendStartsOpen`).
+ * Collapsed it shrinks to a button in the same corner, never disappearing. It starts closed on
+ * every canvas, so the card never covers the diagram unasked: the user opens it with its button,
+ * and a host restores a state it stored with `setOpen()`.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import { chromeIcon } from "../draw/lucide.js";
-import { LEGEND_CLOSED_UP_TO } from "../theme/index.js";
 import { legendGroups, type LegendRow } from "./legendContent.js";
 
 function legendRow(row: LegendRow): HTMLElement {
@@ -55,35 +55,16 @@ function divider(): HTMLElement {
   return el;
 }
 
-/**
- * Guide §5.10: without a stored state the legend starts open, but closed in a container at most
- * `--cd-shell-sehr-schmal` wide or `--cd-shell-niedrig` high, where the open card would cover the
- * diagram.
- */
-function legendStartsOpen(width: number, height: number): boolean {
-  return width > LEGEND_CLOSED_UP_TO.width && height > LEGEND_CLOSED_UP_TO.height;
-}
-
 export default class CmLegend {
   static $inject = ["canvas", "eventBus"];
 
   private openState = false;
-  /** Set once the container had a size to start from, or the host chose a state. */
-  private started = false;
   private readonly host: HTMLElement;
 
-  constructor(
-    private readonly canvas: Canvas,
-    eventBus: EventBus,
-  ) {
+  constructor(canvas: Canvas, eventBus: EventBus) {
     this.host = document.createElement("div");
     canvas.getContainer().appendChild(this.host);
-    this.startFromContainerSize();
     this.render();
-    // A container attached later has no size yet: the start state waits for the first one.
-    eventBus.on(["canvas.resized", "import.done"], () => {
-      if (this.startFromContainerSize()) this.render();
-    });
     eventBus.on("diagram.destroy", () => this.host.remove());
   }
 
@@ -92,21 +73,9 @@ export default class CmLegend {
   }
 
   setOpen(open: boolean): void {
-    this.started = true;
     if (this.openState === open) return;
     this.openState = open;
     this.render();
-  }
-
-  private startFromContainerSize(): boolean {
-    if (this.started) return false;
-    const { width, height } = this.canvas.getSize();
-    if (!(width > 0 && height > 0)) return false;
-    this.started = true;
-    const open = legendStartsOpen(width, height);
-    if (open === this.openState) return false;
-    this.openState = open;
-    return true;
   }
 
   toggle(): void {

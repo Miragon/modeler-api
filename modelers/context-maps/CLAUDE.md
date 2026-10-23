@@ -61,10 +61,9 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   `createShortcutsDialog`, `createTitleDialog`, `renderLegend`, the `cmReadOnly` canvas lock,
   keyboard creation in the free area (`freeArea: { insets }`; `freeRectInsets` stays a deprecated
   alias through the 0.5 releases), `fitOnImport` and `undoRedoKeys: false` for hosts that own the
-  history. `cmLegendModule` (closed at first on a canvas ≤ 440px wide or ≤ 820px high, like the
-  shell's legend; the sizes are in [`theme/sizes.ts`](packages/renderer/src/theme/sizes.ts), checked
-  against the vendored tokens) and the renderer's own palette rules stay for hosts that embed the
-  renderer without the shell. The DOM-free packages take only types from `@miragon/modeler-api`.
+  history. `cmLegendModule` (closed at first on every canvas size; a host's `setOpen()` restores a
+  stored state) and the renderer's own palette rules stay for hosts that embed the renderer without
+  the shell. The DOM-free packages take only types from `@miragon/modeler-api`.
 - **Kit.** `e2e/` runs the shell's conformance kit against the real webview in the shell's VS Code
   stub (project `vscode-webview`, served from `e2e/webview/`; the inspector and `canvasMenuAction`
   are absent: VS Code's own File menu opens and saves, and the Model group holds only the "Map

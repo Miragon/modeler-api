@@ -524,16 +524,10 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     expect(await page.evaluate(() => localStorage.getItem("cm-modeler:document:v1"))).toBe(newer);
   });
 
-  test("the legend remembers whether it is open", async ({ page }) => {
+  test("the legend starts closed and remembers whether it is open", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openExample(page);
     const legend = page.locator('[data-chrome="legend"]');
-    await expect(legend).toBeVisible();
-
-    await legend.getByRole("button", { name: "Close legend" }).click();
-    await expect(legend).toBeHidden();
-    await page.reload();
-    await waitForApp(page);
     await expect(legend).toBeHidden();
 
     await (await openMenu(page)).locator('[data-menu-id="legend"]').click();
@@ -541,6 +535,12 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await page.reload();
     await waitForApp(page);
     await expect(legend).toBeVisible();
+
+    await legend.getByRole("button", { name: "Close legend" }).click();
+    await expect(legend).toBeHidden();
+    await page.reload();
+    await waitForApp(page);
+    await expect(legend).toBeHidden();
   });
 
   test("the shortcuts dialog lists the file keys first and returns the focus", async ({ page }) => {

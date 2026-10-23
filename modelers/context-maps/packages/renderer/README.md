@@ -164,9 +164,9 @@ What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-s
 
 - `renderLegend(body, { tooltip })` renders the notation legend (subdomain types, integration roles,
   relationship patterns) into a chrome's legend card, each row explained in the chrome's tooltip.
-  Hosts without such a chrome add `cmLegendModule`, a legend card on the canvas. Like the shell's,
-  it starts open, but closed on a canvas at most 440px wide or 820px high (guide §5.10); the
-  `cmLegend` service's `setOpen(open)` restores a state the host stored.
+  Hosts without such a chrome add `cmLegendModule`, a legend card on the canvas. It starts closed
+  on every canvas size, so it never covers the map unasked; the user opens it with its button, and
+  the `cmLegend` service's `setOpen(open)` restores a state the host stored.
 - `contextMapMenu({ exports, showKeyboardShortcuts, editTitle })` builds the Model group's "Map
   title…" (with `editTitle`), the Export group (PNG, SVG, JSON, CML; an export's `shortcut` shows as
   its chip) and the Help group's "Keyboard shortcuts…". `createShortcutsDialog(chrome, { fileKeys })`

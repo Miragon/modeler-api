@@ -215,9 +215,9 @@ test.describe("VS Code webview: protocol and chrome", () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    // Low enough for the legend to start closed (guide §5.10): the open card's width settles after
+    await openWebview(page);
+    // The legend starts closed on a first visit at every size: an open card's width settles after
     // the first fit, and the insets read afterwards would no longer be the ones the fit used.
-    await openWebview(page, { size: { width: 1280, height: 800 } });
     await expect(page.locator(".cd-shell")).not.toHaveAttribute("data-legend", "open");
     // A box no context of the map spans: only the contract's contentBounds() names it.
     const reported = { x: 5000, y: 3000, width: 200, height: 100 };
@@ -363,11 +363,20 @@ test.describe("VS Code webview: protocol and chrome", () => {
     ]);
   });
 
-  test("the legend's state lives in the webview state", async ({ page }) => {
+  test("the legend starts closed and its state lives in the webview state", async ({ page }) => {
     await openWebview(page);
+    const legend = page.locator('[data-chrome="legend"]');
+    const stored = () => page.evaluate(() => window.__modelerShellVsCodeStub!.state());
+    await expect(legend).toBeHidden();
+
+    await page.locator('[data-chrome="menu"]').click();
+    await page.locator('[data-menu-id="legend"]').click();
+    await expect(legend).toBeVisible();
+    expect(await stored()).toMatchObject({ modelerShell: { legendOpen: true } });
+
     await page.locator(".cd-shell-legend-close").click();
-    const stored = await page.evaluate(() => window.__modelerShellVsCodeStub!.state());
-    expect(stored).toMatchObject({ modelerShell: { legendOpen: false } });
+    await expect(legend).toBeHidden();
+    expect(await stored()).toMatchObject({ modelerShell: { legendOpen: false } });
   });
 });
 

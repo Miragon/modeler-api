@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { CD_TOKENS, MIRAGON } from "../src/theme/palette.js";
-import { LEGEND_CLOSED_UP_TO } from "../src/theme/sizes.js";
 
 /**
  * Drift guard for the design system (the `miragon-brand:modeler-tool-design` skill; CLAUDE.md
@@ -104,13 +103,6 @@ describe("theme.sync — MIRAGON mirrors the vendored tokens", () => {
     expect(MIRAGON.danger).toBe(tokens.fest["--cd-danger"]);
     expect(MIRAGON.info).toBe(tokens.fest["--cd-info"]);
     expect(MIRAGON.linie).toBe(tokens.fest["--cd-linie"]);
-  });
-});
-
-describe("theme.sync — the shell sizes the renderer's own chrome reads", () => {
-  it("closes the legend card up to the release's very narrow width and low height", () => {
-    expect(`${LEGEND_CLOSED_UP_TO.width}px`).toBe(tokens.shell["--cd-shell-sehr-schmal"]);
-    expect(`${LEGEND_CLOSED_UP_TO.height}px`).toBe(tokens.shell["--cd-shell-niedrig"]);
   });
 });
 

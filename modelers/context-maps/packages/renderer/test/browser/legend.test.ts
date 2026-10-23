@@ -8,10 +8,7 @@ import {
 import type { CmLegend } from "@miragon/context-maps-renderer";
 import { emptyDocument } from "@miragon/context-maps-schema-model";
 
-/**
- * A canvas of the given size, large enough by default for the legend to start open (guide §5.10).
- * The viewer sizes its container to 100 %, so the size is the wrapper's.
- */
+/** A canvas of the given size: the viewer sizes its container to 100 %, so the size is the wrapper's. */
 function mountContainer(width = 900, height = 900): HTMLDivElement {
   const wrapper = document.createElement("div");
   wrapper.style.cssText = `position:absolute;left:0;top:0;width:${width}px;height:${height}px`;
@@ -25,11 +22,16 @@ function unmount(container: HTMLElement): void {
   (container.parentElement ?? container).remove();
 }
 
-test("the legend card shows the full notation legend and collapses to a button", () => {
+test("the legend card opens from its button, shows the full notation legend and collapses again", () => {
   const container = mountContainer();
   const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
   try {
     modeler.importDocument(emptyDocument("m"));
+
+    const opener = container.querySelector<HTMLButtonElement>(".cm-legend-toggle");
+    expect(opener).not.toBeNull();
+    expect(opener!.getAttribute("aria-expanded")).toBe("false");
+    opener!.click();
 
     const legend = container.querySelector(".cm-legend");
     expect(legend).not.toBeNull();
@@ -62,32 +64,35 @@ test("the legend service is controllable by hosts", () => {
   const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
   try {
     const legend = modeler.get<CmLegend>("cmLegend");
-    expect(legend.isOpen()).toBe(true);
-    legend.setOpen(false);
-    expect(container.querySelector(".cm-legend")).toBeNull();
-    legend.toggle();
-    expect(legend.isOpen()).toBe(true);
+    expect(legend.isOpen()).toBe(false);
+    legend.setOpen(true);
     expect(container.querySelector(".cm-legend")).not.toBeNull();
+    legend.toggle();
+    expect(legend.isOpen()).toBe(false);
+    expect(container.querySelector(".cm-legend")).toBeNull();
+    expect(container.querySelector(".cm-legend-toggle")).not.toBeNull();
   } finally {
     modeler.destroy();
     unmount(container);
   }
 });
 
-test("the legend card starts closed on a phone and on a low canvas, open above both", () => {
-  for (const { width, height, open } of [
-    { width: 390, height: 844, open: false },
-    { width: 440, height: 900, open: false },
-    { width: 900, height: 820, open: false },
-    { width: 441, height: 821, open: true },
+test("the legend card starts closed on every canvas size", () => {
+  for (const { width, height } of [
+    { width: 390, height: 844 },
+    { width: 440, height: 900 },
+    { width: 900, height: 820 },
+    { width: 441, height: 821 },
+    { width: 900, height: 900 },
+    { width: 1920, height: 1080 },
   ]) {
     const container = mountContainer(width, height);
     const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
     try {
       modeler.importDocument(emptyDocument("m"));
-      expect(modeler.get<CmLegend>("cmLegend").isOpen(), `${width} × ${height}`).toBe(open);
-      expect(container.querySelector(open ? ".cm-legend" : ".cm-legend-toggle")).not.toBeNull();
-      expect(container.querySelector(open ? ".cm-legend-toggle" : ".cm-legend")).toBeNull();
+      expect(modeler.get<CmLegend>("cmLegend").isOpen(), `${width} × ${height}`).toBe(false);
+      expect(container.querySelector(".cm-legend-toggle"), `${width} × ${height}`).not.toBeNull();
+      expect(container.querySelector(".cm-legend"), `${width} × ${height}`).toBeNull();
     } finally {
       modeler.destroy();
       unmount(container);
@@ -95,25 +100,25 @@ test("the legend card starts closed on a phone and on a low canvas, open above b
   }
 });
 
-test("a canvas attached later starts the legend from its first size; a host's choice wins", () => {
-  const target = mountContainer();
+test("a canvas attached later keeps the legend closed; a host's stored state wins", () => {
+  const target = mountContainer(1920, 1080);
   const size = { width: 1024, height: 900 };
   const later = new Modeler({ ...size, additionalModules: [cmLegendModule] });
-  const chosen = new Modeler({ ...size, additionalModules: [cmLegendModule] });
+  const stored = new Modeler({ ...size, additionalModules: [cmLegendModule] });
   try {
-    expect(later.get<CmLegend>("cmLegend").isOpen()).toBe(false);
     later.attachTo(target);
     later.importDocument(emptyDocument("m"));
-    expect(later.get<CmLegend>("cmLegend").isOpen()).toBe(true);
-    expect(target.querySelector(".cm-legend")).not.toBeNull();
+    expect(later.get<CmLegend>("cmLegend").isOpen()).toBe(false);
+    later.detach();
 
-    chosen.get<CmLegend>("cmLegend").setOpen(false);
-    chosen.attachTo(target);
-    chosen.importDocument(emptyDocument("m"));
-    expect(chosen.get<CmLegend>("cmLegend").isOpen()).toBe(false);
+    stored.get<CmLegend>("cmLegend").setOpen(true);
+    stored.attachTo(target);
+    stored.importDocument(emptyDocument("m"));
+    expect(stored.get<CmLegend>("cmLegend").isOpen()).toBe(true);
+    expect(target.querySelector(".cm-legend")).not.toBeNull();
   } finally {
     later.destroy();
-    chosen.destroy();
+    stored.destroy();
     unmount(target);
   }
 });
@@ -171,8 +176,8 @@ test("viewers stay legend-free unless the module is added explicitly", () => {
   try {
     viewer.importDocument(emptyDocument("m"));
     legendViewer.importDocument(emptyDocument("m"));
-    expect(plain.querySelector(".cm-legend")).toBeNull();
-    expect(withLegend.querySelector(".cm-legend")).not.toBeNull();
+    expect(plain.querySelector(".cm-legend, .cm-legend-toggle")).toBeNull();
+    expect(withLegend.querySelector(".cm-legend-toggle")).not.toBeNull();
   } finally {
     viewer.destroy();
     legendViewer.destroy();

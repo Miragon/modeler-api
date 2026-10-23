@@ -59,8 +59,8 @@ A diagram shows bounded contexts and the relationships between them.
   pattern / integration roles via popup menus, set the owning team or a description, swap ends,
   rename, delete. `Cmd/Ctrl+A` selects the whole map.
 - **Menu** (top left): **Map title…** (renames the map in one edit), the **Legend** checkbox,
-  **Export as PNG / SVG / JSON / CML**, and **Keyboard shortcuts…**. The legend remembers whether it
-  is open.
+  **Export as PNG / SVG / JSON / CML**, and **Keyboard shortcuts…**. The legend starts closed and
+  remembers whether it is open.
 - **Zoom panel** (bottom right): `Cmd/Ctrl` + `+` / `−` zoom the diagram (not the VS Code window),
   `Cmd/Ctrl+0` shows 100 %, `Shift+1` and the **Fit** button fit the map (never above 100 %).
 - **Undo through the document:** every change on the canvas is one edit of the file, so `Cmd/Ctrl+Z`

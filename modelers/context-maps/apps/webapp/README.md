@@ -35,9 +35,9 @@ is local, and a map is shared by encoding it into the URL.
   LZ-compressed into the URL hash (`#d=…`). Opening that link restores the map; a link cut off when
   it was copied says so.
 - **Autosave.** Every change goes to `localStorage` and into the address bar, so a reload brings the
-  map back; the legend remembers whether it is open. A saved map this version cannot open (one a
-  newer modeler wrote, say) stays saved until the next map is started or opened, and a toast says
-  so.
+  map back; the legend, closed on a first visit, remembers whether it is open. A saved map this
+  version cannot open (one a newer modeler wrote, say) stays saved until the next map is started or
+  opened, and a toast says so.
 - **Offline-friendly.** No CDN calls; Geist and Geist Mono are bundled.
 
 ## Run it
