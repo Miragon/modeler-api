@@ -81,11 +81,36 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-version: 24
+      # The smoke test imports the DSL through node_modules, which resolves to its dist.
+      - run: npm run build
       - run: npm run build:vscode
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
-      - name: Publish to the VS Code Marketplace
+      # The VSIX this job uploads, in a real VS Code: a package that does not activate never ships.
+      # The test takes an extension folder, so it gets the VSIX's files unpacked, not the folder
+      # the VSIX was packed from.
+      - name: Smoke-test the VSIX in VS Code
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+          VSCODE_SMOKE_KEEP: '1'
+          TMPDIR: ${{ runner.temp }}
+      # The release is already tagged when this smoke fails, so its screenshots and VS Code's logs are
+      # all there is to tell why.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-marketplace
+          path: |
+            test-results/vscode-smoke/
+            ${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Publish to VS Code Marketplace
         working-directory: apps/vscode
         run: npx vsce publish --packagePath __REPO__.vsix
         env:
@@ -103,11 +128,33 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-version: 24
+      - run: npm run build
       - run: npm run build:vscode
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
-      - name: Publish to Open VSX
+      # The VSIX this job uploads, in a real VS Code: a package that does not activate never ships.
+      - name: Smoke-test the VSIX in VS Code
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+          VSCODE_SMOKE_KEEP: '1'
+          TMPDIR: ${{ runner.temp }}
+      # The release is already tagged when this smoke fails, so its screenshots and VS Code's logs are
+      # all there is to tell why.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-open-vsx
+          path: |
+            test-results/vscode-smoke/
+            ${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Publish to Open VSX Marketplace
         working-directory: apps/vscode
         run: npx ovsx publish --packagePath __REPO__.vsix --pat "$OVSX_PAT"
         env:
@@ -127,3 +174,22 @@ jobs:
       - name: Package extension
         working-directory: apps/vscode
         run: npx vsce package --no-dependencies -o __REPO__.vsix
+      # The publish jobs' smoke, so a dry run shows it passes before a release depends on it.
+      - name: Smoke-test the VSIX in VS Code
+        run: |
+          unzip -q apps/vscode/__REPO__.vsix 'extension/*' -d "$RUNNER_TEMP/vsix"
+          xvfb-run -a npm run test:vscode-smoke
+        env:
+          VSCODE_VERSION: stable
+          VSCODE_SMOKE_EXTENSION: ${{ runner.temp }}/vsix/extension
+          VSCODE_SMOKE_KEEP: '1'
+          TMPDIR: ${{ runner.temp }}
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vscode-smoke-dry-run
+          path: |
+            test-results/vscode-smoke/
+            ${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/
+          if-no-files-found: ignore
+          retention-days: 7
