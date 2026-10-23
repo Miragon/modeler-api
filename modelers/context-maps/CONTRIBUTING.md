@@ -153,7 +153,10 @@ save therefore fails with what went wrong ("Meta+s wrote nothing to disk", "the 
 dirty after the save", "the saved text does not parse: …"; `Control+s` on Linux), and an extension
 that saves an empty file fails with "the extension saved an empty file". The driver's failures are a
 soft assertion: the test's own checks of the saved map run after them, so a failure in another
-step, such as a theme that never switched, cannot hide a broken save.
+step, such as a theme that never switched, cannot hide a broken save. A theme switch VS Code did not
+pick up needs no retry here either: the driver (since 0.4.1) writes the setting again, then detours
+through another theme and back, all within one timeout, and only then fails, naming the theme
+requested and the one VS Code shows.
 
 ## CI and the merge gate
 

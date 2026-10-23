@@ -83,7 +83,9 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   context, canonical text), undo and VS Code's four default themes, screenshots in
   `test-results/vscode-smoke/`. No retry: the driver (since 0.3.2) reads the save only once the
   tab is clean and the file holds still, so a failed save check is the extension's, not a race; the
-  driver's failures are a soft assertion, so another step's failure cannot hide the save's. Opt-in
+  driver's failures are a soft assertion, so another step's failure cannot hide the save's. A
+  theme switch VS Code missed is retried by the driver (since 0.4.1: the setting written again,
+  then a detour through another theme), so the test needs no retry of its own. Opt-in
   (needs a display, downloads VS Code once). CI runs it under `xvfb-run -a` in the reusable
   `vscode-smoke.yml`: `ci.yml` calls it as the job `vscode-smoke` (part of the `ci-ok` gate; it runs
   only when a path the extension or the test depends on changed), `vscode-smoke-weekly.yml` every
