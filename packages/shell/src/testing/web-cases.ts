@@ -66,6 +66,7 @@ import {
   primaryActivationProblems,
   primaryTooltipProblems,
   repeatedToastProblems,
+  startScreenOpenProblems,
   toastAnatomyProblems,
   toastLiveRegion,
   toastStackProblems,
@@ -430,12 +431,19 @@ const emptyStateCase: ShellConformanceCase = {
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const lang = await inPage(page, documentLangProbe, null);
+    // The start screen hides the menu, so Open… is read before it shows.
+    const fileOpen = (await menuEntries(page, root)).find(
+      (entry) => entry.group === "file" && entry.menuId === "open",
+    );
     await show(page);
     await settle(page);
     const container = (await measureChrome(page, root)).container;
     const facts = await startScreen(page, root);
     if (!facts) return finish("emptyState", harness.host, [`no element matches "${root}"`], []);
-    const problems = emptyStateProblems(facts, container, lang);
+    const problems = [
+      ...emptyStateProblems(facts, container, lang),
+      ...startScreenOpenProblems(facts, fileOpen, lang),
+    ];
 
     await inPage(page, blurProbe, null);
     const stops: Array<{ owner: string; description: string }> = [];
@@ -446,7 +454,8 @@ const emptyStateCase: ShellConformanceCase = {
     problems.push(...emptyStateTabProblems(stops));
 
     await inPage(page, blurProbe, null);
-    for (const key of ["Control+Equal", "Control+Minus", "Shift+Digit1"]) {
+    // Control+0 too: a low-vision user resets a stored page zoom with it (WCAG 1.4.4).
+    for (const key of ["Control+Equal", "Control+Minus", "Control+Digit0", "Shift+Digit1"]) {
       await inPage(page, clearKeysProbe, null);
       const before = (await inPage(page, afterPressProbe, { root })).zoom;
       await page.keyboard.press(key);

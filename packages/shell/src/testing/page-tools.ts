@@ -412,12 +412,14 @@ export const clearKeysProbe = (_: null): void => {
   tools.documentKeys.splice(0);
 };
 
-export type InjectedKind = "input" | "textarea" | "contenteditable" | "modal" | "popover" | "focus-target";
+export type InjectedKind =
+  "input" | "textarea" | "contenteditable" | "modal" | "popover" | "dialog" | "modal-dialog" | "focus-target";
 
 /**
  * Adds a stand-in for what modelers render inside the shell (text fields: an input, a textarea, an
- * editable label; a modal dialog, a popover, a plain focus target), inside the root or, once it is
- * gone, the body; focuses it.
+ * editable label; a modal dialog and a popover by their ARIA roles, a `<dialog>` opened with
+ * `show()` or `showModal()`, a plain focus target), inside the root or, once it is gone, the body;
+ * focuses it.
  */
 export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
@@ -426,7 +428,9 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
   const element =
     kind === "input" || kind === "textarea"
       ? document.createElement(kind)
-      : (document.createElement("div") as HTMLElement);
+      : kind === "dialog" || kind === "modal-dialog"
+        ? document.createElement("dialog")
+        : (document.createElement("div") as HTMLElement);
   element.setAttribute("data-modeler-shell-conformance", kind);
   element.style.cssText = "position:absolute;left:0;top:0;width:40px;height:20px;";
   if (kind === "modal" || kind === "popover") {
@@ -438,6 +442,10 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
   else if (kind !== "input" && kind !== "textarea") element.tabIndex = -1;
   host.append(element);
   tools.injected.push(element);
+  if (element instanceof HTMLDialogElement) {
+    if (kind === "modal-dialog") element.showModal();
+    else element.show();
+  }
   element.focus();
   return document.activeElement === element;
 };

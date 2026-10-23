@@ -251,6 +251,11 @@ export interface EmptyStateFacts {
   heading: { tag: string; text: string } | null;
   buttons: Array<{ variant: string | null; name: string; height: number; client: Point }>;
   hint: string | null;
+  /**
+   * The last link or button of the hint (the card's last paragraph), with its `aria-keyshortcuts`
+   * and the text of the `kbd` chip after it.
+   */
+  openLink: { name: string; keyShortcuts: string | null; chip: string | null } | null;
   /** Each island of the work chrome in the DOM, with its computed visibility. */
   work: Array<{ name: string; visibility: string; visible: boolean }>;
   /** The canvas slot (`.cd-shell-canvas`) is `inert`. */
@@ -278,6 +283,18 @@ export const emptyStateProbe = ({
   ]);
   parts.push(["hint", rootElement.querySelector(".cd-shell-hint")]);
   const legal = rootElement.querySelector('[data-chrome="legal"]');
+  const hintParagraph = [...(card?.querySelectorAll("p") ?? [])]
+    .filter((paragraph) => (paragraph.textContent ?? "").trim() !== "")
+    .at(-1);
+  const link = [...(hintParagraph?.querySelectorAll("a[href], button") ?? [])]
+    .filter((element) => tools.visible(element))
+    .at(-1);
+  const chip = link
+    ? [...(hintParagraph?.querySelectorAll("kbd") ?? [])].find(
+        (kbd) =>
+          tools.visible(kbd) && (link.compareDocumentPosition(kbd) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      )
+    : undefined;
   return {
     shown: rootElement.getAttribute("data-empty-state") === "shown",
     card: card
@@ -322,6 +339,13 @@ export const emptyStateProbe = ({
         .map((paragraph) => (paragraph.textContent ?? "").trim())
         .filter(Boolean)
         .at(-1) ?? null,
+    openLink: link
+      ? {
+          name: (link.getAttribute("aria-label") ?? link.textContent ?? "").replace(/\s+/g, " ").trim(),
+          keyShortcuts: link.getAttribute("aria-keyshortcuts"),
+          chip: chip?.textContent?.trim() || null,
+        }
+      : null,
     work: parts
       .filter((part): part is [string, Element] => part[1] !== null)
       .map(([name, element]) => ({

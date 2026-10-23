@@ -706,6 +706,14 @@ export interface MenuEntryFacts {
   checked: string | null;
   /** Whether the entry's icon column holds an icon (guide §5.4, only the common set of §5.14). */
   icon: boolean;
+  /** `aria-haspopup`: `"dialog"` for an entry that opens a dialog in the modeler. */
+  popup: string | null;
+  /** `aria-keyshortcuts` of the entry. */
+  keyShortcuts: string | null;
+  /** Text of the entry's shortcut chip (`.cd-shell-menu-shortcut`). */
+  shortcut: string | null;
+  /** `data-danger` of a destructive action. */
+  danger: boolean;
 }
 
 export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] | null => {
@@ -729,6 +737,10 @@ export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] |
       value: element.getAttribute("data-menu-value"),
       checked: element.getAttribute("aria-checked"),
       icon: element.querySelector(".cd-shell-menu-item-icon svg") !== null,
+      popup: element.getAttribute("aria-haspopup"),
+      keyShortcuts: element.getAttribute("aria-keyshortcuts"),
+      shortcut: element.querySelector(".cd-shell-menu-shortcut")?.textContent?.trim() || null,
+      danger: element.hasAttribute("data-danger"),
     });
   }
   return entries;

@@ -389,6 +389,51 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("emptyState fails when the start screen has no link to Open…", async ({ page }) => {
+      const harness = webSabotaged(() => {
+        const style = document.createElement("style");
+        style.textContent = ".cd-shell-empty-state-open-item { display: none !important; }";
+        document.head.append(style);
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: the File group has Open…, but the hint does not end in a text link to it/,
+      ]);
+    });
+
+    test("emptyState fails when the start screen swallows the browser's Ctrl+0", async ({ page }) => {
+      // a stored page zoom could not be reset there (WCAG 1.4.4)
+      const harness = webSabotaged(() => {
+        document.addEventListener("keydown", (event) => {
+          const shown = document.querySelector('.cd-shell[data-empty-state="shown"]') !== null;
+          if (shown && (event.ctrlKey || event.metaKey) && event.key === "0") event.preventDefault();
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "emptyState", [
+        /empty-state: Control\+Digit0 behind the start screen arrived prevented; with no diagram to zoom the browser keeps its page zoom/,
+      ]);
+    });
+
+    test("keys fails when a non-modal dialog blocks the chrome keys", async ({ page }) => {
+      // every dialog read as modal: the reading design system 1.15.0 rules out for guide §5.8
+      const harness = sabotaged(() => {
+        const asModal = () => {
+          for (const dialog of document.querySelectorAll('[role="dialog"]:not([aria-modal]), dialog[open]')) {
+            if (!dialog.matches(":modal")) dialog.setAttribute("aria-modal", "true");
+          }
+        };
+        new MutationObserver(asModal).observe(document.body, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ["open"],
+        });
+      });
+      await expectOnlyCaseFails(page, harness, "keys", [
+        /Control\+Minus in a popover changed the zoom|Control\+Minus in a popover zoomed to/,
+        /Control\+Minus in a non-modal <dialog> zoomed to 135% from 135%, expected 100%/,
+      ]);
+    });
+
     test("toasts fails when toasts never close by themselves", async ({ page }) => {
       const harness = webSabotaged(() => {
         const original = window.setTimeout.bind(window);

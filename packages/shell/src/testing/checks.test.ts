@@ -79,6 +79,7 @@ import {
   repeatedToastProblems,
   shownToasts,
   speaksEnglish,
+  startScreenOpenProblems,
   toastAnatomyProblems,
   toastLiveRegion,
   toastLiftProbes,
@@ -1245,6 +1246,10 @@ describe("read-only checks", () => {
     value: null,
     checked: menuId === "legend" ? "true" : null,
     icon: false,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
   });
 
   it("keeps the Legend toggle, export and help usable; Model entries may lock", () => {
@@ -1480,6 +1485,10 @@ describe("menu groups of the web app", () => {
     value: null,
     checked: null,
     icon: false,
+    popup: null,
+    keyShortcuts: null,
+    shortcut: null,
+    danger: false,
     ...extra,
   });
   const radio = (value: string, checked: boolean) =>
@@ -1789,7 +1798,8 @@ describe("the start screen (guide §8)", () => {
       { variant: "primary", name: "New diagram", height: 36, client: { x: 600, y: 520 } },
       { variant: "ghost", name: "Show example", height: 36, client: { x: 700, y: 520 } },
     ],
-    hint: "Or drop a file here",
+    hint: "Or drop a file here · Open a file… ⌘O",
+    openLink: { name: "Open a file…", keyShortcuts: "Meta+O", chip: "⌘O" },
     work: [
       { name: "menu", visibility: "hidden", visible: false },
       { name: "palette", visibility: "hidden", visible: false },
@@ -1800,6 +1810,45 @@ describe("the start screen (guide §8)", () => {
 
   it("accepts the card of the guide", () => {
     expect(emptyStateProblems(conforming(), container, "en")).toEqual([]);
+  });
+
+  const fileOpen: MenuEntryFacts = {
+    name: "Open…",
+    role: "menuitem",
+    menuId: "open",
+    disabled: false,
+    group: "file",
+    value: null,
+    checked: null,
+    icon: true,
+    popup: null,
+    keyShortcuts: "Meta+O",
+    shortcut: "⌘O",
+    danger: false,
+  };
+
+  it("wants the hint to end in a link to the File group's Open…, with its keys", () => {
+    expect(startScreenOpenProblems(conforming(), fileOpen, "en")).toEqual([]);
+    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, undefined, "en")).toEqual([]);
+    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, fileOpen, "en")).toEqual([
+      "empty-state: the File group has Open…, but the hint does not end in a text link to it; on the start screen it is the keyboard's way to a file (guide §8)",
+    ]);
+    expect(
+      startScreenOpenProblems(
+        { ...conforming(), openLink: { name: "Browse", keyShortcuts: null, chip: null } },
+        fileOpen,
+        "en",
+      ),
+    ).toEqual([
+      'empty-state: the hint ends in "Browse", expected the link "Open a file…" (guide §8)',
+      'empty-state: "Browse" has no aria-keyshortcuts, expected "Meta+O" like the File group\'s Open…',
+      'empty-state: "Browse" shows no shortcut chip, expected "⌘O" like the File group\'s Open… (guide §8)',
+    ]);
+    const german = {
+      ...conforming(),
+      openLink: { name: "Datei öffnen…", keyShortcuts: "Meta+O", chip: "⌘O" },
+    };
+    expect(startScreenOpenProblems(german, fileOpen, "de")).toEqual([]);
   });
 
   it("reports the card's attribute, centre, label, Komet, title, buttons and the work chrome", () => {

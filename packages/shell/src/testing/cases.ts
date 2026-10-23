@@ -669,6 +669,14 @@ const keysCase: ShellConformanceCase = {
       await press("Control+Equal", "handled", ONE_STEP_UP, "in a popover");
       await press("Escape", "blocked", undefined, "with a popover open");
     });
+    // Guide §5.8 (design system 1.15.0): only a modal dialog blocks, by role or as a <dialog>.
+    await inside("modal-dialog", "a showModal() <dialog>", async () => {
+      await press("Control+Equal", "blocked", "unchanged", "with a showModal() <dialog> open");
+    });
+    await inside("dialog", "a non-modal <dialog>", async () => {
+      await press("Control+Minus", "handled", 100, "in a non-modal <dialog>");
+      await press("Control+Equal", "handled", ONE_STEP_UP, "in a non-modal <dialog>");
+    });
 
     if (await openMenuByClick(page, root)) {
       await inPage(page, clearKeysProbe, null);

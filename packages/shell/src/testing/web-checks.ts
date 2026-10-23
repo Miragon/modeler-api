@@ -617,6 +617,42 @@ export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang
   return problems;
 }
 
+/**
+ * Guide §8 (design system 1.15.0): with an Open… in the File group the start screen's hint ends in a
+ * text link to it, "Open a file…", with Open…'s shortcut chip and `aria-keyshortcuts`: the menu is
+ * hidden there and a drop needs a pointer, so it is the keyboard's way to a file.
+ */
+export function startScreenOpenProblems(
+  facts: EmptyStateFacts,
+  open: MenuEntryFacts | undefined,
+  lang: string,
+): string[] {
+  if (!open) return [];
+  const link = facts.openLink;
+  if (!link) {
+    return [
+      "empty-state: the File group has Open…, but the hint does not end in a text link to it; on the start screen it is the keyboard's way to a file (guide §8)",
+    ];
+  }
+  const problems: string[] = [];
+  if (speaksEnglish(lang) && link.name !== defaultMessages.openFileLink) {
+    problems.push(
+      `empty-state: the hint ends in "${link.name}", expected the link "${defaultMessages.openFileLink}" (guide §8)`,
+    );
+  }
+  if (open.keyShortcuts && link.keyShortcuts !== open.keyShortcuts) {
+    problems.push(
+      `empty-state: "${link.name}" has ${link.keyShortcuts ? `aria-keyshortcuts="${link.keyShortcuts}"` : "no aria-keyshortcuts"}, expected "${open.keyShortcuts}" like the File group's Open…`,
+    );
+  }
+  if (open.shortcut && link.chip !== open.shortcut) {
+    problems.push(
+      `empty-state: "${link.name}" shows ${link.chip ? `the chip "${link.chip}"` : "no shortcut chip"}, expected "${open.shortcut}" like the File group's Open… (guide §8)`,
+    );
+  }
+  return problems;
+}
+
 /** Tab on the start screen: only the card's buttons and the legal links (guide §8). */
 export function emptyStateTabProblems(
   owners: ReadonlyArray<{ owner: string; description: string }>,
