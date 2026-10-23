@@ -3,6 +3,7 @@ import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
 import '@miragon/modeler-shell/shell.css';
 import {
+  SHORTCUTS_KEY,
   createCollaborativeModeler,
   createShortcutsDialog,
   diagramMenu,
@@ -67,11 +68,12 @@ const shell = mountVsCodeShell(app, {
       svg: { onSelect: () => void exportPicture('svg') },
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
+    shortcutsKey: SHORTCUTS_KEY,
   }),
   problems: { onActivate: () => post({ type: 'showProblems' }) },
   emptyHint: { onInsertExample: () => post({ type: 'insertExample' }) },
 });
-const shortcutsDialog = createShortcutsDialog(shell);
+const shortcutsDialog = createShortcutsDialog(shell, { shortcutsKey: SHORTCUTS_KEY });
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
 // Fitted to the contract's contentBounds(); empty means no element, not empty bounds.

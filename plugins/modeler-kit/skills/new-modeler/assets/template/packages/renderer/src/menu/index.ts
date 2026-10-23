@@ -1,4 +1,4 @@
-export { TEXT_EXPORT_LABEL, diagramMenu } from './menu.js';
+export { SHORTCUTS_KEY, TEXT_EXPORT_LABEL, diagramMenu } from './menu.js';
 export type {
   DiagramExport,
   DiagramMenu,
@@ -9,6 +9,7 @@ export type {
 } from './menu.js';
 export { commandKeyLabel, diagramShortcuts } from './shortcuts.js';
 export type {
+  DiagramShortcutsOptions,
   ShortcutGroup,
   ShortcutKeyNames,
   ShortcutPlatform,
@@ -16,4 +17,8 @@ export type {
   ShortcutsChrome,
 } from './shortcuts.js';
 export { createShortcutsDialog } from './ShortcutsDialog.js';
-export type { ShortcutsDialog, ShortcutsDialogChrome } from './ShortcutsDialog.js';
+export type {
+  ShortcutsDialog,
+  ShortcutsDialogChrome,
+  ShortcutsDialogOptions,
+} from './ShortcutsDialog.js';

@@ -5,6 +5,7 @@ import '@fontsource-variable/geist-mono/wght.css';
 // mapping); the chrome's stylesheet comes after it.
 import '@miragon/modeler-shell/shell.css';
 import {
+  SHORTCUTS_KEY,
   createCollaborativeModeler,
   createShortcutsDialog,
   diagramMenu,
@@ -54,6 +55,7 @@ const shell = mountShell(app, {
       text: { onSelect: () => download(modeler.exportText(), 'text/plain', '__EXT__') },
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
+    shortcutsKey: SHORTCUTS_KEY,
   }),
   emptyState: {
     title: APP_NAME,
@@ -70,7 +72,7 @@ const shell = mountShell(app, {
     },
   },
 });
-const shortcutsDialog = createShortcutsDialog(shell);
+const shortcutsDialog = createShortcutsDialog(shell, { shortcutsKey: SHORTCUTS_KEY });
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
 // 3. Viewport, palette skin and keys. The viewport fits to the contract's contentBounds(), tight
