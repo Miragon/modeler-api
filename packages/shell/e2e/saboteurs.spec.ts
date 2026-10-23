@@ -57,12 +57,27 @@ async function expectOnlyCaseFails(
   caseName: string,
   patterns: readonly RegExp[],
 ): Promise<string> {
+  const failed = await expectOnlyCasesFail(page, harness, { [caseName]: patterns });
+  return failed.get(caseName) ?? "";
+}
+
+/**
+ * The saboteur breaks one rule that several cases check: each fails with its patterns, all others pass.
+ * Resolves with the failures by case name.
+ */
+async function expectOnlyCasesFail(
+  page: Page,
+  harness: ShellConformanceHarness<Page>,
+  expected: Readonly<Record<string, readonly RegExp[]>>,
+): Promise<Map<string, string>> {
   const failed = await failures(page, harness);
-  expect([...failed.entries()].filter(([name]) => name !== caseName)).toEqual([]);
-  const failure = failed.get(caseName);
-  expect(failure, `"${caseName}" passed the saboteur`).toBeDefined();
-  for (const pattern of patterns) expect(failure).toMatch(pattern);
-  return failure ?? "";
+  expect([...failed.entries()].filter(([name]) => !(name in expected))).toEqual([]);
+  for (const [caseName, patterns] of Object.entries(expected)) {
+    const failure = failed.get(caseName);
+    expect(failure, `"${caseName}" passed the saboteur`).toBeDefined();
+    for (const pattern of patterns) expect(failure).toMatch(pattern);
+  }
+  return failed;
 }
 
 /** The demo harness with `sabotage` applied right after every open. */
@@ -546,16 +561,20 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("geometry fails for a toast stack off its bottom", async ({ page }) => {
+    test("geometry and toasts fail for a toast stack off its bottom", async ({ page }) => {
       const harness = webSabotaged(() => {
         const style = document.createElement("style");
         style.textContent = '[data-chrome="toasts"] { translate: 0 -10px; }';
         document.head.append(style);
       });
-      await expectOnlyCaseFails(page, harness, "geometry", [
+      await expectOnlyCasesFail(page, harness, {
         // 10px above toastStackBottom, which depends on the legal line's measured width
-        /\[1280 × 900, with a toast\] toasts: bottom is (\d+)px, expected (\d+)px \(±1px\)/,
-      ]);
+        geometry: [/\[1280 × 900, with a toast\] toasts: bottom is (\d+)px, expected (\d+)px \(±1px\)/],
+        // the toasts case measures the lift at its two widths
+        toasts: [
+          /\[\d+px wide, the widest card 12px beside the bottom row\] toasts: bottom is 22px, expected 12px/,
+        ],
+      });
     });
 
     test("labelEditor fails when a view change commits the open label editor", async ({ page }) => {
