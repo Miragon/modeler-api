@@ -101,7 +101,11 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
   /** The modes the modeler declares (static); the appearance case requests dark from `["light"]`. */
   themes: readonly Theme[];
-  /** Load the modeler with the shell at `size`, as the host would with `requested`; resolve once the first import is done. */
+  /**
+   * Load the modeler with the shell at `size`, as the host would with `requested`, as on a first
+   * visit: without a stored legend state, so the shell's default decides (case `legendStart`).
+   * Resolve once the first import is done.
+   */
   open(page: P, context: OpenContext): Promise<void>;
   /** Tear modeler and shell down through the page's own path; `undefined` skips the cleanup case. */
   destroy?: ((page: P) => Promise<void>) | undefined;
@@ -147,7 +151,8 @@ export interface ShellConformanceCase {
 }
 
 /**
- * The cases: `geometry` (every `data-chrome` island ±1px, per host and breakpoint), `aria`
+ * The cases: `geometry` (every `data-chrome` island ±1px, per host and breakpoint), `legendStart`
+ * (without a stored state the legend starts closed at 390 × 844 and open at 441 × 900), `aria`
  * (roles, names, `aria-expanded`/`-controls`/`-keyshortcuts`/`-disabled`, DOM order, no positive
  * tabindex), `keys` (each chrome key acts exactly once; in the IDE host a `keydown` listener on
  * `window` never fires for a handled key; unmodified `+`/`-` never zoom; select all acts on the

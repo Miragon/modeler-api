@@ -452,7 +452,9 @@ function renderShell(
       primary.setCollapsed(collapsed);
       setState("data-primary", collapsed ? "collapsed" : null);
     }
-    if (legend && !legend.isStarted()) legend.start(options.legend?.open ?? legendStartsOpen(size.height));
+    if (legend && !legend.isStarted()) {
+      legend.start(options.legend?.open ?? legendStartsOpen(size.height, size.width));
+    }
     updateBottomRow();
     placeHint();
   }

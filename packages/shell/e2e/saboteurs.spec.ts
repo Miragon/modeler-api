@@ -112,6 +112,19 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("legendStart fails when only the container height decides the legend's start state", async ({
+      page,
+    }) => {
+      // shell 0.3.3 (modeler-api#51): a 390 × 844 phone opened the legend over the fitted diagram
+      const harness = sabotaged(() => {
+        if (document.querySelector(".cd-shell")!.clientHeight > 820)
+          window.__demo!.shell.legend?.setOpen(true);
+      });
+      await expectOnlyCaseFails(page, harness, "legendStart", [
+        /legend: open on first load in a 390 × 844 container; without a stored state it starts closed up to 440px width/,
+      ]);
+    });
+
     test("focusHandBack fails when a pointer click leaves the focus on the chrome", async ({ page }) => {
       // shell 0.2.1: the clicked button keeps the focus, so Delete and the arrows do nothing
       const harness = sabotaged(() => {

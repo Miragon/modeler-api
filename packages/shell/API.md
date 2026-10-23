@@ -471,7 +471,7 @@ interface PaletteRowInput {
   primaryLeft?: number;
 }
 function decidePaletteRow(input: PaletteRowInput): PaletteRow;
-function legendStartsOpen(containerHeight: number): boolean; // > 820
+function legendStartsOpen(containerHeight: number, containerWidth?: number): boolean; // > 820 high and (without a width, or) > 440 wide
 interface TooltipPlacementInput {
   anchor: Bounds;
   island: Bounds;
@@ -692,7 +692,7 @@ interface ProblemsOptions {
 }
 interface LegendOptions {
   render(body: HTMLElement): void; // once; a throw unwinds the whole mount
-  open?: boolean; // remembered start state; default (also undefined) legendStartsOpen(container height)
+  open?: boolean; // remembered start state, wins over the container; default (also undefined) legendStartsOpen(height, width)
   onToggle?(open: boolean): void; // every change (close button, checkbox, setOpen, toggle); persist it
   menuEntry?: boolean; // default true
 }
@@ -838,7 +838,9 @@ interface StatusMessage {
   name, which a shortcut chip does unless the control names its keys in `aria-keyshortcuts`. The
   shell attaches it to its own buttons; the palette gets it through `registerPalette`.
 - The legend's start state comes from `legend.open` or, at the first non-zero container size, from
-  `legendStartsOpen`; that automatic decision does not call `onToggle`. Its close button returns the
+  `legendStartsOpen(height, width)`: closed up to 820px height and up to 440px width, where the fit
+  keeps no room for the open card and it would cover the diagram (guide §5.10, §5.15). A stored
+  `legend.open` wins at any size. That automatic decision does not call `onToggle`. Its close button returns the
   focus to the menu trigger.
 - `destroy()` removes every element, class, attribute, listener, observer and timer the shell added
   and restores what was there before the mount: a passed `canvas` stays where it is, without
@@ -2266,6 +2268,12 @@ host:
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `labelEditor` | contract L5 (`@miragon/modeler-api` 1.2) through the shell's own view changes, with the keep-open L5 only recommends as a requirement of this kit: after `labelEditor.open` (the focus in a text field holding the typed text, the document unchanged) a click on zoom in, a click on Fit, Cmd/Ctrl+Plus, Cmd/Ctrl+0, Cmd/Ctrl+Plus and Shift+1 at the canvas and a container resize (the page narrowed to three quarters of its width, at least 320px: the refit) each change the view and leave `labelEditor.documentChanged` false and the typed text in the focused field, read once the view held still and 500ms more, so a late commit (a debounced resize handler) counts against its step; after a step that committed or closed the editor it opens it again. The clicks run by script (`HTMLElement.click()`, `detail` 0) and the keys are dispatched at the canvas `<svg>`, so the focus stays in the editor and a modeler that commits on blur is not blamed. If no step committed, a click on an empty spot of the canvas (the user's commit) must make `documentChanged` true, or the case proved nothing. Skips with `hook: "labelEditor"` without the hooks (unless `absent` lists `"labelEditor"`) and with `hook: "open"` when the canvas shows no empty spot to click |
 
+**The legend's start state.** One case joins after `geometry` and runs in every host:
+
+| Case          | Checks                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `legendStart` | §5.10, §5.15: `open` at 390 × 844 and at 441 × 900, each as a first visit without a stored legend state: the legend is closed at 390 × 844 (at most 440px wide, although higher than 820px) and open at 441 × 900 (`data-legend="open"` on the root or the card visible). Skips with `hook: "legend"` without `show.legend`; with `legend` in `absent` there is nothing to verify |
+
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in
   `absent` is skipped with `hook` set to its name, a missing `drop` or `labelEditor` with `hook` set
@@ -2284,6 +2292,8 @@ host:
   `<html>` itself after `open`: every consumer suite then proves that the modeler stays in its own
   mode inside a dark host page, the case a foreign page meets in practice (designIQ, a web app on
   `system` under a dark OS).
+- `open` loads the modeler as on a first visit, without a stored legend state (`legend.open`
+  undefined), so the shell's default decides; `legendStart` reads it at two sizes.
 - For the `web` host (0.2) the kit calls `page.emulateMedia({ colorScheme, contrast })` from
   `requested` before `open`, and `open` loads the page without a stored `miragon.darstellung`; the
   `appearance` case then sets the choice through the Appearance group itself. Without

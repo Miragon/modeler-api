@@ -56,6 +56,16 @@ describe("legendStartsOpen (guide §5.10)", () => {
     expect(legendStartsOpen(821)).toBe(true);
     expect(legendStartsOpen(400)).toBe(false);
     expect(legendStartsOpen(1200)).toBe(true);
+    expect(legendStartsOpen(820, 1280)).toBe(false);
+    expect(legendStartsOpen(821, 1280)).toBe(true);
+  });
+
+  it("starts closed up to 440px container width, however high the container is", () => {
+    expect(legendStartsOpen(844, 390)).toBe(false);
+    expect(legendStartsOpen(900, 440)).toBe(false);
+    expect(legendStartsOpen(1200, 320)).toBe(false);
+    expect(legendStartsOpen(900, 441)).toBe(true);
+    expect(legendStartsOpen(700, 441)).toBe(false);
   });
 });
 

@@ -6,6 +6,7 @@ import {
   legalLineHeight,
   type Appearance,
   type AppearanceChoice,
+  type Size,
 } from "../core/index.js";
 import {
   absentIslandProblems,
@@ -16,6 +17,7 @@ import {
   focusHandBackProblems,
   isToolEntry,
   keyReachProblem,
+  legendStartProblems,
   leftoverProblems,
   lockedShapeProblems,
   menuClosedProblems,
@@ -299,6 +301,45 @@ const geometryCase: ShellConformanceCase = {
         emptyState: "the geometry of the start screen",
       }),
     ]);
+  },
+};
+
+/**
+ * Where the legend's start state flips (guide §5.10, §5.15): a phone, 390 × 844, keeps it closed
+ * although it is higher than 820px; one pixel wider than 440px it opens as before.
+ */
+const LEGEND_START: ReadonlyArray<{ size: Size; open: boolean }> = [
+  { size: { width: 390, height: 844 }, open: false },
+  { size: { width: SHELL.veryNarrow + 1, height: 900 }, open: true },
+];
+
+/**
+ * Guide §5.10: `open` loads the modeler as on a first visit, without a stored legend state, so the
+ * shell's default decides; at 390 × 844 the legend is closed, at 441 × 900 open.
+ */
+const legendStartCase: ShellConformanceCase = {
+  name: "legendStart",
+  async run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>) {
+    assertHooksConsistent("legendStart", harness, ["legend"]);
+    if (harness.absent?.includes("legend")) return undefined;
+    if (!harness.show?.legend) {
+      return finish(
+        "legendStart",
+        harness.host,
+        [],
+        [{ hook: "legend", reason: "show.legend is undefined: the legend's start state was not verified" }],
+      );
+    }
+    const root = harness.root ?? DEFAULT_ROOT;
+    const problems: string[] = [];
+    for (const { size, open } of LEGEND_START) {
+      await openHarness(page, harness, { size, requested: LIGHT });
+      await settle(page);
+      const measurement = await measureChrome(page, root);
+      const shown = measurement.open.legend || Boolean(measurement.islands.legend);
+      problems.push(...legendStartProblems({ container: measurement.container, open: shown }, open));
+    }
+    return finish("legendStart", harness.host, problems, []);
   },
 };
 
@@ -1148,6 +1189,7 @@ const cleanupCase: ShellConformanceCase = {
 export function createBaseCases(): ShellConformanceCase[] {
   return [
     geometryCase,
+    legendStartCase,
     ariaCase,
     keysCase,
     focusHandBackCase,

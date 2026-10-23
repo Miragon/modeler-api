@@ -45,6 +45,7 @@ describe("shellConformanceCases", () => {
   it("are the cases of every host, then the web column's after cleanup", () => {
     expect(shellConformanceCases().map((conformanceCase) => conformanceCase.name)).toEqual([
       "geometry",
+      "legendStart",
       "aria",
       "keys",
       "focusHandBack",
@@ -74,6 +75,7 @@ describe("registerShellConformance", () => {
   it("registers every case as `shell conformance: <name>`", () => {
     expect([...register(harness()).keys()]).toEqual([
       "shell conformance: geometry",
+      "shell conformance: legendStart",
       "shell conformance: aria",
       "shell conformance: keys",
       "shell conformance: focusHandBack",
@@ -191,7 +193,7 @@ describe("registerShellConformance", () => {
     const tests = register(
       harness({ open, absent: ["legend", "invalid"], show: { legend, invalid: legend } }),
     );
-    for (const name of ["geometry", "aria"]) {
+    for (const name of ["geometry", "legendStart", "aria"]) {
       await expect(tests.get(`shell conformance: ${name}`)!({ page: emptyPage() })).rejects.toThrow(
         `@miragon/modeler-shell conformance: ${name} (ide host)\n- harness: absent lists "legend", but show.legend is given`,
       );
@@ -229,6 +231,32 @@ describe("registerShellConformance", () => {
       size: { width: 800, height: 600 },
       requested: { theme: "light" },
     });
+  });
+
+  it("skips the legend's start state without show.legend and checks nothing for an absent legend", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    await register(harness({ open }), onSkip).get("shell conformance: legendStart")!({ page: emptyPage() });
+    await register(harness({ open, absent: ["legend"] }), onSkip).get("shell conformance: legendStart")!({
+      page: emptyPage(),
+    });
+    expect(onSkip.mock.calls).toEqual([
+      [
+        "legendStart",
+        [{ hook: "legend", reason: "show.legend is undefined: the legend's start state was not verified" }],
+      ],
+    ]);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("opens the legend's start state at 390 × 844 with a light request, whatever the harness sizes", async () => {
+    const open = vi.fn(async (_page: PageLike, _context: OpenContext) => {});
+    const legend = async () => {};
+    const tests = register(harness({ open, show: { legend }, sizes: [{ width: 800, height: 600 }] }));
+    await expect(tests.get("shell conformance: legendStart")!({ page: emptyPage() })).rejects.toThrow();
+    expect(open.mock.calls.map(([, context]) => context)).toEqual([
+      { size: { width: 390, height: 844 }, requested: { theme: "light" } },
+    ]);
   });
 
   it("skips the web column's cases the web harness cannot feed, before opening anything", async () => {

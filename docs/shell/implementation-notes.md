@@ -818,8 +818,14 @@ across a window reload, in the web app across sessions.
 
 - VS Code: `vscode.setState`, together with the viewbox (see [VS Code: state](#vs-code-state)).
 - Web app: `localStorage`. Wrap the access in `try`/`catch`: it throws when storage is blocked.
-- Without a stored state the start state (closed up to 820px height) is decided at the first
-  non-zero container size: a tab hidden at mount reports 0 × 0 and waits for its first real size.
+- Without a stored state the start state (closed up to 820px height and up to 440px width) is
+  decided at the first non-zero container size: a tab hidden at mount reports 0 × 0 and waits for
+  its first real size. A stored state wins at any size.
+- Up to 440px the fit keeps no room for the open legend (see [Fit math](#fit-math)), so on a phone
+  (390 × 844, higher than 820px) an open card covered the left of the fitted diagram. Since design
+  system 1.15.0 ([corporate-identity#37][ci-37], decided for
+  [modeler-api#51](https://github.com/Miragon/modeler-api/issues/51)) it starts closed there; above
+  440px nothing changed.
 
 ## Status box
 
@@ -997,7 +1003,8 @@ a `CanvasText` border, icons stay visible.
 
 **Guide [§5.15][guide-5.15].** Rule: the breakpoints measure the container: palette in a second row up
 to 760px width or when less than 16px would stay free next to a top-row island; inspector as bottom
-sheet up to 760px; legend above the bottom row up to 440px; legend starts closed up to 820px height.
+sheet up to 760px; legend above the bottom row up to 440px; legend starts closed up to 820px height
+and up to 440px width.
 
 - The breakpoints are `@container cd-shell (…)` queries on the shell root. Custom properties cannot be
   used in a container condition, so the queries carry the literal values (`max-width: 760px`,
@@ -1015,8 +1022,9 @@ sheet up to 760px; legend above the bottom row up to 440px; legend starts closed
   that attribute, and fit uses the matching top inset.
 - The palette in the second row scrolls horizontally without a visible scrollbar:
   `overflow-x: auto; scrollbar-width: none`.
-- The legend's start state (closed up to 820px height) is state, not style, so it is decided by
-  script from the container height (`--cd-shell-niedrig`), not by a container query.
+- The legend's start state (closed up to 820px height or 440px width) is state, not style, so it is
+  decided by script from the container height and width (`--cd-shell-niedrig`,
+  `--cd-shell-sehr-schmal`), not by a container query.
 
 ## Appearance decision
 
@@ -1881,6 +1889,7 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 - [ ] `Keyboard`: bound to the canvas `<svg>`, `preventDefault()` without `stopPropagation()`;
       `KeyboardBindings` at default priority 1000.
 
+[ci-37]: https://github.com/Miragon/corporate-identity/issues/37
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
 [guide-2]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#2-marken-grundlagen
 [guide-5]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#5-abst%C3%A4nde-layout-und-chrome

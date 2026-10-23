@@ -1,4 +1,11 @@
-import { INVALID_STATUS_DELAY_MS, type Appearance, type ShellHost, type Theme } from "../core/index.js";
+import {
+  INVALID_STATUS_DELAY_MS,
+  SHELL,
+  type Appearance,
+  type ShellHost,
+  type Size,
+  type Theme,
+} from "../core/index.js";
 import {
   DOM_ORDER,
   type AppearanceFacts,
@@ -303,6 +310,28 @@ export function focusHandBackProblems(steps: readonly FocusHandBackStep[]): stri
           `focus: after ${by} on ${control} the focus is on ${focus.focused}, expected it to stay on ${control}, so the next press acts again (guide §5.8)`,
         ];
   });
+}
+
+/** The legend right after `open`, without a stored state (guide §5.10). */
+export interface LegendStartFacts {
+  container: Size;
+  /** The root carries `data-legend="open"` or the card is visible. */
+  open: boolean;
+}
+
+/**
+ * Guide §5.10, §5.15: without a stored state the legend starts closed in a container at most 440px
+ * wide (`--cd-shell-sehr-schmal`), where the fit keeps no room for it, or at most 820px high
+ * (`--cd-shell-niedrig`); open otherwise.
+ */
+export function legendStartProblems(facts: LegendStartFacts, expectedOpen: boolean): string[] {
+  if (facts.open === expectedOpen) return [];
+  const at = `${Math.round(facts.container.width)} × ${Math.round(facts.container.height)}`;
+  return [
+    expectedOpen
+      ? `legend: closed on first load in a ${at} container; without a stored state it starts open above ${SHELL.veryNarrow}px width and ${SHELL.low}px height (guide §5.10)`
+      : `legend: open on first load in a ${at} container; without a stored state it starts closed up to ${SHELL.veryNarrow}px width, where the open card would cover the fitted diagram (guide §5.10, §5.15)`,
+  ];
 }
 
 /** A palette entry with the keyboard focus: its tooltip's chip and what it names for assistive technology. */

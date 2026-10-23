@@ -5,7 +5,7 @@ import type { TooltipController } from "./tooltip.js";
 import type { LegendHandle, LegendOptions } from "./types.js";
 
 export interface LegendController extends LegendHandle {
-  /** The start state once the container height is known; never reported through `onToggle`. */
+  /** The start state once the container size is known; never reported through `onToggle`. */
   start(open: boolean): void;
   isStarted(): boolean;
   destroy(): void;

@@ -17,6 +17,7 @@ import {
   labelEditorOpenProblems,
   labelEditorStepProblems,
   leftoverProblems,
+  legendStartProblems,
   lockedShapeProblems,
   menuClosedProblems,
   menuKeysAtDocumentProblems,
@@ -1000,6 +1001,28 @@ function created(overrides: Partial<CreateFacts> = {}): CreateFacts {
     ...overrides,
   };
 }
+
+describe("legendStartProblems", () => {
+  const phone = { width: 390, height: 844 };
+  const wide = { width: 441, height: 900 };
+
+  it("accepts a legend closed on a phone and open one pixel above 440px", () => {
+    expect(legendStartProblems({ container: phone, open: false }, false)).toEqual([]);
+    expect(legendStartProblems({ container: wide, open: true }, true)).toEqual([]);
+  });
+
+  it("reports a legend that opens on a phone because only the height decided", () => {
+    expect(legendStartProblems({ container: phone, open: true }, false)).toEqual([
+      "legend: open on first load in a 390 × 844 container; without a stored state it starts closed up to 440px width, where the open card would cover the fitted diagram (guide §5.10, §5.15)",
+    ]);
+  });
+
+  it("reports a legend that stays closed above 440px and 820px", () => {
+    expect(legendStartProblems({ container: wide, open: false }, true)).toEqual([
+      "legend: closed on first load in a 441 × 900 container; without a stored state it starts open above 440px width and 820px height (guide §5.10)",
+    ]);
+  });
+});
 
 describe("focusHandBackProblems", () => {
   const onCanvas = { focused: "svg", canvas: true, control: false };

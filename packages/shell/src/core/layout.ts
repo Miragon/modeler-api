@@ -37,8 +37,13 @@ export function decidePaletteRow(input: PaletteRowInput): PaletteRow {
   return "top";
 }
 
-/** The legend starts open unless the container is at most `SHELL.low` high (guide §5.10). */
-export function legendStartsOpen(containerHeight: number): boolean {
+/**
+ * The legend starts open unless the container is at most `SHELL.low` high or at most
+ * `SHELL.veryNarrow` wide (guide §5.10, §5.15): up to 440px the fit reserves no room for the open
+ * card, so it would cover the diagram. Without `containerWidth` only the height decides.
+ */
+export function legendStartsOpen(containerHeight: number, containerWidth?: number): boolean {
+  if (containerWidth !== undefined && containerWidth <= SHELL.veryNarrow) return false;
   return containerHeight > SHELL.low;
 }
 
