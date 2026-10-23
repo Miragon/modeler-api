@@ -14,6 +14,7 @@ import { WEBVIEW_THEMES } from '../src/themes.js';
  * VSCODE_VERSION picks the VS Code (`stable`, `1.96.0`; default the newest stable release that
  * satisfies engines.vscode), so CI runs the engines floor too. VSCODE_SMOKE_EXTENSION points at
  * another build of the extension: the release smoke-tests the unpacked VSIX it is about to upload.
+ * VSCODE_SMOKE_KEEP=1 keeps VS Code's profile, so CI can upload VS Code's logs of a failed run.
  */
 it('__DISPLAY_NAME__ in a real VS Code', { timeout: 600_000 }, async () => {
   const result = await runVsCodeSmoke({
@@ -30,6 +31,7 @@ it('__DISPLAY_NAME__ in a real VS Code', { timeout: 600_000 }, async () => {
     name: '__NOTATION__',
     screenshotDir: 'test-results/vscode-smoke',
     vscodeVersion: process.env.VSCODE_VERSION || undefined,
+    keepTemporaryFiles: process.env.VSCODE_SMOKE_KEEP === '1',
     log: console.log,
   });
   console.log(formatVsCodeSmoke(result));

@@ -704,6 +704,7 @@ const NON_API_NAMES = new Map<string, string>([
   ["SKIPPED_BY_DESIGN", "the template's CI gate"],
   ["VSCODE_VERSION", "the template's VS Code smoke test"],
   ["VSCODE_SMOKE_EXTENSION", "the template's VS Code smoke test"],
+  ["VSCODE_SMOKE_KEEP", "the template's VS Code smoke test"],
   ["BEGIN_COMMIT_OVERRIDE", "release-please"],
   ["updatePeerDependencies", "release-please"],
   ["END_COMMIT_OVERRIDE", "release-please"],
@@ -891,10 +892,12 @@ describe("the template's VS Code smoke step", () => {
 
 interface WorkflowStep {
   id?: string;
+  if?: string;
   run?: string;
   shell?: string;
   env?: Record<string, string>;
   uses?: string;
+  with?: Record<string, string>;
 }
 interface WorkflowJob {
   name?: string;
@@ -1076,10 +1079,41 @@ describe("the template's VS Code smoke workflows", () => {
       cache: join(tmpdir(), ".cache/miragon-modeler-shell/vscode-test"),
     });
     const run = smokeJob.steps?.find((candidate) => candidate.run?.includes("test:vscode-smoke"));
-    expect(run?.env).toEqual({ VSCODE_VERSION: "${{ steps.vscode.outputs.version }}" });
+    expect(run?.env).toEqual({
+      VSCODE_VERSION: "${{ steps.vscode.outputs.version }}",
+      VSCODE_SMOKE_KEEP: "1",
+      TMPDIR: "${{ runner.temp }}",
+    });
     expect(readText(join(TEMPLATE, `${SMOKE_STEP}vscode-smoke.test.ts`))).toContain(
       "vscodeVersion: process.env.VSCODE_VERSION",
     );
+  });
+
+  it("keep VS Code's profile in RUNNER_TEMP and upload its logs when a smoke fails", () => {
+    expect(readText(join(TEMPLATE, `${SMOKE_STEP}vscode-smoke.test.ts`))).toContain(
+      "keepTemporaryFiles: process.env.VSCODE_SMOKE_KEEP === '1'",
+    );
+    const logs = "${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/";
+    expect(
+      smokeJob.steps?.filter((candidate) => candidate.with?.path === logs).map((candidate) => candidate.if),
+    ).toEqual(["failure()"]);
+    const smoking = Object.entries(release.jobs).filter(([, job]) =>
+      job.steps?.some((candidate) => candidate.run?.includes("npm run test:vscode-smoke")),
+    );
+    expect(smoking.map(([id]) => id).sort()).toEqual(["dry-run", "publish-open-vsx", "publish-vscode"]);
+    for (const [id, job] of smoking) {
+      const smoked = job.steps!.find((candidate) => candidate.run?.includes("npm run test:vscode-smoke"));
+      expect([id, smoked?.env?.VSCODE_SMOKE_KEEP, smoked?.env?.TMPDIR]).toEqual([
+        id,
+        "1",
+        "${{ runner.temp }}",
+      ]);
+      const upload = job.steps!.find((candidate) => candidate.if === "failure()");
+      expect([id, String(upload?.with?.path).split("\n").filter(Boolean)]).toEqual([
+        id,
+        ["test-results/vscode-smoke/", logs],
+      ]);
+    }
   });
 
   it("smoke-test the packed VSIX in every job that publishes it, before the upload", () => {

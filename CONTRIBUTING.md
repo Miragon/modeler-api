@@ -125,11 +125,12 @@ a change there whatever its type; use the scope `plugin` (`feat(plugin): …`, `
 - **The template's CI gate** is part of the drift test too. It fails when `ci-ok` in the
   template's `ci.yml` does not need every other job of it, when a job other than
   `dependency-review` may be skipped, when the VS Code smoke workflow is not the reusable one that
-  CI and the weekly run call (with `issues: write` only on the weekly `alert` job), or when a job
-  that publishes the VSIX does not smoke-test it first. It runs the scripts of the gate, of the
-  smoke workflow's path check and of its `engines.vscode` lookup, taken from the workflow files,
-  with bash, `jq` and git against sample results and sample diffs (non-ASCII and moved paths
-  included). `yaml` is a root devDependency for reading the workflows.
+  CI and the weekly run call (with `issues: write` only on the weekly `alert` job), when a job
+  that publishes the VSIX does not smoke-test it first, or when a smoke does not keep VS Code's
+  logs for a failed run. It runs the scripts of the gate, of the smoke workflow's path check and of
+  its `engines.vscode` lookup, taken from the workflow files, with bash, `jq` and git against sample
+  results and sample diffs (non-ASCII, quoted and moved paths included). `yaml` is a root
+  devDependency for reading the workflows.
 - **The template itself** builds and passes both conformance kits once instantiated: run the script
   into an empty directory outside this repository, copy the design-system files in (see the
   skill), then `npm install` and the template's checks. `claude plugin validate .` checks the
