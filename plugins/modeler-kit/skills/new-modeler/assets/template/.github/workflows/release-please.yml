@@ -110,7 +110,7 @@ jobs:
             ${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Publish to the VS Code Marketplace
+      - name: Publish to VS Code Marketplace
         working-directory: apps/vscode
         run: npx vsce publish --packagePath __REPO__.vsix
         env:
@@ -154,7 +154,7 @@ jobs:
             ${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/
           if-no-files-found: ignore
           retention-days: 7
-      - name: Publish to Open VSX
+      - name: Publish to Open VSX Marketplace
         working-directory: apps/vscode
         run: npx ovsx publish --packagePath __REPO__.vsix --pat "$OVSX_PAT"
         env:
