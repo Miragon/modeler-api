@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.5.1...webapp-v0.6.0) (2026-10-23)
+
+
+### Features
+
+* **renderer:** report the content bounds a host fits to (contract 1.3); apps adopt modeler-shell 0.4.0 ([#91](https://github.com/Miragon/context-maps-modeler/issues/91)) ([f515215](https://github.com/Miragon/context-maps-modeler/commit/f515215618f7544e6945d72ca1e43f9795b799f1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-renderer bumped from 0.4.1 to 0.5.0
+
 ## [0.5.1](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.5.0...webapp-v0.5.1) (2026-10-22)
 
 
