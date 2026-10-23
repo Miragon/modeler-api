@@ -1747,6 +1747,74 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   bridge's message, `data-cd-theme` and `data-cd-kontrast` on `<html>`, and the end of the shell's
   one-frame transition stop. The driver waits for each and only then takes the screenshot. A switch
   took 0.1 to 0.5 s.
+- **A switch VS Code misses (0.4.1).** Now and then VS Code did not switch on such a write, and the
+  workbench kept the previous theme through the driver's whole wait: "Default Dark Modern: the
+  workbench never switched (no .vs-dark)" in Docker runs of Context Maps and Team Topologies (VS Code
+  1.143.0, `linux-arm64`), once in three Event Storming runs, and "Default High Contrast Light: …
+  (no .hc-light)" in Context Maps' CI on `ubuntu-latest` with VS Code 1.143.1, where it failed a
+  pull request after 30 s ([#35](https://github.com/Miragon/modeler-api/issues/35)). Event Storming's
+  smoke test ran the whole test once more on exactly that failure. The driver now retries within the
+  wait (`switchWorkbenchTheme` in `theme-switch.ts`). Decisions:
+  - _Write again after 2 s._ A switch VS Code takes is done within 0.9 s (1 to 876 ms over the
+    runs below, those under load included); a write it missed stayed missed for the 30 s. Writing
+    the same text again is a new change for VS Code's file watcher, which covers a change event that
+    got lost.
+  - _Then through a third theme and back, after another 2 s._ When VS Code read the setting but did
+    not apply it, its configuration already holds the value, and the same text again changes
+    nothing. The driver writes a default theme of neither the requested kind nor the shown one,
+    waits until the workbench shows it (so VS Code read that write, and the two writes cannot merge
+    into one change), and writes the requested theme again.
+  - _Wait for the detour until 2 s before the deadline._ Waiting only 2 s for it let a VS Code that
+    applies a write more than 4 s late end on the detour: the workbench showed the requested theme
+    from the first write, the driver accepted it after the way back, and the detour landed during
+    the webview check (reproduced with a fake VS Code at 4.1 to 7 s; no real run came near that,
+    see below). Waiting for the detour keeps every write before the way back done. When the detour
+    never shows, VS Code missed that write too or has not applied it yet, so the driver writes the
+    requested theme 2 s before the deadline and counts it only if the workbench still shows it at
+    the deadline.
+  - _Within `timeoutMs`._ The retries are part of the one wait, counted from the first write (the
+    first two steps get at most a quarter of it each): a theme still fails after 30 s, and a switch
+    VS Code takes at once costs nothing more. Every retry is in the log.
+  - _A failure names both themes._ VS Code puts a theme's type class and its own class
+    (`<extension id>-<theme file>`, `vscode-theme-defaults-themes-hc_black-json`) on
+    `.monaco-workbench` in one `classList.add`, so the class after the type class is the theme's.
+    The driver names a theme by the classes it showed earlier in the run: "requested Default High
+    Contrast Light, VS Code shows Default High Contrast (.hc-black.vscode-theme-defaults-themes-hc_black-json)".
+    A theme the run never showed keeps its classes, for VS Code's own default (Dark 2026) after an
+    empty read, say. The failure still starts with "the workbench never switched", which modelers'
+    retries match, so a modeler can drop its retry whenever it updates.
+  - _Measured_ in Docker on an Apple silicon Mac with VS Code 1.143.1 (`linux-arm64`) and the
+    Context Maps extension, the driver linked into its `node_modules`: ten consecutive runs of its
+    smoke test (40 switches), 100 runs of the smoke test's sequence (400 switches) and 1000 switches
+    in ten sessions of 25 rounds through the four themes all switched on the first write, in 1 to
+    382 ms (median 314 ms). With every CPU of the container kept busy by a shell loop, VS Code
+    missed a write in 3 of 130 runs of the sequence; each of the three switched on the rewrite, 2.4
+    s after the first write, and all 130 runs passed. To see the detour at work too, the test put
+    the previous theme back into `settings.json` right after the driver's write of Default Dark
+    Modern, before VS Code read it. 0.4.0 failed both such runs after 30 s with "themes: Default
+    Dark Modern: the workbench never switched (no .vs-dark)". With the retries, six such runs with
+    twelve such switches passed: six switched on the rewrite, 2.1 to 2.4 s after the first write,
+    and six whose rewrite was put back too switched through Default High Contrast, 4.6 to 4.8 s
+    after it.
+  - _Where the misses came from._ A test that watched `settings.json` found a second writer, VS
+    Code itself. VS Code 1.125 changed `extensions.autoUpdate` from a boolean to `"on"` and
+    `"off"` (1.124 still has the boolean), and a configuration migration turns the driver's `false`
+    into `"off"`; modelers on any VS Code from 1.125 on were exposed. The migration
+    runs once, in the workbench's last start-up phase, which under load falls into the themes step,
+    and it writes through VS Code's own model of the file, which can still hold the file from before
+    the driver's last write. In the three misses VS Code wrote the file 5, 25 and 41 ms after the
+    driver's write with the previous theme in it (and `"off"`, in the two runs whose test logged
+    every key), so it never read the requested theme. The driver therefore writes `"off"` itself
+    (0.4.1). VS Code before the change (1.96 knows `true`, `"onlyEnabledExtensions"` and `false`)
+    reads `"off"` as its default, `true`, which does nothing while auto check is off
+    (`extensions.autoCheckUpdates: false`). The other value VS Code migrates, the color theme's old
+    name (`"Default Light Modern"` becomes `"Light Modern"`), it rewrites while it starts, before the
+    open step ends, in every run measured. Under the same load, 80 runs each: with 0.4.0 the
+    migration wrote the file during the themes step in 79 runs and put the previous theme back in 2,
+    which failed after 30 s with "themes: Default High Contrast: the workbench never switched (no
+    .hc-black)"; with the retries alone it did so in 61 runs and 2, which the rewrite rescued; with
+    `"off"` VS Code did not write the file after the open step in any run, and all 320 switches
+    happened on the first write, in 1 to 521 ms.
 - **Screenshots.** Before the first theme the driver blurs the webview: the edit went through the
   keyboard, so the canvas shows its focus ring, which would be in every picture. Screenshots are in
   CSS pixels, the same size on a Retina Mac and on a CI runner.

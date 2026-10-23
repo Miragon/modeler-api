@@ -34,12 +34,17 @@ import {
 } from "./result.js";
 import { readSaveOnceClean } from "./save.js";
 import {
+  missedThemeSwitch,
+  switchWorkbenchTheme,
+  workbenchThemeKey,
+  type WorkbenchThemeSwitch,
+} from "./theme-switch.js";
+import {
   VSCODE_COLOR_THEMES,
   WEBVIEW_THEME_BODY_CLASSES,
   describeAppearance,
   expectedWebviewAppearance,
   webviewBodyClasses,
-  workbenchThemeClass,
   type VsCodeColorTheme,
 } from "./themes.js";
 import {
@@ -51,7 +56,7 @@ import {
   focusCreatingEntryProbe,
   settleProbe,
   webviewThemeProbe,
-  workbenchThemeProbe,
+  workbenchClassesProbe,
   workbenchWebviewsProbe,
   type CanvasFacts,
   type WebviewThemeFacts,
@@ -570,18 +575,26 @@ async function runSession(run: SessionRun): Promise<void> {
   await step("themes", async () => {
     // The keyboard edit leaves the canvas focused; its focus ring would show in every screenshot.
     await html.evaluate(blurProbe);
+    const shownThemes = new Map<string, string>();
     for (const theme of run.colorThemes) {
       const checked = await checkTheme(context, theme, {
         themes: run.themes,
         islands,
         timeoutMs,
         writeSettings,
+        shownThemes,
+        log: (line) => log(`themes: ${line}`),
         screenshotDir: options.screenshotDir,
         name: run.name,
       });
       result.themes.push(checked.result);
       for (const failure of checked.failures) failures.add("themes", failure);
-      log(`themes: ${theme.name}, the webview shows ${describeAppearance(checked.result.observed)}`);
+      const workbench = checked.workbench.switched
+        ? `switched in ${checked.workbench.ms} ms`
+        : "never switched";
+      log(
+        `themes: ${theme.name}, the workbench ${workbench}, the webview shows ${describeAppearance(checked.result.observed)}`,
+      );
     }
   });
 }
@@ -672,6 +685,9 @@ interface ThemeCheckOptions {
   islands: readonly ChromeIsland[];
   timeoutMs: number;
   writeSettings: (colorTheme: string) => Promise<void>;
+  /** The themes the workbench showed so far in the run, to name the one it shows when a switch fails. */
+  shownThemes: Map<string, string>;
+  log: (line: string) => void;
   screenshotDir: string | undefined;
   name: string;
 }
@@ -680,7 +696,7 @@ async function checkTheme(
   context: VsCodeSmokeContext,
   theme: VsCodeColorTheme,
   options: ThemeCheckOptions,
-): Promise<{ result: VsCodeSmokeThemeResult; failures: string[] }> {
+): Promise<{ result: VsCodeSmokeThemeResult; failures: string[]; workbench: WorkbenchThemeSwitch }> {
   const since = performance.now();
   const failures: string[] = [];
   const html = context.webview.locator("html");
@@ -688,16 +704,20 @@ async function checkTheme(
   const bodyClasses = [...webviewBodyClasses(theme.kind)].sort().join(" ");
 
   // VS Code watches its settings file: the theme changes the way a user's setting change does.
-  await options.writeSettings(theme.name);
-  const workbench = await pollUntil(
-    () => context.page.evaluate(workbenchThemeProbe, workbenchThemeClass(theme.kind)),
-    (switched) => switched,
-    options.timeoutMs,
-  );
+  const workbench = await switchWorkbenchTheme({
+    theme,
+    writeSettings: options.writeSettings,
+    readWorkbench: () => context.page.evaluate(workbenchClassesProbe),
+    timeoutMs: options.timeoutMs,
+    intervalMs: POLL_INTERVAL_MS,
+    names: options.shownThemes,
+    log: options.log,
+  });
   let facts: WebviewThemeFacts | undefined;
-  if (!workbench.met) {
-    failures.push(`${theme.name}: the workbench never switched (no .${workbenchThemeClass(theme.kind)})`);
+  if (!workbench.switched) {
+    failures.push(missedThemeSwitch(theme, workbench, options.shownThemes));
   } else {
+    options.shownThemes.set(workbenchThemeKey(workbench.shown), theme.name);
     const shown = await pollUntil(
       () => html.evaluate(webviewThemeProbe, WEBVIEW_THEME_BODY_CLASSES),
       (value) =>
@@ -724,7 +744,7 @@ async function checkTheme(
   if (missing) failures.push(`${theme.name}: ${missing}`);
 
   let screenshot: string | undefined;
-  if (options.screenshotDir && workbench.met) {
+  if (options.screenshotDir && workbench.switched) {
     await mkdir(options.screenshotDir, { recursive: true });
     screenshot = join(resolve(options.screenshotDir), screenshotFileName(options.name, theme));
     // CSS pixels: the same image size on a Retina Mac and on a CI runner
@@ -742,5 +762,6 @@ async function checkTheme(
       ok: failures.length === 0,
     },
     failures,
+    workbench,
   };
 }

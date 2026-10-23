@@ -63,8 +63,9 @@ export const webviewThemeProbe = (_html: Element, themeClasses: readonly string[
   };
 };
 
-export const workbenchThemeProbe = (themeClass: string): boolean =>
-  document.querySelector(".monaco-workbench")?.classList.contains(themeClass) ?? false;
+export const workbenchClassesProbe = (): string[] => [
+  ...(document.querySelector(".monaco-workbench")?.classList ?? []),
+];
 
 export const workbenchWebviewsProbe = (): string[] =>
   [...document.querySelectorAll("iframe.webview")].map((frame) => frame.getAttribute("src") ?? "");

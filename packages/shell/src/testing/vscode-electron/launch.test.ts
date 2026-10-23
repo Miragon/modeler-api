@@ -88,6 +88,13 @@ describe("vsCodeUserSettings", () => {
     });
   });
 
+  it("turns off extension updates with a value VS Code does not migrate by rewriting the file", () => {
+    expect(settings).toMatchObject({
+      "extensions.autoCheckUpdates": false,
+      "extensions.autoUpdate": "off",
+    });
+  });
+
   it("lets extra settings win", () => {
     const extra = vsCodeUserSettings({
       colorTheme: "Default Light Modern",

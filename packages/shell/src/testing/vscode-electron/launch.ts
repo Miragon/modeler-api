@@ -98,7 +98,9 @@ export function vsCodeUserSettings(options: UserSettingsOptions): Record<string,
     "telemetry.telemetryLevel": "off",
     "update.mode": "none",
     "extensions.autoCheckUpdates": false,
-    "extensions.autoUpdate": false,
+    // VS Code 1.125 and later migrate `false` by writing settings.json themselves, from a copy that can
+    // predate the driver's last write: that put the previous theme back during the themes step
+    "extensions.autoUpdate": "off",
     "extensions.ignoreRecommendations": true,
     "security.workspace.trust.enabled": false,
     "git.enabled": false,
