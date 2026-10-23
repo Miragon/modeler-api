@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.6.0...webapp-v0.6.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** adopt modeler-shell 0.4.1, whose VS Code driver retries a missed theme switch ([#93](https://github.com/Miragon/context-maps-modeler/issues/93)) ([e4a20cb](https://github.com/Miragon/context-maps-modeler/commit/e4a20cb6d44bd9fcb4bfc3754570b8bc093aadea))
+
 ## [0.6.0](https://github.com/Miragon/context-maps-modeler/compare/webapp-v0.5.1...webapp-v0.6.0) (2026-10-23)
 
 
