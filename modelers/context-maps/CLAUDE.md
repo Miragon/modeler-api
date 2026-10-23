@@ -67,10 +67,16 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   `test-results/vscode-smoke/`. No retry: the driver (0.3.2) reads the save only once the tab is
   clean and the file holds still, so a failed save check is the extension's, not a race; the
   driver's failures are a soft assertion, so another step's failure cannot hide the save's. Opt-in
-  (needs a display, downloads VS Code once); CI runs it in `vscode-smoke.yml` under `xvfb-run -a`,
-  not in `ci.yml`. Locally run `npm run test:vscode:docker` (the shell's
-  `modeler-shell-vscode-docker`: the same test in a Linux container, no window, no focus taken);
-  `npm run test:vscode` opens a real VS Code window on macOS.
+  (needs a display, downloads VS Code once). CI runs it under `xvfb-run -a` in the reusable
+  `vscode-smoke.yml`: `ci.yml` calls it as the job `vscode-smoke` (part of the `ci-ok` gate; it runs
+  only when a path the extension or the test depends on changed), `vscode-smoke-weekly.yml` every
+  Monday (a failure opens a tracking issue), and the release smokes the very VSIX it publishes
+  (`VSCODE_SMOKE_VSIX`); screenshots as the `vscode-smoke-<stable|minimum>` artifacts, logs of a
+  failed run as `vscode-smoke-logs-<stable|minimum>`. Locally run `npm run test:vscode:docker` (the
+  shell's `modeler-shell-vscode-docker`: the same test in a Linux container, no window, no focus
+  taken; `-- --env VSCODE_SMOKE_KEEP=1` brings VS Code's logs back into
+  `test-results/vscode-smoke/vscode-logs/`); `npm run test:vscode` opens a real VS Code window on
+  macOS.
 
 ## Monorepo (npm workspaces)
 
@@ -119,9 +125,9 @@ violating import fails `npm run lint` and `npm run depcruise`.
   Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`, default 5180) and the VS Code
   webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) · `npm run test:vscode:docker`
   — the packaged extension in a real VS Code inside Docker, without a window (the local way;
-  `-- --env VSCODE_SMOKE_VERSION=1.96.0` picks the version) · `npm run test:vscode` — the same on
-  the host, for CI (Linux under `xvfb-run -a`) and for a visible window on macOS
-  (`VSCODE_SMOKE_VERSION` picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
+  `-- --env VSCODE_VERSION=1.96.0` picks the version) · `npm run test:vscode` — the same on the
+  host, for CI (Linux under `xvfb-run -a`) and for a visible window on macOS (`VSCODE_VERSION`
+  picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
 - `npm run notices -w apps/vscode` — regenerate `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test
   fails when it is stale)
 - `npm run typecheck` · `npm run lint` (ESLint + typecheck)
@@ -131,6 +137,12 @@ Requirements: Node ≥ 24.15, npm. The packages are consumed from **source** (Vi
 aliases), so neither the apps nor the tests need a prior package build; `npm run build` is for
 publishing the libraries. The Husky pre-commit hook runs **only** lint-staged + `npm run lint`
 (ESLint + type-check) — **not** tests/build/depcruise; run `npm test` yourself before pushing.
+
+**CI:** the job `ci-ok` in [`ci.yml`](.github/workflows/ci.yml) is the merge gate. It needs every
+other job of `ci.yml` and fails when one of them failed, was cancelled or was skipped (only
+`dependency-review` may skip, outside pull requests), so a **new job in `ci.yml` goes into `ci-ok`'s
+`needs`**. `ci-ok` and the PR title check `validate-pr-title` are the checks for the `main` ruleset
+to require, not the single jobs. See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci-and-the-merge-gate).
 
 ## Git
 

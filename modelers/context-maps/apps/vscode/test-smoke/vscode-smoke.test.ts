@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import {
@@ -25,12 +25,19 @@ let extensionPath: string;
 /**
  * The extension as the release ships it: `vsce package --no-dependencies` runs `vscode:prepublish`
  * and applies `.vscodeignore`, and the unpacked VSIX lies outside the repository, so a module the
- * bundle still requires at runtime cannot fall back to the workspace's node_modules.
+ * bundle still requires at runtime cannot fall back to the workspace's node_modules. The release
+ * passes the VSIX it is about to publish in `VSCODE_SMOKE_VSIX`, so the test opens that very file.
  */
-async function packAndUnpackExtension(): Promise<string> {
+async function unpackExtension(): Promise<string> {
   packageDirectory = await mkdtemp(join(tmpdir(), "context-maps-vsix-"));
-  const vsixPath = join(packageDirectory, "context-maps-modeler.vsix");
-  await createVSIX({ cwd: appDirectory, packagePath: vsixPath, dependencies: false });
+  const prebuiltVsix = process.env.VSCODE_SMOKE_VSIX;
+  const vsixPath = prebuiltVsix
+    ? resolve(repositoryRoot, prebuiltVsix)
+    : join(packageDirectory, "context-maps-modeler.vsix");
+  if (!prebuiltVsix) {
+    await createVSIX({ cwd: appDirectory, packagePath: vsixPath, dependencies: false });
+  }
+  report(`[vscode-smoke] VSIX ${vsixPath}`);
   await promisify(execFile)("unzip", ["-q", vsixPath, "-d", packageDirectory]);
   return join(packageDirectory, "extension");
 }
@@ -52,7 +59,7 @@ function report(line: string): void {
 }
 
 beforeAll(async () => {
-  extensionPath = await packAndUnpackExtension();
+  extensionPath = await unpackExtension();
 }, 300_000);
 
 afterAll(async () => {
@@ -70,7 +77,8 @@ async function openEditSaveUndoAndTheme(): Promise<void> {
     themes: WEBVIEW_THEMES,
     name: "context-maps",
     screenshotDir: screenshotDirectory,
-    vscodeVersion: process.env.VSCODE_SMOKE_VERSION || undefined,
+    vscodeVersion: process.env.VSCODE_VERSION || undefined,
+    keepTemporaryFiles: process.env.VSCODE_SMOKE_KEEP === "1",
     log: (line) => report(`[vscode-smoke] ${line}`),
   });
   report(formatVsCodeSmoke(result));

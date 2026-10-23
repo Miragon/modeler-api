@@ -24,6 +24,7 @@ updates:
       # they come in a PR of their own, never auto-merged (see dependabot-automerge.yml), and are
       # landed as `fix(deps): adopt modeler-shell x.y` so release-please releases them.
       modeler-platform:
+        applies-to: version-updates
         patterns:
           - "@miragon/modeler-*"
       # Majors get their own PR so breaking changes never hide inside a routine bump.
