@@ -155,7 +155,7 @@ test("the contract factories take the aligned options; the viewer ignores undoRe
       await mount.importText(serializeDocumentText(SAMPLE_DOCUMENT));
       expect(mount.getViewState()).toEqual(set);
     }
-    expect(modeler.meta.apiVersion).toBe("1.2.0");
+    expect(modeler.meta.apiVersion).toBe("1.3.0");
   } finally {
     modeler.destroy();
     viewer.destroy();

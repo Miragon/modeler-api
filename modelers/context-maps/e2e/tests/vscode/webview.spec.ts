@@ -211,6 +211,54 @@ test.describe("VS Code webview: protocol and chrome", () => {
     await expect.poll(() => zoom(page)).toBeCloseTo(fitted, 2);
   });
 
+  test("the fitView command frames the box the renderer reports as the map's content", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    // Low enough for the legend to start closed (guide §5.10): the open card's width settles after
+    // the first fit, and the insets read afterwards would no longer be the ones the fit used.
+    await openWebview(page, { size: { width: 1280, height: 800 } });
+    await expect(page.locator(".cd-shell")).not.toHaveAttribute("data-legend", "open");
+    // A box no context of the map spans: only the contract's contentBounds() names it.
+    const reported = { x: 5000, y: 3000, width: 200, height: 100 };
+    await page.evaluate((box) => {
+      Object.assign(window.modeler!, { contentBounds: () => box });
+    }, reported);
+
+    await postFromHost(page, { type: "command", name: "fitView" });
+
+    const framed = (box: typeof reported) => {
+      const insets = window.shell!.fitInsets();
+      const canvas = window.modeler!.diagram.get<{
+        viewbox(): { x: number; y: number; scale: number };
+        getSize(): { width: number; height: number };
+      }>("canvas");
+      const { x, y, scale } = canvas.viewbox();
+      const { width, height } = canvas.getSize();
+      return {
+        scale,
+        offsetX:
+          (box.x + box.width / 2 - x) * scale -
+          (insets.left + (width - insets.left - insets.right) / 2),
+        offsetY:
+          (box.y + box.height / 2 - y) * scale -
+          (insets.top + (height - insets.top - insets.bottom) / 2),
+      };
+    };
+    // Below 1px counts as centred, as in the web app's test; a miss shows its offset.
+    const withinAPixel = (offset: number) => (Math.abs(offset) < 1 ? 0 : offset);
+    await expect
+      .poll(async () => {
+        const { scale, offsetX, offsetY } = await page.evaluate(framed, reported);
+        return {
+          scale: Math.round(scale * 1000) / 1000,
+          offsetX: withinAPixel(offsetX),
+          offsetY: withinAPixel(offsetY),
+        };
+      })
+      .toEqual({ scale: 1, offsetX: 0, offsetY: 0 });
+  });
+
   test("the export commands post the map as PNG, SVG, JSON and CML", async ({ page }) => {
     await openWebview(page);
     for (const name of ["exportPng", "exportSvg", "exportJson", "exportCml"]) {

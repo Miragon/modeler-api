@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { CD_TOKENS, MIRAGON } from "../src/theme/palette.js";
+import { LEGEND_CLOSED_UP_TO } from "../src/theme/sizes.js";
 
 /**
  * Drift guard for the design system (the `miragon-brand:modeler-tool-design` skill; CLAUDE.md
@@ -23,7 +24,7 @@ const vendored = {
   "cd-canvas.css": readSource("../src/theme/cd-canvas.css"),
 };
 
-/** SHA-256 of the files as published in design system 1.13.0. */
+/** SHA-256 of the files as published in design system 1.13.0, unchanged through 1.15.0. */
 const RELEASE_1_13_0: Record<keyof typeof vendored, string> = {
   "cd-tokens.generated.css": "36ccd5bbcb732c57143e32f13172967467dd574ae1ac5d84d6c601d0ab0847a1",
   "cd-tokens.generated.json": "549a244fba0951e9b77fed0f5d2172cb793191913326f08749e167ac7fdbb127",
@@ -72,7 +73,7 @@ function zIndexOf(selector: string): number {
 }
 
 describe("theme.sync — the vendored design-system files", () => {
-  it("are unchanged copies of design system 1.13.0", () => {
+  it("are unchanged copies of design system 1.15.0 (the files of 1.13.0)", () => {
     for (const [name, source] of Object.entries(vendored)) {
       const hash = createHash("sha256").update(source, "utf8").digest("hex");
       expect(hash, name).toBe(RELEASE_1_13_0[name as keyof typeof vendored]);
@@ -103,6 +104,13 @@ describe("theme.sync — MIRAGON mirrors the vendored tokens", () => {
     expect(MIRAGON.danger).toBe(tokens.fest["--cd-danger"]);
     expect(MIRAGON.info).toBe(tokens.fest["--cd-info"]);
     expect(MIRAGON.linie).toBe(tokens.fest["--cd-linie"]);
+  });
+});
+
+describe("theme.sync — the shell sizes the renderer's own chrome reads", () => {
+  it("closes the legend card up to the release's very narrow width and low height", () => {
+    expect(`${LEGEND_CLOSED_UP_TO.width}px`).toBe(tokens.shell["--cd-shell-sehr-schmal"]);
+    expect(`${LEGEND_CLOSED_UP_TO.height}px`).toBe(tokens.shell["--cd-shell-niedrig"]);
   });
 });
 

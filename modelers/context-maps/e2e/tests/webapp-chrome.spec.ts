@@ -104,6 +104,40 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await expect(page).toHaveTitle(`${EXAMPLE_TITLE} · Context Maps Modeler`);
   });
 
+  test("Fit frames the box the renderer reports as the map's content", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openMap(page, SAMPLE_DOCUMENT);
+    // A box no context of the map spans: only the renderer's contentBounds() names it.
+    const reported = { x: 5000, y: 3000, width: 200, height: 100 };
+    await page.evaluate((box) => {
+      Object.assign(window.__cmModeler, { contentBounds: () => box });
+    }, reported);
+
+    await page.locator('[data-chrome="zoom"]').getByRole("button", { name: "Fit to view" }).click();
+
+    const framed = await page.evaluate((box) => {
+      const insets = window.__contextMapsApp!.shell.fitInsets();
+      const canvas = window.__cmModeler.get<{
+        viewbox(): { x: number; y: number; scale: number };
+        getSize(): { width: number; height: number };
+      }>("canvas");
+      const { x, y, scale } = canvas.viewbox();
+      const { width, height } = canvas.getSize();
+      return {
+        scale,
+        offsetX:
+          (box.x + box.width / 2 - x) * scale -
+          (insets.left + (width - insets.left - insets.right) / 2),
+        offsetY:
+          (box.y + box.height / 2 - y) * scale -
+          (insets.top + (height - insets.top - insets.bottom) / 2),
+      };
+    }, reported);
+    expect(framed.scale).toBeCloseTo(1, 3);
+    expect(Math.abs(framed.offsetX)).toBeLessThan(1);
+    expect(Math.abs(framed.offsetY)).toBeLessThan(1);
+  });
+
   test("a link cut off when it was copied shows a danger toast on the start screen", async ({
     page,
   }) => {

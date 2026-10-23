@@ -7,7 +7,6 @@ import {
   createCollaborativeModeler,
   createShortcutsDialog,
   createTitleDialog,
-  isCmContext,
   isCmElement,
   renderLegend,
   READ_ONLY_CHANGED_EVENT,
@@ -52,13 +51,6 @@ interface SelectionLike {
   get(): DiagramElement[];
   select(elements: DiagramElement[] | null): void;
 }
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 const MAP_NAME = "context map";
 
 const vscode = acquireVsCodeApi();
@@ -121,27 +113,9 @@ modeler.on("diagram.destroy", () => {
   titleDialog.destroy();
 });
 
-/** The tight bounds of the contexts (relationship lines run between them); no padding of its own. */
-function contentBounds(): Box | undefined {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const element of registry.getAll()) {
-    if (!isCmContext(element)) continue;
-    const box = element as unknown as Box;
-    minX = Math.min(minX, box.x);
-    minY = Math.min(minY, box.y);
-    maxX = Math.max(maxX, box.x + box.width);
-    maxY = Math.max(maxY, box.y + box.height);
-  }
-  if (!Number.isFinite(minX)) return undefined;
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
-
 // Cheap tests only: the shell asks on every content change.
 const connection = connectDiagramJs(shell, modeler, {
-  contentBounds,
+  modeler: collaborative,
   isEmpty: () => !registry.getAll().some(isCmElement),
 });
 const { viewport } = connection;

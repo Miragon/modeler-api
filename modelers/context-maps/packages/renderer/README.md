@@ -90,7 +90,7 @@ new Modeler({
 - `fitOnImport: false` leaves the view to a host whose chrome fits the content itself after every
   import, so the view changes once per import.
 - `freeRectInsets` (the insets function itself) is the deprecated name of `freeArea: { insets }`.
-  It is accepted through the 0.4 releases and ignored when `freeArea` is given.
+  It is accepted through the 0.5 releases and ignored when `freeArea` is given.
 
 ### Shared methods (`Viewer` / `NavigatedViewer` / `Modeler`)
 
@@ -101,6 +101,7 @@ new Modeler({
 | `exportDocument()`                 | `CmDocument`                    | Rebuild the canonical model from the live canvas. |
 | `exportText()`                     | `string`                        | The canonical `.cm` text (ends in a line break).  |
 | `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot (fitted viewBox).     |
+| `contentBounds()`                  | `ElementBounds` or `undefined`  | The content's box for a host's fit (see below).   |
 | `setMeta(partial)` / `getMeta()`   | — / `RootBusinessObject`        | Rename the map (an undoable command) / read it.   |
 | `attachTo(el)` / `detach()`        | `void`                          | Move the canvas in/out of the DOM (keeps state).  |
 | `clear()` / `destroy()`            | `void`                          | Empty the canvas / tear it down.                  |
@@ -114,6 +115,14 @@ name of a built-in object property as an id throws before anything is removed. I
 keys the model does not know and relationships whose ends are not on the map come back on export. A
 label edit open during an import is taken down and reopened on the element with the same id, with
 the typed text.
+
+`contentBounds()` is the tight box around what the canvas draws of the map in diagram coordinates,
+without a margin: the contexts, wider where a team row or a subdomain type's name runs past a
+context's sides (the renderer does not cut them), and the relationships' waypoints. It is the box a
+host's chrome fits to (the modeler shell's `connectDiagramJs` reads it from the instance it gets as
+`modeler`). It reads the live canvas, so a context created or moved counts at once, ignores zoom
+and scroll, and is `undefined` while the map is empty. The fit after an import centres this box in
+the free rectangle of `freeArea.insets`, or in the room the renderer's own palette needs.
 
 A **view change never commits** an open label edit or description prompt: a pan or zoom, the user's
 or the host's (`canvas.viewbox(…)`, `setViewState`, a fit), keeps it open with the typed text and
@@ -136,16 +145,18 @@ modeler.onContentChanged(() => save(modeler.exportText()));
 ```
 
 `createCollaborativeModeler` and `createCollaborativeViewer` implement the `CollaborativeModeler`
-contract of `@miragon/modeler-api` 1.2 (`meta.notation` is `"context-maps"`): the canonical JSON text
+contract of `@miragon/modeler-api` 1.3 (`meta.notation` is `"context-maps"`): the canonical JSON text
 as the text lane, `onContentChanged` for every user-visible change (element commands, the title,
 undo, redo) and never for an import or a view change, the viewbox as view state, and the `elements`
 surface over the context and relationship ids (their labels as names). `elements.bounds(id)` reads
 an element's box from the live canvas in diagram coordinates (a relationship: the box around its
-waypoints), `undefined` for an id `elements.list()` does not report. Both factories take the
-contract's `CollaborativeModelerOptions` (`freeArea`, `fitOnImport`, `undoRedoKeys`, which the
-viewer ignores) next to `additionalModules` and the deprecated `freeRectInsets`. `modeler.diagram`
-is the wrapped `Modeler` or `NavigatedViewer`. The contract's conformance kit runs in this package's
-browser tests, every case and every hook, without a skip or an advisory.
+waypoints), `undefined` for an id `elements.list()` does not report. `contentBounds()` is the
+diagram's `contentBounds()`, the box around all of them, `undefined` before the first import, for
+an empty map and after `destroy()`. Both factories take the contract's
+`CollaborativeModelerOptions` (`freeArea`, `fitOnImport`, `undoRedoKeys`, which the viewer ignores)
+next to `additionalModules` and the deprecated `freeRectInsets`. `modeler.diagram` is the wrapped
+`Modeler` or `NavigatedViewer`. The contract's conformance kit runs in this package's browser
+tests, every case and every hook, without a skip or an advisory.
 
 ## Around the canvas
 
@@ -153,7 +164,9 @@ What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-s
 
 - `renderLegend(body, { tooltip })` renders the notation legend (subdomain types, integration roles,
   relationship patterns) into a chrome's legend card, each row explained in the chrome's tooltip.
-  Hosts without such a chrome add `cmLegendModule`, a legend card on the canvas.
+  Hosts without such a chrome add `cmLegendModule`, a legend card on the canvas. Like the shell's,
+  it starts open, but closed on a canvas at most 440px wide or 820px high (guide §5.10); the
+  `cmLegend` service's `setOpen(open)` restores a state the host stored.
 - `contextMapMenu({ exports, showKeyboardShortcuts, editTitle })` builds the Model group's "Map
   title…" (with `editTitle`), the Export group (PNG, SVG, JSON, CML; an export's `shortcut` shows as
   its chip) and the Help group's "Keyboard shortcuts…". `createShortcutsDialog(chrome, { fileKeys })`

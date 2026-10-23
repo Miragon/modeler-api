@@ -8,12 +8,21 @@ import {
 import type { CmLegend } from "@miragon/context-maps-renderer";
 import { emptyDocument } from "@miragon/context-maps-schema-model";
 
-function mountContainer(): HTMLDivElement {
+/**
+ * A canvas of the given size, large enough by default for the legend to start open (guide §5.10).
+ * The viewer sizes its container to 100 %, so the size is the wrapper's.
+ */
+function mountContainer(width = 900, height = 900): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = `position:absolute;left:0;top:0;width:${width}px;height:${height}px`;
   const container = document.createElement("div");
-  container.style.width = "900px";
-  container.style.height = "640px";
-  document.body.appendChild(container);
+  wrapper.append(container);
+  document.body.appendChild(wrapper);
   return container;
+}
+
+function unmount(container: HTMLElement): void {
+  (container.parentElement ?? container).remove();
 }
 
 test("the legend card shows the full notation legend and collapses to a button", () => {
@@ -44,7 +53,7 @@ test("the legend card shows the full notation legend and collapses to a button",
     expect(container.querySelector(".cm-legend-toggle")).toBeNull();
   } finally {
     modeler.destroy();
-    container.remove();
+    unmount(container);
   }
 });
 
@@ -61,7 +70,51 @@ test("the legend service is controllable by hosts", () => {
     expect(container.querySelector(".cm-legend")).not.toBeNull();
   } finally {
     modeler.destroy();
-    container.remove();
+    unmount(container);
+  }
+});
+
+test("the legend card starts closed on a phone and on a low canvas, open above both", () => {
+  for (const { width, height, open } of [
+    { width: 390, height: 844, open: false },
+    { width: 440, height: 900, open: false },
+    { width: 900, height: 820, open: false },
+    { width: 441, height: 821, open: true },
+  ]) {
+    const container = mountContainer(width, height);
+    const modeler = new Modeler({ container, additionalModules: [cmLegendModule] });
+    try {
+      modeler.importDocument(emptyDocument("m"));
+      expect(modeler.get<CmLegend>("cmLegend").isOpen(), `${width} × ${height}`).toBe(open);
+      expect(container.querySelector(open ? ".cm-legend" : ".cm-legend-toggle")).not.toBeNull();
+      expect(container.querySelector(open ? ".cm-legend-toggle" : ".cm-legend")).toBeNull();
+    } finally {
+      modeler.destroy();
+      unmount(container);
+    }
+  }
+});
+
+test("a canvas attached later starts the legend from its first size; a host's choice wins", () => {
+  const target = mountContainer();
+  const size = { width: 1024, height: 900 };
+  const later = new Modeler({ ...size, additionalModules: [cmLegendModule] });
+  const chosen = new Modeler({ ...size, additionalModules: [cmLegendModule] });
+  try {
+    expect(later.get<CmLegend>("cmLegend").isOpen()).toBe(false);
+    later.attachTo(target);
+    later.importDocument(emptyDocument("m"));
+    expect(later.get<CmLegend>("cmLegend").isOpen()).toBe(true);
+    expect(target.querySelector(".cm-legend")).not.toBeNull();
+
+    chosen.get<CmLegend>("cmLegend").setOpen(false);
+    chosen.attachTo(target);
+    chosen.importDocument(emptyDocument("m"));
+    expect(chosen.get<CmLegend>("cmLegend").isOpen()).toBe(false);
+  } finally {
+    later.destroy();
+    chosen.destroy();
+    unmount(target);
   }
 });
 
@@ -73,7 +126,7 @@ test("the modeler leaves the legend to its host's chrome", () => {
     expect(container.querySelector(".cm-legend, .cm-legend-toggle")).toBeNull();
   } finally {
     modeler.destroy();
-    container.remove();
+    unmount(container);
   }
 });
 
@@ -123,7 +176,7 @@ test("viewers stay legend-free unless the module is added explicitly", () => {
   } finally {
     viewer.destroy();
     legendViewer.destroy();
-    plain.remove();
-    withLegend.remove();
+    unmount(plain);
+    unmount(withLegend);
   }
 });

@@ -13,7 +13,7 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type { Root } from "diagram-js/lib/model/Types";
 import type { Point } from "diagram-js/lib/util/Types";
-import type { FreeArea } from "@miragon/modeler-api";
+import type { ElementBounds, FreeArea } from "@miragon/modeler-api";
 import { parseDocumentText, serializeDocumentText } from "@miragon/context-maps-schema-model";
 import type { CmDocument } from "@miragon/context-maps-schema-model";
 import { saveSVG } from "./io/saveSvg.js";
@@ -22,6 +22,7 @@ import type CmExporter from "./io/CmExporter.js";
 import type CmLabelEditing from "./label-editing/CmLabelEditing.js";
 import type CmModeling from "./modeling/CmModeling.js";
 import type CmReadOnly from "./read-only/CmReadOnly.js";
+import { contentBoundsOf } from "./model/contentBounds.js";
 import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./io/types.js";
 
 /** Container margins in screen px that a host's chrome covers. */
@@ -53,7 +54,7 @@ export interface CmViewerOptions {
    * fit also keeps when only `center` is given.
    */
   freeArea?: FreeArea | undefined;
-  /** @deprecated Use `freeArea: { insets }`; accepted through the 0.4 releases, ignored next to it. */
+  /** @deprecated Use `freeArea: { insets }`; accepted through the 0.5 releases, ignored next to it. */
   freeRectInsets?: (() => FreeRectInsets) | undefined;
   /**
    * Fit the content into the view after every import (default true). Pass false when the host's
@@ -224,50 +225,45 @@ export abstract class CmBaseViewer {
   }
 
   /**
-   * Centres the content in the container minus room for the chrome, at the largest zoom that
+   * The tight box around what the canvas draws of the map in diagram coordinates, with no margin
+   * of its own: the box a host's chrome fits to (`@miragon/modeler-api` 1.3). It reads the live
+   * canvas and ignores zoom and scroll; `undefined` while the map is empty.
+   */
+  contentBounds(): ElementBounds | undefined {
+    // Before the first use and after destroy() there is no diagram, and asking for one would build
+    // it on a detached container.
+    if (!this._diagram) return undefined;
+    return contentBoundsOf(this._diagram.get<ElementRegistry>("elementRegistry").getAll());
+  }
+
+  /**
+   * Centres the content box in the container minus room for the chrome, at the largest zoom that
    * shows all of it and never above 100 % (guide §5.9); an empty map shows 100 %. The same view
-   * for the same document and container (the contract's fitted view after an import).
+   * for the same document and container (the contract's fitted view after an import). Without
+   * `freeArea.insets` the room is the renderer's own palette margins: `freeArea.center` names no
+   * rectangle to fit into.
    */
   private _fit(): void {
     const canvas = this.get<Canvas>("canvas");
-    const registry = this.get<ElementRegistry>("elementRegistry");
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const el of registry.getAll()) {
-      const e = el as { x?: number; y?: number; width?: number; height?: number };
-      if (
-        typeof e.x !== "number" ||
-        typeof e.y !== "number" ||
-        typeof e.width !== "number" ||
-        typeof e.height !== "number"
-      ) {
-        continue;
-      }
-      minX = Math.min(minX, e.x);
-      minY = Math.min(minY, e.y);
-      maxX = Math.max(maxX, e.x + e.width);
-      maxY = Math.max(maxY, e.y + e.height);
-    }
     const { width, height } = canvas.getSize();
     if (!(width > 0 && height > 0)) return;
-    if (!Number.isFinite(minX)) {
+    const content = this.contentBounds();
+    if (!content) {
       canvas.viewbox({ x: 0, y: 0, width, height });
       return;
     }
     const insets = this.freeRectInsets();
     const freeWidth = Math.max(width - insets.left - insets.right, 1);
     const freeHeight = Math.max(height - insets.top - insets.bottom, 1);
-    const contentWidth = Math.max(maxX - minX, 1);
-    const contentHeight = Math.max(maxY - minY, 1);
+    const contentWidth = Math.max(content.width, 1);
+    const contentHeight = Math.max(content.height, 1);
     const scale = Math.max(
       Math.min(freeWidth / contentWidth, freeHeight / contentHeight, 1),
       SMALLEST_FIT_ZOOM,
     );
     canvas.viewbox({
-      x: minX + contentWidth / 2 - (insets.left + freeWidth / 2) / scale,
-      y: minY + contentHeight / 2 - (insets.top + freeHeight / 2) / scale,
+      x: content.x + contentWidth / 2 - (insets.left + freeWidth / 2) / scale,
+      y: content.y + contentHeight / 2 - (insets.top + freeHeight / 2) / scale,
       width: width / scale,
       height: height / scale,
     });

@@ -73,8 +73,9 @@ On first load the app shows, in priority order, a map from a **shared link** (`#
 
 - **Chrome:** `mountShell(…, { host: "web", themes: ["light"] })` renders the menu, Share, the legal
   line, toasts, the problems list, the start screen and the drop zone; `connectDiagramJs` binds the
-  zoom panel, the keys and the fit. The map's own parts come from the renderer: `contextMapMenu`
-  (Model, Export, Help), `createShortcutsDialog`, `createTitleDialog` and `renderLegend`.
+  zoom panel, the keys and the fit, which frames the `Modeler`'s `contentBounds()` (passed as
+  `modeler`). The map's own parts come from the renderer: `contextMapMenu` (Model, Export, Help),
+  `createShortcutsDialog`, `createTitleDialog` and `renderLegend`.
 - **Mode:** light only until the joint dark-mode release. `index.html` writes
   `data-cd-theme="light"`, and the Vite config puts the shell's `webHeadMarkup` (theme colour, the
   high-contrast line) in place of `<!-- miragon-mode -->`.

@@ -22,6 +22,7 @@ export interface MapExport {
 export interface CmModeler {
   importDocument(doc: unknown): { warnings: ReadonlyArray<unknown> };
   exportDocument(): MapExport;
+  exportText(): string;
   saveSVG(): { svg: string };
   get<T>(name: string): T;
 }

@@ -146,9 +146,9 @@ release's dry run (`workflow_dispatch` with `dry_run`) runs the same step. When 
 its screenshots and VS Code's logs are uploaded as the artifact `vscode-smoke-marketplace`,
 `vscode-smoke-open-vsx` or `vscode-smoke-dry-run`.
 
-The test retries nothing. The shell's driver (0.3.2) reads the saved file only after the editor tab
-has turned clean, which VS Code does once its write has resolved, and only when two reads 100 ms
-apart agree; a text the parser rejects is read again until it has stayed the same for 1 s. A broken
+The test retries nothing. The shell's driver (since 0.3.2) reads the saved file only after the
+editor tab has turned clean, which VS Code does once its write has resolved, and only when two reads
+100 ms apart agree; a text the parser rejects is read again until it has stayed the same for 1 s. A broken
 save therefore fails with what went wrong ("Meta+s wrote nothing to disk", "the editor is still
 dirty after the save", "the saved text does not parse: …"; `Control+s` on Linux), and an extension
 that saves an empty file fails with "the extension saved an empty file". The driver's failures are a

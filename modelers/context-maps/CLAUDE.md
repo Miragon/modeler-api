@@ -8,14 +8,14 @@ Shared core for two targets: a web app and a VS Code extension.
 ## Design system (mandatory)
 
 All UI/visual work MUST follow the Miragon product design system — this is not optional. Source of
-truth: the **`miragon-brand:modeler-tool-design`** Claude skill (design system **1.13.0**; plugin
+truth: the **`miragon-brand:modeler-tool-design`** Claude skill (design system **1.15.0**; plugin
 `miragon-brand` from [`Miragon/corporate-identity`](https://github.com/Miragon/corporate-identity));
 install with `/plugin marketplace add Miragon/corporate-identity` +
 `/plugin install miragon-brand@miragon`.
 
 Its files are **vendored unchanged** in [`packages/renderer/src/theme/`](packages/renderer/src/theme):
-`cd-tokens.generated.css`, `cd-tokens.generated.json` and `cd-canvas.css` — never edit them, re-copy
-them from the skill's `assets/`. [`assets/context-maps.css`](packages/renderer/src/assets/context-maps.css)
+`cd-tokens.generated.css`, `cd-tokens.generated.json` and `cd-canvas.css` (the same bytes from
+1.13.0 to 1.15.0) — never edit them, re-copy them from the skill's `assets/`. [`assets/context-maps.css`](packages/renderer/src/assets/context-maps.css)
 loads them in the order of guide §10.3 (tokens in a cascade layer, then `diagram-js.css`, then
 `cd-canvas.css`) and reads only the `--cd-ui-*` roles and the mode-independent tokens: no colour
 literal, no fixed palette token. The pure-TS mirror
@@ -33,7 +33,7 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
 ## Contract and chrome
 
 - **Contract.** The renderer implements the collaborative-modeler contract of
-  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) (1.2):
+  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) (1.3):
   `createCollaborativeModeler` / `createCollaborativeViewer` in
   [`packages/renderer/src/collaborative/`](packages/renderer/src/collaborative), the text lane being
   the canonical JSON of a `.cm` file (`serializeDocumentText`, ends in one line break). Its
@@ -41,31 +41,48 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   ([`conformance.browser.test.ts`](packages/renderer/test/browser/conformance.browser.test.ts)) with
   every hook filled; a skip or an advisory fails it. Imports are silent (the history goes without an
   event), reject without a trace (ids, coordinates, newer versions checked first) and keep unknown
-  keys. A host's view change (`setViewState`, a fit) never commits an open editor, and
-  `elements.bounds(id)` gives an element's live box.
+  keys. A host's view change (`setViewState`, a fit) never commits an open editor,
+  `elements.bounds(id)` gives an element's live box and `contentBounds()` (also on every
+  `CmBaseViewer`) the tight box around what the canvas draws: the contexts, wider where a team row
+  or a type's name runs past one (`draw/contextLayout.ts` holds the geometry for the renderer and
+  the box), and the relationships' waypoints, read from the model with text measured on a canvas,
+  not from the SVG. The fit after an import centres it with the insets of `freeArea: { insets }` or
+  with room for the renderer's own palette (also when only `{ center }` is given; a test pins
+  both), and a browser test compares the box with the drawing at zoom 1.
 - **Chrome.** Both apps mount [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)
   with `themes: ["light"]`: the VS Code webview on the `ide` host (menu, palette skin, zoom panel and
   keys, fit, legend slot, problems pill, status box, empty-file hint), the web app on the `web` host
   (the same plus File group, Share, legal line, toasts, problems list, start screen and drop zone;
   `index.html` gets the mode markup of `webHeadMarkup` from the Vite config). Neither app has a
-  stylesheet or chrome markup of its own. The renderer **never imports the shell** (ESLint and
-  dependency-cruiser enforce it); it hands the chrome structurally typed parts: `contextMapMenu`,
+  stylesheet or chrome markup of its own. `connectDiagramJs(shell, …, { modeler, isEmpty })` fits
+  to the renderer's `contentBounds()`: the webview passes its contract instance, the web app its
+  `Modeler`; neither computes bounds of its own. The renderer **never imports the shell** (ESLint
+  and dependency-cruiser enforce it); it hands the chrome structurally typed parts: `contextMapMenu`,
   `createShortcutsDialog`, `createTitleDialog`, `renderLegend`, the `cmReadOnly` canvas lock,
   keyboard creation in the free area (`freeArea: { insets }`; `freeRectInsets` stays a deprecated
-  alias for one minor), `fitOnImport` and `undoRedoKeys: false` for hosts that own the history.
-  `cmLegendModule` and the renderer's own palette rules stay for hosts that embed the renderer
-  without the shell. The DOM-free packages take only types from `@miragon/modeler-api`.
+  alias through the 0.5 releases), `fitOnImport` and `undoRedoKeys: false` for hosts that own the
+  history. `cmLegendModule` (closed at first on a canvas ≤ 440px wide or ≤ 820px high, like the
+  shell's legend; the sizes are in [`theme/sizes.ts`](packages/renderer/src/theme/sizes.ts), checked
+  against the vendored tokens) and the renderer's own palette rules stay for hosts that embed the
+  renderer without the shell. The DOM-free packages take only types from `@miragon/modeler-api`.
 - **Kit.** `e2e/` runs the shell's conformance kit against the real webview in the shell's VS Code
-  stub (project `vscode-webview`, served from `e2e/webview/`; only the inspector is absent) and
-  against the web app (project `chromium`; the inspector and the invalid-file state are absent). Any
-  skip fails the suite.
+  stub (project `vscode-webview`, served from `e2e/webview/`; the inspector and `canvasMenuAction`
+  are absent: VS Code's own File menu opens and saves, and the Model group holds only the "Map
+  title…" dialog and the Legend checkbox) and against the web app (project `chromium`; the
+  inspector and the invalid-file state are absent). Both feed the `labelEditor` hooks
+  ([`e2e/tests/support/label-editor.ts`](e2e/tests/support/label-editor.ts): a double-click on a
+  context, typed text; a commit shows as a changed map in the web app and as an `edit` message in
+  the webview). Both suites register the cases themselves (`shellConformanceCases()`): every case
+  opens the example, the `labelEditor` case `COMPACT_MAP`, which fits at 100 % in the kit's wide
+  size. The example fits at 68 % there, where that case's zoom in lands on 100 % and its Cmd/Ctrl+0
+  step cannot change the view (modeler-shell 0.4.0). Any skip fails the suite.
 - **Real VS Code.** `npm run test:vscode` (Vitest project `vscode`, in
   [`apps/vscode/test-smoke/`](apps/vscode/test-smoke)) packs the extension as the release does
   (`vsce package --no-dependencies`), unpacks the VSIX outside the repository and runs the shell's
   `runVsCodeSmoke` on it: open, the default palette edit, save (`parseDocumentText`, one more
   context, canonical text), undo and VS Code's four default themes, screenshots in
-  `test-results/vscode-smoke/`. No retry: the driver (0.3.2) reads the save only once the tab is
-  clean and the file holds still, so a failed save check is the extension's, not a race; the
+  `test-results/vscode-smoke/`. No retry: the driver (since 0.3.2) reads the save only once the
+  tab is clean and the file holds still, so a failed save check is the extension's, not a race; the
   driver's failures are a soft assertion, so another step's failure cannot hide the save's. Opt-in
   (needs a display, downloads VS Code once). CI runs it under `xvfb-run -a` in the reusable
   `vscode-smoke.yml`: `ci.yml` calls it as the job `vscode-smoke` (part of the `ci-ok` gate; it runs

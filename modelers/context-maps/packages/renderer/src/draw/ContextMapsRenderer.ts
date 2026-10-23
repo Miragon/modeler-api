@@ -39,6 +39,8 @@ import {
   TT_RENDER_PRIORITY,
 } from "./styles.js";
 import { endRoleChipLayout } from "./endRoleChips.js";
+import { TEAM_ICON_SIZE, TYPE_LABEL, teamRowLayout } from "./contextLayout.js";
+import { textWidth } from "./textMetrics.js";
 import {
   isCmContext,
   isCmElement,
@@ -127,36 +129,30 @@ export default class ContextMapsRenderer extends BaseRenderer {
       // circle) plus the domain-type label next to it.
       svgAppend(visuals, subdomainIcon(ctx.subdomainType, 15, 15, 18, spec.stroke));
       const badge = svgAttr(svgCreate("text"), {
-        x: 28,
-        y: 15,
+        x: TYPE_LABEL.x,
+        y: TYPE_LABEL.y,
         "font-family": FONT.family,
         "font-size": FONT.small,
-        "font-weight": "700",
+        "font-weight": TYPE_LABEL.fontWeight,
         fill: spec.stroke,
         "text-anchor": "start",
         "dominant-baseline": "central",
-        "letter-spacing": "0.03em",
+        "letter-spacing": `${TYPE_LABEL.letterSpacingEm}em`,
       });
       badge.textContent = spec.label;
       svgAppend(visuals, badge);
     }
     if (ctx.team) {
       // People icon + team name, centred as a unit at the bottom of the box.
-      const textWidth = ctx.team.length * FONT.small * 0.55;
-      const iconSize = 14;
-      const gap = 5;
-      const totalWidth = iconSize + gap + textWidth;
-      const startX = w / 2 - totalWidth / 2;
-      const cy = h - 12;
-
-      const icon = peopleIcon(startX + iconSize / 2, cy, iconSize, INK_SOFT);
+      const row = teamRowLayout(w, h, ctx.team);
+      const icon = peopleIcon(row.iconCenterX, row.centerY, TEAM_ICON_SIZE, INK_SOFT);
       svgAttr(icon, { class: "cm-team" });
       svgAppend(visuals, icon);
 
       const team = svgAttr(svgCreate("text"), {
         class: "cm-team",
-        x: startX + iconSize + gap,
-        y: cy,
+        x: row.textX,
+        y: row.centerY,
         "font-family": FONT.family,
         "font-size": FONT.small,
         fill: INK_SOFT,
@@ -473,24 +469,6 @@ function peopleIcon(cx: number, cy: number, size: number, color: string): SVGEle
   const path = svgAttr(svgCreate("path"), { d: PEOPLE_PATH, fill: color });
   svgAppend(g, path);
   return g;
-}
-
-/**
- * Real text measurement so the rendered wrap matches the browser's own wrap
- * in the direct-editing box (same font, same width): a shared 2D context
- * measures actual glyph widths; the character-count heuristic remains only
- * as a fallback for environments without canvas support.
- */
-let measureContext: CanvasRenderingContext2D | null | undefined;
-
-function textWidth(text: string, fontSize: number, fontWeight: string): number {
-  if (measureContext === undefined) {
-    measureContext =
-      typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
-  }
-  if (!measureContext) return text.length * fontSize * 0.58;
-  measureContext.font = `${fontWeight} ${fontSize}px ${FONT.family}`;
-  return measureContext.measureText(text).width;
 }
 
 function ellipsize(line: string, maxWidth: number, fontSize: number, fontWeight: string): string {
