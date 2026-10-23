@@ -259,6 +259,25 @@ describe("registerShellConformance", () => {
     ]);
   });
 
+  it("fails a harness whose open keeps the page's document, before it measures the legend", async () => {
+    // an open that only changes the URL fragment: the page, and the kit's tools in it, stay
+    const keptPage: PageLike = {
+      ...emptyPage(),
+      evaluate: async <R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg) => pageFunction(arg),
+    };
+    const open = vi.fn(async () => {});
+    const legend = async () => {};
+    try {
+      const tests = register(harness({ host: "web", open, show: { legend } }));
+      await expect(tests.get("shell conformance: legendStart")!({ page: keptPage })).rejects.toThrow(
+        "@miragon/modeler-shell conformance: legendStart (web host)\n- harness: open kept the page's document at 390 × 844",
+      );
+      expect(open).toHaveBeenCalledTimes(1);
+    } finally {
+      delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
+    }
+  });
+
   it("skips the web column's cases the web harness cannot feed, before opening anything", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});

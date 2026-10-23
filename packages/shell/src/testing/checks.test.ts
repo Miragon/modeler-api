@@ -13,6 +13,7 @@ import {
   harnessHookProblems,
   isCanvasMenuAction,
   isToolEntry,
+  keptDocumentProblems,
   keyReachProblem,
   labelEditorCommitProblems,
   labelEditorOpenProblems,
@@ -1029,6 +1030,18 @@ describe("legendStartProblems", () => {
   it("reports a legend that stays closed above 440px and 820px", () => {
     expect(legendStartProblems({ container: wide, open: false }, true)).toEqual([
       "legend: closed on first load in a 441 × 900 container; without a stored state it starts open above 440px width and 820px height (guide §5.10)",
+    ]);
+  });
+});
+
+describe("keptDocumentProblems", () => {
+  it("accepts an open that loaded a new document", () => {
+    expect(keptDocumentProblems({ width: 441, height: 900 }, false)).toEqual([]);
+  });
+
+  it("blames the harness for an open that kept the page's document", () => {
+    expect(keptDocumentProblems({ width: 441, height: 900 }, true)).toEqual([
+      'harness: open kept the page\'s document at 441 × 900 (a navigation that changes only the URL fragment keeps it), so the shell did not mount again and the legend kept its earlier start state; open loads a new document, as on a first visit (for example after page.goto("about:blank"))',
     ]);
   });
 });

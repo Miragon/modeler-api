@@ -106,7 +106,9 @@ export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   /**
    * Load the modeler with the shell at `size`, as the host would with `requested`, as on a first
    * visit: without a stored legend state, so the shell's default decides (case `legendStart`).
-   * Resolve once the first import is done.
+   * Each call loads a new document: a navigation that changes only the URL fragment keeps the page,
+   * and with it the legend's earlier start state, so `legendStart` fails it (go to `about:blank`
+   * first). Resolve once the first import is done.
    */
   open(page: P, context: OpenContext): Promise<void>;
   /** Tear modeler and shell down through the page's own path; `undefined` skips the cleanup case. */

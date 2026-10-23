@@ -17,6 +17,7 @@ import {
   focusHandBackProblems,
   isCanvasMenuAction,
   isToolEntry,
+  keptDocumentProblems,
   keyReachProblem,
   legendStartProblems,
   leftoverProblems,
@@ -84,8 +85,10 @@ import {
   hostPageModeProbe,
   inPage,
   injectProbe,
+  installPageTools,
   leftoverProbe,
   menuItemProbe,
+  pageToolsKeptProbe,
   removeInjectedProbe,
   settle,
   targetProbe,
@@ -317,7 +320,9 @@ const LEGEND_START: ReadonlyArray<{ size: Size; open: boolean }> = [
 
 /**
  * Guide §5.10: `open` loads the modeler as on a first visit, without a stored legend state, so the
- * shell's default decides; at 390 × 844 the legend is closed, at 441 × 900 open.
+ * shell's default decides; at 390 × 844 the legend is closed, at 441 × 900 open. The kit's page
+ * tools go in before each `open`: if they survive it, the page kept its document and the shell its
+ * earlier start state, which is the harness's fault, not the shell's.
  */
 const legendStartCase: ShellConformanceCase = {
   name: "legendStart",
@@ -335,7 +340,10 @@ const legendStartCase: ShellConformanceCase = {
     const root = harness.root ?? DEFAULT_ROOT;
     const problems: string[] = [];
     for (const { size, open } of LEGEND_START) {
+      await page.evaluate(installPageTools, null);
       await openHarness(page, harness, { size, requested: LIGHT });
+      const kept = keptDocumentProblems(size, (await page.evaluate(pageToolsKeptProbe, null)) === true);
+      if (kept.length > 0) fail("legendStart", harness.host, kept);
       await settle(page);
       const measurement = await measureChrome(page, root);
       const shown = measurement.open.legend || Boolean(measurement.islands.legend);

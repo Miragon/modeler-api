@@ -353,6 +353,17 @@ export function legendStartProblems(facts: LegendStartFacts, expectedOpen: boole
   ];
 }
 
+/**
+ * `legendStart` needs a new document per `open`: the shell decides the legend's start state once per
+ * mount, so in a kept page the second size would read the first one's state.
+ */
+export function keptDocumentProblems(size: Size, kept: boolean): string[] {
+  if (!kept) return [];
+  return [
+    `harness: open kept the page's document at ${size.width} × ${size.height} (a navigation that changes only the URL fragment keeps it), so the shell did not mount again and the legend kept its earlier start state; open loads a new document, as on a first visit (for example after page.goto("about:blank"))`,
+  ];
+}
+
 /** A palette entry with the keyboard focus: its tooltip's chip and what it names for assistive technology. */
 export interface PaletteShortcutFacts {
   action: string;

@@ -802,6 +802,30 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("legendStart fails a harness whose open keeps the document, and passes it from about:blank", async ({
+    page,
+  }) => {
+    // the web suites that carry the document in the URL fragment (Team Topologies, Context Maps)
+    const fragmentOnly = (fresh: boolean): ShellConformanceHarness<Page> => ({
+      ...webDemoHarness(),
+      async open(target, { size }) {
+        await target.setViewportSize(size);
+        if (fresh) await target.goto("about:blank");
+        await target.goto("/web.html?themes=light&legend=&inspector=#d=diagram");
+        await target.waitForFunction(() => window.__webDemo?.ready === true);
+      },
+    });
+    const failure = await runCase("legendStart", page, fragmentOnly(false)).then(
+      () => "passed",
+      (error: unknown) => String(error),
+    );
+    expect(failure).toMatch(
+      /legendStart \(web host\)\n- harness: open kept the page's document at 441 × 900 \(a navigation that changes only the URL fragment keeps it\)/,
+    );
+    expect(failure).not.toMatch(/legend: closed on first load/);
+    expect(await runCase("legendStart", page, fragmentOnly(true))).toBeUndefined();
+  });
+
   test("geometry and aria fail for an island the harness declares absent", async ({ page }) => {
     const base = demoHarness("ide");
     const harness: ShellConformanceHarness<Page> = {

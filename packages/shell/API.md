@@ -2275,9 +2275,9 @@ host:
 
 **The legend's start state.** One case joins after `geometry` and runs in every host:
 
-| Case          | Checks                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `legendStart` | §5.10, §5.15: `open` at 390 × 844 and at 441 × 900, each as a first visit without a stored legend state: the legend is closed at 390 × 844 (at most 440px wide, although higher than 820px) and open at 441 × 900 (`data-legend="open"` on the root or the card visible). Skips with `hook: "legend"` without `show.legend`; with `legend` in `absent` there is nothing to verify |
+| Case          | Checks                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `legendStart` | §5.10, §5.15: `open` at 390 × 844 and at 441 × 900, each as a first visit without a stored legend state: the legend is closed at 390 × 844 (at most 440px wide, although higher than 820px) and open at 441 × 900 (`data-legend="open"` on the root or the card visible). Fails with a `harness:` problem when `open` keeps the page's document. Skips with `hook: "legend"` without `show.legend`; with `legend` in `absent` there is nothing to verify |
 
 - **Skips.** A case the harness cannot feed reports what it skipped as `ShellSkip`s, one per missing
   harness field, through `onSkip` (default `console.warn`). A hook that is neither in `show` nor in
@@ -2299,7 +2299,11 @@ host:
   mode inside a dark host page, the case a foreign page meets in practice (designIQ, a web app on
   `system` under a dark OS).
 - `open` loads the modeler as on a first visit, without a stored legend state (`legend.open`
-  undefined), so the shell's default decides; `legendStart` reads it at two sizes.
+  undefined), so the shell's default decides; `legendStart` reads it at two sizes. Each `open` loads
+  a new document: the shell decides the legend's start state once per mount, and a navigation that
+  changes only the URL fragment keeps the page. `legendStart` installs the kit's page global before
+  each `open` and fails with a `harness:` problem when it survives; such a harness goes to
+  `about:blank` first.
 - For the `web` host (0.2) the kit calls `page.emulateMedia({ colorScheme, contrast })` from
   `requested` before `open`, and `open` loads the page without a stored `miragon.darstellung`; the
   `appearance` case then sets the choice through the Appearance group itself. Without

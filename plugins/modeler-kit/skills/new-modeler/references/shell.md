@@ -97,17 +97,19 @@ kit's harness, and the kit asserts that they never show.
 ## The shell's conformance kit
 
 `registerShellConformance` runs in `e2e` against both real apps (template:
-[`e2e/tests/`](../assets/template/e2e/tests/)): geometry at three sizes (±1 px), ARIA and keys,
-keys that never reach VS Code, focus hand-back, appearance (the kit requests dark, dark with high
-contrast and light with high contrast: a light-only modeler stays light, never half-dark), keyboard
-creation, the label editor across the shell's zoom, fit and refit, the read-only lock, the web column
-and a clean `destroy`.
+[`e2e/tests/`](../assets/template/e2e/tests/)): geometry at three sizes (±1 px), the legend's start
+state, ARIA and keys, keys that never reach VS Code, focus hand-back, appearance (the kit requests
+dark, dark with high contrast and light with high contrast: a light-only modeler stays light, never
+half-dark), keyboard creation, the label editor across the shell's zoom, fit and refit, the
+read-only lock, the web column and a clean `destroy`.
 
 - `ide`: a Vite test page runs the webview's `main.ts` inside `installVsCodeWebviewStub` (with
   `stubOptionsFromSearch`), opened with `vsCodeStubSearch(requested)`; the page, not the bundle,
   publishes the handles on `window`. `show.invalid` posts an update the renderer rejects.
 - `web`: the app's own page with its link format. A navigation that only changes the fragment keeps
-  the page, so `open` waits for the diagram, not just for the app.
+  the page, so `open` waits for the diagram, not just for the app. With a legend, `open` goes to
+  `about:blank` first: `legendStart` opens twice, each time as a first visit, and fails an `open`
+  that keeps the page.
 - `labelEditor` (modeler-shell 0.4.0 or later): `open` double-clicks a node and types a new text on
   every call, `documentChanged` compares `modeler.exportText()` with the text at `open` (template:
   [`label-editor.ts`](../assets/template/e2e/tests/support/label-editor.ts)). The kit then zooms,

@@ -257,6 +257,13 @@ export const installPageTools = (_: null): void => {
   scope.__modelerShellConformance = tools;
 };
 
+/**
+ * The helpers are still in the page: the document they went into is still the page's, which a
+ * navigation that changes only the URL fragment keeps.
+ */
+export const pageToolsKeptProbe = (_: null): boolean =>
+  (window as ToolWindow).__modelerShellConformance !== undefined;
+
 /** Runs `pageFunction` in the page after making sure the helpers are installed. */
 export async function inPage<Arg, Result>(
   page: PageLike,

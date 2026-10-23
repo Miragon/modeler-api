@@ -502,8 +502,10 @@ registerShellConformance(
 );
 ```
 
-The harness opens the modeler with the appearance the kit requests, the way its host would; for
-the `embedded` host the kit puts the foreign page itself in that mode. A skip names the harness
+The harness opens the modeler with the appearance the kit requests, the way its host would; for the
+`embedded` host the kit puts the foreign page itself in that mode. Each `open` loads a new document,
+as on a first visit: `legendStart` fails an `open` that changes only the URL fragment, because the
+page keeps the legend's earlier start state (go to `about:blank` first). A skip names the harness
 field it misses (`{ hook: "legend", reason }`; `hook: "labelEditor"` without a `labelEditor`, or
 `absent: ["labelEditor"]` for a notation without labels on the canvas; `hook: "destroy"` without a
 `destroy`; `hook: "open"` when the opened document lacks what a case needs, such as a shape for
