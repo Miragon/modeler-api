@@ -138,7 +138,7 @@ export function createMenu(context: MenuContext): MenuController {
     return iconElement("check", { className: "cd-shell-menu-check" });
   }
 
-  function renderEntry(entry: Exclude<MenuEntry, MenuRadioGroup>, group: GroupName): Item {
+  function renderEntry(entry: Exclude<MenuEntry, MenuRadioGroup>, group: GroupName, chipId: string): Item {
     const disabled = isDisabled(entry, group);
     if (entry.kind === "checkbox") {
       const checked = entry.checked();
@@ -161,15 +161,25 @@ export function createMenu(context: MenuContext): MenuController {
         },
       };
     }
+    const keyShortcuts =
+      entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
+    // Read as part of the name the chip would be heard twice next to aria-keyshortcuts, and a dialog
+    // entry's name would no longer end with "…". A chip aria-keyshortcuts cannot name ("G then D",
+    // ariaKeyShortcuts "") describes the entry instead, or assistive technology would lose the key.
+    const chipDescribes = Boolean(entry.shortcut) && !keyShortcuts;
     const shortcut = entry.shortcut
-      ? createElement(ownerDocument, "span", { class: "cd-shell-menu-shortcut" }, entry.shortcut)
+      ? createElement(
+          ownerDocument,
+          "span",
+          { class: "cd-shell-menu-shortcut", "aria-hidden": "true", id: chipDescribes ? chipId : undefined },
+          entry.shortcut,
+        )
       : undefined;
     const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
     element.dataset.menuId = entry.id;
     element.dataset.menuGroup = group;
-    const keyShortcuts =
-      entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
     toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
+    toggleAttribute(element, "aria-describedby", chipDescribes && chipId);
     if (entry.kind === "dialog") element.setAttribute("aria-haspopup", "dialog");
     if (entry.kind === "action" && entry.danger) element.dataset.danger = "";
     const actsOnCanvas = entry.kind === "action" && CANVAS_GROUPS.has(group);
@@ -252,7 +262,7 @@ export function createMenu(context: MenuContext): MenuController {
           nodes.push(radio.element);
           rendered.push(...radio.items);
         } else {
-          const item = renderEntry(entry, name);
+          const item = renderEntry(entry, name, `${id}-shortcut-${rendered.length}`);
           nodes.push(item.element);
           rendered.push(item);
         }

@@ -177,12 +177,18 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
 
 export interface MenuItemFacts {
   role: string;
+  /** The accessible name, so without an `aria-hidden` shortcut chip (`PageTools.accessibleName`). */
   name: string;
   checked: string | null;
   disabled: string | null;
   haspopup: string | null;
   /** `aria-label` of the enclosing `role="group"`; `null` outside a group. */
   group: string | null;
+  /** Text of the visible shortcut chip (`.cd-shell-menu-shortcut`); empty without one. */
+  shortcut: string;
+  keyShortcuts: string | null;
+  /** The accessible description (`aria-describedby`, `PageTools.accessibleDescription`). */
+  description: string;
 }
 
 export interface MenuFacts {
@@ -215,13 +221,17 @@ export const menuProbe = ({ root }: { root: string }): MenuFacts | null => {
     menu: menu ? tools.facts(menu) : null,
     items: items.map((item) => {
       const group = item.closest('[role="group"]');
+      const chip = item.querySelector(".cd-shell-menu-shortcut");
       return {
         role: item.getAttribute("role") ?? "",
-        name: (item.getAttribute("aria-label") ?? item.textContent ?? "").replace(/\s+/g, " ").trim(),
+        name: tools.accessibleName(item),
         checked: item.getAttribute("aria-checked"),
         disabled: item.getAttribute("aria-disabled"),
         haspopup: item.getAttribute("aria-haspopup"),
         group: group && menu?.contains(group) ? (group.getAttribute("aria-label") ?? "") : null,
+        shortcut: chip && tools.visible(chip) ? (chip.textContent ?? "").replace(/\s+/g, " ").trim() : "",
+        keyShortcuts: item.getAttribute("aria-keyshortcuts"),
+        description: tools.accessibleDescription(item),
       };
     }),
     active: items.findIndex((item) => item === document.activeElement),
@@ -621,6 +631,7 @@ export const readOnlyStateProbe = ({ root }: { root: string }): ReadOnlyStateFac
 
 /** One item of the open menu with the group it stands in, counted by the separators. */
 export interface MenuEntryFacts {
+  /** The accessible name, so without an `aria-hidden` shortcut chip (`PageTools.accessibleName`). */
   name: string;
   role: string;
   /** `data-menu-id` of the item or its radio group. */
@@ -652,7 +663,7 @@ export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] |
     const role = element.getAttribute("role") ?? "";
     if (!tools.visible(element)) continue;
     entries.push({
-      name: (element.getAttribute("aria-label") ?? element.textContent ?? "").replace(/\s+/g, " ").trim(),
+      name: tools.accessibleName(element),
       role,
       menuId: element.closest("[data-menu-id]")?.getAttribute("data-menu-id") ?? null,
       disabled: element.getAttribute("aria-disabled") === "true",

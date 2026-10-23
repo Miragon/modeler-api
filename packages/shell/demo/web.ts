@@ -146,6 +146,7 @@ const menu: MenuGroups = {
       id: "shortcuts",
       label: "Keyboard shortcuts…",
       icon: "keyboard",
+      shortcut: "?",
       onSelect: () => calls.push("shortcuts"),
     },
   ],

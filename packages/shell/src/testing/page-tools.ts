@@ -64,6 +64,22 @@ export interface PageTools {
   box(element: Element, root: HTMLElement): RelativeBox;
   describe(element: Element): string;
   facts(element: Element): ElementFacts;
+  /**
+   * The accessible name of a control whose role takes its name from content (a button, a menu
+   * item), by this subset of accname 1.2: the elements `aria-labelledby` names, else a non-empty
+   * `aria-label`, else the text of its content, else `title`. The content leaves out
+   * `aria-hidden="true"`, `hidden` and `display: none` subtrees and text under `visibility: hidden`;
+   * a rendered descendant's `aria-label` (an `<img>`'s `alt`) stands for its own content, and a
+   * descendant that is not `display: inline` is read apart from its neighbours. Not covered: CSS
+   * generated content (`::before`, `::after`), and an element CSS shows despite its `hidden`
+   * attribute still counts as hidden. Whitespace collapsed and trimmed.
+   */
+  accessibleName(element: Element): string;
+  /**
+   * The accessible description from `aria-describedby`: the text of the elements it names, read as
+   * `accessibleName` reads content, an element named there counting even when it is hidden itself.
+   */
+  accessibleDescription(element: Element): string;
 }
 
 export type ToolWindow = Window & { __modelerShellConformance?: PageTools };
@@ -118,6 +134,44 @@ export const installPageTools = (_: null): void => {
     const chrome = element.getAttribute("data-chrome");
     return `${element.tagName.toLowerCase()}${id}${classes}${chrome ? `[data-chrome="${chrome}"]` : ""}`;
   };
+  const hiddenSubtree = (element: Element): boolean =>
+    element.getAttribute("aria-hidden") === "true" ||
+    element.hasAttribute("hidden") ||
+    getComputedStyle(element).display === "none";
+  const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
+  const contentText = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // visibility inherits, but a descendant may turn it back on, so it is read per text node
+      const parent = node.parentElement;
+      return parent && getComputedStyle(parent).visibility === "hidden" ? "" : (node.textContent ?? "");
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const element = node as Element;
+    if (hiddenSubtree(element)) return "";
+    const style = getComputedStyle(element);
+    const rendered = style.visibility !== "hidden";
+    const alternative =
+      (rendered && element.getAttribute("aria-label")?.trim()) ||
+      (rendered && element.localName === "img" && element.getAttribute("alt")) ||
+      [...element.childNodes].map(contentText).join("");
+    // Chrome reads anything but an inline box (a block, a flex item, an inline-block, display:
+    // contents) apart from its neighbours; an engine that computes no display reads as inline
+    return ["", "inline"].includes(style.display) ? alternative : ` ${alternative} `;
+  };
+  const ownName = (element: Element): string =>
+    collapse(element.getAttribute("aria-label") ?? "") ||
+    collapse([...element.childNodes].map(contentText).join(""));
+  const referenced = (element: Element, attribute: string): Element[] =>
+    (element.getAttribute(attribute) ?? "")
+      .split(/\s+/)
+      .map((id) => (id ? document.getElementById(id) : null))
+      .filter((target): target is HTMLElement => target !== null);
+  const accessibleName = (element: Element): string =>
+    collapse(referenced(element, "aria-labelledby").map(ownName).join(" ")) ||
+    ownName(element) ||
+    collapse(element.getAttribute("title") ?? "");
+  const accessibleDescription = (element: Element): string =>
+    collapse(referenced(element, "aria-describedby").map(ownName).join(" "));
   const tools: PageTools = {
     keys: [],
     documentKeys: [],
@@ -177,6 +231,8 @@ export const installPageTools = (_: null): void => {
         disabled: Boolean((element as HTMLButtonElement).disabled),
       };
     },
+    accessibleName,
+    accessibleDescription,
   };
   const recorder = (into: RecordedKey[]) => (event: KeyboardEvent) => {
     if (modifierKeys.includes(event.key)) return;

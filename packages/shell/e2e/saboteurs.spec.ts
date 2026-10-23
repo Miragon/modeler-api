@@ -440,6 +440,48 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("aria fails for a dialog entry without the ellipsis, whatever its shortcut chip", async ({ page }) => {
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        help: [
+          { kind: "dialog", id: "shortcuts", label: "Keyboard shortcuts", shortcut: "?", onSelect() {} },
+        ],
+      });
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: "Keyboard shortcuts" opens a dialog, so its label ends with "…" \(U\+2026\)/,
+    );
+  });
+
+  test("aria fails for a menu shortcut chip that assistive technology cannot hear", async ({ page }) => {
+    // Without the saboteur the same entry passes: the failure is the lost description, not the chip.
+    await runCase(
+      "aria",
+      page,
+      sabotaged(() => {
+        window.__demo!.shell.menu.setGroups({
+          export: [
+            { kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
+          ],
+        });
+      }),
+    );
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        export: [{ kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} }],
+      });
+      const menu = document.querySelector('[role="menu"]')!;
+      new MutationObserver(() => {
+        for (const item of menu.querySelectorAll("[aria-describedby]")) {
+          item.removeAttribute("aria-describedby");
+        }
+      }).observe(menu, { childList: true, subtree: true });
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: "Go to diagram" shows the shortcut "G then D" but names it neither in aria-keyshortcuts nor in its description \(guide §5\.6\)/,
+    );
+  });
+
   test("aria fails for an extra tab stop a renderer puts on .djs-container", async ({ page }) => {
     // Event Storming's keyboard sets tabindex="0" on canvas.getContainer()
     const harness = sabotaged(() => {

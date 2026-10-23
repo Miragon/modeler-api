@@ -584,11 +584,57 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     shell.menu.open();
     const of = (id: string) => shell.menu.dropdown.querySelector(`[data-menu-id="${id}"]`);
     expect(of("svg")?.getAttribute("aria-keyshortcuts")).toBe("Meta+E");
+    expect(of("svg")?.querySelector(".cd-shell-menu-shortcut")?.getAttribute("aria-hidden")).toBe("true");
     expect(of("json")?.getAttribute("aria-keyshortcuts")).toBe("Meta+J");
     expect(of("png")?.hasAttribute("aria-keyshortcuts")).toBe(false);
+    for (const id of ["svg", "json", "png"]) expect(of(id)?.hasAttribute("aria-describedby")).toBe(false);
   });
 
-  it("shows a dialog entry's shortcut chip and names it in aria-keyshortcuts", () => {
+  it("describes an entry by its chip when aria-keyshortcuts cannot name the key", () => {
+    const base = groups();
+    const exportEntries = [
+      ...(base.export ?? []),
+      { kind: "action" as const, id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
+      {
+        kind: "action" as const,
+        id: "print",
+        label: "Print",
+        shortcut: "⌘P",
+        ariaKeyShortcuts: "",
+        onSelect() {},
+      },
+    ];
+    const help = (base.help ?? []).map((entry) =>
+      entry.kind === "dialog" ? { ...entry, shortcut: "F1 or ?" } : entry,
+    );
+    const { shell } = mount({ menu: { ...base, export: exportEntries, help } });
+    const describedBy = () =>
+      ["goto", "print", "shortcuts"].map((id) => {
+        const entry = shell.menu.dropdown.querySelector(`[data-menu-id="${id}"]`);
+        const chip = entry?.querySelector(".cd-shell-menu-shortcut");
+        const description = document.getElementById(entry?.getAttribute("aria-describedby") ?? "");
+        return {
+          keyShortcuts: entry?.getAttribute("aria-keyshortcuts"),
+          chipHidden: chip?.getAttribute("aria-hidden"),
+          describedByChip: description !== null && description === chip,
+          description: description?.textContent,
+        };
+      });
+    const expected = ["G then D", "⌘P", "F1 or ?"].map((key) => ({
+      keyShortcuts: null,
+      chipHidden: "true",
+      describedByChip: true,
+      description: key,
+    }));
+    shell.menu.open();
+    expect(describedBy()).toEqual(expected);
+    shell.menu.refresh();
+    expect(describedBy()).toEqual(expected);
+    const ids = [...document.querySelectorAll("[id]")].map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("shows a dialog entry's shortcut chip, named in aria-keyshortcuts and not in the entry's name", () => {
     const base = groups();
     const help = (base.help ?? []).map((entry) =>
       entry.kind === "dialog" ? { ...entry, shortcut: "?" } : entry,
@@ -596,7 +642,9 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     const { shell } = mount({ menu: { ...base, help } });
     shell.menu.open();
     const entry = shell.menu.dropdown.querySelector('[data-menu-id="shortcuts"]');
-    expect(entry?.querySelector(".cd-shell-menu-shortcut")?.textContent).toBe("?");
+    const chip = entry?.querySelector(".cd-shell-menu-shortcut");
+    expect(chip?.textContent).toBe("?");
+    expect(chip?.getAttribute("aria-hidden")).toBe("true");
     expect(entry?.getAttribute("aria-keyshortcuts")).toBe("?");
     expect(entry?.getAttribute("aria-haspopup")).toBe("dialog");
   });

@@ -340,7 +340,10 @@ export function menuKeysAtDocumentProblems(
     );
 }
 
-/** An open menu (guide §5.4): expanded trigger, labelled `role="menu"`, named items, focus. */
+/**
+ * An open menu (guide §5.4): expanded trigger, labelled `role="menu"`, named items, shortcut chips
+ * that assistive technology hears, focus.
+ */
 export function menuOpenProblems(facts: MenuFacts, focus?: "first" | "last"): string[] {
   const problems: string[] = [];
   if (facts.expanded !== "true") {
@@ -366,6 +369,11 @@ export function menuOpenProblems(facts: MenuFacts, focus?: "first" | "last"): st
     }
     if (item.haspopup === "dialog" && !item.name.endsWith("…")) {
       problems.push(`menu: "${label}" opens a dialog, so its label ends with "…" (U+2026)`);
+    }
+    if (item.shortcut && !item.keyShortcuts && !item.description.includes(item.shortcut)) {
+      problems.push(
+        `menu: "${label}" shows the shortcut "${item.shortcut}" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)`,
+      );
     }
   });
   if (focus && facts.items.length > 0) {
