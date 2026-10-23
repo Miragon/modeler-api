@@ -108,8 +108,8 @@ read-only lock, the web column and a clean `destroy`.
   publishes the handles on `window`. `show.invalid` posts an update the renderer rejects.
 - `web`: the app's own page with its link format. A navigation that only changes the fragment keeps
   the page, so `open` waits for the diagram, not just for the app. With a legend, `open` goes to
-  `about:blank` first: the kit's case for the legend's start state opens twice, each time as a first
-  visit, and fails an `open` that keeps the page.
+  `about:blank` first: the kit's case for the legend's start state (modeler-shell 0.4.0 or later)
+  opens twice, each time as a first visit, and fails an `open` that keeps the page.
 - `labelEditor` (modeler-shell 0.4.0 or later): `open` double-clicks a node and types a new text on
   every call, `documentChanged` compares `modeler.exportText()` with the text at `open` (template:
   [`label-editor.ts`](../assets/template/e2e/tests/support/label-editor.ts)). The kit then zooms,
@@ -117,7 +117,8 @@ read-only lock, the web column and a clean `destroy`.
   editor (L5 recommends it, the shell kit requires it), so the label editor stays open across a view
   change, follows its element and commits only on the user's gestures.
 - `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap. In VS Code
-  a menu without a Model action (no File group there) adds `absent: ["canvasMenuAction"]`.
+  a menu without a Model action (no File group there) adds `absent: ["canvasMenuAction"]`
+  (modeler-shell 0.4.0 or later).
 - Add the smoke test of the production webview bundle behind `renderWebviewHtml` that fails on any
   CSP violation (template:
   [`webview-bundle.spec.ts`](../assets/template/e2e/tests/vscode/webview-bundle.spec.ts)).

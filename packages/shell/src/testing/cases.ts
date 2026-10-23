@@ -1264,7 +1264,7 @@ const cleanupCase: ShellConformanceCase = {
 
 /**
  * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2,
- * the legend's start state and the label editor of 0.4.
+ * and the legend's start state and the label editor of 0.4.
  */
 export function createBaseCases(): ShellConformanceCase[] {
   return [
