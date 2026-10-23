@@ -1788,6 +1788,24 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
     twelve such switches passed: six switched on the rewrite, 2.1 to 2.4 s after the first write,
     and six whose rewrite was put back too switched through Default High Contrast, 4.6 to 4.8 s
     after it.
+  - _Where the misses came from._ A test that watched `settings.json` found a second writer, VS
+    Code itself. VS Code 1.143 changed `extensions.autoUpdate` from a boolean to `"on"` and
+    `"off"`, and a configuration migration turns the driver's `false` into `"off"`. The migration
+    runs once, in the workbench's last start-up phase, which under load falls into the themes step,
+    and it writes through VS Code's own model of the file, which can still hold the file from before
+    the driver's last write. In the three misses VS Code wrote the file 5, 25 and 41 ms after the
+    driver's write with the previous theme in it (and `"off"`, in the two runs whose test logged
+    every key), so it never read the requested theme. The driver therefore writes `"off"` itself
+    (0.4.1). VS Code before the change (1.96 knows `true`, `"onlyEnabledExtensions"` and `false`)
+    reads `"off"` as its default, `true`, which does nothing while auto check is off
+    (`extensions.autoCheckUpdates: false`). The other value VS Code migrates, the color theme's old
+    name (`"Default Light Modern"` becomes `"Light Modern"`), it rewrites while it starts, before the
+    open step ends, in every run measured. Under the same load, 80 runs each: with 0.4.0 the
+    migration wrote the file during the themes step in 79 runs and put the previous theme back in 2,
+    which failed after 30 s with "themes: Default High Contrast: the workbench never switched (no
+    .hc-black)"; with the retries alone it did so in 61 runs and 2, which the rewrite rescued; with
+    `"off"` VS Code did not write the file after the open step in any run, and all 320 switches
+    happened on the first write, in 1 to 521 ms.
 - **Screenshots.** Before the first theme the driver blurs the webview: the edit went through the
   keyboard, so the canvas shows its focus ring, which would be in every picture. Screenshots are in
   CSS pixels, the same size on a Retina Mac and on a CI runner.

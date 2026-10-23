@@ -2581,8 +2581,10 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    associate the fixture's file name with the custom editor (`workbench.editorAssociations`, so the
    editor's `priority` does not matter), turn off telemetry, updates, the start page, tips,
    experiments, the chat, auto save, Git and the OS's automatic color scheme and high contrast, and
-   dispatch keys by key code (`keyboard.dispatch: keyCode`). The environment drops `VSCODE_*` and
-   `ELECTRON_RUN_AS_NODE`. The window's content size becomes `windowSize`.
+   dispatch keys by key code (`keyboard.dispatch: keyCode`). Extension updates are off with
+   `extensions.autoUpdate: "off"` (0.4.1; `false` before, which VS Code 1.143 migrates by rewriting
+   `settings.json` itself, and that rewrite could undo a theme switch). The environment drops
+   `VSCODE_*` and `ELECTRON_RUN_AS_NODE`. The window's content size becomes `windowSize`.
 3. **open**: the webview frame of the extension (`iframe.webview` whose URL names `extensionId`),
    then its `#active-frame`; waits for `[data-chrome="menu"]`, then `ready`, and checks that every
    island of `chrome` is visible. It records the canvas: shapes, connections and every shape's
