@@ -7,11 +7,12 @@ Design IQ is a change in Design IQ (a spec with `id`, `pkg`, `canvasClassName`,
 
 - **The contract factories** (`createCollaborativeModeler`, `createCollaborativeViewer`) are
   exported from the renderer's entry and accept `CollaborativeModelerOptions`: Design IQ passes
-  `{ freeArea: { insets }, fitOnImport: false }` where its chrome covers the canvas, and
-  `undoRedoKeys: true`.
-- **The content bounds for Design IQ's fit.** Design IQ fits the view itself: after every import
-  in the widgets (hence `fitOnImport: false`; the diagram's import events tell it, see the host
-  wiring below), and in both places on its fit key and when its chrome changes. It fits to `modeler.contentBounds?.()` (contract 1.3), feature-detected on the
+  `{ freeArea: { insets }, fitOnImport: false }` where its chrome covers the canvas (the widgets),
+  `{ fitOnImport: false }` in its web editor, and `undoRedoKeys: true`.
+- **The content bounds for Design IQ's fit.** Design IQ fits the view itself (hence `fitOnImport: false`;
+  the diagram's import events tell it, see the host wiring below): after every import in the
+  widgets, after the first import in its web editor, and in both places on its fit key and when its
+  chrome changes. It fits to `modeler.contentBounds?.()` (contract 1.3), feature-detected on the
   instance the factory returned, never to a box read from a service inside `diagram`. So both
   factories report it, as the template does (see [contract](contract.md#the-factories)): the tight
   box of everything the canvas draws of the document, a plot or axes as well as the elements; no
