@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Miragon/modeler-api/compare/modeler-api-v1.2.0...modeler-api-v1.3.0) (2026-10-23)
+
+
+### Features
+
+* report the content bounds a host fits to (contract 1.3) and fit to them in connectDiagramJs ([#62](https://github.com/Miragon/modeler-api/issues/62)) ([3ebb72b](https://github.com/Miragon/modeler-api/commit/3ebb72bca0b39ca4a5ace3410e6c9d6b9f83bbd4))
+
 ## [1.2.0](https://github.com/Miragon/modeler-api/compare/modeler-api-v1.1.0...modeler-api-v1.2.0) (2026-10-21)
 
 
