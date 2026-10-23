@@ -125,6 +125,32 @@ test.describe("saboteurs", () => {
       ]);
     });
 
+    test("geometry fails for a second-row tooltip centred in the container", async ({ page }) => {
+      // the other reading of guide §5.15's "mittig im Container", settled for the entry in 1.15.0
+      const harness: ShellConformanceHarness<Page> = {
+        ...sabotaged(() => {
+          const root = document.querySelector<HTMLElement>(".cd-shell")!;
+          const centre = () => {
+            const tooltip = root.querySelector<HTMLElement>('[role="tooltip"]');
+            if (!tooltip || root.getAttribute("data-palette") !== "second-row") return;
+            if (tooltip.style.top !== "112px") return;
+            const left = `${(root.clientWidth - tooltip.offsetWidth) / 2}px`;
+            if (tooltip.style.left !== left) tooltip.style.left = left;
+          };
+          new MutationObserver(centre).observe(root, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+        }),
+        // the other cases read the first size, wide; the second row is the second
+        sizes: [...WIDE_ONLY, { width: 720, height: 700 }],
+      };
+      await expectOnlyCaseFails(page, harness, "geometry", [
+        /\[720 × 700\] tooltip: left is [\d.]+px, expected [\d.]+px \(±1px\) \(on palette-entry\)/,
+      ]);
+    });
+
     test("focusHandBack fails when a pointer click leaves the focus on the chrome", async ({ page }) => {
       // shell 0.2.1: the clicked button keeps the focus, so Delete and the arrows do nothing
       const harness = sabotaged(() => {

@@ -600,10 +600,10 @@ export function dropdownProblems(
 export type TooltipRow = "top" | "second-row" | "bottom";
 
 /**
- * Where the chrome tooltip of a control stands (guide §5.6): 8px below the top row (`top: 60px`)
- * or the second row (`top: 112px`), 8px above the bottom row (`bottom: 60px`, above the web app's
- * raised zoom row `bottom: 88px`: give its `bottomRow` of 40); centred on its control and shifted
- * to keep 12px to the sides.
+ * Where the chrome tooltip of a control stands (guide §5.6, §5.15): 8px below the top row
+ * (`top: 60px`) or the second row (`top: 112px`), 8px above the bottom row (`bottom: 60px`, above
+ * the web app's raised zoom row `bottom: 88px`: give its `bottomRow` of 40); centred on its control
+ * in every row, the second one included, and shifted to keep 12px to the sides.
  */
 export function tooltipProblems(
   tooltip: IslandBox,
@@ -620,27 +620,14 @@ export function tooltipProblems(
     row === "bottom"
       ? { left, bottom: bottomRow + rowHeight + gap }
       : { left, top: (row === "top" ? edge : free) + rowHeight + gap };
-  let mismatches = boxMismatches(
-    "tooltip",
-    tooltip,
-    expectedAt(clamp(anchor.left + anchor.width / 2 - tooltip.width / 2)),
-    container,
-    tolerance,
-  );
-  // Guide §5.15 reads "mittig im Container" for the second row; until the guide settles whether
-  // that means the container or the entry, either centre conforms.
-  if (row === "second-row" && mismatches.length > 0) {
-    const inContainer = boxMismatches(
+  return [
+    ...boxMismatches(
       "tooltip",
       tooltip,
-      expectedAt(clamp(container.width / 2 - tooltip.width / 2)),
+      expectedAt(clamp(anchor.left + anchor.width / 2 - tooltip.width / 2)),
       container,
       tolerance,
-    );
-    if (inContainer.length === 0) mismatches = inContainer;
-  }
-  return [
-    ...mismatches,
+    ),
     ...limitViolations(
       "tooltip",
       tooltip,
