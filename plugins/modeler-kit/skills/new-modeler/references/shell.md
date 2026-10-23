@@ -179,6 +179,11 @@ runs all three.
   Escape. A notation without such an entry passes its own `edit` (locators on `webview`, keys on
   `page`), and one whose edit takes more than one undo step sets `undoSteps`. A failed check is in
   `failures`, never thrown; `keepTemporaryFiles` keeps VS Code's logs for a failure to read.
+- A theme switch VS Code does not pick up is retried by the driver (modeler-shell 0.4.1 or later):
+  it writes the setting again, then switches through another theme and back, all within one
+  `timeoutMs`. Only then does the theme fail, naming the theme requested and the one VS Code shows.
+  The smoke test needs no retry of its own, neither a `retry` in its Vitest config nor a second run
+  after a failed theme; a modeler that added one on an older shell drops it with the upgrade.
 
 What each step checks and every option are in the shell's
 [README](https://github.com/Miragon/modeler-api/blob/main/packages/shell/README.md) (section "Smoke
