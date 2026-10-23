@@ -104,8 +104,9 @@ known version), and the new repository's Dependabot moves them on.
   floor.
 - `npm run test:vscode-smoke` passes: edit, save, undo and VS Code's four default themes in a real
   VS Code ([shell](references/shell.md#the-vs-code-smoke-test)).
-- The renderer's `meta.apiVersion` is the pinned `MODELER_API_VERSION`, and the factories accept
-  the 1.2 options `freeArea`, `fitOnImport` and `undoRedoKeys`.
+- The renderer's `meta.apiVersion` is the pinned `MODELER_API_VERSION`, the factories accept the
+  1.2 options `freeArea`, `fitOnImport` and `undoRedoKeys`, and both mounts report
+  `contentBounds()` (1.3), which the apps fit to.
 - Neither app has chrome of its own: menu, palette skin, zoom, keys, problems, status, empty state
   and toasts come from the shell, and the menu content comes from the renderer.
 - A VSIX packages (`npx vsce package --no-dependencies`) and `npm publish --dry-run` packs every

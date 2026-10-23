@@ -9,7 +9,6 @@ import {
   createShortcutsDialog,
   diagramMenu,
   svgToPng,
-  type ContentBounds,
 } from '@miragon/__NOTATION__-renderer';
 import { mountShell, problemSummary } from '@miragon/modeler-shell';
 import { connectDiagramJs, shellModule } from '@miragon/modeler-shell/diagram-js';
@@ -33,7 +32,6 @@ const modeler = createCollaborativeModeler({
 });
 const diagram = modeler.diagram;
 diagram.get('canvas');
-const bounds = diagram.get<ContentBounds>('contentBounds');
 
 // 2. The chrome around it: the whole web column of guide §5.2.
 const shell = mountShell(app, {
@@ -75,11 +73,12 @@ const shell = mountShell(app, {
 const shortcutsDialog = createShortcutsDialog(shell);
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
-// 3. Viewport, palette skin and keys. Cheap callbacks: the shell asks on every content change.
+// 3. Viewport, palette skin and keys. The viewport fits to the contract's contentBounds(), tight
+//    as guide §5.9 wants it. Empty means no element, which the shell asks on every content change:
+//    a notation that always draws something (a plot, axes) has bounds without one.
 const connection = connectDiagramJs(shell, diagram, {
-  isEmpty: () => bounds.isEmpty(),
-  // No padding of its own: the shell's fit insets are the only margin (guide §5.9).
-  contentBounds: () => bounds.contentBounds(0),
+  modeler,
+  isEmpty: () => modeler.elements.list().length === 0,
 });
 const { viewport } = connection;
 

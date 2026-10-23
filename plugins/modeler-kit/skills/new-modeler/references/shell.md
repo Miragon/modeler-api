@@ -16,13 +16,16 @@ Template: [`apps/webapp/src/main.ts`](../assets/template/apps/webapp/src/main.ts
 2. **The shell**: `mountVsCodeShell` in the webview (the `ide` host), `mountShell` with
    `host: 'web'` in the web app, the diagram's container as `canvas`. Do not call the factory's
    `attachTo`: the shell places the container in its slot.
-3. **`connectDiagramJs(shell, diagram, { contentBounds, isEmpty })`**: `contentBounds` is the tight
-   box without padding (the shell's fit insets are the only margin), `isEmpty` is cheap (the shell
-   asks on every content change). It returns a connection, `{ viewport, destroy }`. On its
-   `viewport`, call `viewport.afterImport()` after every import, `viewport.newDocument()` before a
-   new document in the web app, and `viewport.getViewbox()` and `viewport.restore()` around a
-   re-import in VS Code; `persistView(vscode, viewport)` keeps the view in the webview state.
-   `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
+3. **`connectDiagramJs(shell, diagram, { modeler, isEmpty })`** (modeler-shell 0.4.0 or later): the
+   viewport fits to `modeler.contentBounds()`, the contract's tight box (1.3), so the host knows
+   none of the renderer's services and adds no padding (the shell's fit insets are the only margin).
+   `isEmpty` says that no element is on the canvas and is cheap (the shell asks on every content
+   change); it is not `contentBounds()` being `undefined`, since a notation that always draws
+   something (a plot, axes) has bounds without an element. It returns a connection,
+   `{ viewport, destroy }`. On its `viewport`, call `viewport.afterImport()` after every import,
+   `viewport.newDocument()` before a new document in the web app, and `viewport.getViewbox()` and
+   `viewport.restore()` around a re-import in VS Code; `persistView(vscode, viewport)` keeps the
+   view in the webview state. `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
 
 Stylesheets: the fonts (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, bundled,
 no CDN), the renderer's stylesheet (its entry imports it), then `@miragon/modeler-shell/shell.css`
