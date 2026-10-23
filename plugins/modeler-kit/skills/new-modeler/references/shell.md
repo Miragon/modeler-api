@@ -16,17 +16,23 @@ Template: [`apps/webapp/src/main.ts`](../assets/template/apps/webapp/src/main.ts
 2. **The shell**: `mountVsCodeShell` in the webview (the `ide` host), `mountShell` with
    `host: 'web'` in the web app, the diagram's container as `canvas`. Do not call the factory's
    `attachTo`: the shell places the container in its slot.
-3. **`connectDiagramJs(shell, diagram, { contentBounds, isEmpty })`**: `contentBounds` is the tight
-   box without padding (the shell's fit insets are the only margin), `isEmpty` is cheap (the shell
-   asks on every content change). It returns a connection, `{ viewport, destroy }`. On its
-   `viewport`, call `viewport.afterImport()` after every import, `viewport.newDocument()` before a
-   new document in the web app, and `viewport.getViewbox()` and `viewport.restore()` around a
-   re-import in VS Code; `persistView(vscode, viewport)` keeps the view in the webview state.
-   `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
+3. **`connectDiagramJs(shell, diagram, { modeler, isEmpty })`** (modeler-shell 0.4.0 or later): the
+   viewport fits to `modeler.contentBounds()`, the contract's tight box (1.3), so the host knows
+   none of the renderer's services and adds no padding (the shell's fit insets are the only margin).
+   `isEmpty` says that no element is on the canvas and is cheap (the shell asks on every content
+   change); it is not `contentBounds()` being `undefined`, since a notation that always draws
+   something (a plot, axes) has bounds without an element. It returns a connection,
+   `{ viewport, destroy }`. On its `viewport`, call `viewport.afterImport()` after every import,
+   `viewport.newDocument()` before a new document in the web app, and `viewport.getViewbox()` and
+   `viewport.restore()` around a re-import in VS Code; `persistView(vscode, viewport)` keeps the
+   view in the webview state. `destroy()` unbinds the shell and runs by itself on `diagram.destroy`.
 
 Stylesheets: the fonts (`@fontsource-variable/geist`, `@fontsource-variable/geist-mono`, bundled,
-no CDN), the renderer's stylesheet (its entry imports it), then `@miragon/modeler-shell/shell.css`
-last. Neither app has a stylesheet of its own.
+no CDN), the renderer's stylesheet, then `@miragon/modeler-shell/shell.css` last. The renderer's
+entry imports its stylesheet, but the web app imports it by name as well
+(`@miragon/<notation>-renderer/assets/<notation>.css`): the renderer's `sideEffects` lists only its
+CSS, so Vite's production build skips the entry's own import and would ship the chrome without the
+tokens, while the dev server and e2e show nothing wrong. Neither app has a stylesheet of its own.
 
 ## What the renderer hands the shell
 
@@ -36,9 +42,15 @@ last. Neither app has a stylesheet of its own.
   [`menu.sync.test.ts`](../assets/template/apps/vscode/test/menu.sync.test.ts)). Export: PNG first,
   then SVG, then the document format in the web app only (in VS Code the file is the document).
   Help: "Keyboard shortcuts…", a dialog the renderer renders into `shell.root` and removes on
-  `diagram.destroy` (the shell removes only what it added). View-only toggles in Model set
-  `keepEnabledWhenReadOnly`; entries that change the document go through the command stack. The
-  web app's File group comes from the shell's `file` option.
+  `diagram.destroy` (the shell removes only what it added). In the web app its entry shows the
+  "?" chip, which modeler-shell 0.4.0 keeps out of the entry's name (`aria-hidden`), so the name
+  still ends with "…", and "?" opens the dialog from anywhere but a text field, another dialog and
+  the start screen (the listener sits on `document` in the capture phase, ahead of the open menu's
+  type-ahead). Only the web app passes the key: the VS Code webview keeps from VS Code only the keys
+  guide §13.5 gives it and passes every other one on, so its entry has no chip and the dialog opens
+  from the menu; a page that embeds the renderer keeps its own keys.
+  View-only toggles in Model set `keepEnabledWhenReadOnly`; entries that change the document go
+  through the command stack. The web app's File group comes from the shell's `file` option.
 - **Palette entries.** The shell skins diagram-js's palette (`data-chrome="palette"`, roving focus,
   tooltips, the read-only veto). Tools live in group `tools` with keys `lasso-tool` and `hand-tool`
   (the two a read-only canvas keeps); every entry has a `title` and a separate `shortcut`, no native
@@ -80,7 +92,8 @@ last. Neither app has a stylesheet of its own.
 
 - `index.html` is `<html lang="en" class="cd-shell-document" data-cd-theme="light">` with a
   `<!-- miragon-mode -->` marker that the Vite config replaces with `webHeadMarkup(…)`; the web
-  app's `check:build` script verifies the markup and the shell's licence comment in `dist`.
+  app's `check:build` script verifies the markup, the renderer's stylesheet (the tokens and the
+  renderer's rules) and the shell's licence comment in `dist`.
 - The web column: `primary` ("Share", the document in the URL fragment), `legal`, `file`,
   `problems` (rows from `problemSummary`), `emptyState` with the vendored Komet on a fresh start
   (end it with `setEmptyState(false)` on every other start), `dropZone` with extensions and MIME
@@ -136,13 +149,21 @@ modeler's parser accepts it), undoes (the canvas and, saved again, the file are 
 and switches through VS Code's four default themes, where the webview has to show what the theme
 bridge resolves for the modeler's `themes`, with a screenshot each. Template:
 [`vscode-smoke.test.ts`](../assets/template/apps/vscode/test-smoke/vscode-smoke.test.ts), run by
-`npm run test:vscode-smoke` after `npm run build` and `npm run build:vscode`.
+`npm run test:vscode-smoke` after `npm run build` and `npm run build:vscode`; `npm run test:vscode`
+runs all three.
+
+- **On a developer machine, in Docker:** `npm run test:vscode:docker` runs `test:vscode` in a Linux
+  container under `xvfb-run -a` through the shell's `modeler-shell-vscode-docker` (modeler-shell
+  0.3.1 or later), so no VS Code window opens and takes the focus. It needs Node and Docker, passes
+  `VSCODE_VERSION` and `VSCODE_SMOKE_KEEP` into the container and copies the screenshots back to
+  `test-results/vscode-smoke` (with VS Code's logs under `vscode-logs/` when kept). CI runs
+  `test:vscode-smoke` under `xvfb-run -a` directly.
 
 - Its two peers, `playwright-core` and `@vscode/test-electron` 3.1.0 or later (earlier releases
   cannot start a current VS Code on macOS), are exact devDependencies of `apps/vscode`; nothing
   else installs them. `test-smoke/**` is in `.vscodeignore`, so the VSIX does not ship it.
 - It has its own Vitest config with `fileParallelism: false`, outside `npm test`: it needs a
-  display and the built extension, and a window opens for a few seconds. The first run downloads
+  display and the built extension, and outside Docker a window opens for a few seconds. The first run downloads
   VS Code (about 350 MB) into the OS's cache directory, outside the repository and shared by every
   modeler on the machine, so neither `.gitignore` nor ESLint needs an entry.
 - `VSCODE_VERSION` picks the VS Code (`stable`, `1.96.0`; default the newest stable release that

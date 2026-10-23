@@ -1,15 +1,17 @@
 // Geist and Geist Mono, bundled: no font CDN (offline use, GDPR).
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
-// The renderer's entry imports its stylesheet (the vendored tokens, diagram-js.css, the canvas
-// mapping); the chrome's stylesheet comes after it.
+// The renderer's stylesheet (the vendored tokens, diagram-js.css, the canvas mapping), then the
+// chrome's. Imported by name: the production build drops the renderer entry's own CSS import, since
+// the package declares only its CSS files as side effects.
+import '@miragon/__NOTATION__-renderer/assets/__NOTATION__.css';
 import '@miragon/modeler-shell/shell.css';
 import {
+  SHORTCUTS_KEY,
   createCollaborativeModeler,
   createShortcutsDialog,
   diagramMenu,
   svgToPng,
-  type ContentBounds,
 } from '@miragon/__NOTATION__-renderer';
 import { mountShell, problemSummary } from '@miragon/modeler-shell';
 import { connectDiagramJs, shellModule } from '@miragon/modeler-shell/diagram-js';
@@ -33,7 +35,6 @@ const modeler = createCollaborativeModeler({
 });
 const diagram = modeler.diagram;
 diagram.get('canvas');
-const bounds = diagram.get<ContentBounds>('contentBounds');
 
 // 2. The chrome around it: the whole web column of guide §5.2.
 const shell = mountShell(app, {
@@ -56,6 +57,7 @@ const shell = mountShell(app, {
       text: { onSelect: () => download(modeler.exportText(), 'text/plain', '__EXT__') },
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
+    shortcutsKey: SHORTCUTS_KEY,
   }),
   emptyState: {
     title: APP_NAME,
@@ -72,14 +74,15 @@ const shell = mountShell(app, {
     },
   },
 });
-const shortcutsDialog = createShortcutsDialog(shell);
+const shortcutsDialog = createShortcutsDialog(shell, { shortcutsKey: SHORTCUTS_KEY });
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
-// 3. Viewport, palette skin and keys. Cheap callbacks: the shell asks on every content change.
+// 3. Viewport, palette skin and keys. The viewport fits to the contract's contentBounds(), tight
+//    as guide §5.9 wants it. Empty means no element, which the shell asks on every content change:
+//    a notation that always draws something (a plot, axes) has bounds without one.
 const connection = connectDiagramJs(shell, diagram, {
-  isEmpty: () => bounds.isEmpty(),
-  // No padding of its own: the shell's fit insets are the only margin (guide §5.9).
-  contentBounds: () => bounds.contentBounds(0),
+  modeler,
+  isEmpty: () => modeler.elements.list().length === 0,
 });
 const { viewport } = connection;
 

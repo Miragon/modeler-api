@@ -420,6 +420,29 @@ describe("the template's package.json files and workflows", () => {
     );
     expect(missing).toEqual([]);
   });
+
+  it("define every script the skill's and the template's documents run", () => {
+    const scripts = (dir: string) =>
+      Object.keys(readJson<{ scripts?: Json }>(join(TEMPLATE, dir, "package.json")).scripts ?? {});
+    const documents = [...skillDocuments, ...templateFiles.filter((file) => file.endsWith(".md"))];
+    const missing = documents.flatMap((document) =>
+      [...readText(document).matchAll(/npm run ([\w:-]+)(?: -w ([\w/-]+))?/g)]
+        .filter(([, script, workspace]) => !scripts(workspace ?? ".").includes(script!))
+        .map(([command]) => `${fromRoot(document)}: ${command}`),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("give the vendored design-system files the same header line in the skill and the template", () => {
+    const HEADER =
+      /\/\* Vendored unchanged from Miragon\/corporate-identity \(design system \d+\.\d+\.\d+, [^)]+\)\. Do not edit; re-copy to update\. \*\//g;
+    const headers = [
+      join(SKILL, "references/design-system.md"),
+      join(TEMPLATE, "packages/renderer/src/theme/README.md"),
+    ].map((file) => [...readText(file).matchAll(HEADER)].map(([line]) => line));
+    expect(headers[0]).toHaveLength(1);
+    expect(headers[1]).toEqual(headers[0]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -686,6 +709,7 @@ const NON_API_NAMES = new Map<string, string>([
   ["devDependencies", "package.json"],
   ["devDependency", "package.json"],
   ["peerDependencies", "package.json"],
+  ["sideEffects", "package.json"],
   ["node_modules", "npm"],
   ["LICENSE", "npm and vsce"],
   ["E404", "npm"],
@@ -857,6 +881,14 @@ describe("the template's VS Code smoke step", () => {
       "test:vscode-smoke": `vitest run --config ${SMOKE_STEP}vitest.config.ts`,
     });
     expect(vscodeApp.devDependencies?.["playwright-core"]).toBe(root.devDependencies?.playwright);
+  });
+
+  it("runs in Docker through the shell's command, after building what it opens", () => {
+    const { scripts = {} } = readJson<{ scripts?: Record<string, string> }>(join(TEMPLATE, "package.json"));
+    const shell = readJson<{ bin?: Record<string, string> }>(join(ROOT, "packages/shell/package.json"));
+    const [command] = (scripts["test:vscode:docker"] ?? "").split(" ");
+    expect(Object.keys(shell.bin ?? {})).toContain(command);
+    expect(scripts["test:vscode"]).toBe("npm run build && npm run build:vscode && npm run test:vscode-smoke");
   });
 
   it("imports the driver from the entry of the shell apps/vscode pins, and is type-checked against it", () => {

@@ -8,7 +8,6 @@ import {
   diagramMenu,
   svgToPng,
   type CollaborativeDiagram,
-  type ContentBounds,
   type ReadOnly,
 } from '@miragon/__NOTATION__-renderer';
 import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
@@ -50,7 +49,6 @@ const modeler = createCollaborativeModeler({
 });
 const diagram = modeler.diagram;
 diagram.get('canvas');
-const bounds = diagram.get<ContentBounds>('contentBounds');
 const canvasLock = diagram.get<ReadOnly>('readOnly');
 const registry = diagram.get<ElementRegistry>('elementRegistry');
 const selection = diagram.get<Selection>('selection');
@@ -62,7 +60,8 @@ const shell = mountVsCodeShell(app, {
   themes: WEBVIEW_THEMES,
   canvas: diagram.container,
   messages: { canvas: DIAGRAM_NAME },
-  // In VS Code the file is the document: no text export.
+  // In VS Code the file is the document: no text export. No shortcuts key either: every key the
+  // webview does not need goes on to VS Code (guide §13.5), so the dialog opens from the menu.
   menu: diagramMenu({
     exports: {
       png: { onSelect: () => void exportPicture('png') },
@@ -76,9 +75,10 @@ const shell = mountVsCodeShell(app, {
 const shortcutsDialog = createShortcutsDialog(shell);
 diagram.on('diagram.destroy', () => shortcutsDialog.destroy());
 
+// Fitted to the contract's contentBounds(); empty means no element, not empty bounds.
 const connection = connectDiagramJs(shell, diagram, {
-  isEmpty: () => bounds.isEmpty(),
-  contentBounds: () => bounds.contentBounds(0),
+  modeler,
+  isEmpty: () => modeler.elements.list().length === 0,
 });
 const { viewport } = connection;
 persistView(vscode, viewport);

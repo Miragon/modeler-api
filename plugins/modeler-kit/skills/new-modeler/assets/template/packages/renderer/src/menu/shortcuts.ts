@@ -36,6 +36,11 @@ export interface ShortcutGroup {
   readonly rows: readonly ShortcutRow[];
 }
 
+export interface DiagramShortcutsOptions {
+  /** The key that opens the dialog itself, listed in a Help group. */
+  readonly shortcutsKey?: string | undefined;
+}
+
 /** A Cmd/Ctrl key chip: `⌘Z` on macOS, `Ctrl+Z` elsewhere, as the shell's `commandKeyLabel`. */
 export function commandKeyLabel(
   key: string,
@@ -45,7 +50,10 @@ export function commandKeyLabel(
   return platform === 'mac' ? `⌘${key}` : `${keyNames.ctrl}+${key}`;
 }
 
-export function diagramShortcuts(chrome: ShortcutsChrome): ShortcutGroup[] {
+export function diagramShortcuts(
+  chrome: ShortcutsChrome,
+  options: DiagramShortcutsOptions = {},
+): ShortcutGroup[] {
   const { platform, messages } = chrome;
   const { keyNames } = messages;
   const mac = platform === 'mac';
@@ -78,5 +86,8 @@ export function diagramShortcuts(chrome: ShortcutsChrome): ShortcutGroup[] {
         { action: messages.fit, keys: [mac ? '⇧1' : `${keyNames.shift}+1`] },
       ],
     },
+    ...(options.shortcutsKey
+      ? [{ title: 'Help', rows: [{ action: 'Keyboard shortcuts', keys: [options.shortcutsKey] }] }]
+      : []),
   ];
 }

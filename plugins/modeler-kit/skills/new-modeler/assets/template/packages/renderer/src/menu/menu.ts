@@ -23,6 +23,8 @@ export interface DiagramMenuAction extends DiagramMenuItem {
 
 export interface DiagramMenuDialog extends DiagramMenuItem {
   readonly kind: 'dialog';
+  /** The chip of the key that opens the dialog, e.g. "?". */
+  readonly shortcut?: string;
   onSelect(): void;
 }
 
@@ -45,10 +47,15 @@ export interface DiagramMenuActions {
     readonly text?: DiagramExport | undefined;
   };
   showKeyboardShortcuts(): void;
+  /** The key that opens the shortcuts dialog, shown as the chip of its Help entry. */
+  readonly shortcutsKey?: string | undefined;
 }
 
 /** The label of the text export, also its row in the shortcuts dialog. */
 export const TEXT_EXPORT_LABEL = 'Export as .__EXT__';
+
+/** The key the web app opens the shortcuts dialog with (`createShortcutsDialog`, `diagramMenu`). */
+export const SHORTCUTS_KEY = '?';
 
 function exportEntry(id: string, label: string, action: DiagramExport, icon?: DiagramMenuIcon) {
   return {
@@ -75,6 +82,7 @@ export function diagramMenu(actions: DiagramMenuActions): DiagramMenu {
         id: 'keyboard-shortcuts',
         label: 'Keyboard shortcuts…',
         icon: 'keyboard',
+        ...(actions.shortcutsKey ? { shortcut: actions.shortcutsKey } : {}),
         onSelect: () => actions.showKeyboardShortcuts(),
       },
     ],

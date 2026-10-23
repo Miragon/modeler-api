@@ -2,14 +2,31 @@ import { lucideIcon } from '../draw/lucide.js';
 import { diagramShortcuts, type ShortcutGroup, type ShortcutsChrome } from './shortcuts.js';
 
 const DIALOG_CLASS = 'diagram-shortcuts';
+const TEXT_FIELD = "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+const DIALOG = 'dialog, [role="dialog"], [role="alertdialog"]';
 
 /** What the dialog needs of the chrome; a `@miragon/modeler-shell` handle fits. */
 export interface ShortcutsDialogChrome extends ShortcutsChrome {
   /** Where the dialog lives (the shell root), so it shares the chrome's mode and fonts. */
   readonly root: HTMLElement;
   readonly messages: ShortcutsChrome['messages'] & { readonly close: string };
-  /** The control the focus returns to once the dialog closes. */
-  readonly menu: { readonly trigger: HTMLElement };
+  /** The control the focus returns to once the dialog closes, unless its key opened it elsewhere. */
+  readonly menu: {
+    readonly trigger: HTMLElement;
+    isOpen?(): boolean;
+    close?(options?: { restoreFocus?: boolean }): void;
+  };
+  /** The web app's start screen shows: no diagram, so its key opens nothing. */
+  isEmptyStateShown?(): boolean;
+}
+
+export interface ShortcutsDialogOptions {
+  /**
+   * The key that opens the dialog (`SHORTCUTS_KEY`), also listed in it. Left out, nothing listens:
+   * the VS Code webview passes every key it does not need on to VS Code (guide §13.5), and a page
+   * the modeler is embedded in keeps its keys.
+   */
+  readonly shortcutsKey?: string | undefined;
 }
 
 export interface ShortcutsDialog {
@@ -43,13 +60,43 @@ function table(group: ShortcutGroup): HTMLElement {
   return section;
 }
 
+function isTextField(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return (target as HTMLElement).isContentEditable === true || target.closest(TEXT_FIELD) !== null;
+}
+
+function isShown(dialog: Element): boolean {
+  if (dialog instanceof HTMLDialogElement) return dialog.open;
+  return (
+    dialog.closest('[hidden]') === null && dialog.checkVisibility({ visibilityProperty: true })
+  );
+}
+
+function opensDialog(event: KeyboardEvent, key: string): boolean {
+  return (
+    event.key === key &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !event.isComposing &&
+    !event.defaultPrevented &&
+    !isTextField(event.target)
+  );
+}
+
 /**
  * The Help group's "Keyboard shortcuts…" dialog (guide §5.4, §8): a modal `<dialog>` in the
- * shell root, closed by Escape, the backdrop and its Close button, the focus back on the menu
- * trigger. Usable on a read-only canvas. The modeler removes it in its own teardown
- * (`diagram.destroy`), since the shell removes only what it added.
+ * shell root, closed by Escape, the backdrop and its Close button, the focus back where it was
+ * (the menu trigger after the menu entry). Usable on a read-only canvas. With `shortcutsKey` the
+ * key opens it from anywhere but a text field, another dialog and the start screen. The modeler
+ * removes it in its own teardown (`diagram.destroy`), since the shell removes only what it added.
  */
-export function createShortcutsDialog(chrome: ShortcutsDialogChrome): ShortcutsDialog {
+export function createShortcutsDialog(
+  chrome: ShortcutsDialogChrome,
+  options: ShortcutsDialogOptions = {},
+): ShortcutsDialog {
+  const { shortcutsKey } = options;
+  const page = chrome.root.ownerDocument;
   const dialog = element('dialog', DIALOG_CLASS);
   dialog.setAttribute('aria-labelledby', `${DIALOG_CLASS}-title`);
   const header = element('header', `${DIALOG_CLASS}-header`);
@@ -61,22 +108,48 @@ export function createShortcutsDialog(chrome: ShortcutsDialogChrome): ShortcutsD
   close.innerHTML = lucideIcon('x');
   header.append(title, close);
   const body = element('div', `${DIALOG_CLASS}-body`);
-  for (const group of diagramShortcuts(chrome)) body.append(table(group));
+  for (const group of diagramShortcuts(chrome, { shortcutsKey })) body.append(table(group));
   dialog.append(header, body);
   chrome.root.append(dialog);
+
+  let returnFocus: HTMLElement | SVGElement | undefined;
+  const open = () => {
+    if (dialog.open) return;
+    const active = page.activeElement;
+    returnFocus =
+      active !== page.body && (active instanceof HTMLElement || active instanceof SVGElement)
+        ? active
+        : undefined;
+    dialog.showModal();
+  };
 
   close.addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
-  dialog.addEventListener('close', () => chrome.menu.trigger.focus());
+  dialog.addEventListener('close', () => {
+    const target = returnFocus?.isConnected ? returnFocus : chrome.menu.trigger;
+    returnFocus = undefined;
+    target.focus();
+  });
+
+  const onKey = (event: KeyboardEvent) => {
+    if (!shortcutsKey || !opensDialog(event, shortcutsKey)) return;
+    if (chrome.isEmptyStateShown?.() || [...page.querySelectorAll(DIALOG)].some(isShown)) return;
+    event.preventDefault();
+    if (chrome.menu.isOpen?.()) chrome.menu.close?.({ restoreFocus: true });
+    open();
+  };
+  // Capture: an open menu consumes printable keys for its type-ahead before they bubble.
+  if (shortcutsKey) page.addEventListener('keydown', onKey, true);
 
   return {
-    open: () => {
-      if (!dialog.open) dialog.showModal();
-    },
+    open,
     isOpen: () => dialog.open,
     close: () => dialog.close(),
-    destroy: () => dialog.remove(),
+    destroy: () => {
+      page.removeEventListener('keydown', onKey, true);
+      dialog.remove();
+    },
   };
 }
