@@ -50,7 +50,7 @@ Build the packages before the tests: workspace dependencies resolve to `dist`.
   into its `needs`. The VS Code smoke test runs in CI when a change touches `apps/vscode/`,
   `packages/`, a `package.json`, the lockfile or `tsconfig.base.json`, every week, and before each
   publish of the VSIX.
-  See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci).
+  See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci-and-the-merge-gate).
 - Comments only where they explain why.
 
 ## Design system (mandatory)

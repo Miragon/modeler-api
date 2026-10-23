@@ -114,8 +114,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
-  # The one required check: it fails when any job above failed, was cancelled or was skipped
-  # unexpectedly, which a list of required checks would let through. A new job goes into needs.
+  # The merge gate. A job skipped because a job it needs failed reports "skipped", and a required
+  # check counts a skip as passed, so this job, not the single ones, is the check for the ruleset to
+  # require. Every other job of this workflow belongs in its needs.
   ci-ok:
     name: ci-ok
     if: always()
@@ -138,9 +139,8 @@ jobs:
         shell: bash
         env:
           NEEDS: ${{ toJSON(needs) }}
-          # Skipped by their own `if:` on this event, so a skip is their expected result here:
-          # dependency-review compares the dependency changes of a pull request and has none to
-          # compare on a push, a merge group or a manual run.
+          # Jobs whose own if: leaves them out of this event: dependency-review compares the
+          # dependencies of a pull request with its base, which no other event has.
           SKIPPED_BY_DESIGN: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
         run: |
           set -euo pipefail

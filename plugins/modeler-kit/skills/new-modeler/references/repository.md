@@ -108,9 +108,9 @@ group it compares the change with its base (the pull request's base, the commit 
 merge group's base) and starts VS Code only when `package-lock.json`, any `package.json`,
 `apps/vscode/`, `packages/`, `tsconfig.base.json` (the bundles and the libraries' `dist` are built
 with its compiler options), `ci.yml`, the two smoke workflows or the setup action changed. The diff
-lists a moved file under its old path too and a non-ASCII path unquoted, so neither slips past the
-patterns. A scheduled or manual run, and a run without a base to compare with (a new branch), always
-start it. `vscode-smoke` runs the matrix `stable` (the newest stable VS Code) and `minimum` (the
+lists a moved file under its old path too and every path as it is (`git diff -z`, never quoted, a
+non-ASCII name or a quote included), so neither slips past the patterns. A scheduled or manual
+run, and a run without a base to compare with (a new branch), always start it. `vscode-smoke` runs the matrix `stable` (the newest stable VS Code) and `minimum` (the
 `engines.vscode` floor, read from `apps/vscode/package.json` at run time), each cached by version.
 When `changes` skips it, `skipped` succeeds with a notice, so the skip reaches `ci-ok` as a success.
 

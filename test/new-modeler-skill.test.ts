@@ -1186,6 +1186,9 @@ describe("the template's VS Code smoke workflows", () => {
     it("runs when only a file with a non-ASCII name changed in apps/vscode", () => {
       expect(afterChanging({ "apps/vscode/test/Übersicht.example": "b" })).toBe("true");
     });
+    it("runs when only a file with a quote in its name changed in apps/vscode", () => {
+      expect(afterChanging({ 'apps/vscode/test/a "quoted" name.example': "b" })).toBe("true");
+    });
     it.each(["push", "merge_group"])("compares a %s with its base too", (event) => {
       afterChanging({ "README.md": "b" });
       expect(decision(event, base)).toBe("false");
