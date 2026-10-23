@@ -47,17 +47,25 @@ jobs:
           # request after the tarball is already accepted. Verify against the
           # registry instead of relying on npm publish's exit status.
           npm publish -w "$dir" --provenance --access public || true
-          published=""
-          for attempt in 1 2 3 4 5 6; do
-            if npm view "$name@$version" version > /dev/null 2>&1; then
-              published=1
-              break
+          # The registry can take minutes to list a version it has accepted;
+          # giving up sooner turns a good release into a red run.
+          # Each poll gets its own short fetch timeout and no npm retries: with
+          # npm's defaults (5-minute timeout, 2 retries) one stalled npm view can
+          # block far longer than the whole wait, and this loop already retries.
+          poll_interval_seconds=15
+          poll_timeout_seconds=300
+          waited_seconds=0
+          attempt=1
+          until registry_answer="$(npm view "$name@$version" version --fetch-timeout=30000 --fetch-retries=0 2>&1)"; do
+            if [ "$waited_seconds" -ge "$poll_timeout_seconds" ]; then
+              echo "::error::$name@$version did not land on the registry after $attempt attempts, ${poll_interval_seconds}s apart"
+              echo "last registry answer to npm view $name@$version version:"
+              echo "$registry_answer"
+              exit 1
             fi
-            echo "waiting for $name@$version to appear on the registry (attempt $attempt)"
-            sleep 5
+            echo "waiting for $name@$version to appear on the registry (attempt $attempt, ${waited_seconds}s of ${poll_timeout_seconds}s)"
+            sleep "$poll_interval_seconds"
+            waited_seconds=$((waited_seconds + poll_interval_seconds))
+            attempt=$((attempt + 1))
           done
-          if [ -z "$published" ]; then
-            echo "::error::$name@$version did not land on the registry"
-            exit 1
-          fi
           echo "confirmed $name@$version on registry"
