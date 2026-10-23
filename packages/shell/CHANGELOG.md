@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.3...modeler-shell-v0.4.0) (2026-10-23)
+
+
+### Features
+
+* report the content bounds a host fits to (contract 1.3) and fit to them in connectDiagramJs ([#62](https://github.com/Miragon/modeler-api/issues/62)) ([3ebb72b](https://github.com/Miragon/modeler-api/commit/3ebb72bca0b39ca4a5ace3410e6c9d6b9f83bbd4))
+* **shell:** check that the shell's fit, zoom and refit never commit an open label editor ([#64](https://github.com/Miragon/modeler-api/issues/64)) ([eee7840](https://github.com/Miragon/modeler-api/commit/eee7840dc7decfebcac4bbd8d163cdbfcf646dd2))
+* **shell:** start the legend closed up to 440px wide and tighten the kit to the settled guide readings ([#68](https://github.com/Miragon/modeler-api/issues/68)) ([16baa0a](https://github.com/Miragon/modeler-api/commit/16baa0a9b667349d89e2b526fc42481a81c854ef))
+
+
+### Bug Fixes
+
+* **shell:** keep the menu's shortcut chip out of the item's accessible name ([#63](https://github.com/Miragon/modeler-api/issues/63)) ([22517d5](https://github.com/Miragon/modeler-api/commit/22517d5ba8151f3b28eebd122b18f0289586cf49))
+
 ## [0.3.3](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.3.2...modeler-shell-v0.3.3) (2026-10-22)
 
 
