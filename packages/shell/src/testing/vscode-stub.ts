@@ -173,13 +173,31 @@ function recordFailures(): { violations: CspViolation[]; errors: string[] } {
 }
 
 /**
+ * Runs `apply` once `<body>` exists. A stub installed from `<head>`, as `openWebviewBundle` serves
+ * it, runs before the parser inserts `<body>`; the observer's callback then runs at the microtask
+ * checkpoint the parser performs before the first script of `<body>`, so the bundle sees the classes.
+ */
+function whenBody(apply: () => void): void {
+  if (document.body) {
+    apply();
+    return;
+  }
+  const observer = new MutationObserver(() => {
+    if (!document.body) return;
+    observer.disconnect();
+    apply();
+  });
+  observer.observe(document.documentElement, { childList: true });
+}
+
+/**
  * Stands in for VS Code around the page: its default stylesheet in `@layer vscode-default` (unless
  * the page already has `<style id="_defaultStyles">`), `<html>` with the attributes
  * `renderWebviewHtml` writes before the first paint, `<body>` with the host page's theme (and
  * reduce-motion) classes, `acquireVsCodeApi()`, and the real `connectThemeBridge` running against a
  * fake `vscode` namespace whose panel posts to this window. From then on it records CSP violations
- * and errors. Call it before the modeler's webview code runs; also exposed as
- * `window.__modelerShellVsCodeStub`.
+ * and errors. Call it before the modeler's webview code runs, from `<head>` too, where it sets the
+ * body classes once the parser inserted `<body>`; also exposed as `window.__modelerShellVsCodeStub`.
  */
 export function installVsCodeWebviewStub(options: VsCodeWebviewStubOptions): VsCodeWebviewStub {
   const settingKey = options.settingKey ?? STUB_SETTING_KEY;
@@ -259,8 +277,10 @@ export function installVsCodeWebviewStub(options: VsCodeWebviewStubOptions): VsC
     document.body.classList.remove(...ALL_BODY_CLASSES);
     document.body.classList.add(...BODY_CLASSES[next]);
   };
-  setBodyClasses(kind);
-  document.body.classList.toggle(REDUCE_MOTION_BODY_CLASS, options.reduceMotion === true);
+  whenBody(() => {
+    setBodyClasses(kind);
+    document.body.classList.toggle(REDUCE_MOTION_BODY_CLASS, options.reduceMotion === true);
+  });
   connectThemeBridge(vscode, panel, bridgeOptions);
 
   let state = options.state;

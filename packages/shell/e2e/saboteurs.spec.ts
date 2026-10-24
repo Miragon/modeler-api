@@ -1872,10 +1872,43 @@ test.describe("saboteurs", () => {
         sheet.insertRule(
           '@font-face { font-family: "Geist Variable"; font-style: italic; src: url(fonts/geist-latin-wght-italic-missing.woff2) format("woff2"); }',
         );
-        void document.fonts.load('italic 13px "Geist Variable"', "Aa");
+        // Rendered, as the canvas renders an italic caption, so the page itself asks for the face.
+        const caption = document.createElement("span");
+        caption.textContent = "Inertia";
+        caption.style.fontFamily = '"Geist Variable"';
+        caption.style.fontStyle = "italic";
+        document.body.append(caption);
       });
       await expect(runCase("csp", page, harness)).rejects.toThrow(
         /fonts: the face "Geist Variable" italic \S+ failed to load/,
+      );
+    });
+
+    test("csp fails a subset of a shell font that lost its unicode-range", async ({ page }) => {
+      const harness = bundleSabotaged(() => {
+        const sheet = [...document.styleSheets].find((candidate) => candidate.href !== null)!;
+        const index = [...sheet.cssRules].findIndex(
+          (rule) => rule instanceof CSSFontFaceRule && rule.cssText.includes("geist-cyrillic-wght"),
+        );
+        const rule = sheet.cssRules[index]!.cssText.replace(/unicode-range:[^;}]*;?/, "");
+        sheet.deleteRule(index);
+        sheet.insertRule(rule, index);
+      });
+      await expect(runCase("csp", page, harness)).rejects.toThrow(
+        /fonts: a face of "Geist Variable" has no unicode-range beside the family's other subsets/,
+      );
+    });
+
+    test("csp fails a bundle whose palette and menu the walk cannot reach", async ({ page }) => {
+      const harness = bundleSabotaged(() => {
+        const sheet = [...document.styleSheets].find((candidate) => candidate.href !== null)!;
+        sheet.insertRule(
+          '[data-chrome="palette"], [data-chrome="menu"] { visibility: hidden !important; }',
+          sheet.cssRules.length,
+        );
+      });
+      await expect(runCase("csp", page, harness)).rejects.toThrow(
+        /csp: no visible palette entry to hover[\s\S]*csp: no visible menu trigger to open/,
       );
     });
 

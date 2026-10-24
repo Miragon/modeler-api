@@ -47,8 +47,8 @@ web app's dev server, port `E2E_PORT`, default 5180, with the shell's conformanc
 host) and `vscode-webview` (the VS Code webview inside the modeler shell's VS Code stub, port
 `E2E_WEBVIEW_PORT`, default 5190, with the shell's conformance kit, whose `csp` case walks the
 production bundle behind the webview CSP); set both ports when several worktrees run the suite at
-once. Keep
-`playwright-core` and the e2e workspace's `@playwright/test` on the root `playwright` version.
+once. Keep `playwright-core` and the e2e workspace's `@playwright/test` on the root `playwright`
+version.
 
 ### The extension in a real VS Code
 

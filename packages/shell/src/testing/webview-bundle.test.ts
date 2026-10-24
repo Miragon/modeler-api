@@ -70,26 +70,41 @@ describe("webviewBundleHtml", () => {
     expect(page.documentElement.getAttribute("data-cd-theme")).toBe("light");
   });
 
-  it("runs the stub, carrying its options, as the first script of <body>, before the bundle", () => {
+  it("runs the stub, carrying its options, ahead of the policy and the stylesheets, and the bundle last", () => {
     const page = parse(
       webviewBundleHtml(
         { ...OPTIONS, themes: ["light", "dark"], colorTheme: "dark", reduceMotion: true },
         "bm9uY2U",
       ),
     );
-    const scripts = [...page.body.querySelectorAll("script")];
     expect(
-      scripts.map((script) => [script.getAttribute("nonce"), script.getAttribute("src")]),
+      [...page.head.children].map(
+        (element) => element.id || element.getAttribute("http-equiv") || element.localName,
+      ),
     ).toEqual([
-      ["bm9uY2U", "https://webview.test/__modeler-shell/vscode-stub.js"],
-      ["bm9uY2U", "https://webview.test/webview.js"],
+      "_defaultStyles",
+      "script",
+      "meta",
+      "Content-Security-Policy",
+      "meta",
+      "link",
+      "title",
     ]);
-    expect(JSON.parse(scripts[0]!.getAttribute("data-options")!)).toEqual({
+    const stub = page.head.querySelector("script")!;
+    expect(stub.getAttribute("src")).toBe("https://webview.test/__modeler-shell/vscode-stub.js");
+    expect(stub.hasAttribute("nonce")).toBe(false);
+    expect(JSON.parse(stub.getAttribute("data-options")!)).toEqual({
       requested: { theme: "light" },
       themes: ["light", "dark"],
       colorTheme: "dark",
       reduceMotion: true,
     });
+    expect(
+      [...page.body.querySelectorAll("script")].map((script) => [
+        script.getAttribute("nonce"),
+        script.getAttribute("src"),
+      ]),
+    ).toEqual([["bm9uY2U", "https://webview.test/webview.js"]]);
     expect(page.body.querySelector("#app")).not.toBeNull();
     expect(page.documentElement.getAttribute("data-cd-theme")).toBe("dark");
   });
@@ -186,7 +201,7 @@ describe("openWebviewBundle", () => {
       "goto https://webview.test/",
     ]);
     const document = await request("/");
-    expect(document.contentType).toBe("text/html");
+    expect(document.contentType).toBe("text/html; charset=utf-8");
     expect(document.body).toContain('src="https://webview.test/__modeler-shell/vscode-stub.js"');
     expect(await request("/__modeler-shell/vscode-stub.js")).toEqual({
       contentType: "text/javascript",

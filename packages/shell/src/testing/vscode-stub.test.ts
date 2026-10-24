@@ -43,6 +43,24 @@ describe("installVsCodeWebviewStub", () => {
     expect((window as StubWindow).__modelerShellVsCodeStub?.kind).toBe(3);
   });
 
+  it("installed from <head>, sets the body classes once the parser inserted <body>", async () => {
+    const body = document.body;
+    body.remove();
+    try {
+      installVsCodeWebviewStub({
+        requested: { theme: "dark" },
+        themes: ["light"],
+        reduceMotion: true,
+      });
+      expect(document.body).toBeNull();
+      document.documentElement.append(body);
+      await Promise.resolve();
+      expect([...document.body.classList]).toEqual(["vscode-dark", "vscode-reduce-motion"]);
+    } finally {
+      if (!body.isConnected) document.documentElement.append(body);
+    }
+  });
+
   it("switches the color theme as VS Code does: body classes, then the bridge's message", async () => {
     const stub = installVsCodeWebviewStub({
       requested: { theme: "light" },

@@ -8,12 +8,13 @@ const POLICY =
 function facts(overrides: Partial<CspFacts> = {}): CspFacts {
   return {
     policy: POLICY,
+    origin: "https://webview.test",
     recording: true,
     violations: [],
     errors: [],
     fonts: [
-      { family: "Geist Variable", faces: 1, error: "", inlined: false },
-      { family: "Geist Mono Variable", faces: 1, error: "", inlined: false },
+      { family: "Geist Variable", faces: 1, error: "", inlined: false, unranged: false },
+      { family: "Geist Mono Variable", faces: 1, error: "", inlined: false, unranged: false },
     ],
     failedFaces: [],
     ...overrides,
@@ -25,17 +26,38 @@ describe("cspProblems", () => {
     expect(cspProblems(facts())).toEqual([]);
   });
 
-  it("fails a page without a policy or with another one", () => {
+  it("passes renderWebviewHtml's policy without inline styles, and in another order", () => {
+    expect(
+      cspProblems(
+        facts({
+          policy:
+            "script-src 'nonce-xyz'; font-src data: https://webview.test; default-src 'none'; style-src https://webview.test; img-src https://webview.test data: blob:",
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("fails a page without a policy or with a looser one", () => {
+    const expected = (inlineStyles: string) =>
+      `("default-src 'none'; img-src https://webview.test data: blob:; style-src https://webview.test${inlineStyles}; font-src https://webview.test data:; script-src 'nonce-…'")`;
     expect(cspProblems(facts({ policy: null }))).toEqual([
       "csp: the page csp.open loaded has no Content-Security-Policy; open the production bundle with openWebviewBundle, which serves renderWebviewHtml's document",
     ]);
-    expect(cspProblems(facts({ policy: "default-src *" }))).toEqual([
-      `csp: the page's policy "default-src *" is not renderWebviewHtml's (default-src 'none', scripts by nonce)`,
-    ]);
-    expect(
-      cspProblems(facts({ policy: "default-src 'none'; script-src 'unsafe-inline'" })),
-    ).toEqual([
-      `csp: the page's policy "default-src 'none'; script-src 'unsafe-inline'" is not renderWebviewHtml's (default-src 'none', scripts by nonce)`,
+    for (const policy of [
+      "default-src *",
+      "default-src 'none'; script-src 'unsafe-inline'",
+      POLICY.replace("'nonce-abc'", "'nonce-abc' 'unsafe-eval'"),
+      POLICY.replace("'nonce-abc'", "'nonce-abc' https://webview.test"),
+      POLICY.replace("img-src https://webview.test", "img-src *"),
+      `${POLICY}; connect-src *`,
+    ]) {
+      const inlineStyles = policy.includes("style-src") ? " 'unsafe-inline'" : "";
+      expect(cspProblems(facts({ policy }))).toEqual([
+        `csp: the page's policy "${policy}" is not renderWebviewHtml's for https://webview.test ${expected(inlineStyles)}; open the production bundle with openWebviewBundle`,
+      ]);
+    }
+    expect(cspProblems(facts({ origin: "http://127.0.0.1:5181" }))).toEqual([
+      `csp: the page's policy "${POLICY}" is not renderWebviewHtml's for http://127.0.0.1:5181 ("default-src 'none'; img-src http://127.0.0.1:5181 data: blob:; style-src http://127.0.0.1:5181 'unsafe-inline'; font-src http://127.0.0.1:5181 data:; script-src 'nonce-…'"); open the production bundle with openWebviewBundle`,
     ]);
   });
 
@@ -90,19 +112,26 @@ describe("cspProblems", () => {
     ]);
   });
 
-  it("fails a font that loaded no face, one inlined as a data: URL, a face that failed and a root without fonts", () => {
+  it("fails a font that loaded no face, one inlined as a data: URL, a subset without unicode-range, a face that failed and a root without fonts", () => {
     expect(
       cspProblems(
         facts({
           fonts: [
-            { family: "Geist Variable", faces: 0, error: "NetworkError", inlined: false },
-            { family: "Geist Mono Variable", faces: 1, error: "", inlined: true },
+            {
+              family: "Geist Variable",
+              faces: 0,
+              error: "NetworkError",
+              inlined: false,
+              unranged: false,
+            },
+            { family: "Geist Mono Variable", faces: 1, error: "", inlined: true, unranged: true },
           ],
         }),
       ),
     ).toEqual([
       `fonts: "Geist Variable" loaded no face: NetworkError; bundle its font files next to the webview bundle`,
       `fonts: "Geist Mono Variable" comes from a data: URL; bundle its font files next to the webview bundle (esbuild loader "file"), so the browser fetches only the subsets a page needs`,
+      `fonts: a face of "Geist Mono Variable" has no unicode-range beside the family's other subsets, so every page fetches its file; keep the font's @font-face rules as its package ships them`,
     ]);
     expect(
       cspProblems(

@@ -75,10 +75,10 @@ function escapeAttribute(value: string): string {
 }
 
 /**
- * The page's document: `renderWebviewHtml` with the extension's options on the origin, the stub as
- * the first script of `<body>` (it carries the bundle's nonce and its options in `data-options`), and
- * VS Code's default styles prepended to `<head>`. VS Code writes them there too, ahead of the
- * page's own policy, which therefore never blocks them.
+ * The page's document: `renderWebviewHtml` with the extension's options on the origin, and
+ * prepended to `<head>`, ahead of the page's own policy, VS Code's default styles and the stub (its
+ * options in `data-options`). VS Code writes its default styles and its own API script there too,
+ * so the policy never blocks them, and the stub records from the first resource the page loads.
  */
 export function webviewBundleHtml(options: WebviewBundleOptions, nonce = createNonce()): string {
   const { title, script, styles, body, inlineStyles } = options;
@@ -92,7 +92,6 @@ export function webviewBundleHtml(options: WebviewBundleOptions, nonce = createN
     state: options.state,
   };
   const origin = WEBVIEW_BUNDLE_ORIGIN;
-  const stubElement = `<script nonce="${nonce}" src="${origin}${STUB_PATH}" ${STUB_OPTIONS_ATTRIBUTE}="${escapeAttribute(JSON.stringify(stub))}"></script>`;
   const html = renderWebviewHtml({
     cspSource: origin,
     nonce,
@@ -104,12 +103,16 @@ export function webviewBundleHtml(options: WebviewBundleOptions, nonce = createN
       requestedAppearance(colorThemeKindOf(stub.requested), stub.colorTheme),
       stub.themes,
     ),
-    body: `${body ?? '<div id="app"></div>'}\n    ${stubElement}`,
+    body,
     inlineStyles,
   });
   return html.replace(
     "<head>",
-    `<head>\n    <style id="${VSCODE_DEFAULT_STYLES_ID}">${VSCODE_DEFAULT_STYLES}</style>`,
+    [
+      "<head>",
+      `<style id="${VSCODE_DEFAULT_STYLES_ID}">${VSCODE_DEFAULT_STYLES}</style>`,
+      `<script src="${origin}${STUB_PATH}" ${STUB_OPTIONS_ATTRIBUTE}="${escapeAttribute(JSON.stringify(stub))}"></script>`,
+    ].join("\n    "),
   );
 }
 
@@ -144,11 +147,12 @@ async function shippedStub(): Promise<string> {
 
 /**
  * Opens the modeler's production webview bundle the way VS Code loads it: the document and CSP of
- * `renderWebviewHtml` on `WEBVIEW_BUNDLE_ORIGIN` (its `cspSource`), VS Code's default styles ahead
- * of the policy, and the VS Code stub of `./testing/vscode-stub` as the first script of `<body>`,
- * before the bundle; it records every CSP violation and error from then on. Any other request to the
- * origin is answered with the file of `dist` it names (a 404 outside `dist`). Resolves once the page
- * has loaded; hand the bundle its document the way the extension does (its `init` message) next.
+ * `renderWebviewHtml` on `WEBVIEW_BUNDLE_ORIGIN` (its `cspSource`), with VS Code's default styles
+ * and the VS Code stub of `./testing/vscode-stub` ahead of the policy, where VS Code writes its own
+ * API script; the stub records every CSP violation, error and failed load from the page's first
+ * stylesheet on. Any other request to the origin is answered with the file of `dist` it names (a
+ * 404 outside `dist`). Resolves once the page has loaded; hand the bundle its document the way the
+ * extension does (its `init` message) next.
  */
 export async function openWebviewBundle(
   page: WebviewBundlePage,
@@ -160,7 +164,9 @@ export async function openWebviewBundle(
   await page.unroute(pattern);
   await page.route(pattern, async (route) => {
     const { pathname } = new URL(route.request().url());
-    if (pathname === "/") return route.fulfill({ contentType: "text/html", body: html });
+    if (pathname === "/") {
+      return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
+    }
     if (pathname === STUB_PATH)
       return route.fulfill({ contentType: "text/javascript", body: stub });
     const file = distFile(options.dist, pathname);

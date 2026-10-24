@@ -7,12 +7,11 @@ import {
   closeByEscape,
   finish,
   hover,
-  menuEntries,
   openMenuByClick,
   shapes,
 } from "./case-tools.js";
 import { cspProblems, type CspFacts, type FontFacts } from "./csp-checks.js";
-import type { ShapeFacts } from "./facts.js";
+import { menuEntriesProbe, type ShapeFacts } from "./facts.js";
 import { DEFAULT_ROOT } from "./geometry.js";
 import type { ShellConformanceCase, ShellConformanceHarness, ShellSkip } from "./harness.js";
 import type { PageLike } from "./page.js";
@@ -127,6 +126,21 @@ const cspFactsProbe = async ({ root }: { root: string }): Promise<CspFacts> => {
     return found;
   };
 
+  /** Whether a face of `family` covers every code point although its style comes in subsets. */
+  const unranged = (family: string): boolean => {
+    const styles = new Map<string, FontFace[]>();
+    for (const face of document.fonts) {
+      if (unquote(face.family) !== family) continue;
+      const style = `${face.style} ${face.weight} ${face.stretch}`;
+      styles.set(style, [...(styles.get(style) ?? []), face]);
+    }
+    return [...styles.values()].some(
+      (faces) =>
+        faces.length > 1 &&
+        faces.some((face) => /^U\+0+-10FFFF$/i.test(face.unicodeRange.replace(/\s/g, ""))),
+    );
+  };
+
   await document.fonts.ready;
   const fonts: FontFacts[] = [];
   for (const family of families) {
@@ -138,13 +152,14 @@ const cspFactsProbe = async ({ root }: { root: string }): Promise<CspFacts> => {
       error = String(reason);
     }
     const inlined = sources(family).some((source) => /url\(\s*["']?data:/i.test(source));
-    fonts.push({ family, faces, error, inlined });
+    fonts.push({ family, faces, error, inlined, unranged: unranged(family) });
   }
   const failedFaces = [...document.fonts]
     .filter((face) => face.status === "error")
     .map((face) => `"${unquote(face.family)}" ${face.style} ${face.weight}`);
   return {
     policy,
+    origin: location.origin,
     recording,
     violations: recording ? [...stub!.cspViolations()] : [],
     errors: recording ? [...stub!.errors()] : [],
@@ -162,9 +177,12 @@ async function closeOpenLayers(page: PageLike, root: string): Promise<void> {
 }
 
 /** The tooltip of a palette entry. */
-async function walkPalette(page: PageLike, root: string): Promise<void> {
-  await hover(page, root, "palette-entry");
+async function walkPalette(page: PageLike, root: string): Promise<string[]> {
+  const entry = await hover(page, root, "palette-entry");
   await page.mouse.move(PARK.x, PARK.y);
+  return entry
+    ? []
+    : ["csp: no visible palette entry to hover; its tooltip under the CSP was not verified"];
 }
 
 /** Selects `shape`, hovers each entry of its context pad, opens its label editor and leaves it. */
@@ -186,13 +204,32 @@ async function walkShape(page: PageLike, root: string, shape: ShapeFacts): Promi
 /**
  * Every enabled menu entry that is not destructive, each from a freshly opened menu: the exports,
  * the dialogs (closed again by Escape), the toggles such as the Legend, each radio option not
- * chosen yet.
+ * chosen yet. A menu the walk cannot open, or one without an entry it activated, is a problem: the
+ * bundle's exports and dialogs would then go unverified.
  */
-async function walkMenu(page: PageLike, root: string): Promise<void> {
-  for (const entry of await menuEntries(page, root)) {
+async function walkMenu(page: PageLike, root: string): Promise<string[]> {
+  if (!(await openMenuByClick(page, root))) {
+    return [
+      "csp: no visible menu trigger to open; the menu's entries under the CSP were not verified",
+    ];
+  }
+  const entries = await inPage(page, menuEntriesProbe, { root });
+  await closeByEscape(page);
+  if (!entries) {
+    return [
+      'csp: no visible role="menu" after clicking the trigger; the menu\'s entries under the CSP were not verified',
+    ];
+  }
+  let activated = 0;
+  let previous = "the first entry";
+  for (const entry of entries) {
     if (entry.disabled || entry.danger || entry.menuId === null) continue;
     if (entry.role === "menuitemradio" && entry.checked === "true") continue;
-    if (!(await openMenuByClick(page, root))) return;
+    if (!(await openMenuByClick(page, root))) {
+      return [
+        `csp: the menu trigger was gone after ${previous}; the rest of the menu was not verified`,
+      ];
+    }
     const point = await inPage(page, menuEntryPointProbe, {
       root,
       menuId: entry.menuId,
@@ -202,9 +239,16 @@ async function walkMenu(page: PageLike, root: string): Promise<void> {
       await page.mouse.click(point.x, point.y);
       await settle(page);
       await page.waitForTimeout(ACTION_WAIT_MS);
+      activated++;
+      previous = `"${entry.name}"`;
     }
     await closeOpenLayers(page, root);
   }
+  return activated > 0
+    ? []
+    : [
+        "csp: the walk activated no menu entry (none enabled and not data-danger, or none found in a freshly opened menu); no export or dialog under the CSP was verified",
+      ];
 }
 
 async function walkZoom(page: PageLike, root: string): Promise<void> {
@@ -221,8 +265,8 @@ async function walkZoom(page: PageLike, root: string): Promise<void> {
  * The IDE host's production bundle under `renderWebviewHtml`'s CSP, opened through `csp.open`:
  * after a walk over a tooltip, a shape's context pad and label editor, every menu entry and the zoom,
  * no `securitypolicyviolation`, no error, the shell's fonts loaded from files and no font face that
- * failed to load. Other hosts have
- * no webview CSP and pass with nothing to verify.
+ * failed to load. A palette or menu the walk cannot reach fails the case too. Other hosts have no
+ * webview CSP and pass with nothing to verify.
  */
 export const cspCase: ShellConformanceCase = {
   name: "csp",
@@ -243,13 +287,14 @@ export const cspCase: ShellConformanceCase = {
     const root = harness.root ?? DEFAULT_ROOT;
     const size = (harness.sizes ?? DEFAULT_SIZES)[0] ?? DEFAULT_SIZES[0]!;
     const skipped: ShellSkip[] = [];
+    const walked: string[] = [];
     await hooks.open(page, { size, requested: LIGHT });
     await settle(page);
 
     // Without the shell there is nothing to walk, but what the page recorded tells why.
     const mounted = (await inPage(page, rootProbe, { root })) === true;
     if (mounted) {
-      await walkPalette(page, root);
+      walked.push(...(await walkPalette(page, root)));
       const shape = (await shapes(page, root)).find((found) => found.hit);
       if (shape) {
         await walkShape(page, root, shape);
@@ -260,7 +305,7 @@ export const cspCase: ShellConformanceCase = {
             "the bundle csp.open opened shows no shape a pointer reaches: its context pad and label editor under the CSP were not verified",
         });
       }
-      await walkMenu(page, root);
+      walked.push(...(await walkMenu(page, root)));
       await walkZoom(page, root);
       await page.waitForTimeout(FINAL_WAIT_MS);
       await settle(page);
@@ -273,6 +318,7 @@ export const cspCase: ShellConformanceCase = {
         : [
             `csp: no element matches the shell root selector "${root}" once csp.open resolved; the bundle did not mount the shell`,
           ]),
+      ...walked,
       ...(facts ? cspProblems(facts) : []),
     ];
     return finish("csp", harness.host, problems, skipped);

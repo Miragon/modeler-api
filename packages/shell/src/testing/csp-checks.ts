@@ -1,3 +1,4 @@
+import { renderWebviewHtml } from "../vscode/extension/index.js";
 import type { CspViolation } from "./vscode-stub.js";
 
 /** One of the shell's fonts in the opened bundle. */
@@ -9,12 +10,19 @@ export interface FontFacts {
   error: string;
   /** Whether an `@font-face` of the family takes its `src` from a `data:` URL. */
   inlined: boolean;
+  /**
+   * Whether a face of the family carries no `unicode-range` although the family splits its style
+   * into subsets: the browser then fetches that face's file whatever the page shows.
+   */
+  unranged: boolean;
 }
 
 /** What the `csp` case reads from the production bundle after its walk. */
 export interface CspFacts {
   /** The page's `<meta http-equiv="Content-Security-Policy">`; `null` without one. */
   policy: string | null;
+  /** The page's origin, the `cspSource` `openWebviewBundle` hands `renderWebviewHtml`. */
+  origin: string;
   /** Whether the page has the VS Code stub that records violations and errors. */
   recording: boolean;
   violations: readonly CspViolation[];
@@ -51,6 +59,45 @@ function describeViolation(violation: CspViolation): string {
   return `csp: ${violation.directive} blocked ${blocked}${source}${sample}${hint(violation)}`;
 }
 
+/** Stands in for the page's nonce, which differs on every load. */
+const ANY_NONCE = "ANY";
+
+/**
+ * A policy's directives in one order, each with its sources sorted and its nonce as `ANY_NONCE`,
+ * so two spellings of one policy compare equal.
+ */
+function normalizedPolicy(policy: string): string {
+  return policy
+    .replace(/'nonce-[^'\s]*'/g, `'nonce-${ANY_NONCE}'`)
+    .split(";")
+    .map((directive) => directive.trim().split(/\s+/).filter(Boolean))
+    .filter((parts) => parts.length > 0)
+    .map(([name, ...sources]) => [name!.toLowerCase(), ...sources.sort()].join(" "))
+    .sort()
+    .join("; ");
+}
+
+/**
+ * The policy `renderWebviewHtml` writes for `origin`, with the page's choice of `inlineStyles`
+ * (the one thing besides the nonce the extension decides), read from the document it renders.
+ */
+function expectedPolicy(policy: string, origin: string): string {
+  const html = renderWebviewHtml({
+    cspSource: origin,
+    nonce: ANY_NONCE,
+    scriptUri: "",
+    title: "",
+    lang: "en",
+    appearance: { theme: "light" },
+    inlineStyles: /(?:^|;)\s*style-src\s[^;]*'unsafe-inline'/i.test(policy),
+  });
+  return (/http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)?.[1] ?? "")
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
+}
+
 /**
  * The production bundle under `renderWebviewHtml`'s CSP: the page runs under that policy with the
  * recording stub, nothing violated it, nothing failed, and the shell's fonts loaded from files.
@@ -61,13 +108,14 @@ export function cspProblems(facts: CspFacts): string[] {
     problems.push(
       "csp: the page csp.open loaded has no Content-Security-Policy; open the production bundle with openWebviewBundle, which serves renderWebviewHtml's document",
     );
-  } else if (
-    !facts.policy.includes("default-src 'none'") ||
-    !/script-src 'nonce-/.test(facts.policy)
-  ) {
-    problems.push(
-      `csp: the page's policy "${facts.policy}" is not renderWebviewHtml's (default-src 'none', scripts by nonce)`,
-    );
+  } else {
+    const expected = expectedPolicy(facts.policy, facts.origin);
+    if (normalizedPolicy(facts.policy) !== normalizedPolicy(expected)) {
+      const shown = expected.replace(`'nonce-${ANY_NONCE}'`, "'nonce-…'");
+      problems.push(
+        `csp: the page's policy "${facts.policy}" is not renderWebviewHtml's for ${facts.origin} ("${shown}"); open the production bundle with openWebviewBundle`,
+      );
+    }
   }
   if (!facts.recording) {
     problems.push(
@@ -108,6 +156,11 @@ export function cspProblems(facts: CspFacts): string[] {
     if (font.inlined) {
       problems.push(
         `fonts: "${font.family}" comes from a data: URL; bundle its font files next to the webview bundle (esbuild loader "file"), so the browser fetches only the subsets a page needs`,
+      );
+    }
+    if (font.unranged) {
+      problems.push(
+        `fonts: a face of "${font.family}" has no unicode-range beside the family's other subsets, so every page fetches its file; keep the font's @font-face rules as its package ships them`,
       );
     }
   }

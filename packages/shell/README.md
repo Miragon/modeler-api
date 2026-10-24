@@ -583,9 +583,9 @@ for (const conformanceCase of shellConformanceCases()) {
 The test page runs the webview from source without a CSP, so the kit's `csp` case (0.6) opens the
 bundle the extension ships. `openWebviewBundle` of `@miragon/modeler-shell/testing/webview-bundle`
 serves it on `https://webview.test` the way VS Code loads it: `renderWebviewHtml`'s document and
-CSP, VS Code's default styles, and the VS Code stub, which records every `securitypolicyviolation`
-and error, as the first script before the bundle. The harness builds the bundle and hands it its
-document:
+CSP, and ahead of the policy, where VS Code writes its own API script, VS Code's default styles and
+the VS Code stub, which records every `securitypolicyviolation`, error and failed load from the
+first stylesheet on. The harness builds the bundle and hands it its document:
 
 ```ts
 // e2e/tests/vscode/support/webview.ts
@@ -621,10 +621,12 @@ export async function openShippedWebview(page: Page, { size, requested }: OpenCo
 
 The case then walks what renders late (a tooltip, a shape's context pad and label editor, every
 enabled menu entry that is not destructive, zoom and Fit) and fails on any violation, uncaught
-error, unhandled rejection, failed load or `console.error`, on a Geist font that loads no face or
-comes from a `data:` URL, and on any font face whose file failed to load. Pass `openWebviewBundle`
-the `body`, `styles` and `inlineStyles` the extension passes `renderWebviewHtml`, so the page runs
-under the policy the extension ships.
+error, unhandled rejection, failed load or `console.error`, on a policy other than
+`renderWebviewHtml`'s, on a Geist font that loads no face, comes from a `data:` URL or has a subset
+without `unicode-range`, and on any font face whose file failed to load. A palette or menu the walk
+cannot reach, or a menu without an entry it activated, fails it too. Pass `openWebviewBundle` the
+`body`, `styles` and `inlineStyles` the extension passes `renderWebviewHtml`, so the page runs under
+the policy the extension ships.
 
 ## Smoke tests in a real VS Code
 

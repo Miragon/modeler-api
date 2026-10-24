@@ -1636,15 +1636,17 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   of the shipped bundle shows only behind the real HTML. The kit's `csp` case (0.6) covers it: the
   harness's `csp.open` builds the production bundle and opens it with `openWebviewBundle`
   (`./testing/webview-bundle`), which answers `https://webview.test` through Playwright's
-  `page.route` with `renderWebviewHtml`'s document, VS Code's default styles written ahead of the
-  policy (as VS Code writes them, so a strict `style-src` never blocks them) and the VS Code stub as
-  the first nonce'd script of `body`, a classic script the package ships prebuilt. From its install
-  on the stub records every `securitypolicyviolation`, uncaught error, unhandled rejection, failed
-  load and `console.error`. The case then walks what renders late (a tooltip, a shape's context pad
-  and label editor, every enabled menu entry that is not destructive, so the exports, the dialogs
-  and the Legend, zoom and Fit) and fails on anything recorded, on a shell font that loads no face
-  or comes from a `data:` URL, and on any font face whose load failed. It replaced the smoke test
-  each modeler kept for it. The real VS Code of the smoke driver (`./testing/vscode-electron`) only
+  `page.route` with `renderWebviewHtml`'s document and, ahead of the policy, VS Code's default
+  styles and the VS Code stub, a classic script the package ships prebuilt. VS Code writes its
+  default styles and its own API script there too, so the policy blocks neither, and the stub
+  records from the first stylesheet on every `securitypolicyviolation`, uncaught error, unhandled
+  rejection, failed load and `console.error`; it sets the body classes once the parser reached
+  `<body>`, before the bundle runs. The case then walks what renders late (a tooltip, a shape's
+  context pad and label editor, every enabled menu entry that is not destructive, so the exports,
+  the dialogs and the Legend, zoom and Fit) and fails on anything recorded, on a policy other than
+  `renderWebviewHtml`'s for the page's origin, on a shell font that loads no face, comes from a
+  `data:` URL or has a subset without `unicode-range`, on any font face whose load failed, and on a
+  palette or menu its walk cannot reach. It replaced the smoke test each modeler kept for it. The real VS Code of the smoke driver (`./testing/vscode-electron`) only
   quotes the webview's errors when its open fails, a CSP block among them, and fails on none of them
   by itself: the policy is the one `renderWebviewHtml` writes in both, and the kit's walk reaches
   more of the bundle on every pull request.

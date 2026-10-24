@@ -144,12 +144,13 @@ webview bundle under the webview CSP, the web column and a clean `destroy`.
 - `csp` (a modeler-shell release after 0.5.0, `ide` only): its `open` builds `apps/vscode` for
   production once per worker (`node esbuild.config.mjs --production`), opens `dist` with
   `openWebviewBundle` from `@miragon/modeler-shell/testing/webview-bundle` (the document and CSP of
-  `renderWebviewHtml` with what the extension passes it, the VS Code stub ahead of the bundle) and
+  `renderWebviewHtml` with what the extension passes it, the VS Code stub ahead of the policy) and
   posts the example's `init` once the webview posted `ready`. The kit then walks the bundle (a
   tooltip, a shape's context pad and label editor, every menu entry that is not destructive, zoom
-  and Fit) and fails on any CSP violation, uncaught error or console error, on a Geist font that
-  loads no face or comes from a `data:` URL, and on any font face whose file failed to load. The
-  case replaces the smoke test of the production bundle. The template keeps that test
+  and Fit) and fails on any CSP violation, uncaught error, failed load or console error, on a
+  policy other than `renderWebviewHtml`'s, on a Geist font that loads no face, comes from a `data:`
+  URL or has a subset without `unicode-range`, on any font face whose file failed to load, and on a
+  palette or menu the walk cannot reach. The case replaces the smoke test of the production bundle. The template keeps that test
   ([`webview-bundle.spec.ts`](../assets/template/e2e/tests/vscode/webview-bundle.spec.ts)) and lets
   the `csp` skip pass until its modeler-shell pin reaches that release, then moves to the case.
 - A unit test pins the shell's sizes (`SHELL`) against the vendored `shell` token group with
