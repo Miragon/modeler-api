@@ -37,6 +37,10 @@ export const MIRAGON = {
   weiss: "#FFFFFF",
   /** Fixed light neutral for lines and borders on a light stage. */
   linie: "#E6E2E2",
+  /** Structural strokes on the canvas: edges and dependencies (guide §10.1), 3.19:1 on `grau`. */
+  kontur: "#8F8A8A",
+  /** Secondary text, e.g. axis and edge annotations (guide §10.1), 5.29:1 on `grau`. */
+  textLeise: "#6B6666",
   /**
    * Status layer (guide §3.3): the brand colours plus amber and red. Fills, borders, icons and
    * dots; as text on white only `danger` and `info` reach AA.
@@ -45,7 +49,13 @@ export const MIRAGON = {
   warning: "#FFB000",
   danger: "#CD1839",
   info: "#335DE5",
-  /** Dark base — the CI hero / nav-glass colour (rgb 8,10,32). The canvas never draws it. */
+  /**
+   * Dark base of the CI hero (rgb 8,10,32). No token of the design system, and nothing in the
+   * modeler draws it (guide §10.7 drops the navy board).
+   *
+   * @deprecated Kept only for consumers that read it; this key goes in a later minor.
+   */
+  // brand-lint-disable-next-line
   navy: "#080A20",
   /** Signature brand gradient — hero, large surfaces, brand moments. Use verbatim. */
   gradientBrand: "linear-gradient(120deg, #335DE5 30%, #00E676)",

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import type EventBus from "diagram-js/lib/core/EventBus";
-import type { ShapeLike } from "diagram-js/lib/model/Types";
+import type { ConnectionLike, ShapeLike } from "diagram-js/lib/model/Types";
 import EventStormingRenderer, { KIND_CAPTION_CLASS } from "../src/draw/EventStormingRenderer.js";
 import type EventStormingViewOptions from "../src/view-options/EventStormingViewOptions.js";
 import { STICKY_KINDS } from "../src/model/di-types.js";
@@ -13,6 +13,11 @@ import {
   STICKY_STYLES,
   noteMetrics,
 } from "../src/draw/styles.js";
+
+const BLACK_TEXT = "rgb(29, 29, 29)";
+const WHITE_TEXT = "rgb(255, 255, 255)";
+const KONTUR = "rgb(143, 138, 138)";
+const TEXT_LEISE = "rgb(107, 102, 102)";
 
 function renderer(captionsVisible = true): EventStormingRenderer {
   const viewOptions = {
@@ -315,8 +320,8 @@ describe("EventStormingRenderer: provisional (blank append) sticky", () => {
 
   it("renders a neutral dashed shell instead of the placeholder kind look", () => {
     const rect = draw(provisional()).querySelector("rect")! as SVGElement;
-    expect(rect.style.fill).toBe("rgb(251, 251, 251)");
-    expect(rect.style.stroke).toBe("rgb(185, 185, 185)");
+    expect(rect.style.fill).toBe(WHITE_TEXT);
+    expect(rect.style.stroke).toBe(KONTUR);
     expect(rect.style.getPropertyValue("stroke-dasharray")).not.toBe("");
     expect(rect.style.getPropertyValue("stroke-width")).toBe("1.5px");
   });
@@ -345,7 +350,8 @@ describe("EventStormingRenderer: provisional (blank append) sticky", () => {
       provisional: undefined,
       eventStormingLabel: "A",
     }).querySelector("rect")! as SVGElement;
-    expect(rect.style.fill).not.toBe("rgb(251, 251, 251)");
+    expect(rect.style.fill).not.toBe(WHITE_TEXT);
+    expect(rect.style.stroke).not.toBe(KONTUR);
     expect(rect.style.getPropertyValue("stroke-dasharray")).toBe("");
   });
 });
@@ -377,6 +383,13 @@ describe("EventStormingRenderer: sticky shadow", () => {
     expect(root.querySelector("defs filter feDropShadow")).not.toBeNull();
   });
 
+  it("casts the shadow in the design system's black, as its token shadows do", () => {
+    const { root } = drawAttached(sticky());
+    const drop = root.querySelector<SVGElement>("defs filter feDropShadow")!;
+    expect(drop.style.getPropertyValue("flood-color")).toBe(BLACK_TEXT);
+    expect(drop.style.getPropertyValue("flood-opacity")).toBe("0.2");
+  });
+
   it("leaves drawings without a shadow and skips the filter on detached groups", () => {
     const { visuals } = drawAttached({
       eventStormingType: "drawing",
@@ -393,5 +406,97 @@ describe("EventStormingRenderer: sticky shadow", () => {
     // Detached visuals (no owning SVG): referencing a missing def would hide the element.
     const detached = draw(sticky());
     expect(detached.querySelector("rect")!.getAttribute("filter")).toBeNull();
+  });
+});
+
+describe("EventStormingRenderer: connections", () => {
+  function drawArrow(linkLabel?: string): SVGElement {
+    const visuals = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const arrow = {
+      eventStormingType: "arrow",
+      waypoints: [
+        { x: 0, y: 0 },
+        { x: 200, y: 0 },
+      ],
+      ...(linkLabel ? { linkLabel } : {}),
+    };
+    renderer().drawConnection(visuals, arrow as unknown as ConnectionLike);
+    return visuals;
+  }
+
+  it("draws the line and its head in kontur, as the guide draws edges (§10.1)", () => {
+    const visuals = drawArrow();
+    expect((visuals.querySelector("polyline") as SVGElement).style.stroke).toBe(KONTUR);
+    expect((visuals.querySelector("polygon") as SVGElement).style.fill).toBe(KONTUR);
+  });
+
+  it("writes the arrow annotation in text-leise", () => {
+    const annotation = drawArrow("retry (3, 5)").querySelector("text") as SVGElement;
+    expect(annotation.textContent).toBe("retry (3, 5)");
+    expect(annotation.style.fill).toBe(TEXT_LEISE);
+  });
+});
+
+describe("EventStormingRenderer: text on a fill the user picks (guide §10.6)", () => {
+  function sticky(kind: string, color?: string): Record<string, unknown> {
+    const { width, height } = kind === "note" ? noteMetrics("A") : STICKY_STYLES[kind as "event"];
+    return {
+      eventStormingType: kind,
+      eventStormingLabel: "A",
+      x: 0,
+      y: 0,
+      width,
+      height,
+      ...(color ? { color } : {}),
+    };
+  }
+
+  function textFills(visuals: SVGElement): string[] {
+    return [...visuals.querySelectorAll<SVGElement>("text")].map((text) => text.style.fill);
+  }
+
+  it.each(STICKY_KINDS)("keeps black text and caption on the %s sticky's own fill", (kind) => {
+    const fills = textFills(draw(sticky(kind)));
+    expect(fills).toHaveLength(2);
+    expect(new Set(fills)).toEqual(new Set([BLACK_TEXT]));
+  });
+
+  it("keeps black text on a note's own fill", () => {
+    expect(textFills(draw(sticky("note")))).toEqual([BLACK_TEXT]);
+  });
+
+  it.each([
+    ["#333333", "a dark grey"],
+    ["#b91c1c", "the review skill's red"],
+    ["#15803d", "the review skill's green"],
+    ["#1D4ED8", "an upper-case blue"],
+    ["#000", "three-digit black"],
+  ])("turns text and caption white on %s (%s)", (color) => {
+    const visuals = draw(sticky("event", color));
+    expect(visuals.querySelector("rect")!.style.fill).not.toBe("");
+    expect(new Set(textFills(visuals))).toEqual(new Set([WHITE_TEXT]));
+  });
+
+  it("turns a note's text white on a dark fill", () => {
+    expect(textFills(draw(sticky("note", "#b45309")))).toEqual([WHITE_TEXT]);
+  });
+
+  it.each([
+    ["#FFF9B1", "the actor yellow on another kind"],
+    ["#e85d75", "the hotspot red, where black still reads better"],
+    ["#ff0", "three-digit yellow"],
+    ["#00000000", "transparent black, which shows the canvas ground"],
+    ["#0003", "a faint black over the canvas ground"],
+  ])("keeps black text on %s (%s)", (color) => {
+    expect(new Set(textFills(draw(sticky("command", color))))).toEqual(new Set([BLACK_TEXT]));
+  });
+
+  it("keeps black text where it cannot read the colour (no canvas in jsdom)", () => {
+    expect(new Set(textFills(draw(sticky("policy", "navy"))))).toEqual(new Set([BLACK_TEXT]));
+  });
+
+  it("keeps the border of the kind whatever the fill", () => {
+    const rect = draw(sticky("note", "#333333")).querySelector("rect")!;
+    expect(rect.style.stroke).toBe(KONTUR);
   });
 });
