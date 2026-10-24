@@ -14,13 +14,13 @@ collaborative hosts.
 
 ## Notation
 
-- **Step** ("Wertschöpfungskette") — a right-pointing chevron / block arrow.
-- **Organizational unit** ("Organisationseinheit") — an ellipse, assigned to a step.
-- **is predecessor of** — sequence relation, dashed edge with an arrowhead.
-- **is process-oriented superior** — hierarchy relation, solid edge with an arrowhead.
+- **Step** ("Wertschöpfungskette"): a right-pointing chevron / block arrow.
+- **Organizational unit** ("Organisationseinheit"): an ellipse, assigned to a step.
+- **is predecessor of**: sequence relation, dashed edge with an arrowhead.
+- **is process-oriented superior**: hierarchy relation, solid edge with an arrowhead.
   Routing follows the sub-steps' arrangement: a horizontal row under the parent gets
   vertical drops, a vertical column gets the ARIS rake entering from the left.
-- **assignment** — plain solid edge between an organizational unit and a step.
+- **assignment**: plain solid edge between an organizational unit and a step.
 
 ## Packages (npm workspaces)
 
@@ -85,20 +85,20 @@ it back. Undo and redo are the canvas keys (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z).
 
 From the root of the suite (or as `npm run <script>` inside `modelers/value-chain`):
 
-- `npm run value-chain build` — build the library packages · `npm run value-chain build:webapp` ·
+- `npm run value-chain build`: build the library packages · `npm run value-chain build:webapp` ·
   `npm run value-chain build:vscode`
-- `npm run value-chain dev:webapp` — editor at http://localhost:5181 ·
-  `npm run value-chain dev:vscode` — extension watch
-- `npm run value-chain test` — unit tests · `npm run value-chain test:browser` — Chromium
+- `npm run value-chain dev:webapp`: editor at http://localhost:5181 ·
+  `npm run value-chain dev:vscode`: extension watch
+- `npm run value-chain test`: unit tests · `npm run value-chain test:browser`: Chromium
   integration tests and the `@miragon/modeler-api` conformance kit ·
-  `npm run value-chain test:e2e` — Playwright end-to-end, the `@miragon/modeler-shell` conformance
-  kit included · `npm run value-chain test:vscode` — the packaged extension in a real VS Code
+  `npm run value-chain test:e2e`: Playwright end-to-end, the `@miragon/modeler-shell` conformance
+  kit included · `npm run value-chain test:vscode`: the packaged extension in a real VS Code
   (downloads VS Code, opens a window; on Linux under `xvfb-run -a`) ·
-  `npm run value-chain test:vscode:docker` — the same in a Docker container, without a window (see
+  `npm run value-chain test:vscode:docker`: the same in a Docker container, without a window (see
   [CONTRIBUTING.md](CONTRIBUTING.md#vs-code-smoke-test))
-- `npm run value-chain lint` — ESLint + typecheck · `npm run value-chain depcruise` — module-graph
+- `npm run value-chain lint`: ESLint + typecheck · `npm run value-chain depcruise`: module-graph
   rules
-- `npm run value-chain format` — Prettier
+- `npm run value-chain format`: Prettier
 
 Requirements: Node `^22.22.2` or `>=24.15.0`, npm. Contributor guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 for this modeler, the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md) for setup, scripts, hooks and

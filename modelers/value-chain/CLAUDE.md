@@ -21,8 +21,8 @@ adds what is special to value chains. Run its scripts from the repository root a
 | `apps/vscode`                       | VS Code extension: `*.vc`/`*.vc.json` custom editor (esbuild)    | yes |
 | `e2e`                               | Playwright: the webapp and the VS Code webview (shell kit, both) | yes |
 
-**P1 — DOM boundary:** `schema-model` must never import diagram-js/DOM libraries
-(`tiny-svg`, `min-dom`) or use `window`/`document`. Enforced twice — ESLint
+**DOM boundary (P1):** `schema-model` must never import diagram-js/DOM libraries
+(`tiny-svg`, `min-dom`) or use `window`/`document`. Enforced twice: ESLint
 (`no-restricted-imports`/`no-restricted-globals`) and `dependency-cruiser`. The same two tools
 keep `@miragon/modeler-shell` out of every package (only the apps mount the chrome) and let
 `schema-model` take nothing but types from `@miragon/modeler-api`.
@@ -92,17 +92,17 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
 
 ## Commands
 
-- `npm run value-chain build` — schema-model (tsup) + renderer (vite lib) ·
+- `npm run value-chain build`: schema-model (tsup) + renderer (vite lib) ·
   `npm run value-chain build:webapp` · `npm run value-chain build:vscode` (esbuild, bundles
   packages from source)
-- `npm run value-chain dev:webapp` — editor at http://localhost:5181 ·
-  `npm run value-chain dev:vscode` — watch build
-- `npm run value-chain test` — unit (node; `packages/*/test` and `apps/*/test`, with a `vscode`
-  mock) · `npm run value-chain test:browser` — Chromium (vitest browser mode; jsdom lacks
-  `getBBox`, so renderer integration tests must be browser tests) · `npm run value-chain test:e2e`
-  — Playwright in `e2e/`, project `webapp` (port `E2E_PORT`, default 5181) and `vscode-webview`
+- `npm run value-chain dev:webapp`: editor at http://localhost:5181 ·
+  `npm run value-chain dev:vscode`: watch build
+- `npm run value-chain test`: unit (node; `packages/*/test` and `apps/*/test`, with a `vscode`
+  mock) · `npm run value-chain test:browser`: Chromium (vitest browser mode; jsdom lacks
+  `getBBox`, so renderer integration tests must be browser tests) · `npm run value-chain test:e2e`:
+  Playwright in `e2e/`, project `webapp` (port `E2E_PORT`, default 5181) and `vscode-webview`
   (the webview inside the shell's VS Code stub, port `E2E_WEBVIEW_PORT`, default 5191) ·
-  `npm run value-chain test:vscode` — the packaged extension in a real VS Code: packs the VSIX
+  `npm run value-chain test:vscode`: the packaged extension in a real VS Code. It packs the VSIX
   (`vscode:prepublish`), unpacks it and runs `runVsCodeSmoke`
   (`@miragon/modeler-shell/testing/vscode-electron`) on `example/porter.vc.json`: chrome, the
   default palette edit, save checked by `parseDocumentJSON`, undo, VS Code's four default themes,
@@ -112,7 +112,7 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
   Code missed again); `VSCODE_VERSION` picks the VS Code release, `VSCODE_SMOKE_VSIX` a prebuilt
   VSIX to test instead of packing one, `VSCODE_SMOKE_KEEP=1` keeps VS Code's logs; an agent running
   it on Linux under `xvfb-run -a` adds `-- --reporter=default` to see the timings ·
-  `npm run value-chain test:vscode:docker` — the same test in a Linux container under
+  `npm run value-chain test:vscode:docker`: the same test in a Linux container under
   `xvfb-run -a` (`modeler-shell-vscode-docker` of the shell; needs Docker, copies the suite without
   `node_modules`, runs `npm ci` there, caches VS Code in a Docker volume shared by every modeler),
   no VS Code window; prints the full log, no reporter flag (it rejects one); variables only via
@@ -120,9 +120,9 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
   does not reach the container. **From an agent, run this one, never `test:vscode` on macOS**: its
   VS Code window takes the user's focus (see
   [`CONTRIBUTING.md`](CONTRIBUTING.md#vs-code-smoke-test))
-- `npm run check:build -w modelers/value-chain/apps/webapp` — after `build:webapp`: the head
+- `npm run check:build -w modelers/value-chain/apps/webapp`: after `build:webapp`, checks the head
   markup and the licence comments the production bundle must carry
-- `npm run value-chain lint` — ESLint + typecheck · `npm run value-chain depcruise` — module-graph
+- `npm run value-chain lint`: ESLint + typecheck · `npm run value-chain depcruise`: module-graph
   rules
 
 Build packages before running unit tests (workspace deps resolve to `dist`). What CI runs, when the
@@ -135,8 +135,8 @@ passed on the VSIX it uploads) is in the suite's
 
 - Pins follow the suite's rule; workspace cross-deps use the exact current workspace version
   (the release bumps them). The one exception:
-  the runtime libs a host shares are ranged `peerDependencies` — `zod` (schema-model, renderer)
-  and `diagram-js`/`didi`/`tiny-svg` (renderer) — so a host dedupes them; a second copy breaks
+  the runtime libs a host shares are ranged `peerDependencies`, `zod` (schema-model, renderer)
+  and `diagram-js`/`didi`/`tiny-svg` (renderer), so a host dedupes them; a second copy breaks
   `instanceof`, schema identity and the diagram-js injector. Each is mirrored by an exact
   devDependency, and the apps take them as exact dependencies. See
   `.claude/rules/package-json-fixed-versions.md`.

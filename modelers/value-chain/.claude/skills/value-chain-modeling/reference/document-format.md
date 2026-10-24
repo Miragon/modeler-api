@@ -3,7 +3,7 @@
 Both extensions hold the same JSON; editors treat a blank file as an empty diagram.
 
 Defined and validated in `packages/schema-model` (Zod). Load with `parseDocumentJSON`,
-serialize with `serializeDocument` — never hand-roll JSON.stringify (the serializer sorts
+serialize with `serializeDocument`, never with a hand-rolled JSON.stringify (the serializer sorts
 elements/connections by id, deep-sorts object keys, and rounds numbers to 3 decimals so
 files diff cleanly).
 
@@ -53,7 +53,7 @@ files diff cleanly).
   (practically ≥ 80×40, the editor minimum). Every coordinate and size lies within ±1e9.
 - `color` (optional): CSS color string, tints stroke + label. Fill stays white.
 - `link` (steps only, optional): opaque drill-down reference to a more detailed model.
-- `waypoints`: ≥ 2 points. Rough values are fine — the editor crops endpoints to the shape
+- `waypoints`: ≥ 2 points. Rough values are fine: the editor crops endpoints to the shape
   contours and fully re-routes hierarchy edges from geometry on the next interaction.
 - Connection type matrix (validation rejects violations): `sequence`/`hierarchy` need
   step→step; `assignment` needs step↔orgUnit (either direction); self-connections and
