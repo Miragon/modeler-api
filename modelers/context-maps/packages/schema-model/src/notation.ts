@@ -60,12 +60,13 @@ export interface RelationshipPatternSpec {
 /**
  * A distinct colour per context-mapping marker (each role and each direction has
  * its own colour + border). Shared by the canvas renderer and the legend so the
- * two never drift.
+ * two never drift. OHS and ACL sit just dark enough for white text at 4.5:1; the
+ * renderer writes black or white on each role chip, whichever has more contrast.
  */
 export const MARK_COLORS: Record<string, string> = {
-  OHS: "#b5651d", // Open Host Service — warm brown/red
+  OHS: "#B0621C", // Open Host Service — warm brown/red
   PL: "#c99a2e", // Published Language — gold
-  ACL: "#3e7cb1", // Anticorruption Layer — blue
+  ACL: "#3E7BB0", // Anticorruption Layer — blue
   CF: "#4f9d69", // Conformist — green
   U: "#17807f", // Upstream — teal
   D: "#5c6b7a", // Downstream — slate
@@ -75,6 +76,10 @@ export const MARK_COLORS: Record<string, string> = {
 
 export const UPSTREAM_MARK_COLOR = MARK_COLORS.U;
 export const DOWNSTREAM_MARK_COLOR = MARK_COLORS.D;
+/**
+ * @deprecated White fails 4.5:1 on the PL and CF chips. The renderer picks black or white per
+ * role chip, whichever has more contrast.
+ */
 export const MARK_TEXT_COLOR = "#ffffff";
 
 /** The marker abbreviations shown in the legend, in reading order. */
@@ -126,7 +131,8 @@ export const SUBDOMAIN_TYPE_SPECS: Record<SubdomainType, SubdomainTypeSpec> = {
     label: "Supporting Subdomain",
     description: "Specialised but not differentiating; necessary to support the core.",
     fill: "#FFF4CC",
-    stroke: "#E8B84B",
+    // The convention's amber, darkened at the same hue until it keeps 3:1 on the canvas ground.
+    stroke: "#B58914",
     defaultSize: { width: 200, height: 110 },
     minSize: { width: 120, height: 72 },
   },
@@ -190,7 +196,7 @@ export const RELATIONSHIP_PATTERN_SPECS: Record<RelationshipPattern, Relationshi
     abbreviation: "SW",
     description: "No integration; functionality is duplicated rather than integrated. Decoupled.",
     symmetric: true,
-    stroke: "#9a9488", // light grey — fine dotted
+    stroke: "#968F81", // light grey — fine dotted, just dark enough for 3:1 on the canvas ground
     dash: "2 5",
     strokeWidth: 1.6,
   },

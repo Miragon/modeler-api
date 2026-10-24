@@ -21,8 +21,6 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type { ConnectionLike, ElementLike, ShapeLike } from "diagram-js/lib/model/Types";
 import type { Point } from "diagram-js/lib/util/Types";
 import {
-  MARK_COLORS,
-  MARK_TEXT_COLOR,
   RELATIONSHIP_PATTERN_SPECS,
   SUBDOMAIN_TYPE_SPECS,
 } from "@miragon/context-maps-schema-model";
@@ -32,16 +30,22 @@ import {
   CONTEXT_TEAM_RESERVE,
   FONT,
   INK,
-  NEUTRAL_STROKE,
   PAPER,
   TT_RENDER_PRIORITY,
 } from "./styles.js";
 import {
+  contextBadgeColour,
   contextFill,
   contextNameColour,
   contextStroke,
   contextTeamColour,
 } from "./contextColours.js";
+import {
+  directionLetterColour,
+  markFill,
+  markTextColour,
+  patternChipColours,
+} from "./relationshipColours.js";
 import { endRoleChipLayout } from "./endRoleChips.js";
 import { LUCIDE, LUCIDE_STROKE_WIDTH } from "./lucide.js";
 import { HAND_PATH, STAR_PATH } from "./subdomainGlyphs.js";
@@ -135,14 +139,15 @@ export default class ContextMapsRenderer extends BaseRenderer {
     if (ctx.subdomainType && spec) {
       // Kaiser subdomain icon at the top-left corner (star / open hand / dotted
       // circle) plus the domain-type label next to it.
-      svgAppend(visuals, subdomainIcon(ctx.subdomainType, 15, 15, 18, spec.stroke));
+      const badgeColour = contextBadgeColour(ctx);
+      svgAppend(visuals, subdomainIcon(ctx.subdomainType, 15, 15, 18, badgeColour));
       const badge = svgAttr(svgCreate("text"), {
         x: TYPE_LABEL.x,
         y: TYPE_LABEL.y,
         "font-family": FONT.family,
         "font-size": FONT.small,
         "font-weight": TYPE_LABEL.fontWeight,
-        fill: spec.stroke,
+        fill: badgeColour,
         "text-anchor": "start",
         "dominant-baseline": "central",
         "letter-spacing": `${TYPE_LABEL.letterSpacingEm}em`,
@@ -202,7 +207,8 @@ export default class ContextMapsRenderer extends BaseRenderer {
         // No direction (SK / P / SW): a single neutral pattern chip in the MIDDLE.
         const mx = (src.x + tgt.x) / 2;
         const my = (src.y + tgt.y) / 2;
-        this.chip(visuals, mx, my, spec.abbreviation, PAPER, spec.stroke, spec.stroke);
+        const chip = patternChipColours(spec);
+        this.chip(visuals, mx, my, spec.abbreviation, chip.fill, chip.text, chip.border);
       } else {
         // Direction letter sits AT the domain as a plain letter (no box); the
         // integration roles follow as their own coloured boxes. Customer-supplier
@@ -235,7 +241,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
 
     // Direction letter: plain bold letter at the domain, white halo for legibility.
     const letterDist = 11;
-    const dirColor = MARK_COLORS[direction] ?? INK;
+    const dirColor = directionLetterColour(direction);
     const letter = svgAttr(svgCreate("text"), {
       x: endpoint.x + ux * letterDist,
       y: endpoint.y + uy * letterDist,
@@ -276,8 +282,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     let x = center.x - innerW / 2;
     roles.forEach((role, i) => {
       const w = widths[i];
-      const fill = MARK_COLORS[role] ?? NEUTRAL_STROKE;
-      this.miniChip(visuals, x + w / 2, cy, w, chipH, role, fill);
+      this.miniChip(visuals, x + w / 2, cy, w, chipH, role);
       x += w + gap;
     });
   }
@@ -290,8 +295,8 @@ export default class ContextMapsRenderer extends BaseRenderer {
     w: number,
     h: number,
     text: string,
-    fill: string,
   ): void {
+    const fill = markFill(text);
     const bg = svgAttr(svgCreate("rect"), {
       x: cx - w / 2,
       y: cy - h / 2,
@@ -310,7 +315,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
       "font-family": FONT.family,
       "font-size": FONT.small,
       "font-weight": "700",
-      fill: MARK_TEXT_COLOR,
+      fill: markTextColour(text),
       "text-anchor": "middle",
       "dominant-baseline": "central",
     });

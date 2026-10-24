@@ -64,3 +64,11 @@ export function contextNameColour(context: ContextColouring): string {
 export function contextTeamColour(context: ContextColouring): string {
   return context.fill ? readableTextColour(context.fill) : INK_SOFT;
 }
+
+/**
+ * The subdomain badge, its type name and glyph, reads like the team caption: the type's own stroke
+ * colour stays below 3:1 on its fill. The box keeps the type's fill and stroke as the colour cue.
+ */
+export function contextBadgeColour(context: ContextColouring): string {
+  return contextTeamColour(context);
+}

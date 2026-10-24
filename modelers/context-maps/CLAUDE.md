@@ -28,18 +28,33 @@ drawing needs as attributes. Drift tests:
 [`packages/renderer/test/theme.sync.test.ts`](packages/renderer/test/theme.sync.test.ts) pins the three
 files to the release's hashes and checks the CSS rules, `MIRAGON` and the import order;
 [`apps/vscode/test/tokens.sync.test.ts`](apps/vscode/test/tokens.sync.test.ts) pins the modeler
-shell's `SHELL` sizes to the vendored `shell` tokens. The subdomain-type fills, relationship-pattern
-strokes and integration-role marker colours in
-[`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the **official
-Context Maps notation** and stay as they are, for fidelity to the official notation. A document
-never carries them: it serializes only a bounded context's optional `fill` / `stroke` override. The
-design system applies to everything else (chrome, typography, selection, neutrals, the app icon).
+shell's `SHELL` sizes to the vendored `shell` tokens. The subdomain-type fills and outlines, the
+relationship-pattern strokes and the integration-role marker colours in
+[`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the Context
+Maps notation. They follow the conventions of strategic DDD context maps, not the fixed values of an
+official template, so they may be tuned for contrast: every text reaches 4.5:1 on what it sits on,
+every structural line (box outlines, relationship lines, chip borders) 3:1 on the canvas ground and
+every subdomain glyph 3:1 on its box, with **no exception** (guide §3.6, §10.6; the exception for
+official notation strokes there covers only Team Topologies). The Supporting outline, the Separate Ways line and the OHS and ACL markers
+are darkened for that, each by the smallest step at the same hue. A document never carries these
+values: it serializes only a bounded context's optional `fill` / `stroke` override, so a tuned value
+changes no document.
+[`test/notation-contrast.test.ts`](packages/renderer/test/notation-contrast.test.ts) checks every
+pair of the notation and the palette and legend previews,
+[`test/browser/notation-contrast.test.ts`](packages/renderer/test/browser/notation-contrast.test.ts)
+measures every text and line the canvas draws. The design system applies to everything else
+(chrome, typography, selection, neutrals, the app icon).
 
 The renderer's own canvas colours come from `MIRAGON`: an unclassified context is `weiss` with a
-`kontur` outline, the team caption and its glyph are `text-leise`, the role chips' frame is `linie`,
-and [`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails on a
-colour literal anywhere else in the renderer's `src/`. On a fill the author set, a context's name
-and team are black or white, whichever has more contrast (guide §10.6, `draw/contextColours.ts`).
+`kontur` outline, the team caption and its glyph are `text-leise`, and so is the subdomain badge
+(the type's name and glyph; the box keeps the type's fill and outline as the colour cue). The role
+chips' frame is `linie`, and
+[`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails on a colour
+literal anywhere else in the renderer's `src/`. On a fill the author set, a context's name, team and
+badge are black or white, whichever has more contrast (guide §10.6, `draw/contextColours.ts`). The
+same rule picks each role chip's text (PL and CF black, OHS and ACL white), and a symmetric
+pattern's chip writes black on paper, bordered in the pattern's colour
+(`draw/relationshipColours.ts`).
 Icons are Lucide (`draw/lucide.ts`), on the canvas too: the team glyph is `users`. The subdomain
 glyphs (a filled star for core, an open hand for supporting, a dotted circle for generic) are
 notation, not function icons, and keep their shapes (guide §3.6, §11); the star and the hand are the

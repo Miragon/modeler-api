@@ -26,14 +26,16 @@ Bounded contexts are boxes, coloured by **subdomain type**; relationships are li
 **context-mapping pattern** abbreviation plus U/D end markers for the asymmetric ones. Line weight
 encodes coordination bandwidth (partnership / shared kernel are thick, separate ways is thin). The
 single source of truth for the colours and strokes below is
-[`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts).
+[`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts). They are tuned so
+that every text on the canvas keeps 4.5:1 and every line 3:1; a document stores only a context's own
+`fill` / `stroke`, never these values.
 
 ### Subdomain types
 
 | Type                 | Icon          | Fill / Outline        | Purpose                                   |
 | -------------------- | ------------- | --------------------- | ----------------------------------------- |
 | Core Domain          | star          | `#FDE0D5` / `#E8663D` | Business-critical and differentiating.    |
-| Supporting Subdomain | open hand     | `#FFF4CC` / `#E8B84B` | Specialised, but not differentiating.     |
+| Supporting Subdomain | open hand     | `#FFF4CC` / `#B58914` | Specialised, but not differentiating.     |
 | Generic Subdomain    | dotted circle | `#DCE9F5` / `#5B8DC7` | Solved / off-the-shelf: buy, don't build. |
 
 ### Relationship patterns
