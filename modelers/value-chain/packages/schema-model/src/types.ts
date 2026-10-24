@@ -28,7 +28,10 @@ export interface StepElement {
   readonly elementType: "step";
   readonly name: string;
   readonly bounds: Bounds;
-  /** Optional stroke/accent color (CSS color string). */
+  /**
+   * Optional fill colour (CSS colour string). The contour stays ink and the label turns black or
+   * white, whichever contrasts more with the fill.
+   */
   readonly color?: string;
   /** Opaque reference to a more detailed model (drill-down), unused by the editor UI. */
   readonly link?: string;
@@ -40,7 +43,10 @@ export interface OrgUnitElement {
   readonly elementType: "orgUnit";
   readonly name: string;
   readonly bounds: Bounds;
-  /** Optional stroke/accent color (CSS color string). */
+  /**
+   * Optional fill colour (CSS colour string). The contour stays ink and the label turns black or
+   * white, whichever contrasts more with the fill.
+   */
   readonly color?: string;
 }
 

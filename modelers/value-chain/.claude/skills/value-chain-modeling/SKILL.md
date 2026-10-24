@@ -69,8 +69,8 @@ Start from the customer-facing value stream: 4–8 top-level steps left→right 
 needs to understand (hierarchy, sub-steps below the parent). Assign org units to top-level
 steps. Keep labels short (2–3 words, noun or verb phrase: "Auftragsabwicklung", not a
 sentence). Compute geometry honestly: steps 160×60 on a 10px grid; sub-step rows/columns per
-`reference/notation.md`; connection waypoints can be rough: the editor re-crops and
-re-routes hierarchy edges on the next interaction.
+`reference/notation.md`; connection waypoints can be rough (the editor re-crops and
+re-routes hierarchy edges on the next interaction).
 
 When you change a document, **round-trip everything you don't touch**: the serialization is
 deterministic (sorted ids, sorted keys, 3-decimal rounding), so unnecessary rewrites show up

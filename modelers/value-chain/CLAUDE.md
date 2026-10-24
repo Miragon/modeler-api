@@ -135,10 +135,10 @@ passed on the VSIX it uploads) is in the suite's
 
 - Pins follow the suite's rule; workspace cross-deps use the exact current workspace version
   (the release bumps them). The one exception:
-  the runtime libs a host shares are ranged `peerDependencies`, `zod` (schema-model, renderer)
-  and `diagram-js`/`didi`/`tiny-svg` (renderer), so a host dedupes them; a second copy breaks
-  `instanceof`, schema identity and the diagram-js injector. Each is mirrored by an exact
-  devDependency, and the apps take them as exact dependencies. See
+  the runtime libs a host shares are ranged `peerDependencies` (`zod` in schema-model and
+  renderer, `diagram-js`/`didi`/`tiny-svg` in the renderer), so a host dedupes them; a second
+  copy breaks `instanceof`, schema identity and the diagram-js injector. Each is mirrored by an
+  exact devDependency, and the apps take them as exact dependencies. See
   `.claude/rules/package-json-fixed-versions.md`.
 - Keep `schema-model` DOM-free (P1). JSON serialization must stay deterministic
   (sorted ids, sorted keys, 3-decimal rounding).
