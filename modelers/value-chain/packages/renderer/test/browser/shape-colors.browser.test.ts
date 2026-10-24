@@ -251,7 +251,11 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
   /** 56 characters: far more lines than a 100×40 shape holds. */
   const LONG_LABEL = "Plan, source and schedule every inbound delivery on time";
 
-  const CRM_LABEL = "Customer relationship management, complaints and after sales support";
+  /**
+   * Five words, each too wide to share a line with the next, so the label has five lines in any
+   * font, and the line height alone sets where they lie.
+   */
+  const FIVE_LINE_LABEL = "Procurement, warehousing, distribution, installation, maintenance";
 
   interface Overflow {
     id: string;
@@ -294,14 +298,14 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
     },
   ];
 
-  /** Only the first and the last line cross the edge of this shape, each mostly on it. */
+  /** The first and the last of five lines cross this step's flat edges, each mostly on it. */
   const STRADDLING: Overflow = {
     id: "default-size-blue-step",
     color: fest["--cd-blau"],
     elementType: "step",
     width: 160,
     height: 60,
-    name: CRM_LABEL,
+    name: FIVE_LINE_LABEL,
   };
 
   const OVERFLOWS = [...SMALL_SHAPES, STRADDLING];
@@ -399,7 +403,7 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
     return { x: box.x, y: top, width: box.width, height: box.y + box.height - top };
   }
 
-  /** Every label line as drawn: its box in diagram coordinates, its centre relative to the shape. */
+  /** Every label line as drawn: its box in diagram coordinates, its extent relative to the shape. */
   function drawnLines(modeler: CollaborativeValueChainModeler, id: string) {
     const element = shape(modeler, id);
     const graphics = modeler.diagram.get<ElementRegistry>("elementRegistry").getGraphics(id);
@@ -410,7 +414,9 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
         const style = getComputedStyle(line);
         return {
           box: { x: element.x + box.x, y: element.y + box.y, width: box.width, height: box.height },
+          top: box.y,
           centre: box.y + box.height / 2,
+          bottom: box.y + box.height,
           fill: style.fill,
           stroke: style.stroke,
           strokeWidth: style.strokeWidth,
@@ -499,9 +505,7 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
       const modeler = await mount(OVERFLOWING_CHAIN);
       const own = drawn(modeler, entry.id);
       const lines = drawnLines(modeler, entry.id);
-      const onTheShape = lines.filter(
-        (line) => line.centre > entry.height / 3 && line.centre < (entry.height * 2) / 3,
-      );
+      const onTheShape = lines.filter((line) => line.top >= 0 && line.bottom <= entry.height);
       const past = lines.filter((line) => line.centre < 0 || line.centre > entry.height);
       expect(onTheShape.length).toBeGreaterThan(0);
       expect(past.length).toBeGreaterThan(1);
@@ -520,8 +524,13 @@ describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
     const own = drawn(modeler, STRADDLING.id);
     const lines = drawnLines(modeler, STRADDLING.id);
     const element = shape(modeler, STRADDLING.id);
+    expect(lines).toHaveLength(5);
     const crossing = lines.filter((line) => pastTheShape(line.box, element).length > 0);
     expect(crossing.length).toBeGreaterThan(1);
+    for (const line of crossing) {
+      expect(line.centre).toBeGreaterThan(0);
+      expect(line.centre).toBeLessThan(STRADDLING.height);
+    }
     for (const line of lines) {
       expect([line.fill, line.stroke]).toEqual([own.label, own.halo]);
     }
