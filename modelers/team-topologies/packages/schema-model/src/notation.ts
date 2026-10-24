@@ -48,7 +48,10 @@ export interface InteractionModeSpec {
   stroke: string;
   strokeStyle: StrokeStyle;
   strokeWidth: number;
-  /** Opacity for the interaction shape (short-lived → translucent). */
+  /**
+   * The templates' fill opacity (short-lived → translucent). The renderer premixes the fill over
+   * white at it and draws it opaque.
+   */
   opacity: number;
   /** Whether direction is semantically meaningful (the X-as-a-Service triangle). */
   directional: boolean;

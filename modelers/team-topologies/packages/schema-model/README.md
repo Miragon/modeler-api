@@ -88,8 +88,9 @@ relate to (spatial overlap, the Team Topologies convention) — there is no sour
 The single source of truth for the visual notation. Shapes and colours follow the official
 [Team-Shape-Templates](https://github.com/TeamTopologies/Team-Shape-Templates) — every element is
 distinguished by shape **and** colour, so diagrams survive colour-vision deficiency and greyscale
-printing. Team shapes are **solid** (long-lived); interaction shapes are **dashed and translucent**
-(short-lived).
+printing. Team shapes are **solid** (long-lived); interaction shapes are **dashed** (short-lived).
+An interaction spec carries the templates' fill opacity (`opacity: 0.5`); the renderer premixes the
+fill over white at that opacity and draws it opaque.
 
 ### Team types — `TEAM_TYPE_SPECS`
 

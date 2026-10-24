@@ -1182,6 +1182,64 @@ test("labels stay schwarz on the notation fills and turn weiss on a dark custom 
   }
 });
 
+// Guide §10.6: a notation fill with opacity is premixed over white and drawn opaque.
+test("interactions draw their fill premixed over white and opaque, their own fill too", () => {
+  const { modeler, container } = mountModeler();
+  const glyphStyle = (id: string) =>
+    getComputedStyle(container.querySelector(`[data-element-id="${id}"] .djs-visual > *`)!);
+  try {
+    modeler.importDocument({
+      ...SAMPLE_DOCUMENT,
+      interactions: SAMPLE_DOCUMENT.interactions.map((interaction) =>
+        interaction.id === "int_testing_checkout"
+          ? { ...interaction, fill: "#1D3A8A" }
+          : interaction,
+      ),
+    });
+
+    const expectedFills: Record<string, string> = {
+      int_testing_discovery: "rgb(228, 239, 223)",
+      int_testing_checkout: "rgb(142, 157, 197)",
+      int_checkout_fraud: "rgb(227, 223, 239)",
+      int_platform_fulfilment: "rgb(218, 218, 218)",
+    };
+    for (const [id, fill] of Object.entries(expectedFills)) {
+      expect(glyphStyle(id).fill, id).toBe(fill);
+      expect(glyphStyle(id).fillOpacity, id).toBe("1");
+    }
+    const ownFill = modeler
+      .exportDocument()
+      .interactions.find((interaction) => interaction.id === "int_testing_checkout");
+    expect(ownFill?.fill).toBe("#1D3A8A");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("an interaction's own fill that is not hex keeps the template opacity, as it cannot be mixed", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument({
+      ...SAMPLE_DOCUMENT,
+      interactions: SAMPLE_DOCUMENT.interactions.map((interaction) =>
+        interaction.id === "int_checkout_fraud"
+          ? { ...interaction, fill: "rebeccapurple" }
+          : interaction,
+      ),
+    });
+
+    const glyph = getComputedStyle(
+      container.querySelector(`[data-element-id="int_checkout_fraud"] .djs-visual > *`)!,
+    );
+    expect(glyph.fill).toBe("rgb(102, 51, 153)");
+    expect(glyph.fillOpacity).toBe("0.5");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
 // --- canvas focus and name ---------------------------------------------------
 
 test("the canvas is named, leaves its role to the host and rings only when reached by Tab", () => {

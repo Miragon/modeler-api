@@ -2,8 +2,9 @@
  * SVG rendering of the Team Topologies notation (BaseRenderer subclass):
  *  - teams: SOLID resizable boxes (label wrapped inside), distinguished by shape
  *    as well as colour;
- *  - interactions: DASHED, 50%-transparent glyphs (collaboration = parallelogram,
- *    x-as-a-service = triangle, facilitating = circle) laid over team boundaries;
+ *  - interactions: DASHED glyphs (collaboration = parallelogram, x-as-a-service = triangle,
+ *    facilitating = circle) laid over team boundaries, their translucent template fill mixed
+ *    over white and drawn opaque;
  *  - flow: a dashed "flow of change" arrow;
  *  - annotations: a BPMN-style open bracket with free text, and the dashed
  *    association connecting an annotation to the element it is attached to.
@@ -22,6 +23,7 @@ import {
   dashArray,
 } from "@miragon/team-topologies-schema-model";
 import { MIRAGON } from "../theme/index.js";
+import { interactionPaint } from "./colour.js";
 import { FONT, STROKE_MUTED, TT_RENDER_PRIORITY } from "./styles.js";
 import {
   LINE_HEIGHT,
@@ -132,9 +134,10 @@ export default class TeamTopologiesRenderer extends BaseRenderer {
     const h = Math.max(el.height, 1);
     const sw = 2;
     const i = sw / 2;
+    const paint = interactionPaint(el);
     const common: Attrs = {
-      fill: el.fill ?? spec.fill,
-      "fill-opacity": spec.opacity,
+      fill: paint.fill,
+      ...(paint.fillOpacity < 1 ? { "fill-opacity": paint.fillOpacity } : {}),
       stroke: el.stroke ?? spec.stroke,
       "stroke-width": sw,
       "stroke-dasharray": dashArray(spec.strokeStyle, sw) || "6 4",

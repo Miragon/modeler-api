@@ -179,16 +179,22 @@
 
 /* TtPaletteTooltip places the palette tooltip in the canvas container's coordinates (diagram-js
    would fix it to the page), at the position of guide §5.6: 8px below the palette in either row,
-   centred on its entry and kept 12px from the container's sides. Only the position follows §5.6,
-   not yet the type and padding. A host chrome replaces this tooltip with its own. */
+   centred on its entry and kept 12px from the container's sides. Surface, type and shortcut chip
+   follow §5.6 as well. A host chrome replaces this tooltip with its own. */
 .tt-djs-container .djs-hover-tooltip {
   width: max-content;
   max-width: 280px;
-  padding: 4px 8px;
-  line-height: 1.5;
+  padding: 3px 8px;
   white-space: normal;
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
   border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
   box-shadow: var(--cd-shadow-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
 }
 .tt-djs-container .djs-hover-tooltip--bottom {
   position: absolute;
@@ -196,7 +202,17 @@
   transform: translateX(-50%);
 }
 .tt-djs-container .djs-palette-tooltip-shortcut {
-  font-family: inherit;
+  padding: 1px 6px;
+  color: var(--cd-ui-text-leise);
+  background: var(--cd-ui-grund);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+  font-family: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+  vertical-align: baseline;
 }
 
 /* Narrow containers: the palette gets its own row below the host's top chrome (guide §5.15). */
