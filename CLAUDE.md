@@ -1,0 +1,189 @@
+# CLAUDE.md
+
+The Miragon modeler suite: the collaborative-modeler contract `@miragon/modeler-api`, the shared
+chrome `@miragon/modeler-shell`, and the five modelers built on them (Wardley Maps, Event
+Storming, Team Topologies, Context Maps, Value Chain). Each modeler is one notation on
+[diagram-js](https://github.com/bpmn-io/diagram-js) (MIT): DOM-free model packages, a renderer, a
+web app and a VS Code extension. One npm workspace, one lockfile, one pre-commit hook; every package
+keeps its own version, npm name and extension id.
+
+The rules below hold everywhere. **Before working in a modeler, read its `CLAUDE.md`** for what is
+special to its notation (packages, DSL or file format, renderer architecture, tests).
+
+## Where things are
+
+| Path                              | What                                                                                                         | Agent notes                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `packages/api`                    | `@miragon/modeler-api`: the contract and its conformance kit, 0 runtime dependencies                         | [README](packages/api/README.md)                                 |
+| `packages/shell`                  | `@miragon/modeler-shell`: chrome, shell conformance kit, VS Code smoke driver                                | [README](packages/shell/README.md), [API](packages/shell/API.md) |
+| `modelers/wardley`                | Wardley Maps, `.wmap` / `.owm`                                                                               | [CLAUDE.md](modelers/wardley/CLAUDE.md)                          |
+| `modelers/event-storming`         | Event Storming, `.storm`                                                                                     | [CLAUDE.md](modelers/event-storming/CLAUDE.md)                   |
+| `modelers/team-topologies`        | Team Topologies, `.tt` / `.ttm.json`                                                                         | [CLAUDE.md](modelers/team-topologies/CLAUDE.md)                  |
+| `modelers/context-maps`           | Context Maps, `.cm` / `.cm.json`, Context Mapper `.cml`                                                      | [CLAUDE.md](modelers/context-maps/CLAUDE.md)                     |
+| `modelers/value-chain`            | Value Chain, `.vc` / `.vc.json`                                                                              | [CLAUDE.md](modelers/value-chain/CLAUDE.md)                      |
+| `plugins/modeler-kit`             | Claude plugin: the `new-modeler` skill and its template                                                      | [README](plugins/modeler-kit/README.md)                          |
+| `.claude-plugin/marketplace.json` | the suite's one Claude plugin marketplace (`modeler-suite`)                                                  |                                                                  |
+| `test/`                           | repository-level checks: the modeler-kit drift test                                                          |                                                                  |
+| `docs/`                           | [shell implementation notes](docs/shell/implementation-notes.md), [CI and releases](docs/ci-and-releases.md) |                                                                  |
+
+Each modeler folder holds `packages/` (its npm libraries), `apps/webapp`, `apps/vscode`, `e2e/`
+(Playwright), `example/`, `docs/`, its `README.md`, `CLAUDE.md`, `CONTRIBUTING.md` and
+`.claude/rules/`. Its `package.json` is the private workspace `@miragon/<modeler>-modeler-workspace`
+whose scripts run that modeler's checks.
+
+## Commands
+
+Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the repository root.
+
+- Setup: `npm ci`, then `npm run build:shared`. The modelers link `@miragon/modeler-api` and
+  `@miragon/modeler-shell` from this workspace and read their `dist`, so build them again after
+  changing them. Wardley Maps, Event Storming and Value Chain also resolve their own packages from
+  `dist` in their unit tests: `npm run <modeler> build` first. Team Topologies and Context Maps
+  consume their packages from source.
+- One modeler: `npm run <modeler> <script>` with the aliases `wardley`, `event-storming`,
+  `team-topologies`, `context-maps`, `value-chain` (e.g. `npm run wardley test`). All five:
+  `npm run modelers <script>`. One workspace: `npm run <script> -w <name or path>`.
+- Per modeler: `build`, `build:webapp`, `build:vscode`, `package:vscode`, `typecheck`, `lint`
+  (ESLint + type check), `test` (Vitest unit), `test:browser` (Vitest in Chromium, the contract's
+  conformance kit), `test:e2e` (Playwright: the web app and the VS Code webview, the shell's kit),
+  `test:vscode` and `test:vscode:docker` (the packed extension in a real VS Code), `depcruise`,
+  `format`, `format:check`, `dev:webapp`, `dev:webapp:plain` (not in value-chain, whose
+  `dev:webapp` is plain Vite), `dev:vscode`.
+- Root: `npm run build` (shared, modelers, apps), `npm test` (shared packages, plugin drift test,
+  every modeler's unit tests), `npm run lint`, `npm run typecheck`, `npm run format` /
+  `format:check`, `npm run depcruise`, `npm run publint`, `npm run test:plugin`,
+  `npm run test:browser`, `npm run test:e2e`, `npm run package:vscode`.
+- **Never run `test:vscode` on the user's Mac**: it opens a VS Code window that takes the focus.
+  Run `npm run <modeler> test:vscode:docker` (needs Docker, no window) or leave it to CI, and ask
+  first if a real window is unavoidable.
+- The pre-commit hook runs lint-staged (ESLint and Prettier on staged files), `npm run lint` of every
+  modeler whose files are staged and the shared type check when `packages/` or `test/` change. It
+  runs **no** tests, builds or dependency-cruiser: run `npm test` (and the affected modeler's
+  `test:browser`, `test:e2e` and `depcruise`) yourself before pushing. Never bypass it with
+  `--no-verify`.
+
+## Boundaries
+
+- **DOM boundary (P1), per modeler.** These packages must never import `diagram-js` or DOM libraries
+  (`tiny-svg`, `min-dom`) and never use `window` / `document`:
+
+  | Modeler         | DOM-free packages                   |
+  | --------------- | ----------------------------------- |
+  | Wardley Maps    | `schema-model`, `dsl`, `transforms` |
+  | Event Storming  | `schema-model`, `dsl`, `transforms` |
+  | Team Topologies | `schema-model`                      |
+  | Context Maps    | `schema-model`, `cml`               |
+  | Value Chain     | `schema-model`                      |
+
+  ESLint (`no-restricted-imports` / `no-restricted-globals`) and dependency-cruiser enforce it, so a
+  violation fails `npm run <modeler> lint` and `npm run <modeler> depcruise`. The renderer and the
+  apps are the DOM side. Keep each DSL round-trip lossless and each JSON serialization deterministic.
+
+- **Contract.** Every renderer implements `@miragon/modeler-api`
+  (`createCollaborativeModeler` / `createCollaborativeViewer` in
+  `packages/renderer/src/collaborative/`) and runs its conformance kit in `test:browser`; a skipped
+  case or an advisory fails the run. The DOM-free packages may import the contract's **types only**.
+  The contract has no runtime dependencies; its laws, versioning and the rule for a new kit case are
+  in [packages/api/README.md](packages/api/README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Shell.** Only the apps (`apps/webapp`, `apps/vscode`), the `e2e/` suites and Team Topologies'
+  private `ui` package import `@miragon/modeler-shell`; **no published package under
+  `modelers/*/packages/` does** (ESLint and dependency-cruiser). A renderer hands the chrome
+  structurally typed parts (menu entries, dialogs, legend rows, a read-only lock) and never the
+  shell's own types. Both apps of every modeler mount the shell and run its conformance kit in the
+  e2e projects `webapp` (`chromium` in Context Maps) and `vscode-webview`. The shell itself has zero
+  runtime dependencies and a DOM-free `src/core`; `packages/shell/test/package-boundaries.test.ts`
+  enforces both.
+- **Shared code changes reach every modeler at once.** The modelers pin the workspace's current
+  `@miragon/modeler-api` and `@miragon/modeler-shell` and npm links them, so a change in
+  `packages/` is live in all five: rebuild (`npm run build:shared`) and run the affected modelers'
+  `test:browser` (contract) or `test:e2e` (shell) before pushing.
+
+## Dependencies
+
+- Pin `dependencies` and `devDependencies` to **exact** versions, no ranges (`^`, `~`, `>=`, `*`);
+  the root `.npmrc` sets `save-exact=true`. Internal `@miragon/*` dependencies, the shared packages
+  included, pin the current version of that workspace (npm links the workspace because it satisfies
+  the pin). CI checks exact pins with
+  [`miragon/pin-npm-dependencies`](https://github.com/Miragon/pin-npm-dependencies) (`pin-check`,
+  see [docs/ci-and-releases.md](docs/ci-and-releases.md)), which reads `dependencies` and
+  `devDependencies`.
+- **Exception: `peerDependencies`.** Runtime libraries a consumer shares (`zod`, the
+  `diagram-js` / `didi` / `tiny-svg` ecosystem) are **ranged** peers so a host dedupes them against
+  its own copy: a second `zod` or diagram-js breaks `instanceof`, schema identity and the DI
+  injector. Each ranged peer is mirrored by an exact `devDependency`, and the bundling apps
+  (`webapp`, `vscode`) declare it as an exact `dependency`. Neither npm nor pin-check notices a peer
+  range that rejects those exact versions; the peer-dependency tests of the Wardley Maps, Event
+  Storming and Context Maps renderers do. Details per modeler in its
+  `.claude/rules/package-json-fixed-versions.md`.
+- The toolchain (TypeScript, Vitest, tsup, Vite, ESLint, Prettier, Playwright, …) is pinned once in
+  the root `package.json`, with `overrides` for `vite` and `@types/node`; a workspace declares only
+  what it alone needs. Keep `@playwright/test` in the `e2e` workspaces and `playwright-core` in
+  `apps/vscode` on the root `playwright` version.
+- Adding one: `npm install <pkg> -w <workspace>` from the root, then check the exact version in
+  `package.json` against `npm ls <pkg>`.
+
+## Git, pull requests, releases
+
+- **Conventional Commits**, checked on the PR title: `feat`, `fix`, `chore`, `docs`, `refactor`,
+  `ci`, `build`, `test`, `revert`. The scope names the area: a modeler (`wardley`,
+  `event-storming`, `team-topologies`, `context-maps`, `value-chain`), `api`, `shell` or `plugin`,
+  e.g. `feat(wardley): add an inertia decorator`.
+- **Every commit is GPG-signed** (`git commit -S`); after rewriting history, sign again
+  (`git rebase -S`).
+- Pull requests are squash-merged with the PR title as the subject. More than one changelog entry,
+  or more than one breaking change, goes into a `BEGIN_COMMIT_OVERRIDE` block at the end of the PR
+  body ([CONTRIBUTING.md](CONTRIBUTING.md#commits-and-pull-requests)).
+- **Releases:** every package and extension keeps its own version and `CHANGELOG.md`;
+  [release-please](https://github.com/googleapis/release-please) keeps one release pull request for
+  the whole suite. A commit releases the packages whose files it touches: `feat` a minor, `fix` a
+  patch, a breaking change a major (a minor while a package is on 0.x); `chore`, `docs`, `ci`,
+  `build`, `test` and `refactor` release nothing. Never bump a version or edit a `CHANGELOG.md` by
+  hand. Workflows, publishing (npm, VS Code Marketplace, Open VSX, the web apps) and how to add a
+  package are in [docs/ci-and-releases.md](docs/ci-and-releases.md).
+
+## Design system (mandatory)
+
+All UI and visual work MUST follow the Miragon product design system. This is not optional. Source
+of truth: the `miragon-brand:modeler-tool-design` Claude skill in
+[Miragon/corporate-identity](https://github.com/Miragon/corporate-identity). If the plugin is
+installed, the skill auto-loads on UI work; otherwise read the guide directly:
+https://raw.githubusercontent.com/Miragon/corporate-identity/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
+
+Install once: `/plugin marketplace add Miragon/corporate-identity` then
+`/plugin install miragon-brand@miragon`.
+
+- Each renderer vendors the skill's `cd-tokens.generated.css`, `cd-tokens.generated.json` and
+  `cd-canvas.css` unchanged into `modelers/<modeler>/packages/renderer/src/theme/`, the shell into
+  `packages/shell/fixtures/tokens/`. Never edit, reformat (they are Prettier-ignored) or fork a hex
+  value: re-copy from the skill to update and run the drift tests (`theme.sync`, `tokens.sync`).
+- The chrome of both apps is the shell's; a renderer's own CSS reads only the `--cd-ui-*` roles.
+  The canvas draws light, exports stay light.
+- The official notation colours of Team Topologies and Context Maps (`notation.ts` in their
+  `schema-model`) are serialized into documents and stay as they are; the design system covers
+  everything else.
+- Each modeler's `CLAUDE.md` names its reference files and drift tests.
+
+## Claude Code plugins
+
+- [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) (`modeler-suite`) lists
+  `modeler-kit` (`plugins/modeler-kit`), `wardley-maps-modeler`, `event-storming-modeler` and
+  `team-topologies-modeler` (`modelers/<modeler>/plugins/<plugin>`). Install with
+  `/plugin marketplace add Miragon/modeler-suite` and `/plugin install <plugin>@modeler-suite`.
+  Value Chain's skill is a project skill in `modelers/value-chain/.claude/skills/`.
+- Plugin and skill names are public: installed copies and other repositories use them, so never
+  rename one. Keep the skills repository-independent: they also run in other repositories and in
+  Miragon AI Design, where Claude writes the file and the modeler renders it.
+- A marketplace entry carries no `version`. `modeler-kit` has none at all (installs follow the
+  commits); the modelers' plugins keep theirs in `plugin.json`.
+- Drift tests: `npm run test:plugin` (manifests of every listed plugin, the `new-modeler` skill and
+  template); `npm run wardley test` (every OWM example parses and round-trips, note colours);
+  `npm run team-topologies test` (the `tt-format` checker against the schema model).
+  `claude plugin validate .` checks the marketplace; its one warning, modeler-kit's missing
+  `version`, is intended.
+
+## Code style
+
+- Write comments only when explicitly requested. Otherwise write self-explanatory code: descriptive
+  function and parameter names, no abbreviations.
+- If comments are needed, make them **why**-driven, not **how**.
+- Docs are English; German stays only where a file already is German.
