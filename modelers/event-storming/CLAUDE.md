@@ -27,14 +27,14 @@ Conventions).
 | `apps/webapp`                          | Vite demo editor                                                    | yes |
 | `apps/vscode`                          | VS Code extension: custom editor for `.storm`                       | yes |
 
-**P1 — DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
 import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`).
-Enforced twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`
-— so a violating import fails `npm run event-storming lint` and `npm run event-storming depcruise`.
+Enforced twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`,
+so a violating import fails `npm run event-storming lint` and `npm run event-storming depcruise`.
 
 ## Commands
 
-- `npm run event-storming build` — all packages; the unit tests resolve the workspace packages from
+- `npm run event-storming build`: all packages; the unit tests resolve the workspace packages from
   `dist`, so build before `npm run event-storming test` · `npm run event-storming build:webapp`
   (then `npm run check:build -w modelers/event-storming/apps/webapp` checks the mode markup and the
   shell's licence comment in `dist`, as CI does) · `npm run event-storming build:vscode`
@@ -44,21 +44,21 @@ Enforced twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **an
   [`apps/webapp/portless.json`](apps/webapp/portless.json); one-time setup in the suite's
   [`CONTRIBUTING.md`](../../CONTRIBUTING.md#dev-servers)). `npm run event-storming dev:webapp:plain`
   for plain Vite on `:5180`. · `npm run event-storming dev:vscode`
-- `npm run event-storming test` — Vitest · `npm run event-storming typecheck` (also
+- `npm run event-storming test`: Vitest · `npm run event-storming typecheck` (also
   `apps/webapp/vite.config.ts`, through `apps/webapp/tsconfig.config.json`) ·
   `npm run event-storming lint` (ESLint + typecheck)
-- `npm run event-storming test:browser` — Vitest in Chromium (renderer integration, the
-  `@miragon/modeler-api` conformance kit) · `npm run event-storming test:e2e` — Playwright, two
+- `npm run event-storming test:browser`: Vitest in Chromium (renderer integration, the
+  `@miragon/modeler-api` conformance kit) · `npm run event-storming test:e2e`: Playwright, two
   projects: `webapp` (the web app, incl. the shell conformance kit on the `web` host) and
   `vscode-webview` (the webview inside the shell's VS Code stub, incl. the kit on the `ide` host);
   one project with `npm run event-storming test:e2e -- --project=vscode-webview`, other ports via
   `E2E_PORT` / `E2E_WEBVIEW_PORT` (default 5180 / 5190)
-- `npm run event-storming test:vscode:docker` — the VS Code smoke test below in a Linux container
+- `npm run event-storming test:vscode:docker`: the VS Code smoke test below in a Linux container
   under `xvfb-run -a` (the shell's `modeler-shell-vscode-docker`): the way to run it locally, since
   no VS Code window opens; needs Docker. It copies the suite in without `node_modules`/`.git`, runs
   `npm ci` there and brings `test-results/vscode-smoke/` back; options after `--`, e.g.
   `-- --env VSCODE_VERSION=1.96.0 --env VSCODE_SMOKE_KEEP=1` (VS Code's logs in `vscode-logs/`).
-- `npm run event-storming test:vscode` — the packaged extension in a real VS Code on the host, for
+- `npm run event-storming test:vscode`: the packaged extension in a real VS Code on the host, for
   CI and for watching the window (Vitest project `vscode`,
   [`apps/vscode/test-smoke/`](apps/vscode/test-smoke/)): packs it as the release does
   (`vsce package`, which runs `vscode:prepublish`), unpacks the VSIX outside the repo and runs the
@@ -71,7 +71,7 @@ Enforced twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **an
   switch VS Code missed, so every failure fails the run. When CI runs it is in the suite's
   [docs/ci-and-releases.md](../../docs/ci-and-releases.md); details in
   [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- `npm run event-storming format` — Prettier · `npm run event-storming depcruise` — check the
+- `npm run event-storming format`: Prettier · `npm run event-storming depcruise`: check the
   module graph
 
 ## Releases
@@ -90,7 +90,7 @@ release, are in [docs/ci-and-releases.md](../../docs/ci-and-releases.md). A rele
   board JSON serialization must be deterministic. Board transforms are pure functions.
 - Pins follow the suite's rule. **Exception:** consumer-shared third-party runtime libs (`zod`;
   `diagram-js`/`didi`/`tiny-svg`) are `peerDependencies` with **caret ranges** so consumers can
-  dedupe against a single copy — mirrored by an exact `devDependency`, with the bundling apps
+  dedupe against a single copy, mirrored by an exact `devDependency`, with the bundling apps
   declaring the exact version.
   [`peer-dependencies.sync.test.ts`](packages/renderer/test/peer-dependencies.sync.test.ts) fails
   when one of these exact versions falls outside the peer range (after a major bump, widen it:
@@ -174,7 +174,7 @@ shortcuts dialog from the renderer (`boardMenu`, `createShortcutsDialog`,
 [`packages/renderer/src/board-menu/`](packages/renderer/src/board-menu/)), which mirrors the
 shell's types structurally; a sync test in apps/vscode pins the mirror against the shell. The
 renderer's own palette rules apply only to `.djs-palette:not([data-chrome='palette'])`, so a
-shell-skinned palette wears the shell's look alone. **Renderers never import the shell** — only
+shell-skinned palette wears the shell's look alone. **Renderers never import the shell**: only
 the apps (and `e2e/`) do; `packages/*` reaching `@miragon/modeler-shell` fails ESLint and
 dependency-cruiser. Both pass the shell's fit insets as `freeArea: { insets }` (the modeler-api
 factory option, for keyboard creation from the palette; `freeRectInsets` is its deprecated

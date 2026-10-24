@@ -23,16 +23,16 @@ button and you have a ready-made board to explore. From there you can open any `
 
 Prefer commands? Run these from the Command Palette (`Cmd/Ctrl+Shift+P`, type _"Event Storming"_):
 
-- **Event Storming: New Board from Example** — pick a location, pre-filled with the order-checkout
+- **Event Storming: New Board from Example**: pick a location, pre-filled with the order-checkout
   example.
-- **Event Storming: New Empty Board** — same, but a blank board (also under **File > New File…**).
+- **Event Storming: New Empty Board**: the same, but a blank board (also under **File > New File…**).
 
 ## Reading a board
 
 Each sticky color has a meaning: **Domain Event** (orange), **Command** (blue), **Actor** (light
 yellow), **Aggregate** (yellow), **Policy** (purple), **Read Model** (green), **External System**
-(pink), **Hotspot** (red), plus free-text notes and freehand drawings. Time flows left to right —
-earlier events sit to the left of later ones — and arrows connect the stickies into a story.
+(pink), **Hotspot** (red), plus free-text notes and freehand drawings. Time flows left to right
+(earlier events sit to the left of later ones), and arrows connect the stickies into a story.
 
 ## Editing a board
 
@@ -70,7 +70,7 @@ earlier events sit to the left of later ones — and arrows connect the stickies
 - **Light canvas in every theme.** The board stays light under dark color themes (high contrast is
   honoured) until the Miragon modelers ship their dark mode together. A `style dark` line in the
   file is kept, but the board follows the theme, not the file.
-- **Self-hosted fonts** — no CDN, offline-capable.
+- **Self-hosted fonts**: no CDN, offline-capable.
 
 The menu, palette skin, zoom panel, problems pill, status box, empty-board hint and the theme
 bridge come from [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell),

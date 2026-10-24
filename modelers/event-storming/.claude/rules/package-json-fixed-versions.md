@@ -8,11 +8,11 @@ paths:
 Never use version ranges (`^`, `~`, `>=`, `*`) in `package.json`.
 Always pin to an exact version (e.g. `"eslint": "9.39.4"`).
 
-This applies to `dependencies` and `devDependencies` — including internal
+This applies to `dependencies` and `devDependencies`, including internal
 `@miragon/event-storming-*` workspace deps, which pin to the referenced package's **current
 version** (e.g. `0.1.0`), not a range (`*`). npm links the local workspace because the local
 version satisfies the pin. release-please keeps every internal dep reference in sync on each
-release via the **`node-workspace` plugin** in `release-please-config.json` — it automatically
+release via the **`node-workspace` plugin** in `release-please-config.json`: it automatically
 bumps dependency and peer-dependency pins whenever a workspace package is released, so no
 per-dependency config entries are needed (see the suite's
 [docs/ci-and-releases.md](../../../../docs/ci-and-releases.md)). Exact
@@ -21,8 +21,8 @@ pinning is enforced in CI by
 
 ## Exception: `peerDependencies` for consumer-shared runtime libs use ranges
 
-Third-party runtime libraries whose identity must be shared with the consumer's own copy — `zod`
-(schema-model) and `diagram-js` / `didi` / `tiny-svg` (renderer) — are declared as
+Third-party runtime libraries whose identity must be shared with the consumer's own copy (`zod`
+in schema-model, `diagram-js` / `didi` / `tiny-svg` in the renderer) are declared as
 `peerDependencies` with a **caret range** (e.g. `"zod": "^4.6.4"`), not an exact pin. An exact
 `dependency` forces a second, duplicate copy into the consumer's tree, which breaks `instanceof`
 checks, Zod schema identity and diagram-js/didi dependency injection. Ranged peers let consumers

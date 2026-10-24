@@ -48,7 +48,7 @@
     {
       "name": "event-storming-modeler",
       "source": "./modelers/event-storming/plugins/event-storming-modeler",
-      "description": "Event Storming for Claude: the method (sticky grammar, the three workshop levels, board reviews with colour-coded feedback) plus the complete `.storm` text DSL — grammar, layout, diagnostics, round-trip. Lets Claude read, write, review and generate Event Storming boards as plain text.",
+      "description": "Event Storming for Claude: the method (sticky grammar, the three workshop levels, board reviews with colour-coded feedback) plus the complete `.storm` text DSL: grammar, layout, diagnostics, round-trip. Lets Claude read, write, review and generate Event Storming boards as plain text.",
       "author": {
         "name": "Miragon",
         "url": "https://miragon.io"

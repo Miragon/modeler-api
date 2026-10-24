@@ -12,7 +12,7 @@ From the repository root (or with `npm run <script>` inside `modelers/event-stor
 
 ```bash
 npm run build:shared              # once, and after changing packages/api or packages/shell
-npm run event-storming build      # builds packages/* (workspace deps resolve to dist — build before testing)
+npm run event-storming build      # builds packages/* (workspace deps resolve to dist: build before testing)
 npm run event-storming test       # vitest run
 npm run event-storming lint       # eslint . + type-check (what the pre-commit hook runs for this modeler)
 ```
@@ -139,10 +139,10 @@ edit or reformat them by hand.
 | `apps/webapp`                          | Vite demo editor                                          | DOM      |
 | `apps/vscode`                          | VS Code custom editor for `.storm`                        | DOM      |
 
-**P1 — the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
 import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This
-is enforced twice — by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
-dependency-cruiser — so a violating import fails `npm run event-storming lint` and
+is enforced twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
+dependency-cruiser, so a violating import fails `npm run event-storming lint` and
 `npm run event-storming depcruise`.
 
 Also keep the `.storm` DSL round-trip lossless and JSON serialization deterministic.
@@ -153,9 +153,9 @@ Also keep the `.storm` DSL round-trip lossless and JSON serialization determinis
   `npm run event-storming depcruise`, `npm run event-storming build`.
 - Commit scope `event-storming`, e.g. `feat(event-storming): add a hotspot sticky`,
   `fix(event-storming): keep comment lines on round-trip`.
-- Working on board/domain semantics? Install the modeler's Claude plugin once —
-  `/plugin marketplace add Miragon/modeler-suite` then
-  `/plugin install event-storming-modeler@modeler-suite` — for the `event-storming` (method) and
+- Working on board/domain semantics? Install the modeler's Claude plugin once
+  (`/plugin marketplace add Miragon/modeler-suite`, then
+  `/plugin install event-storming-modeler@modeler-suite`) for the `event-storming` (method) and
   `storm-dsl` (`.storm` format) skills. The sources live in
   [`plugins/event-storming-modeler/skills/`](plugins/event-storming-modeler/skills/); after editing
   them run `claude plugin validate modelers/event-storming/plugins/event-storming-modeler --strict`

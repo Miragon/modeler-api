@@ -1,4 +1,4 @@
-# Event Storming Modeler — Claude Code plugin
+# Event Storming Modeler: Claude Code plugin
 
 Two skills that teach Claude [Event Storming](https://www.eventstorming.com/) and the `.storm`
 text format used by the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming).
@@ -8,7 +8,7 @@ text format used by the [Event Storming Modeler](https://github.com/Miragon/mode
 | `event-storming` | Alberto Brandolini's method: the sticky grammar (actor → command → aggregate → domain event → policy → …), the three workshop levels, facilitation, and board reviews with colour-coded feedback notes.   |
 | `storm-dsl`      | The `.storm` format itself: full grammar, the `(color …)` `(id …)` `(on …)` `(size …)` `(align …)` suffixes, coordinates and layout, per-level authoring rules, escaping, parser diagnostics, round-trip. |
 
-Together they let Claude read, review, edit and generate Event Storming boards as plain text —
+Together they let Claude read, review, edit and generate Event Storming boards as plain text,
 in any repository, not just this one.
 
 ## Install
@@ -26,7 +26,7 @@ From a local checkout of [Miragon/modeler-suite](https://github.com/Miragon/mode
 ```
 
 Once installed the skills are available everywhere as `event-storming-modeler:event-storming` and
-`event-storming-modeler:storm-dsl`. They load on demand — the always-on cost is roughly 600 tokens.
+`event-storming-modeler:storm-dsl`. They load on demand; the always-on cost is roughly 600 tokens.
 
 ## Using them
 
@@ -73,4 +73,4 @@ marketplace (`.claude-plugin/marketplace.json` at the repository root) carries n
 
 ## License
 
-MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE).
+MIT, see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE).

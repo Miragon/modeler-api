@@ -36,7 +36,7 @@ const box = viewer.contentBounds(); // the board's tight box, undefined while it
 
 Swap `NavigatedViewer` for `Modeler` to get the editable board (sticky palette, context pad,
 arrows, undo/redo). Stickies are colored per kind (`STICKY_STYLES`): domain event, command,
-actor, aggregate, policy, read model, external system, hotspot — plus free-text notes and
+actor, aggregate, policy, read model, external system and hotspot, plus free-text notes and
 freeform drawings on an unbounded canvas.
 
 ### Options
@@ -194,7 +194,7 @@ const viewer = createCollaborativeViewer(); // meta.editable: false, never chang
 ### Fonts
 
 The package ships no fonts and uses no CDN. The canvas typeface is **Geist** (Miragon corporate
-identity); provide it yourself — recommended self-hosted via [`@fontsource`](https://fontsource.org/)
+identity); provide it yourself, preferably self-hosted via [`@fontsource`](https://fontsource.org/)
 (one variable file covers all weights):
 
 ```ts

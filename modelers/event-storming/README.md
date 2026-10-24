@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-renderer)](https://www.npmjs.com/package/@miragon/event-storming-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.event-storming-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.event-storming-modeler)
 
-Create, edit and embed digital [Event Storming](https://www.eventstorming.com/) boards — a
+Create, edit and embed digital [Event Storming](https://www.eventstorming.com/) boards: a
 TypeScript library, a VS Code extension, and a web app, all built on
 [diagram-js](https://github.com/bpmn-io/diagram-js).
 
@@ -41,20 +41,20 @@ const { svg } = await viewer.saveSVG();
 
 ## What you get
 
-- **Embeddable viewer & modeler** on diagram-js — palette, context pad, move/connect, inline
-  labels, undo/redo, free canvas (no grid, no axes — just stickies on a timeline).
+- **Embeddable viewer & modeler** on diagram-js: palette, context pad, move/connect, inline
+  labels, undo/redo, free canvas (no grid, no axes, just stickies on a timeline).
 - **Lossless `.storm` DSL round-trip** and a deterministic JSON model.
-- **VS Code extension** — a custom editor for `.storm` files in the shared Miragon modeler chrome
+- **VS Code extension**: a custom editor for `.storm` files in the shared Miragon modeler chrome
   ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)):
   menu, palette, zoom panel, problems pill; undo and redo through the VS Code document.
-- **Collaborative-modeler contract** — the renderer implements
+- **Collaborative-modeler contract**: the renderer implements
   [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api)
   (`createCollaborativeModeler`, `createCollaborativeViewer`).
-- **Web app** — the same chrome on the web: a start screen, "Share" (the board travels in the
+- **Web app**: the same chrome on the web, with a start screen, "Share" (the board travels in the
   link), open or drop `.storm`/`.json` files, PNG, SVG, JSON and `.storm` export, a problems list,
   and replacing a board with an undo toast instead of a confirmation.
-- **Strict DOM-free core** (model, DSL, transforms) — usable in any JavaScript runtime.
-- **Self-hosted fonts** — no CDN, offline-capable.
+- **Strict DOM-free core** (model, DSL, transforms), usable in any JavaScript runtime.
+- **Self-hosted fonts**: no CDN, offline-capable.
 
 ### Sticky notes
 
@@ -75,25 +75,25 @@ accepts an optional `(color #hex)` override.
 
 ### Editor interactions
 
-| Action                     | How                                                                                                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Multi-select (lasso)       | Palette tool, `L`, or `Shift` + drag on the empty canvas                                                                                                                                         |
-| Draw lines/shapes          | Palette tool — click point by point; click the last point again (or double-click/`Enter`/`Esc`) to finish, click the start point to close; drag the handles of a selected drawing to move points |
-| Quick create at the cursor | `E` domain event, `C` command                                                                                                                                                                    |
-| Add to selection           | `Shift` + click on elements                                                                                                                                                                      |
-| Copy / paste               | `Ctrl/Cmd+C`, `Ctrl/Cmd+V` — paste attaches to the cursor; click places, `Esc` cancels                                                                                                           |
-| Duplicate (in place)       | `Ctrl/Cmd+D`                                                                                                                                                                                     |
-| Nudge selection            | Arrow keys (`Shift` = coarse)                                                                                                                                                                    |
-| Undo / redo                | `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` (in VS Code the document's own undo); in the web app `Ctrl/Cmd+Z` also takes back a replaced board while the canvas has nothing else to undo                   |
-| Zoom                       | `Ctrl/Cmd` + `+` / `-`, `Ctrl/Cmd+0` sets 100%, `Shift+1` fits; controls bottom-right                                                                                                            |
-| Open / save (web app)      | `Ctrl/Cmd+O` (or "Open a file…" on the start screen) opens a `.storm`, `.json` or `.txt` file, `Ctrl/Cmd+S` downloads the `.storm` file; a file dropped anywhere on the page opens               |
-| All shortcuts              | Menu → "Keyboard shortcuts…"                                                                                                                                                                     |
-| Edit label                 | Double-click a sticky (`Cmd/Ctrl+Enter` saves)                                                                                                                                                   |
-| Format a note              | Bold/italic/bullets via the floating toolbar or `Cmd/Ctrl+B` / `Cmd/Ctrl+I`, text alignment via the toolbar's align buttons; stored as a tiny Markdown subset in the label                       |
-| Append sticky              | Context pad `+` drags a blank sticky; pick the type in the popup that opens, then label it                                                                                                       |
-| Change sticky type         | Context pad → change-type popup                                                                                                                                                                  |
-| Type captions on/off       | Menu → "Type captions" (small kind caption at the bottom of every sticky; per-client view preference)                                                                                            |
-| Recolor a drawing          | Context pad → color picker (stickies and notes keep their notation colors)                                                                                                                       |
+| Action                     | How                                                                                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Multi-select (lasso)       | Palette tool, `L`, or `Shift` + drag on the empty canvas                                                                                                                                        |
+| Draw lines/shapes          | Palette tool, click point by point; click the last point again (or double-click/`Enter`/`Esc`) to finish, click the start point to close; drag the handles of a selected drawing to move points |
+| Quick create at the cursor | `E` domain event, `C` command                                                                                                                                                                   |
+| Add to selection           | `Shift` + click on elements                                                                                                                                                                     |
+| Copy / paste               | `Ctrl/Cmd+C`, `Ctrl/Cmd+V`: paste attaches to the cursor; click places, `Esc` cancels                                                                                                           |
+| Duplicate (in place)       | `Ctrl/Cmd+D`                                                                                                                                                                                    |
+| Nudge selection            | Arrow keys (`Shift` = coarse)                                                                                                                                                                   |
+| Undo / redo                | `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` (in VS Code the document's own undo); in the web app `Ctrl/Cmd+Z` also takes back a replaced board while the canvas has nothing else to undo                  |
+| Zoom                       | `Ctrl/Cmd` + `+` / `-`, `Ctrl/Cmd+0` sets 100%, `Shift+1` fits; controls bottom-right                                                                                                           |
+| Open / save (web app)      | `Ctrl/Cmd+O` (or "Open a file…" on the start screen) opens a `.storm`, `.json` or `.txt` file, `Ctrl/Cmd+S` downloads the `.storm` file; a file dropped anywhere on the page opens              |
+| All shortcuts              | Menu → "Keyboard shortcuts…"                                                                                                                                                                    |
+| Edit label                 | Double-click a sticky (`Cmd/Ctrl+Enter` saves)                                                                                                                                                  |
+| Format a note              | Bold/italic/bullets via the floating toolbar or `Cmd/Ctrl+B` / `Cmd/Ctrl+I`, text alignment via the toolbar's align buttons; stored as a tiny Markdown subset in the label                      |
+| Append sticky              | Context pad `+` drags a blank sticky; pick the type in the popup that opens, then label it                                                                                                      |
+| Change sticky type         | Context pad → change-type popup                                                                                                                                                                 |
+| Type captions on/off       | Menu → "Type captions" (small kind caption at the bottom of every sticky; per-client view preference)                                                                                           |
+| Recolor a drawing          | Context pad → color picker (stickies and notes keep their notation colors)                                                                                                                      |
 
 ## The `.storm` DSL
 
@@ -102,8 +102,8 @@ A line-based text format: `<kind> <Name> [x, y]` places a sticky (pixel coordina
 round-trips untouched. An optional `level big-picture|process|design` statement records the
 workshop level and filters which sticky kinds the editor offers for creation (absent = `design`,
 everything available); existing elements of any kind stay valid on every level. An actor,
-hotspot or note can be pinned onto a host sticky with the trailing `(on <Host Name>)` suffix —
-it then moves together with its host:
+hotspot or note can be pinned onto a host sticky with the trailing `(on <Host Name>)` suffix.
+It then moves together with its host:
 
 ```
 command Approve Order [240, 300]
@@ -120,8 +120,8 @@ note Kickoff agenda [80, 80] (size 240x160)
 
 Two stickies may carry the same label (e.g. the same aggregate appearing twice on the
 timeline). An ambiguous name is disambiguated with the sticky's internal id: an `(id …)`
-suffix on the declaration and `#id` in references (arrow endpoints and `(on …)` hosts) —
-unambiguous boards keep referencing purely by name, without any ids in the text:
+suffix on the declaration and `#id` in references (arrow endpoints and `(on …)` hosts).
+Unambiguous boards keep referencing purely by name, without any ids in the text:
 
 ```
 aggregate Order [420, 290] (id agg_order)
@@ -176,7 +176,7 @@ Ship Order -> #agg_order_2
 
 ## Claude Code plugin
 
-Two Claude skills — the Event Storming method and the `.storm` format — ship from the Miragon
+Two Claude skills, the Event Storming method and the `.storm` format, ship from the Miragon
 modeler suite as a Claude Code plugin, so you can use them in any project:
 
 ```
@@ -214,7 +214,7 @@ for CI and releases. Issues go to [Miragon/modeler-suite](https://github.com/Mir
 ## Fonts
 
 The renderer ships no fonts and loads nothing from a CDN. The typeface is **Geist** (Miragon
-corporate identity); provide it yourself — recommended self-hosted via
+corporate identity); provide it yourself, preferably self-hosted via
 [`@fontsource`](https://fontsource.org/) (one variable file covers all weights):
 
 ```ts
