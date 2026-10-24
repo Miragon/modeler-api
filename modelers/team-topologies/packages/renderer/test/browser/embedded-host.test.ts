@@ -2,8 +2,10 @@ import { afterEach, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Palette from "diagram-js/lib/features/palette/Palette";
 import type Selection from "diagram-js/lib/features/selection/Selection";
 import type { Element } from "diagram-js/lib/model/Types";
+import type { ModuleDeclaration } from "didi";
 import type { FreeArea, FreeAreaInsets } from "@miragon/modeler-api";
 import { Modeler } from "@miragon/team-topologies-renderer";
 import { emptyDocument, type TtDocument } from "@miragon/team-topologies-schema-model";
@@ -42,13 +44,14 @@ afterEach(() => {
 function mountHost(
   box: { left: number; top: number; width: number; height: number },
   freeArea?: FreeArea,
+  additionalModules?: ModuleDeclaration[],
 ): Host {
   const host = document.createElement("div");
   host.style.cssText = `position: fixed; left: ${box.left}px; top: ${box.top}px; width: ${box.width}px; height: ${box.height}px;`;
   const container = document.createElement("div");
   host.append(container);
   document.body.append(host);
-  const modeler = new Modeler({ container, freeArea });
+  const modeler = new Modeler({ container, freeArea, additionalModules });
   const mount = { host, container, modeler };
   mounted.push(mount);
   return mount;
@@ -508,4 +511,90 @@ test("in a wide container the tooltip stands below the top-row palette, centred 
   expect(paletteBox.top).toBe(12);
   expect(tooltipBox.top).toBeCloseTo(60, 0);
   expect(tooltipBox.left + tooltipBox.width / 2).toBeCloseTo(entryBox.left + entryBox.width / 2, 0);
+});
+
+/** A palette entry with a shortcut, so its tooltip shows the chip the Team Topologies tools lack. */
+class ShortcutPaletteEntry {
+  static $inject = ["palette"];
+
+  constructor(palette: Palette) {
+    palette.registerProvider({
+      getPaletteEntries: () => ({
+        "shortcut-tool": {
+          group: "tools",
+          title: "Hand",
+          shortcut: "H",
+          action: { click: () => undefined },
+        },
+      }),
+    });
+  }
+}
+
+function roleColour(container: HTMLElement, role: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${role})`;
+  container.append(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
+
+test("the palette tooltip has the chrome tooltip's surface, type and shortcut chip (guide §5.6)", async () => {
+  await page.viewport(1280, 800);
+  const { container, modeler } = mountHost(
+    { left: 0, top: 0, width: 1280, height: 800 },
+    undefined,
+    [{ __init__: ["shortcutPaletteEntry"], shortcutPaletteEntry: ["type", ShortcutPaletteEntry] }],
+  );
+  modeler.importDocument(oneTeamDocument());
+
+  const { tooltip } = await hoverPaletteEntry(container, "shortcut-tool");
+  const surface = getComputedStyle(tooltip);
+  expect({
+    fontFamily: surface.fontFamily.split(",")[0],
+    fontSize: surface.fontSize,
+    fontWeight: surface.fontWeight,
+    lineHeight: surface.lineHeight,
+    padding: surface.padding,
+    borderWidth: surface.borderWidth,
+    borderRadius: surface.borderRadius,
+    gap: surface.columnGap,
+    height: boxIn(tooltip, container).height,
+  }).toEqual({
+    fontFamily: '"Geist Variable"',
+    fontSize: "13px",
+    fontWeight: "400",
+    lineHeight: "20px",
+    padding: "3px 8px",
+    borderWidth: "1px",
+    borderRadius: "6px",
+    gap: "6px",
+    height: 28,
+  });
+  expect(surface.color).toBe(roleColour(container, "--cd-ui-text"));
+  expect(surface.backgroundColor).toBe(roleColour(container, "--cd-ui-flaeche-hoch"));
+  expect(surface.borderColor).toBe(roleColour(container, "--cd-ui-linie"));
+
+  const chip = getComputedStyle(tooltip.querySelector("kbd")!);
+  expect({
+    fontFamily: chip.fontFamily.split(",")[0],
+    fontSize: chip.fontSize,
+    fontWeight: chip.fontWeight,
+    padding: chip.padding,
+    borderWidth: chip.borderWidth,
+    borderRadius: chip.borderRadius,
+    boxShadow: chip.boxShadow,
+  }).toEqual({
+    fontFamily: '"Geist Mono Variable"',
+    fontSize: "13px",
+    fontWeight: "400",
+    padding: "1px 6px",
+    borderWidth: "1px",
+    borderRadius: "6px",
+    boxShadow: "none",
+  });
+  expect(chip.color).toBe(roleColour(container, "--cd-ui-text-leise"));
+  expect(chip.backgroundColor).toBe(roleColour(container, "--cd-ui-grund"));
+  expect(chip.borderColor).toBe(roleColour(container, "--cd-ui-linie"));
 });

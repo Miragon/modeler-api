@@ -315,12 +315,13 @@ viewer via `additionalModules`:
 A custom `TeamTopologiesRenderer` (priority `1500`, beating diagram-js's default) draws each element
 from the spec in [`@miragon/team-topologies-schema-model`](../schema-model): the four team outlines
 (octagon, vertical/horizontal rounded rectangles, square rectangle) drawn solid; the three
-interaction glyphs (parallelogram, triangle, circle) drawn dashed and translucent; the flow-of-change
-as a dashed left-to-right band; an annotation as a BPMN-style open bracket with left-aligned text,
-tied to its element by a dashed connector. Labels are word-wrapped (explicit line breaks are kept)
-and centred. Per-element `fill`/`stroke` overrides win over the spec defaults, and stay visible
-while an element is selected or hovered (the selection is a separate blue outline). On a dark custom
-fill, team and interaction labels switch to white.
+interaction glyphs (parallelogram, triangle, circle) drawn dashed and opaque, their translucent
+template fill mixed over white (design guide §10.6); the flow-of-change as a dashed left-to-right
+band; an annotation as a BPMN-style open bracket with left-aligned text, tied to its element by a
+dashed connector. Labels are word-wrapped (explicit line breaks are kept) and centred. Per-element
+`fill`/`stroke` overrides win over the spec defaults (an interaction's own fill is mixed over white
+the same way), and stay visible while an element is selected or hovered (the selection is a
+separate blue outline). On a dark custom fill, team and interaction labels switch to white.
 
 ## Import / export
 

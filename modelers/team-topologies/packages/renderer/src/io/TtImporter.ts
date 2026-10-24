@@ -1,7 +1,7 @@
 /**
  * Bridges the canonical `TtDocument` into the diagram-js canvas. Stacking order
- * (back → front) is flows, teams, interactions, annotations, so the translucent
- * interaction glyphs read on top of the team boxes they overlay. Attached
+ * (back → front) is flows, teams, interactions, annotations, so the interaction
+ * glyphs read on top of the team boxes they overlay. Attached
  * annotations get their association connector last, once both ends exist.
  */
 

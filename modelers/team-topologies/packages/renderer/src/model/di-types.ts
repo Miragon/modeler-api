@@ -2,8 +2,8 @@
  * diagram-js runtime model for the Team Topologies notation. Every element is a
  * placed, resizable SHAPE discriminated by `ttKind`:
  *  - `team`        — one of the four team types (label inside the box)
- *  - `interaction` — a mode glyph (parallelogram / triangle / circle), 50%
- *                    transparent, overlaid on the boundary between teams
+ *  - `interaction` — a mode glyph (parallelogram / triangle / circle),
+ *                    overlaid on the boundary between teams
  *  - `flow`        — the "flow of change" arrow guide
  *  - `annotation`  — a free-text note (BPMN-style open bracket)
  *
