@@ -1,7 +1,7 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import semver from "semver";
 import { describe, expect, it } from "vitest";
@@ -9,7 +9,6 @@ import { describe, expect, it } from "vitest";
 interface Manifest {
   name: string;
   version: string;
-  workspaces?: string[];
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
@@ -26,9 +25,21 @@ function readManifest(manifestPath: string): Manifest {
   return JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
 }
 
-const workspaces: Workspace[] = (
-  readManifest(join(repositoryRoot, "package.json")).workspaces ?? []
-).map((path) => ({ path, manifest: readManifest(join(repositoryRoot, path, "package.json")) }));
+/** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
+function modelerWorkspaces(): string[] {
+  const suiteRoot = join(repositoryRoot, "../..");
+  const modeler = `${relative(suiteRoot, repositoryRoot).split(sep).join("/")}/`;
+  const lockfile = join(suiteRoot, "package-lock.json");
+  const { packages } = JSON.parse(readFileSync(lockfile, "utf8")) as { packages: object };
+  return Object.keys(packages)
+    .filter((path) => path.startsWith(modeler) && !path.includes("node_modules/"))
+    .map((path) => path.slice(modeler.length));
+}
+
+const workspaces: Workspace[] = modelerWorkspaces().map((path) => ({
+  path,
+  manifest: readManifest(join(repositoryRoot, path, "package.json")),
+}));
 
 const publishers = workspaces.filter((workspace) => workspace.manifest.peerDependencies);
 

@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 interface Manifest {
   name: string;
-  workspaces?: string[];
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
@@ -23,9 +22,19 @@ function readManifest(directoryFromRepoRoot: string): Manifest {
   return JSON.parse(readFileSync(manifestUrl, 'utf8')) as Manifest;
 }
 
-const workspaces = (readManifest('').workspaces ?? []).map((directory) =>
-  readManifest(`${directory}/`),
-);
+/** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
+function modelerWorkspaces(): string[] {
+  const repositoryRoot = new URL('../../../', import.meta.url);
+  const suiteRoot = new URL('../../', repositoryRoot);
+  const modeler = repositoryRoot.href.slice(suiteRoot.href.length);
+  const lockfile = new URL('package-lock.json', suiteRoot);
+  const { packages } = JSON.parse(readFileSync(lockfile, 'utf8')) as { packages: object };
+  return Object.keys(packages)
+    .filter((path) => path.startsWith(modeler) && !path.includes('node_modules/'))
+    .map((path) => path.slice(modeler.length));
+}
+
+const workspaces = modelerWorkspaces().map((directory) => readManifest(`${directory}/`));
 const providers = workspaces.filter((manifest) => manifest.peerDependencies !== undefined);
 
 function declaredVersions(manifest: Manifest, packageName: string): string[] {

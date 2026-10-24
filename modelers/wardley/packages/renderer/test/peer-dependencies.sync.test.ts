@@ -11,20 +11,30 @@ import { satisfies, valid } from 'semver';
 
 interface Manifest {
   name: string;
-  workspaces?: string[];
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
 }
 
 const repositoryRoot = new URL('../../../', import.meta.url);
+const suiteRoot = new URL('../../', repositoryRoot);
+
+/** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
+function modelerWorkspaces(): string[] {
+  const modeler = repositoryRoot.href.slice(suiteRoot.href.length);
+  const lockfile = new URL('package-lock.json', suiteRoot);
+  const { packages } = JSON.parse(readFileSync(lockfile, 'utf8')) as { packages: object };
+  return Object.keys(packages)
+    .filter((path) => path.startsWith(modeler) && !path.includes('node_modules/'))
+    .map((path) => path.slice(modeler.length));
+}
 
 function readManifest(directory: string): Manifest {
   const path = new URL(`${directory}/package.json`, repositoryRoot);
   return JSON.parse(readFileSync(path, 'utf8')) as Manifest;
 }
 
-const workspaces = (readManifest('.').workspaces ?? []).map(readManifest);
+const workspaces = modelerWorkspaces().map(readManifest);
 const workspacesByName = new Map(workspaces.map((manifest) => [manifest.name, manifest]));
 
 function peersOf(manifest: Manifest): Array<[string, string]> {

@@ -1,20 +1,20 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
  * Drift guard for the lockstep release: release-please's `node` strategy bumps only the root
- * `package.json` and the root entries of `package-lock.json`. Every other place that carries the
- * shared version has to be listed in `extra-files`, or the release PR leaves it behind and the next
- * `npm install` drags the correction into an unrelated pull request.
+ * `package.json` (and a `package-lock.json` next to it, which the suite's one root lockfile
+ * replaced). Every other place that carries the shared version has to be listed in `extra-files`,
+ * or the release PR leaves it behind and the next `npm install` drags the correction into an
+ * unrelated pull request. A path starting with `/` is release-please's path from the suite root.
  */
 
 interface PackageManifest {
   name: string;
   version: string;
-  workspaces?: string[];
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 }
@@ -27,10 +27,19 @@ interface JsonLocation {
 }
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const suiteRoot = join(repositoryRoot, "../..");
+const modeler = relative(suiteRoot, repositoryRoot).split(sep).join("/");
+const LOCKFILE = "/package-lock.json";
 
-function readJson<T>(relativePath: string): T {
-  return JSON.parse(readFileSync(join(repositoryRoot, relativePath), "utf8")) as T;
+function readJson<T>(path: string): T {
+  const absolute = path.startsWith("/") ? join(suiteRoot, path) : join(repositoryRoot, path);
+  return JSON.parse(readFileSync(absolute, "utf8")) as T;
 }
+
+/** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
+const workspaceDirectories = Object.keys(readJson<{ packages: object }>(LOCKFILE).packages)
+  .filter((path) => path.startsWith(`${modeler}/`) && !path.includes("node_modules/"))
+  .map((path) => path.slice(modeler.length + 1));
 
 const releasedVersion = readJson<Record<string, string>>(".release-please-manifest.json")["."];
 const extraFiles = readJson<{ packages: Record<string, { "extra-files": ExtraFileEntry[] }> }>(
@@ -40,9 +49,10 @@ const jsonExtraFiles = extraFiles.filter(
   (entry): entry is JsonLocation & { type: "json" } =>
     typeof entry === "object" && entry.type === "json" && !entry.glob,
 );
-const workspaces = (readJson<PackageManifest>("package.json").workspaces ?? []).map(
-  (directory) => ({ directory, manifest: readJson<PackageManifest>(`${directory}/package.json`) }),
-);
+const workspaces = workspaceDirectories.map((directory) => ({
+  directory,
+  manifest: readJson<PackageManifest>(`${directory}/package.json`),
+}));
 const internalPackageNames = new Set(workspaces.map(({ manifest }) => manifest.name));
 const dependencySections = ["dependencies", "devDependencies"] as const;
 
@@ -53,15 +63,15 @@ function jsonLocation(path: string, jsonpath: string): JsonLocation {
 function sharedVersionLocations(): JsonLocation[] {
   return workspaces.flatMap(({ directory, manifest }) => [
     jsonLocation(`${directory}/package.json`, "$.version"),
-    jsonLocation("package-lock.json", `$.packages['${directory}'].version`),
+    jsonLocation(LOCKFILE, `$.packages['${modeler}/${directory}'].version`),
     ...dependencySections.flatMap((section) =>
       Object.keys(manifest[section] ?? {})
         .filter((dependencyName) => internalPackageNames.has(dependencyName))
         .flatMap((dependencyName) => [
           jsonLocation(`${directory}/package.json`, `$.${section}['${dependencyName}']`),
           jsonLocation(
-            "package-lock.json",
-            `$.packages['${directory}'].${section}['${dependencyName}']`,
+            LOCKFILE,
+            `$.packages['${modeler}/${directory}'].${section}['${dependencyName}']`,
           ),
         ]),
     ),
@@ -88,7 +98,8 @@ const describeLocation = ({ path, jsonpath }: JsonLocation): string => `${path} 
 describe("release-please extra-files", () => {
   it("bumps every workspace version and internal dependency in package.json and package-lock.json", () => {
     const listed = new Set(jsonExtraFiles.map(describeLocation));
-    const missing = sharedVersionLocations()
+    const missing = [jsonLocation(LOCKFILE, `$.packages['${modeler}'].version`)]
+      .concat(sharedVersionLocations())
       .map(describeLocation)
       .filter((location) => !listed.has(location));
 
