@@ -1,6 +1,5 @@
 import {
   INVALID_STATUS_DELAY_MS,
-  VIEW_TOLERANCE,
   type Appearance,
   type ShellHost,
   type Size,
@@ -971,22 +970,16 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
 }
 
 /**
- * In binary, `1 - 0.999` lies a hair above `VIEW_TOLERANCE`, yet the probe reports 0.999 for scales
- * the shell's Cmd/Ctrl+0 takes for 100 % and leaves as they are.
- */
-const ROUNDED_SCALE_SLACK = 1e-9;
-
-/**
- * Whether `view` (`LabelEditorFacts.view`, the viewport layer's matrix as six numbers) shows 100 %,
- * within `VIEW_TOLERANCE`; `false` for a view that is no such matrix.
+ * Whether `view` (`LabelEditorFacts.view`, the viewport layer's matrix as six numbers) shows 100 %
+ * as the shell's Cmd/Ctrl+0 reads it, the one view it leaves as it is: both scales exactly 1 in
+ * the probe's three decimals, the rounding of diagram-js's `canvas.zoom()`. `false` for a view
+ * that is no such matrix.
  */
 export function isViewAtActualSize(view: string | null): boolean {
   const values = view?.trim().split(/\s+/).map(Number) ?? [];
   if (values.length !== 6 || !values.every(Number.isFinite)) return false;
-  const [scaleX = 0, , , scaleY = 0] = values;
-  const atActualSize = (scale: number) =>
-    Math.abs(scale - 1) <= VIEW_TOLERANCE + ROUNDED_SCALE_SLACK;
-  return atActualSize(scaleX) && atActualSize(scaleY);
+  const [scaleX, , , scaleY] = values;
+  return scaleX === 1 && scaleY === 1;
 }
 
 /**

@@ -145,6 +145,20 @@ describe("zoom panel (guide §5.8)", () => {
     expect(target.calls).toHaveLength(4);
   });
 
+  it("goes to 100 % from a zoom a hair off it, and leaves only exactly 1 as it is", () => {
+    // the shell kit's labelEditor case relies on it: only at exactly 1 does it zoom once more first
+    const { shell, root } = mount();
+    const target = fakeZoomTarget(0.999);
+    shell.setZoomTarget(target);
+    const { actual } = parts(root);
+    actual.click();
+    target.current = 1.001;
+    actual.click();
+    target.current = 1;
+    actual.click();
+    expect(target.calls).toEqual(["actual", "actual"]);
+  });
+
   it("hands the focus to the canvas after a pointer click on each button (guide §5.8)", () => {
     const { canvas, svg } = canvasWithSvg();
     const { shell, root } = mount({ canvas });

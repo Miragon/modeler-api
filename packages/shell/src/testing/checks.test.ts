@@ -1347,12 +1347,10 @@ describe("label editor checks (contract L5, and the keep-open it recommends)", (
     expect(isViewAtActualSize("1 0 0 0.5 0 0")).toBe(false);
   });
 
-  it("reads 100 % at the edge of VIEW_TOLERANCE in the probe's three decimals, as Cmd/Ctrl+0 does", () => {
-    // the shell's Cmd/Ctrl+0 leaves a scale within VIEW_TOLERANCE of 1 as it is
-    expect(isViewAtActualSize("0.999 0 0 0.999 0 0")).toBe(true);
-    expect(isViewAtActualSize("1.001 0 0 1.001 0 0")).toBe(true);
-    expect(isViewAtActualSize("0.998 0 0 0.998 0 0")).toBe(false);
-    expect(isViewAtActualSize("1.002 0 0 1.002 0 0")).toBe(false);
+  it("takes only an exact 1 in the probe's three decimals for 100 %, as the shell's Cmd/Ctrl+0 does", () => {
+    // Cmd/Ctrl+0 leaves only a zoom of exactly 1 as it is and resets these, so they need no extra step
+    expect(isViewAtActualSize("0.999 0 0 0.999 0 0")).toBe(false);
+    expect(isViewAtActualSize("1.001 0 0 1.001 0 0")).toBe(false);
   });
 
   it("does not take a view it cannot read as a matrix for 100 %", () => {

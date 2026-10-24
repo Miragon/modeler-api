@@ -929,7 +929,7 @@ test.describe("saboteurs", () => {
       (error: unknown) => String(error),
     );
     expect(failure).toMatch(
-      /label editor: one more Cmd\/Ctrl\+Plus on the canvas \(the first landed on 100 %\) committed the open label editor/,
+      /label editor: one more Cmd\/Ctrl\+Plus on the canvas \(the view stood at 100 %\) committed the open label editor/,
     );
     expect(failure).toMatch(
       /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,

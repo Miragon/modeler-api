@@ -93,7 +93,7 @@ const VIEW_STEPS: readonly ViewStep[] = [
   chromeClick("a click on Fit", "zoom-fit"),
   canvasKey("Cmd/Ctrl+Plus on the canvas", ZOOM_IN_KEY),
   {
-    ...canvasKey("one more Cmd/Ctrl+Plus on the canvas (the first landed on 100 %)", ZOOM_IN_KEY),
+    ...canvasKey("one more Cmd/Ctrl+Plus on the canvas (the view stood at 100 %)", ZOOM_IN_KEY),
     due: isViewAtActualSize,
   },
   canvasKey("Cmd/Ctrl+0 on the canvas", { key: "0", code: "Digit0", ctrlKey: true }),
