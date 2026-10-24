@@ -770,7 +770,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## path-intersection 4.1.0 (MIT)
+## path-intersection 4.2.1 (MIT)
 
 ```text
 The MIT License (MIT)
@@ -796,7 +796,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## preact 10.29.2 (MIT)
+## preact 10.29.8 (MIT)
 
 ```text
 The MIT License (MIT)

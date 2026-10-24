@@ -283,7 +283,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## @miragon/modeler-shell 0.4.1 (MIT)
+## @miragon/modeler-shell 0.5.0 (MIT)
 
 ```text
 MIT License
@@ -349,7 +349,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## didi 11.0.0 (MIT)
+## didi 11.0.1 (MIT)
 
 ```text
 The MIT License
@@ -696,7 +696,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## path-intersection 4.1.0 (MIT)
+## path-intersection 4.2.1 (MIT)
 
 ```text
 The MIT License (MIT)
@@ -722,7 +722,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## preact 10.29.2 (MIT)
+## preact 10.29.8 (MIT)
 
 ```text
 The MIT License (MIT)

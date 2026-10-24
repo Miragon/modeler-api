@@ -116,6 +116,14 @@ async function bundledPackages() {
         if (info.bytesInOutput === 0 && !/\.(woff2?|ttf)$/.test(input)) continue;
         const match = /^(.*node_modules\/((?:@[^/]+\/)?[^/]+))\//.exec(input);
         if (match) directories.set(match[2], resolve(root, match[1]));
+        // The suite's shared packages (packages/shell) are workspace links, which esbuild reports by
+        // their real path: outside this modeler and outside node_modules.
+        const shared = /^((?:\.\.\/)+packages\/[^/]+)\//.exec(input);
+        if (shared) {
+          const directory = resolve(root, shared[1]);
+          const { name } = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+          directories.set(name, directory);
+        }
       }
     }
   }
