@@ -6,7 +6,7 @@ instead of as raw text.
 **Do this now:** click **Create empty diagram** in the step on the left. (You can also open the
 Command Palette with `Cmd/Ctrl+Shift+P` and run **Context Maps: New Empty Diagram**.)
 
-1. A save dialog appears — choose a folder and a file name ending in `.cm` and confirm.
+1. A save dialog appears: choose a folder and a file name ending in `.cm` and confirm.
 2. The file opens in the visual editor. An empty map shows "Pick a tool from the palette to
    start." and an **Insert example** button.
 

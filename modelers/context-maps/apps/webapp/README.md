@@ -1,4 +1,4 @@
-# Context Maps Modeler — Web App
+# Context Maps Modeler: Web App
 
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/LICENSE)
 

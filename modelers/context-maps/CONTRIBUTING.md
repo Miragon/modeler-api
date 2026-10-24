@@ -34,7 +34,7 @@ to on macOS) and `--port ${PORT}` (the ephemeral port Portless injects), and `vi
 The URL is `http://<worktree>.context-maps-modeler.localhost:8080` in a linked worktree and
 `http://context-maps-modeler.localhost:8080` in the main checkout. No setup beyond `npm ci` is
 needed: `dev:webapp` sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless serves plain **HTTP on
-the non-privileged port 8080** and auto-starts its proxy on first run — **no `sudo`, no CA trust,
+the non-privileged port 8080** and auto-starts its proxy on first run: **no `sudo`, no CA trust,
 no `portless service install`**. That is what lets Conductor's non-TTY Run button start the webapp
 unattended. (Portless's _default_ is an HTTPS daemon on privileged port 443, which would need
 `sudo`; this modeler deliberately avoids that.)
@@ -124,10 +124,10 @@ and run `npm run context-maps test`. Never edit the files by hand, and keep Pret
 | `apps/webapp`                        | Vite demo editor on the modeler shell                           | DOM      |
 | `apps/vscode`                        | VS Code custom editors for `.cm`/`.cm.json` and `*.cm.png`      | DOM      |
 
-**P1 — the DOM boundary:** the DOM-free packages (`schema-model`, `cml`) must **never** import
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `cml`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This is
-enforced twice — by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
-dependency-cruiser — so a violating import fails `npm run context-maps lint` and
+enforced twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
+dependency-cruiser, so a violating import fails `npm run context-maps lint` and
 `npm run context-maps depcruise`. The same two checks keep `@miragon/modeler-shell` out of every
 package (only the apps mount the chrome) and let the DOM-free packages take only types from
 `@miragon/modeler-api`.

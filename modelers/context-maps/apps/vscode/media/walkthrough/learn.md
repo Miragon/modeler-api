@@ -4,15 +4,15 @@ Context Maps model a system as **bounded contexts** and the **relationships** be
 
 **The three subdomain types**
 
-- **Core** — business-critical and differentiating; where competitive advantage is built.
-- **Supporting** — specialised, but not differentiating; needed to support the core.
-- **Generic** — a solved, off-the-shelf problem; buy or adopt rather than build.
+- **Core:** business-critical and differentiating; where competitive advantage is built.
+- **Supporting:** specialised, but not differentiating; needed to support the core.
+- **Generic:** a solved, off-the-shelf problem; buy or adopt rather than build.
 
 **The five relationship patterns**
 
-- **Partnership (P)** and **Shared Kernel (SK)** — symmetric, high-coordination relationships.
-- **Customer-Supplier (C/S)** and **Upstream-Downstream (U/D)** — asymmetric, with U/D end markers.
-- **Separate Ways (SW)** — no integration; functionality is duplicated rather than shared.
+- **Partnership (P)** and **Shared Kernel (SK):** symmetric, high-coordination relationships.
+- **Customer-Supplier (C/S)** and **Upstream-Downstream (U/D):** asymmetric, with U/D end markers.
+- **Separate Ways (SW):** no integration; functionality is duplicated rather than shared.
 
 Asymmetric relationships carry **integration roles**: upstream can be an Open Host Service (OHS)
 and/or a Published Language (PL); downstream can apply an Anticorruption Layer (ACL) or be a

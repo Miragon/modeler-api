@@ -17,23 +17,23 @@ Git, and diff keep working.
 
 Install **Context Maps Modeler** (publisher `miragon-gmbh`) from the VS Code Marketplace, then
 start from a filled-in example context map or a blank diagram. The built-in **Get Started with Context
-Maps Modeler** walkthrough is the recommended first stop — open it from the Command Palette with
+Maps Modeler** walkthrough is the recommended first stop: open it from the Command Palette with
 **Welcome: Open Walkthrough…**, then click its **Create diagram from example** button and you have a
 ready-made diagram to explore. From there you can open any `.cm` or `.cm.json` file.
 
 Prefer commands? Run these from the Command Palette (`Cmd/Ctrl+Shift+P`, type _"Context Maps"_):
 
-- **Context Maps: New Diagram from Example** — pick a location, pre-filled with the example context map.
-- **Context Maps: New Empty Diagram** — same, but a blank diagram (also under **File > New File…**).
-- **Context Maps: New Diagram from CML…** — turn a Context Mapper `.cml` file into a new `.cm` file.
+- **Context Maps: New Diagram from Example:** pick a location, pre-filled with the example context map.
+- **Context Maps: New Empty Diagram:** the same, but a blank diagram (also under **File > New File…**).
+- **Context Maps: New Diagram from CML…:** turn a Context Mapper `.cml` file into a new `.cm` file.
 
 ## Reading a diagram
 
 A diagram shows bounded contexts and the relationships between them.
 
 - **Bounded contexts** are boxes coloured by **subdomain type**: **core** (star, warm
-  red) — business-critical and differentiating; **supporting** (open hand, amber) — specialised but
-  not differentiating; **generic** (dotted circle, blue) — a solved, off-the-shelf problem you buy
+  red) is business-critical and differentiating; **supporting** (open hand, amber) is specialised
+  but not differentiating; **generic** (dotted circle, blue) is a solved, off-the-shelf problem you buy
   rather than build.
 - **Relationships** are lines styled per **context-mapping pattern**: **partnership** (P, thick
   indigo) and **shared kernel** (SK, thick green dashes) are symmetric; **customer-supplier** (C/S,
@@ -53,7 +53,7 @@ A diagram shows bounded contexts and the relationships between them.
   the Explorer and on editor tabs, in light and dark themes. In the text editor both get JSON syntax
   highlighting, bracket matching and indentation.
 - **Full modeler** in the Miragon modeler chrome: the tool palette (top centre) places the three
-  subdomain types of bounded context — drag one onto the canvas, or press Enter on it to place a
+  subdomain types of bounded context: drag one onto the canvas, or press Enter on it to place a
   context in the middle with its name editor open. Selecting an element opens its **context pad**:
   append a connected context, connect (click the target), change subdomain type / relationship
   pattern / integration roles via popup menus, set the owning team or a description, swap ends,
@@ -76,11 +76,11 @@ A diagram shows bounded contexts and the relationships between them.
 - **Empty file:** "Pick a tool from the palette to start." and **Insert example**, which writes the
   example into the file as one edit.
 - **Editable embedded-PNG diagrams (`*.cm.png`).** Exported PNGs store the diagram
-  inside a `tEXt` chunk, so the file stays a normal image you can drop into a wiki, README, or chat —
+  inside a `tEXt` chunk, so the file stays a normal image you can drop into a wiki, README, or chat,
   and can be reopened and edited graphically. To start one, run **Context Maps: New Empty Diagram
   (embedded PNG)** (also under **File > New File…**), pick a location, and press `Ctrl/Cmd+S` once to
   render the first PNG.
-- **Offline-capable** — no CDN, no network; the Geist fonts ship with the extension.
+- **Offline-capable:** no CDN, no network; the Geist fonts ship with the extension.
 - **Light in every theme** for now: the Miragon modelers switch to dark together. High Contrast
   themes get the light high-contrast variant.
 

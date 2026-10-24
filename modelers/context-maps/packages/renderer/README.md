@@ -9,7 +9,7 @@ diagrams, built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT).
 
 It renders the canonical document from
 [`@miragon/context-maps-schema-model`](../schema-model) and gives you palette, move,
-connect-by-relationship, context pad, inline label editing and undo/redo — with no UI framework
+connect-by-relationship, context pad, inline label editing and undo/redo, with no UI framework
 required. Mount it into any `<div>`; the web app and the VS Code extension both wrap this
 exact package. It implements the collaborative-modeler contract of
 [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api), and it hands a chrome
@@ -56,12 +56,12 @@ modeler.redo();
 ```
 
 > **The CSS is required.** Import `@miragon/context-maps-renderer/assets/context-maps.css`
-> (it also pulls in `diagram-js`'s own stylesheet) — without it the palette, context pad and label
+> (it also pulls in `diagram-js`'s own stylesheet). Without it the palette, context pad and label
 > editor are unstyled.
 
 ## API
 
-### Constructor — `CmViewerOptions`
+### Constructor: `CmViewerOptions`
 
 ```ts
 new Modeler({
@@ -102,7 +102,7 @@ new Modeler({
 | `exportText()`                     | `string`                        | The canonical `.cm` text (ends in a line break).  |
 | `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot (fitted viewBox).     |
 | `contentBounds()`                  | `ElementBounds` or `undefined`  | The content's box for a host's fit (see below).   |
-| `setMeta(partial)` / `getMeta()`   | — / `RootBusinessObject`        | Rename the map (an undoable command) / read it.   |
+| `setMeta(partial)` / `getMeta()`   | `void` / `RootBusinessObject`   | Rename the map (an undoable command) / read it.   |
 | `attachTo(el)` / `detach()`        | `void`                          | Move the canvas in/out of the DOM (keeps state).  |
 | `clear()` / `destroy()`            | `void`                          | Empty the canvas / tear it down.                  |
 | `on(event, cb)` / `off(event, cb)` | `void`                          | Subscribe to diagram-js events.                   |
@@ -196,7 +196,7 @@ What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-s
 
 - **Type guards:** `isCmElement`, `isCmContext`, `isCmRelationship`.
 - **Runtime element types:** `CmContext`, `CmRelationship`, `CmElement`.
-- **Palette icon generators:** `contextIconSvg(type)`, `relationshipIconSvg(pattern)` —
+- **Palette icon generators:** `contextIconSvg(type)`, `relationshipIconSvg(pattern)`:
   WYSIWYG SVG glyphs matching what the canvas draws.
 - **Other:** `CmViewerOptions`, `ImportWarning`, `RootBusinessObject`, `ROOT_ID`, `saveSVG`.
 
@@ -211,9 +211,9 @@ viewer via `additionalModules`:
 | `cmModelModule`          | Element factory with notation defaults (`CmElementFactory`).                                                                                                                     |
 | `cmDrawModule`           | Custom SVG rendering of contexts and relationships (`ContextMapsRenderer`).                                                                                                      |
 | `ioModule`               | Document ↔ canvas bridge (`CmImporter`, `CmExporter`, `saveSVG`).                                                                                                                |
-| `cmModelingModule`       | High-level mutations — label, subdomain type, relationship pattern, roles, colours.                                                                                              |
+| `cmModelingModule`       | High-level mutations: label, subdomain type, relationship pattern, roles, colours.                                                                                               |
 | `cmRulesModule`          | Editing rules (what can move / be created / connected; no resize).                                                                                                               |
-| `cmBehaviorsModule`      | Keeps the model **flat** — shapes never nest.                                                                                                                                    |
+| `cmBehaviorsModule`      | Keeps the model **flat**: shapes never nest.                                                                                                                                     |
 | `cmPaletteModule`        | The tool palette: lasso tool + create contexts (drag, click, or Enter/Space into the free rectangle).                                                                            |
 | `cmConnectHandlesModule` | Opt-in (not in the default `Modeler`): four outward connect arrows around the selected context.                                                                                  |
 | `cmContextPadModule`     | Per-element quick actions: append a connected context, connect, subdomain-type / pattern / integration-role menus, owning team, description, in-place rename, swap ends, delete. |

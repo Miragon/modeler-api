@@ -7,7 +7,7 @@ The **DOM-free core** of the [Context Maps Modeler](../../README.md): the data m
 specification, runtime validation, version migrations and deterministic JSON serialization for
 strategic Domain-Driven Design [Context Maps](https://contextmapper.org/) diagrams.
 
-This package has **no view, no DOM and no diagram-js** — it is plain TypeScript that runs anywhere
+This package has **no view, no DOM and no diagram-js**: it is plain TypeScript that runs anywhere
 (browser, Node, an edge function, a CLI). The browser renderer
 ([`@miragon/context-maps-renderer`](../renderer)), the web app and the VS Code extension all build
 on top of it. The DOM-freedom is enforced in CI (ESLint `no-restricted-imports` /
@@ -22,18 +22,18 @@ npm install @miragon/context-maps-schema-model
 
 ## What's inside
 
-- **The notation spec** — the three subdomain types and five context-mapping relationship patterns,
+- **The notation spec:** the three subdomain types and five context-mapping relationship patterns,
   with their colours and stroke styles as plain data you can read and render against.
-- **The document model** — a small, stable shape (`CmDocument`) with `version`, `title`, `contexts`
+- **The document model:** a small, stable shape (`CmDocument`) with `version`, `title`, `contexts`
   and `relationships`.
-- **Runtime validation** — Zod schemas + `parseDocument()` for structural checks, plus
+- **Runtime validation:** Zod schemas + `parseDocument()` for structural checks, plus
   `validateDocument()` for the thirteen strategic-DDD semantic rules, for everything that comes from a
   file, a URL or `localStorage`.
-- **Forward migrations** — `parseDocument()` migrates older documents up to the current version
+- **Forward migrations:** `parseDocument()` migrates older documents up to the current version
   before validating, keyed by the document `version`.
-- **Deterministic serialization** — sorted, rounded and version-stamped output, so `.cm.json` files
+- **Deterministic serialization:** sorted, rounded and version-stamped output, so `.cm.json` files
   diff cleanly and share URLs stay stable.
-- **Factories & a sample** — helpers that create well-formed elements and documents, plus a complete
+- **Factories & a sample:** helpers that create well-formed elements and documents, plus a complete
   example context map.
 
 ## The document format
@@ -80,7 +80,7 @@ The single source of truth for the visual notation. Bounded contexts are boxes c
 type; relationships are lines styled per context-mapping pattern. Every relationship is distinguished
 by stroke **and** colour, so diagrams survive colour-vision deficiency and greyscale printing.
 
-### Subdomain types — `SUBDOMAIN_TYPE_SPECS`
+### Subdomain types: `SUBDOMAIN_TYPE_SPECS`
 
 | `type`       | Label                | Icon          | Fill / Stroke         |
 | ------------ | -------------------- | ------------- | --------------------- |
@@ -88,7 +88,7 @@ by stroke **and** colour, so diagrams survive colour-vision deficiency and greys
 | `supporting` | Supporting Subdomain | open hand     | `#FFF4CC` / `#E8B84B` |
 | `generic`    | Generic Subdomain    | dotted circle | `#DCE9F5` / `#5B8DC7` |
 
-### Relationship patterns — `RELATIONSHIP_PATTERN_SPECS`
+### Relationship patterns: `RELATIONSHIP_PATTERN_SPECS`
 
 | `pattern`             | Label               | Abbr. | Stroke                  | Symmetry   |
 | --------------------- | ------------------- | ----- | ----------------------- | ---------- |
@@ -130,7 +130,7 @@ doc.relationships.push(
   }),
 );
 
-// Serialize deterministically (sorted, rounded, version-stamped) — diff- and URL-stable
+// Serialize deterministically (sorted, rounded, version-stamped): diff- and URL-stable
 const json = serializeDocument(doc);
 
 // Validate + migrate anything untrusted (file / URL / localStorage)
@@ -165,15 +165,15 @@ console.log(SAMPLE_DOCUMENT.title);
 
 ## Determinism & migrations
 
-- **Determinism** — `serializeDocument()` runs `canonicalize()` first: arrays are sorted by `id`,
+- **Determinism:** `serializeDocument()` runs `canonicalize()` first: arrays are sorted by `id`,
   coordinates are rounded to two decimals, optional fields with no value are dropped, and keys are
   written in a fixed order. The same logical diagram always produces byte-identical JSON, which is
   what makes Git diffs small and share URLs stable. `serializeDocumentText()` is the file's text:
   the pretty-printed JSON ending in one line break, a fixpoint of `parseDocumentText()`.
-- **Foreign keys** — a key the model does not know (a vendor extension, a field of a newer modeler)
+- **Foreign keys:** a key the model does not know (a vendor extension, a field of a newer modeler)
   on the document, a context or a relationship is kept as it is and written back after the known
   keys of its object, sorted by name. Opening and saving a file never drops content.
-- **Migrations** — `parseDocument()` normalises older/foreign documents before validating (keyed by
+- **Migrations:** `parseDocument()` normalises older/foreign documents before validating (keyed by
   `version`). `1` is the first version, so this mainly coerces loosely-shaped input (e.g. a
   hand-written file) into the expected `{ contexts, relationships }` container. A document of a
   newer `version` is rejected rather than rewritten as version 1, and so is a coordinate or size
