@@ -1,0 +1,1209 @@
+import { expect, test } from "vitest";
+import {
+  Modeler,
+  isTtAnnotation,
+  isTtAssociation,
+  isTtElement,
+  isTtTeam,
+} from "@miragon/team-topologies-renderer";
+import type {
+  TtAnnotation,
+  TtAssociation,
+  TtElement,
+  TtTeam,
+} from "@miragon/team-topologies-renderer";
+import {
+  SAMPLE_DOCUMENT,
+  emptyDocument,
+  type TtDocument,
+} from "@miragon/team-topologies-schema-model";
+
+function mountModeler(): { modeler: Modeler; container: HTMLDivElement } {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  return { modeler: new Modeler({ container }), container };
+}
+
+// Real-browser integration: diagram-js relies on SVGElement.getBBox() / getComputedTextLength(),
+// which jsdom cannot provide — so this runs in headless Chromium (npm run test:browser).
+test("renders the sample document and exports an SVG snapshot", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+
+  const modeler = new Modeler({ container });
+  try {
+    const { warnings } = modeler.importDocument(SAMPLE_DOCUMENT);
+    expect(warnings).toHaveLength(0);
+
+    const exported = modeler.exportDocument();
+    expect(exported.nodes).toHaveLength(SAMPLE_DOCUMENT.nodes.length);
+    expect(exported.interactions).toHaveLength(SAMPLE_DOCUMENT.interactions.length);
+
+    const { svg } = modeler.saveSVG();
+    expect(svg).toContain("<svg");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// Regression: elements must never "glue" to one another. diagram-js otherwise
+// re-parents a shape into whatever it is dropped on / created over, so the two
+// then move together.
+test("dropping a shape onto another element does not re-parent it", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+
+    const registry = modeler.get<{ getAll(): TtElement[] }>("elementRegistry");
+    const rules = modeler.get<{ allowed(action: string, context: unknown): unknown }>("rules");
+    const root = modeler.get<{ getRootElement(): unknown }>("canvas").getRootElement();
+    const teams = registry.getAll().filter(isTtTeam);
+    expect(teams.length).toBeGreaterThanOrEqual(2);
+
+    // hovering another element while moving is ignored (no nesting)…
+    expect(rules.allowed("elements.move", { shapes: [teams[0]], target: teams[1] })).toBe(null);
+    // …while dropping on the canvas (the parent-less root) stays allowed.
+    expect(rules.allowed("elements.move", { shapes: [teams[0]], target: root })).toBe(true);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// Copy-paste: our domain data lives as flat props on the shape (no moddle), so
+// the copy step must carry them onto diagram-js' descriptor, and paste must mint
+// a fresh model-style id (never a diagram-js `shape_N`, which would collide with
+// re-imported ids).
+test("copy preserves Team Topologies props and paste mints a fresh id", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+
+    const registry = modeler.get<{ getAll(): TtElement[] }>("elementRegistry");
+    const copyPaste = modeler.get<{
+      copy(elements: unknown[]): void;
+      createShape(attrs: unknown): TtTeam;
+    }>("copyPaste");
+    const clipboard = modeler.get<{
+      get(): Record<string, Array<Record<string, unknown>>>;
+    }>("clipboard");
+    const team = registry.getAll().find(isTtTeam) as TtTeam;
+
+    copyPaste.copy([team]);
+
+    // (1) the copy hook writes the tt* props onto the clipboard descriptor…
+    const descriptors = Object.values(clipboard.get()).flat();
+    const descriptor = descriptors.find((d) => d.id === team.id) as Record<string, unknown>;
+    expect(descriptor.ttKind).toBe("team");
+    expect(descriptor.teamType).toBe(team.teamType);
+    expect(descriptor.ttLabel).toBe(team.ttLabel);
+
+    // (2) …and createShape rebuilds the shape with a fresh `team_` id, keeping
+    // the props (paste strips `priority`/`parent` before calling createShape).
+    const { priority: _priority, parent: _parent, ...attrs } = descriptor;
+    const pasted = copyPaste.createShape(attrs);
+    expect(pasted.id).not.toBe(team.id);
+    expect(pasted.id.startsWith("team_")).toBe(true);
+    expect(pasted.teamType).toBe(team.teamType);
+    expect(pasted.ttLabel).toBe(team.ttLabel);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("creating a shape over another element keeps it on the root", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+
+    const registry = modeler.get<{ getAll(): TtElement[] }>("elementRegistry");
+    const root = modeler.get<{ getRootElement(): unknown }>("canvas").getRootElement();
+    const modeling = modeler.get<{
+      createShape(shape: unknown, position: unknown, target: unknown): TtElement;
+    }>("modeling");
+    const factory = modeler.get<{ createNewInteraction(mode: string): unknown }>(
+      "ttElementFactory",
+    );
+    const team = registry.getAll().find(isTtTeam) as TtTeam;
+
+    const created = modeling.createShape(
+      factory.createNewInteraction("collaboration"),
+      { x: team.x + team.width / 2, y: team.y + team.height / 2 },
+      team,
+    );
+
+    expect(created.parent).toBe(root);
+    expect(team.children).not.toContain(created);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- annotations (issue #92) -------------------------------------------------
+
+const ANNOTATED_DOCUMENT: TtDocument = {
+  ...SAMPLE_DOCUMENT,
+  annotations: [
+    {
+      id: "ann_note",
+      text: "Splits into two stream-aligned teams in Q3",
+      position: { x: 1080, y: 380 },
+      size: { width: 200, height: 64 },
+      attachedTo: "team_checkout",
+    },
+    {
+      id: "ann_free",
+      text: "Open question",
+      position: { x: 40, y: 420 },
+      size: { width: 160, height: 48 },
+    },
+  ],
+};
+
+interface Services {
+  registry: {
+    get(id: string): unknown;
+    getAll(): unknown[];
+    filter(fn: (element: unknown) => boolean): unknown[];
+  };
+  modeling: {
+    moveElements(shapes: unknown[], delta: { x: number; y: number }): void;
+    removeElements(elements: unknown[]): void;
+    connect(source: unknown, target: unknown, attrs?: unknown): TtAssociation;
+  };
+  ttModeling: {
+    appendAnnotation(element: unknown): TtAnnotation;
+    updateLabel(element: unknown, label: string): void;
+  };
+  commandStack: { undo(): void; redo(): void; canUndo(): boolean };
+  rules: { allowed(action: string, context: unknown): unknown };
+  selection: { get(): unknown[]; select(elements: unknown): void };
+  canvas: {
+    zoom(level?: number, center?: { x: number; y: number }): number;
+    viewbox(box?: { x: number; y: number; width: number; height: number }): unknown;
+    scroll(delta: { dx: number; dy: number }): unknown;
+    getContainer(): HTMLElement;
+  };
+  labelEditing: { activate(element: unknown): void };
+}
+
+function services(modeler: Modeler): Services {
+  return {
+    registry: modeler.get("elementRegistry"),
+    modeling: modeler.get("modeling"),
+    ttModeling: modeler.get("ttModeling"),
+    commandStack: modeler.get("commandStack"),
+    rules: modeler.get("rules"),
+    selection: modeler.get("selection"),
+    canvas: modeler.get("canvas"),
+    labelEditing: modeler.get("ttLabelEditing"),
+  };
+}
+
+function associations(modeler: Modeler): TtAssociation[] {
+  return services(modeler).registry.filter(isTtAssociation) as TtAssociation[];
+}
+
+/** True when `point` lies on the rectangular outline of `shape` (±1px). */
+function isOnOutline(point: { x: number; y: number }, shape: TtElement): boolean {
+  const withinX = point.x >= shape.x - 1 && point.x <= shape.x + shape.width + 1;
+  const withinY = point.y >= shape.y - 1 && point.y <= shape.y + shape.height + 1;
+  const onVertical =
+    Math.abs(point.x - shape.x) <= 1 || Math.abs(point.x - (shape.x + shape.width)) <= 1;
+  const onHorizontal =
+    Math.abs(point.y - shape.y) <= 1 || Math.abs(point.y - (shape.y + shape.height)) <= 1;
+  return withinX && withinY && (onVertical || onHorizontal);
+}
+
+test("imports attached annotations with a connector cropped to both outlines", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    const { warnings } = modeler.importDocument(ANNOTATED_DOCUMENT);
+    expect(warnings).toHaveLength(0);
+
+    const { registry } = services(modeler);
+    const note = registry.get("ann_note") as TtAnnotation;
+    const team = registry.get("team_checkout") as TtTeam;
+    const [connector] = associations(modeler);
+    expect(associations(modeler)).toHaveLength(1);
+    expect(connector.source).toBe(note);
+    expect(connector.target).toBe(team);
+    expect(isOnOutline(connector.waypoints[0], note)).toBe(true);
+    expect(isOnOutline(connector.waypoints[connector.waypoints.length - 1], team)).toBe(true);
+
+    const exported = modeler.exportDocument();
+    expect(exported.annotations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "ann_note", attachedTo: "team_checkout" }),
+        expect.objectContaining({ id: "ann_free", text: "Open question" }),
+      ]),
+    );
+    expect(exported.annotations.find((a) => a.id === "ann_free")).not.toHaveProperty("attachedTo");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("drops a connector to an unknown element with a warning, keeping the annotation", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    const { warnings } = modeler.importDocument({
+      ...SAMPLE_DOCUMENT,
+      annotations: [
+        {
+          id: "ann_orphan",
+          text: "x",
+          position: { x: 0, y: 0 },
+          size: { width: 100, height: 40 },
+          attachedTo: "team_missing",
+        },
+      ],
+    });
+    expect(warnings).toHaveLength(1);
+    expect(associations(modeler)).toHaveLength(0);
+    expect(modeler.exportDocument().annotations).toEqual([
+      expect.objectContaining({ id: "ann_orphan" }),
+    ]);
+    expect(modeler.exportDocument().annotations[0]).not.toHaveProperty("attachedTo");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("the connector follows its element when the element moves", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry, modeling } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+
+    modeling.moveElements([team], { x: 0, y: 200 });
+
+    const [connector] = associations(modeler);
+    expect(isOnOutline(connector.waypoints[connector.waypoints.length - 1], team)).toBe(true);
+    expect(modeler.exportDocument().annotations).toContainEqual(
+      expect.objectContaining({ id: "ann_note", attachedTo: "team_checkout" }),
+    );
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("'Add annotation' creates an attached annotation as a single undo step", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument({ ...SAMPLE_DOCUMENT, annotations: [] });
+    const { registry, ttModeling, commandStack } = services(modeler);
+    const team = registry.get("team_platform") as TtTeam;
+
+    const annotation = ttModeling.appendAnnotation(team);
+
+    expect(isTtAnnotation(annotation)).toBe(true);
+    expect(annotation.x).toBeGreaterThan(team.x + team.width);
+    expect(modeler.exportDocument().annotations).toEqual([
+      expect.objectContaining({ id: annotation.id, attachedTo: "team_platform" }),
+    ]);
+
+    commandStack.undo();
+    expect(modeler.exportDocument().annotations).toEqual([]);
+    expect(associations(modeler)).toHaveLength(0);
+
+    commandStack.redo();
+    expect(modeler.exportDocument().annotations).toEqual([
+      expect.objectContaining({ id: annotation.id, attachedTo: "team_platform" }),
+    ]);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("deleting the attached element keeps the annotation and drops only its connector", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry, modeling } = services(modeler);
+
+    modeling.removeElements([registry.get("team_checkout")]);
+
+    expect(associations(modeler)).toHaveLength(0);
+    const note = modeler.exportDocument().annotations.find((a) => a.id === "ann_note");
+    expect(note).toBeDefined();
+    expect(note).not.toHaveProperty("attachedTo");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("annotations connect only to teams, interactions and flows — and to one at a time", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry, rules, modeling } = services(modeler);
+    const note = registry.get("ann_note");
+    const free = registry.get("ann_free");
+    const team = registry.get("team_checkout");
+    const platform = registry.get("team_platform");
+    const interaction = registry.get("int_checkout_fraud");
+
+    expect(rules.allowed("connection.create", { source: free, target: team })).toEqual({
+      ttKind: "association",
+    });
+    expect(rules.allowed("connection.create", { source: interaction, target: free })).toEqual({
+      ttKind: "association",
+    });
+    expect(rules.allowed("connection.create", { source: team, target: platform })).toBe(false);
+    expect(rules.allowed("connection.create", { source: note, target: free })).toBe(false);
+
+    // Re-attaching replaces the previous connector.
+    modeling.connect(note, platform, { ttKind: "association" });
+    expect(associations(modeler)).toHaveLength(1);
+    expect(modeler.exportDocument().annotations).toContainEqual(
+      expect.objectContaining({ id: "ann_note", attachedTo: "team_platform" }),
+    );
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("copying an annotation together with its element carries the connector along", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry } = services(modeler);
+    const copyPaste = modeler.get<{ copy(elements: unknown[]): void }>("copyPaste");
+    const clipboard = modeler.get<{ get(): Record<string, Array<Record<string, unknown>>> }>(
+      "clipboard",
+    );
+
+    copyPaste.copy([registry.get("ann_note"), registry.get("team_checkout")]);
+
+    const descriptors = Object.values(clipboard.get()).flat();
+    expect(descriptors.find((d) => d.id === "ann_note")?.ttKind).toBe("annotation");
+    expect(descriptors.find((d) => d.ttKind === "association")).toBeDefined();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("renders explicit line breaks and wraps annotation text left-aligned", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry, ttModeling } = services(modeler);
+    ttModeling.updateLabel(registry.get("ann_free"), "First line\nSecond line");
+
+    const texts = container.querySelectorAll('[data-element-id="ann_free"] .djs-visual > text');
+    expect([...texts].map((t) => t.textContent)).toEqual(["First line", "Second line"]);
+    expect(getComputedStyle(texts[0]).textAnchor).toBe("start");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- multi-selection (issue #91) ---------------------------------------------
+
+function press(key: string, init: KeyboardEventInit = {}): void {
+  document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...init }));
+}
+
+test("Ctrl/Cmd+A selects every element; a group move is one undo step", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(ANNOTATED_DOCUMENT);
+    const { registry, selection, modeling, commandStack } = services(modeler);
+
+    press("a", { ctrlKey: true });
+
+    const all = registry.filter((element) => Boolean((element as { parent?: unknown }).parent));
+    expect(all).toHaveLength(14);
+    expect(selection.get()).toHaveLength(all.length);
+
+    const before = modeler.exportDocument();
+    const shapes = selection.get().filter((element) => !isTtAssociation(element));
+    modeling.moveElements(shapes, { x: 30, y: 40 });
+
+    const moved = modeler.exportDocument();
+    moved.nodes.forEach((node, idx) => {
+      expect(node.position.x - before.nodes[idx].position.x).toBe(30);
+      expect(node.position.y - before.nodes[idx].position.y).toBe(40);
+    });
+    expect(moved.annotations).toContainEqual(
+      expect.objectContaining({ id: "ann_note", attachedTo: "team_checkout" }),
+    );
+
+    commandStack.undo();
+    expect(modeler.exportDocument()).toEqual(before);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("Ctrl/Cmd+A inside a text field is left to the browser", () => {
+  const { modeler, container } = mountModeler();
+  const input = document.createElement("input");
+  document.body.appendChild(input);
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true }));
+    expect(services(modeler).selection.get()).toHaveLength(0);
+  } finally {
+    input.remove();
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("arrow keys nudge the selection (Shift for bigger steps)", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+    const interaction = registry.get("int_checkout_fraud") as TtElement;
+    const start = { team: { x: team.x, y: team.y }, interaction: { x: interaction.x } };
+    selection.select([team, interaction]);
+
+    press("ArrowRight");
+    press("ArrowDown", { shiftKey: true });
+
+    expect(team.x).toBe(start.team.x + 1);
+    expect(team.y).toBe(start.team.y + 10);
+    expect(interaction.x).toBe(start.interaction.x + 1);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("the lasso selects every element inside its frame", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    const lassoTool = modeler.get<{ select(elements: unknown[], bbox: unknown): void }>(
+      "lassoTool",
+    );
+
+    // The frame encloses the enabling team and the facilitating glyphs beside it only.
+    lassoTool.select(registry.getAll(), { x: 30, y: 140, width: 210, height: 240 });
+
+    expect(
+      selection
+        .get()
+        .map((element) => (element as TtElement).id)
+        .sort(),
+    ).toEqual(["int_testing_checkout", "int_testing_discovery", "team_test_automation"]);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- in-place label editing (issue #93) --------------------------------------
+
+function editor(container: HTMLElement): HTMLTextAreaElement | null {
+  return container.querySelector("textarea.tt-label-editor");
+}
+
+test("the label editor sits on the element, scales with the zoom and hides the rendered label", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, canvas, labelEditing } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+    canvas.zoom(2);
+
+    labelEditing.activate(team);
+
+    const textarea = editor(container)!;
+    expect(textarea).not.toBeNull();
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea.value).toBe(team.ttLabel);
+    expect(parseFloat(textarea.style.fontSize)).toBeCloseTo(13.5 * 2);
+    expect(parseFloat(textarea.style.width)).toBeCloseTo((team.width - 20) * 2);
+
+    const teamBox = container.querySelector(`[data-element-id="${team.id}"]`)!;
+    const editorBox = textarea.getBoundingClientRect();
+    const shapeBox = teamBox.getBoundingClientRect();
+    expect(editorBox.left).toBeGreaterThanOrEqual(shapeBox.left);
+    expect(editorBox.right).toBeLessThanOrEqual(shapeBox.right);
+    expect(editorBox.top).toBeGreaterThanOrEqual(shapeBox.top);
+    expect(editorBox.bottom).toBeLessThanOrEqual(shapeBox.bottom);
+
+    const label = teamBox.querySelector(".djs-visual > text")!;
+    expect(getComputedStyle(label).visibility).toBe("hidden");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("Enter commits one undo step, Shift+Enter keeps a line break, Escape discards", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, labelEditing, commandStack } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+    const original = team.ttLabel;
+
+    labelEditing.activate(team);
+    editor(container)!.value = "Expertise Backoffice\nPlatforms (Enabling Team)";
+    editor(container)!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+    expect(editor(container)).toBeNull();
+    expect(team.ttLabel).toBe("Expertise Backoffice\nPlatforms (Enabling Team)");
+    const label = container.querySelector(`[data-element-id="${team.id}"] .djs-visual > text`)!;
+    expect(getComputedStyle(label).visibility).toBe("visible");
+
+    commandStack.undo();
+    expect(team.ttLabel).toBe(original);
+
+    labelEditing.activate(team);
+    editor(container)!.value = "Discarded";
+    editor(container)!.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    expect(editor(container)).toBeNull();
+    expect(team.ttLabel).toBe(original);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("a view change keeps the editor open with its text, on its element, without a commit", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, canvas, labelEditing, commandStack } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+    const original = team.ttLabel;
+    const changes: unknown[] = [];
+    modeler.on("commandStack.changed", (event) => changes.push(event));
+    canvas.zoom(1);
+    labelEditing.activate(team);
+    editor(container)!.value = "Typed, not committed";
+
+    const teamBox = () =>
+      container.querySelector(`[data-element-id="${team.id}"]`)!.getBoundingClientRect();
+    for (const changeView of [
+      () => canvas.viewbox({ x: -300, y: -200, width: 450, height: 320 }),
+      () => canvas.zoom(0.5, { x: 0, y: 0 }),
+      () => canvas.scroll({ dx: 40, dy: -30 }),
+      () => modeler.fitToView(),
+    ]) {
+      changeView();
+      const textarea = editor(container)!;
+      expect(textarea).not.toBeNull();
+      expect(textarea.value).toBe("Typed, not committed");
+      expect(parseFloat(textarea.style.fontSize)).toBeCloseTo(13.5 * canvas.zoom());
+      const editorBox = textarea.getBoundingClientRect();
+      const shapeBox = teamBox();
+      expect(editorBox.left).toBeGreaterThanOrEqual(shapeBox.left);
+      expect(editorBox.right).toBeLessThanOrEqual(shapeBox.right);
+      expect(editorBox.top).toBeGreaterThanOrEqual(shapeBox.top);
+      expect(editorBox.bottom).toBeLessThanOrEqual(shapeBox.bottom);
+    }
+    expect(team.ttLabel).toBe(original);
+    expect(changes).toEqual([]);
+    expect(commandStack.canUndo()).toBe(false);
+
+    editor(container)!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(team.ttLabel).toBe("Typed, not committed");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("a click on another element still commits an open editor", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, labelEditing } = services(modeler);
+    const team = registry.get("team_checkout") as TtTeam;
+    labelEditing.activate(team);
+    editor(container)!.value = "Committed by a click";
+
+    const other = container.querySelector('[data-element-id="team_platform"]')!;
+    const { left, top } = other.getBoundingClientRect();
+    other.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 0,
+        clientX: left + 5,
+        clientY: top + 5,
+      }),
+    );
+
+    expect(editor(container)).toBeNull();
+    expect(team.ttLabel).toBe("Committed by a click");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("small elements still get an editor wide enough to type in", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, canvas, labelEditing } = services(modeler);
+    canvas.zoom(1);
+    labelEditing.activate(registry.get("int_platform_fulfilment"));
+
+    expect(parseFloat(editor(container)!.style.width)).toBeGreaterThanOrEqual(96);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- SVG export (interaction chrome stays out) --------------------------------
+
+const INTERACTION_CHROME = ["djs-resizer", "djs-selection-outline", "djs-outline"];
+
+test.each([
+  ["one selected team", ["team_checkout"]],
+  ["two selected teams", ["team_checkout", "team_platform"]],
+])("the exported SVG carries no selection chrome with %s", (_name, ids) => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select(ids.map((id) => registry.get(id)));
+    const live = container.querySelector(".djs-container > svg")!.outerHTML;
+    expect(INTERACTION_CHROME.some((name) => live.includes(name))).toBe(true);
+
+    const { svg } = modeler.saveSVG();
+
+    for (const name of INTERACTION_CHROME) expect(svg).not.toContain(name);
+    expect(svg).not.toMatch(/class="[^"]*\b(selected|hover)\b/);
+    expect(svg).not.toContain("tabindex");
+    expect(svg).not.toContain("aria-");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("the exported SVG sits on a white sheet covering its viewBox", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const exported = new DOMParser().parseFromString(modeler.saveSVG().svg, "image/svg+xml");
+    const root = exported.documentElement;
+    const sheet = root.firstElementChild!;
+
+    expect(sheet.getAttribute("class")).toBe("tt-export-paper");
+    expect(sheet.getAttribute("fill")?.toUpperCase()).toBe("#FFFFFF");
+    const box = ["x", "y", "width", "height"].map((name) => sheet.getAttribute(name)).join(" ");
+    expect(box).toBe(root.getAttribute("viewBox"));
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- import replaces the undo history ------------------------------------------
+
+test("importing clears the undo history", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, modeling } = services(modeler);
+    modeling.moveElements([registry.get("team_checkout")], { x: 20, y: 0 });
+    expect(modeler.canUndo()).toBe(true);
+
+    modeler.importDocument(SAMPLE_DOCUMENT);
+
+    expect(modeler.canUndo()).toBe(false);
+    expect(() => modeler.undo()).not.toThrow();
+    expect(modeler.exportDocument()).toEqual(
+      expect.objectContaining({ nodes: SAMPLE_DOCUMENT.nodes }),
+    );
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("undo after importing another document never brings old elements back", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, modeling } = services(modeler);
+    modeling.removeElements([registry.get("team_platform")]);
+
+    modeler.importDocument(emptyDocument());
+    modeler.undo();
+
+    expect(modeler.exportDocument().nodes).toHaveLength(0);
+    expect(registry.get("team_platform")).toBeUndefined();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- keyboard scope ----------------------------------------------------------
+
+test("Delete pressed on a host button outside the canvas leaves the selection alone", () => {
+  const { modeler, container } = mountModeler();
+  const hostButton = document.createElement("button");
+  hostButton.textContent = "Menu";
+  document.body.appendChild(hostButton);
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select(registry.get("team_checkout"));
+    hostButton.focus();
+
+    for (const key of ["Delete", "Backspace", "ArrowRight", "Escape"]) {
+      hostButton.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+    }
+
+    expect(registry.get("team_checkout")).toBeDefined();
+    expect(selection.get()).toHaveLength(1);
+    expect(modeler.canUndo()).toBe(false);
+  } finally {
+    hostButton.remove();
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("canvas shortcuts pause while a host dialog is open", () => {
+  const { modeler, container } = mountModeler();
+  const dialog = document.createElement("div");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  document.body.appendChild(dialog);
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select(registry.get("team_checkout"));
+
+    press("Delete");
+
+    expect(registry.get("team_checkout")).toBeDefined();
+  } finally {
+    dialog.remove();
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("Delete on the focused canvas removes the selection", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection, canvas } = services(modeler);
+    selection.select(registry.get("team_checkout"));
+    const svg = canvas.getContainer().querySelector(":scope > svg") as SVGSVGElement;
+    svg.focus();
+
+    svg.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+
+    expect(registry.get("team_checkout")).toBeUndefined();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("Escape clears the selection", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select([registry.get("team_checkout"), registry.get("team_platform")]);
+
+    press("Escape");
+
+    expect(selection.get()).toHaveLength(0);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("plain + and -, Shift+0 and Shift+1 are the host chrome's, not the canvas's", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { canvas } = services(modeler);
+    canvas.zoom(1);
+
+    for (const [key, init] of [
+      ["+", {}],
+      ["=", {}],
+      ["-", {}],
+      [")", { shiftKey: true, code: "Digit0" }],
+      ["!", { shiftKey: true, code: "Digit1" }],
+    ] as const) {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+      document.dispatchEvent(event);
+      expect(event.defaultPrevented, key).toBe(false);
+    }
+    expect(canvas.zoom()).toBeCloseTo(1);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("undo keys reach the host when it owns the history (undoRedoKeys: false)", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const modeler = new Modeler({ container, undoRedoKeys: false });
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, modeling } = services(modeler);
+    modeling.moveElements([registry.get("team_checkout")], { x: 20, y: 0 });
+
+    for (const init of [
+      { key: "z", ctrlKey: true },
+      { key: "z", metaKey: true, shiftKey: true },
+      { key: "y", ctrlKey: true },
+    ]) {
+      const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+      document.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(modeler.canUndo()).toBe(true);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("a key a closer listener already handled is left alone", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select(registry.get("team_checkout"));
+    const event = new KeyboardEvent("keydown", { key: "Delete", bubbles: true, cancelable: true });
+    event.preventDefault();
+
+    document.dispatchEvent(event);
+
+    expect(registry.get("team_checkout")).toBeDefined();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("Ctrl/Cmd with + is left to the browser's page zoom", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { canvas } = services(modeler);
+    canvas.zoom(1);
+    const event = new KeyboardEvent("keydown", {
+      key: "+",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    document.dispatchEvent(event);
+
+    expect(canvas.zoom()).toBeCloseTo(1);
+    expect(event.defaultPrevented).toBe(false);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- fit to view -------------------------------------------------------------
+
+function fittedContentOnScreen(width: number, height: number): { top: number; bottom: number } {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const modeler = new Modeler({ container: host, width, height });
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { canvas } = services(modeler);
+    canvas.zoom(3);
+
+    modeler.fitToView();
+
+    const viewbox = (canvas as unknown as { viewbox(): { y: number; scale: number } }).viewbox();
+    const boxes = [
+      ...SAMPLE_DOCUMENT.nodes,
+      ...SAMPLE_DOCUMENT.flows,
+      ...SAMPLE_DOCUMENT.interactions,
+      ...SAMPLE_DOCUMENT.annotations,
+    ];
+    const topmost = Math.min(...boxes.map((box) => box.position.y));
+    const bottommost = Math.max(...boxes.map((box) => box.position.y + box.size.height));
+    return {
+      top: (topmost - viewbox.y) * viewbox.scale,
+      bottom: (bottommost - viewbox.y) * viewbox.scale,
+    };
+  } finally {
+    modeler.destroy();
+    host.remove();
+  }
+}
+
+test("fitToView on a wide canvas keeps 88px under the palette free", () => {
+  expect(fittedContentOnScreen(1100, 900).top).toBeCloseTo(88, 0);
+});
+
+test("fitToView on a narrow canvas centres the diagram below the 120px palette strip", () => {
+  const { top, bottom } = fittedContentOnScreen(700, 900);
+  expect(top).toBeGreaterThanOrEqual(120 - 0.5);
+  expect((top + bottom) / 2).toBeCloseTo((120 + (900 - 56)) / 2, 0);
+});
+
+test("fitToView never zooms a small diagram past 100 %", () => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const modeler = new Modeler({ container: host, width: 1100, height: 900 });
+  try {
+    const team = SAMPLE_DOCUMENT.nodes.find((node) => node.id === "team_fraud");
+    if (!team) throw new Error("The sample has no team_fraud.");
+    modeler.importDocument({ ...emptyDocument(), nodes: [team] });
+    const { canvas } = services(modeler);
+    canvas.zoom(0.25);
+
+    modeler.fitToView();
+
+    expect(canvas.zoom()).toBeCloseTo(1);
+  } finally {
+    modeler.destroy();
+    host.remove();
+  }
+});
+
+// --- palette and context pad by keyboard --------------------------------------
+
+/** The click the host chrome dispatches for Enter or Space on a palette entry (detail 0). */
+function keyboardClick(entry: HTMLElement): void {
+  const box = entry.getBoundingClientRect();
+  entry.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      detail: 0,
+      clientX: box.left + box.width / 2,
+      clientY: box.top + box.height / 2,
+    }),
+  );
+}
+
+function centreOf(element: TtElement): { x: number; y: number } {
+  return { x: element.x + element.width / 2, y: element.y + element.height / 2 };
+}
+
+test("a keyboard click on a palette entry creates the element in view, selected and named", async () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(emptyDocument());
+    const { selection, canvas } = services(modeler);
+    const entry = container.querySelector<HTMLElement>(
+      '.djs-palette [data-action="team.platform"]',
+    )!;
+    expect(entry.getAttribute("tabindex")).toBeNull();
+
+    keyboardClick(entry);
+
+    const nodes = modeler.exportDocument().nodes;
+    expect(nodes).toEqual([expect.objectContaining({ type: "platform" })]);
+    const selected = selection.get() as TtElement[];
+    expect(selected.map((element) => element.id)).toEqual([nodes[0].id]);
+    const viewbox = (
+      canvas as unknown as { viewbox(): { x: number; y: number; width: number; height: number } }
+    ).viewbox();
+    const centre = centreOf(selected[0]);
+    expect(Math.abs(centre.x - (viewbox.x + viewbox.width / 2))).toBeLessThanOrEqual(1);
+    expect(Math.abs(centre.y - (viewbox.y + viewbox.height / 2))).toBeLessThanOrEqual(1);
+    expect(document.activeElement).toBe(container.querySelector("textarea.tt-label-editor"));
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+test("keyboard creation lands on the free centre, 24px further while that spot is taken", () => {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const freeCentre = { x: 300, y: 200 };
+  const modeler = new Modeler({ container, freeArea: { center: () => freeCentre } });
+  try {
+    modeler.importDocument(emptyDocument());
+    const { registry } = services(modeler);
+    const entry = container.querySelector<HTMLElement>('.djs-palette [data-action="flow"]')!;
+
+    keyboardClick(entry);
+    (document.activeElement as HTMLElement | null)?.blur();
+    keyboardClick(entry);
+
+    const centres = (registry.filter(isTtElement) as TtElement[]).map(centreOf);
+    expect(centres).toEqual(
+      expect.arrayContaining([
+        { x: 300, y: 200 },
+        { x: 324, y: 224 },
+      ]),
+    );
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+/** Where a keyboard click on the flow entry places the flow, for a modeler built with `options`. */
+function keyboardCreatedCentre(options: Partial<ConstructorParameters<typeof Modeler>[0]>): {
+  centre: { x: number; y: number };
+  viewbox: { x: number; y: number; scale: number; outer: { width: number; height: number } };
+} {
+  const container = document.createElement("div");
+  container.style.width = "900px";
+  container.style.height = "640px";
+  document.body.appendChild(container);
+  const modeler = new Modeler({ container, ...options });
+  try {
+    modeler.importDocument(emptyDocument());
+    const { registry, canvas } = services(modeler);
+    canvas.viewbox({ x: 100, y: 50, width: 450, height: 320 });
+    keyboardClick(container.querySelector<HTMLElement>('.djs-palette [data-action="flow"]')!);
+    const [flow] = registry.filter(isTtElement) as TtElement[];
+    const viewbox = canvas.viewbox() as ReturnType<typeof keyboardCreatedCentre>["viewbox"];
+    return { centre: centreOf(flow!), viewbox };
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+}
+
+test("freeArea { insets } places a keyboard-created element in the centre of the free part", () => {
+  const insets = { top: 64, right: 120, bottom: 64, left: 80 };
+  const { centre, viewbox } = keyboardCreatedCentre({ freeArea: { insets: () => insets } });
+  const { width, height } = viewbox.outer;
+  expect(width).toBeGreaterThan(insets.left + insets.right);
+  expect(height).toBeGreaterThan(insets.top + insets.bottom);
+  const expected = {
+    x: viewbox.x + (insets.left + (width - insets.left - insets.right) / 2) / viewbox.scale,
+    y: viewbox.y + (insets.top + (height - insets.top - insets.bottom) / 2) / viewbox.scale,
+  };
+  expect(Math.abs(centre.x - expected.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(centre.y - expected.y)).toBeLessThanOrEqual(1);
+  const wholeView = keyboardCreatedCentre({}).centre;
+  expect(Math.abs(centre.x - wholeView.x)).toBeGreaterThan(1);
+});
+
+test("freeRectCenter stays accepted as the deprecated name of freeArea { center }", () => {
+  const free = { x: 300, y: 200 };
+  expect(keyboardCreatedCentre({ freeRectCenter: () => free }).centre).toEqual(free);
+  const aligned = { x: 160, y: 120 };
+  expect(
+    keyboardCreatedCentre({ freeRectCenter: () => free, freeArea: { center: () => aligned } })
+      .centre,
+  ).toEqual(aligned);
+});
+
+test("context-pad entries are named buttons that Enter activates", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const { registry, selection } = services(modeler);
+    selection.select(registry.get("team_checkout"));
+    const entries = [...container.querySelectorAll<HTMLElement>(".djs-context-pad .entry")];
+    expect(entries.map((entry) => entry.getAttribute("aria-label"))).toEqual([
+      "Rename",
+      "Add annotation",
+      "Delete",
+    ]);
+    expect(entries.every((entry) => entry.tabIndex === 0 && entry.role === "button")).toBe(true);
+
+    const deleteEntry = entries.find((entry) => entry.dataset.action === "delete")!;
+    deleteEntry.focus();
+    deleteEntry.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+    expect(registry.get("team_checkout")).toBeUndefined();
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- label colour on custom fills ----------------------------------------------
+
+function labelFill(container: HTMLElement, id: string): string {
+  const text = container.querySelector(`[data-element-id="${id}"] .djs-visual > text`)!;
+  return getComputedStyle(text).fill;
+}
+
+test("labels stay schwarz on the notation fills and turn weiss on a dark custom fill", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument({
+      ...SAMPLE_DOCUMENT,
+      nodes: SAMPLE_DOCUMENT.nodes.map((node) =>
+        node.id === "team_checkout" ? { ...node, fill: "#1D3A8A" } : node,
+      ),
+    });
+
+    expect(labelFill(container, "team_checkout")).toBe("rgb(255, 255, 255)");
+    for (const node of SAMPLE_DOCUMENT.nodes.filter((other) => other.id !== "team_checkout")) {
+      expect(labelFill(container, node.id)).toBe("rgb(29, 29, 29)");
+    }
+    for (const interaction of SAMPLE_DOCUMENT.interactions.filter((other) => other.label)) {
+      expect(labelFill(container, interaction.id)).toBe("rgb(29, 29, 29)");
+    }
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
+// --- canvas focus and name ---------------------------------------------------
+
+test("the canvas is named, leaves its role to the host and rings only when reached by Tab", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument(SAMPLE_DOCUMENT);
+    const svg = services(modeler).canvas.getContainer().querySelector(":scope > svg")!;
+    expect(svg.getAttribute("role")).toBeNull();
+    expect(svg.getAttribute("aria-label")).toBe("Team Topologies diagram");
+
+    press("Tab");
+    (svg as SVGSVGElement).focus();
+    expect(svg.classList.contains("tt-canvas-keyboard-focus")).toBe(true);
+
+    svg.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    expect(svg.classList.contains("tt-canvas-keyboard-focus")).toBe(false);
+
+    (svg as SVGSVGElement).blur();
+    (svg as SVGSVGElement).focus();
+    expect(svg.classList.contains("tt-canvas-keyboard-focus")).toBe(false);
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});

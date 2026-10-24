@@ -1,0 +1,340 @@
+/* The vendored design-system files first, in the guide's order (§10.3): the tokens, diagram-js,
+   then cd-canvas.css, which maps the diagram-js variables onto the --cd-ui-* roles. Imported here
+   so every renderer host (web app, VS Code webview) gets them exactly once. The tokens sit in a
+   cascade layer, so a host page's own --cd-* tokens (unlayered) win over this copy. cd-canvas.css
+   stays unlayered and comes after diagram-js.css, so its mapping beats diagram-js's defaults. */
+@import "../theme/cd-tokens.generated.css" layer(team-topologies-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
+
+/* ============================================================================
+   Team Topologies diagram-js renderer — the chrome inside the canvas (Miragon design system).
+   Scoped to .tt-djs-container so it composes cleanly inside any host. Every colour is a
+   --cd-ui-* role, so the canvas follows the mode with the host's chrome. Host chrome (menu,
+   palette skin, zoom, inspector, legend) comes from the host, usually @miragon/modeler-shell.
+   ========================================================================== */
+
+.tt-djs-container {
+  position: relative;
+  /* Keeps diagram-js overlays (context pad z 100, label editor z 100) on the host's canvas
+     layer, so host chrome, dialogs and toasts always paint above them. */
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  background-color: var(--cd-ui-grund);
+  background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
+  background-size: 22px 22px;
+  font-family:
+    "Geist Variable",
+    "Geist",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  overflow: hidden;
+}
+
+/* The canvas SVG keeps focus for every shortcut, and Chromium starts matching :focus-visible on
+   the first key press, so any ring here would frame the whole viewport for mouse users too. A
+   host chrome with its own canvas ring (the modeler shell) sets it at higher specificity. */
+.tt-djs-container:focus,
+.tt-djs-container:focus-visible,
+.tt-djs-container svg:focus {
+  outline: none;
+}
+/* TtBaseViewer sets this class only while focus that arrived by Tab rests on the canvas. Inset,
+   so the ring stays visible at the viewport edges. */
+.tt-djs-container .djs-container > svg.tt-canvas-keyboard-focus {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
+}
+
+.tt-djs-container .djs-element text {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --- Selection and hover -------------------------------------------------- */
+/* Shapes show selection and hover through diagram-js's separate outline frame, so the fill and
+   stroke a user picked stay visible while the element is selected (guide §10.4). */
+.tt-djs-container .djs-shape.hover:not(.selected) > .djs-outline {
+  visibility: visible;
+  stroke: color-mix(in srgb, var(--cd-ui-interaktion) 45%, transparent);
+}
+
+/* diagram-js hides the outline of a selected connection. Annotation connectors carry no user
+   colour, so tinting their own stroke is the selection cue (inline styles need !important). */
+.tt-djs-container .djs-connection.hover .djs-visual > path,
+.tt-djs-container .djs-connection.selected .djs-visual > path {
+  stroke: var(--cd-ui-interaktion) !important;
+}
+
+/* The bounding frame drawn around a multi-selection. */
+.tt-djs-container .djs-selection-outline {
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+}
+
+.tt-djs-container .djs-lasso-overlay {
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+}
+
+/* --- Palette without host chrome: horizontal floating toolbar, top-centre ---------- */
+/* A host chrome that skins the palette marks it data-chrome="palette" (the modeler shell); every
+   rule here stays off such a palette. 32px entries + 3px padding + 1px border give 40px. */
+.djs-palette:not([data-chrome="palette"]) {
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  width: auto;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-1);
+}
+/* diagram-js switches to a fixed 94px two-column layout on short viewports (sized for a vertical
+   palette); the horizontal palette never needs it. */
+.djs-palette:not([data-chrome="palette"]).two-column.open {
+  width: auto;
+}
+.tt-djs-container .djs-palette:not([data-chrome="palette"]) {
+  /* Above canvas overlays such as the context pad and the label editor (guide §5.13). */
+  z-index: 110;
+}
+.djs-palette:not([data-chrome="palette"]) .djs-palette-entries,
+.djs-palette:not([data-chrome="palette"]) .group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+.djs-palette:not([data-chrome="palette"]) .entry {
+  position: relative;
+  float: none;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  line-height: 1;
+  appearance: none;
+  border-radius: var(--cd-radius-sm);
+  color: var(--cd-ui-text);
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease);
+}
+.djs-palette:not([data-chrome="palette"]) .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.djs-palette:not([data-chrome="palette"]) .entry:focus {
+  outline: none;
+}
+.djs-palette:not([data-chrome="palette"]) .entry:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+.djs-palette:not([data-chrome="palette"]) .entry.highlighted-entry {
+  background: var(--cd-ui-hover);
+  box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
+}
+
+/* Vertical divider between the tool groups. */
+.djs-palette:not([data-chrome="palette"]) .group + .group {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 8px;
+}
+.djs-palette:not([data-chrome="palette"]) .group + .group::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  background: var(--cd-ui-linie);
+}
+
+.tt-palette-svg {
+  display: block;
+  pointer-events: none;
+}
+
+/* diagram-js anchors palette tooltips right of the entry (x = right + 8, y = entry centre), which
+   suits a vertical palette but covers the neighbouring tools here. Centre them below the
+   palette instead: 24px = 8px gap + half the 32px entry; 28px = half the entry + 3px padding +
+   1px border + 8px gap. A host chrome replaces this tooltip with its own. */
+.tt-djs-container .djs-hover-tooltip {
+  width: max-content;
+  max-width: 280px;
+  padding: 4px 8px;
+  line-height: 1.5;
+  white-space: normal;
+  border: 1px solid var(--cd-ui-linie);
+  box-shadow: var(--cd-shadow-2);
+}
+.tt-djs-container .djs-hover-tooltip--right {
+  transform: translate(calc(-50% - 24px), 28px);
+}
+.tt-djs-container .djs-hover-tooltip--bottom {
+  transform: translateX(-50%);
+}
+.tt-djs-container .djs-palette-tooltip-shortcut {
+  font-family: inherit;
+}
+
+/* Narrow screens: the palette gets its own row below the host's top chrome. */
+@media (max-width: 760px) {
+  .djs-palette:not([data-chrome="palette"]) {
+    top: 64px;
+    max-width: calc(100% - 24px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 4px;
+    scrollbar-width: none;
+  }
+  .djs-palette:not([data-chrome="palette"])::-webkit-scrollbar {
+    display: none;
+  }
+  /* The scrolling palette clips anything beyond its 3px padding. */
+  .djs-palette:not([data-chrome="palette"]) .entry:focus-visible {
+    outline-offset: -2px;
+  }
+  /* Entries near the screen edge would push a centred tooltip off-screen; centre it on the
+     viewport, still below the palette. */
+  .tt-djs-container .djs-hover-tooltip--right,
+  .tt-djs-container .djs-hover-tooltip--bottom {
+    left: 50% !important;
+    max-width: min(280px, calc(100vw - 24px));
+  }
+  .tt-djs-container .djs-hover-tooltip--right {
+    transform: translate(-50%, 28px);
+  }
+}
+
+/* --- Context pad: one compact vertical toolbar beside the selection (guide §8) --- */
+.tt-djs-container .djs-context-pad {
+  width: auto;
+}
+.tt-djs-container .djs-context-pad .group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  padding: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+  /* The pad root ignores the pointer; without this, clicks between two entries would fall
+     through to the element underneath. */
+  pointer-events: auto;
+}
+.tt-djs-container .djs-context-pad .group + .group {
+  margin-top: 4px;
+}
+.tt-djs-container .djs-context-pad .entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  appearance: none;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cd-ui-text);
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+.tt-djs-container .djs-context-pad .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.tt-djs-container .djs-context-pad .entry[data-action="delete"]:hover {
+  background: var(--cd-ui-danger-flaeche);
+  color: var(--cd-ui-danger);
+}
+.tt-djs-container .djs-context-pad .entry:focus {
+  outline: none;
+}
+.tt-djs-container .djs-context-pad .entry:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+.tt-djs-container .djs-context-pad .entry svg {
+  display: block;
+}
+
+/* --- In-place label editor ------------------------------------------------ */
+/* Typography, size and position are set inline from the element's label layout, so the editor
+   sits exactly on the rendered label. It stays transparent (WYSIWYG), so the focus ring is the
+   only cue that a text field is active and uses the full-contrast ring of every other control.
+   At z-index 100, below the palette at 110 (guide §5.13). */
+.tt-djs-container .tt-label-editor {
+  position: absolute;
+  z-index: 100;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  caret-color: var(--cd-ui-interaktion);
+}
+.tt-djs-container .tt-label-editor:focus {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+  border-radius: var(--cd-radius-sm);
+}
+
+/* Hide the rendered label while its editor is open, so the text only shows once. */
+.tt-djs-container .djs-element.tt-label-editing .djs-visual > text {
+  visibility: hidden;
+}
+
+/* --- High contrast (guide §6, §5.14) -------------------------------------------- */
+[data-cd-kontrast="hoch"] .tt-djs-container .djs-context-pad .group,
+[data-cd-kontrast="hoch"] .djs-palette:not([data-chrome="palette"]) {
+  box-shadow: none;
+}
+[data-cd-kontrast="hoch"] .tt-djs-container .djs-context-pad .entry:focus-visible,
+[data-cd-kontrast="hoch"] .tt-djs-container .tt-label-editor:focus {
+  outline-width: 3px;
+}
+
+/* --- Reduced motion -------------------------------------------------------- */
+/* Scoped to the renderer's own DOM: a global `*` rule would override every host app's motion. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-djs-container *,
+  .tt-djs-container *::before,
+  .tt-djs-container *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

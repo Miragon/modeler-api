@@ -1,0 +1,609 @@
+/* ============================================================================
+   Team Topologies shared chrome content: styles of @miragon/team-topologies-ui
+
+   What the Team Topologies modeler puts into a host's chrome: the inspector's
+   fields, the legend's rows, the "Keyboard shortcuts…" and "Diagram title…"
+   dialogs, and the button, field, focus and motion system they are built from.
+   Where they sit on the screen is the host's (the modeler shell's inspector and
+   legend slots, its root for the dialogs). A host loads the renderer stylesheet
+   (it brings the tokens) and this file, then the chrome's.
+   ========================================================================== */
+
+/* ---- Tokens ---------------------------------------------------------------
+   The semantic alias layer over the vendored roles (guide, token appendix):
+   on :root and every [data-cd-theme], so a container with its own mode
+   resolves them anew; :where() keeps it at zero specificity, so a host's own
+   aliases win whatever the import order. No color-scheme of its own: the token
+   CSS sets it per mode. */
+
+:where(:root, [data-cd-theme]) {
+  --font-sans:
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+
+  --paper: var(--cd-ui-grund);
+  --surface: var(--cd-ui-flaeche-hoch);
+  --surface-2: var(--cd-ui-grund);
+  --hover: var(--cd-ui-hover);
+  --ink: var(--cd-ui-text);
+  --ink-muted: var(--cd-ui-text-leise);
+  --line: var(--cd-ui-linie);
+  --line-strong: var(--cd-ui-kontur);
+  --link: var(--cd-ui-link);
+  --interaction: var(--cd-ui-interaktion);
+  --focus: var(--cd-ui-fokus);
+  /* Fixed in both modes: the fill of a primary button (guide §8). */
+  --accent: var(--cd-blau);
+  --accent-ink: var(--cd-ui-link);
+  --accent-soft: var(--cd-ui-hover);
+  --brand: var(--cd-gruen);
+  --success: var(--cd-ui-success);
+  --success-soft: var(--cd-ui-success-flaeche);
+  --warning: var(--cd-ui-warning);
+  --warning-soft: var(--cd-ui-warning-flaeche);
+  --danger: var(--cd-ui-danger);
+  --danger-soft: var(--cd-ui-danger-flaeche);
+  --info: var(--cd-ui-info);
+  --info-soft: var(--cd-ui-info-flaeche);
+  --backdrop: var(--cd-ui-backdrop);
+
+  --shadow-1: var(--cd-shadow-1);
+  --shadow-2: var(--cd-shadow-2);
+  --shadow-3: var(--cd-shadow-3);
+  --radius-sm: var(--cd-radius-sm);
+  --radius: var(--cd-radius-md);
+  --radius-lg: var(--cd-radius-lg);
+  --radius-pill: var(--cd-radius-pill);
+}
+
+/* ---- Content roots --------------------------------------------------------------
+   Set on the content itself, so it looks the same whatever the host's body says. */
+
+.tt-inspector__content,
+.tt-dialog {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:where(.tt-inspector__content, .tt-dialog),
+:where(.tt-inspector__content, .tt-dialog) * {
+  box-sizing: border-box;
+}
+
+.tt-icon {
+  display: block;
+  flex: none;
+}
+
+/* ---- Focus ------------------------------------------------------------------
+   Every interactive element gets the same visible ring (guide §8, §12). Text fields
+   use the input pattern further down instead. */
+
+:where(.tt-inspector__content, .tt-dialog)
+  :where(button, a[href], summary, [role="button"], [tabindex]):focus-visible,
+:where(.tt-inspector__content) input[type="color"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+:where([data-cd-kontrast="hoch"])
+  :where(.tt-inspector__content, .tt-dialog)
+  :where(button, a[href], summary, [role="button"], [tabindex], input):focus-visible {
+  outline-width: 3px;
+}
+
+/* ---- Buttons (panels, dialogs) -------------------------------------------------------
+   One system (guide §8): secondary is the default, plus primary and danger (inline
+   destructive action, outline). Disabled is opaque and neutral, never faded. */
+
+.tt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    border-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease),
+    transform var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-btn:hover:not(:disabled) {
+  border-color: var(--interaction);
+  color: var(--link);
+  background: var(--hover);
+}
+
+.tt-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.tt-btn:disabled {
+  color: var(--ink-muted);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.tt-btn--ghost {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.tt-btn--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--cd-weiss);
+  box-shadow: var(--shadow-1);
+}
+
+.tt-btn--primary:hover:not(:disabled) {
+  border-color: var(--cd-blau-link);
+  background: var(--cd-blau-link);
+  color: var(--cd-weiss);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+
+.tt-btn--primary:active:not(:disabled) {
+  box-shadow: var(--shadow-1);
+  transform: translateY(0);
+}
+
+.tt-btn--primary:disabled {
+  color: var(--ink-muted);
+  border-color: var(--line);
+  background: var(--hover);
+  box-shadow: none;
+}
+
+.tt-btn--danger {
+  border-color: var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+}
+
+.tt-btn--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.tt-btn--sm {
+  height: 28px;
+  padding: 0 12px;
+}
+
+[data-cd-kontrast="hoch"] .tt-btn {
+  box-shadow: none;
+}
+
+/* ---- Close buttons (legend, dialogs, panels) ------------------------------------- */
+
+.tt-closebtn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font: inherit;
+  font-size: 21px;
+  line-height: 1;
+  color: var(--ink);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-closebtn:hover {
+  color: var(--interaction);
+  background: var(--hover);
+}
+
+/* ---- Form fields (guide §8) --------------------------------------------------------- */
+
+.tt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tt-field--row {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tt-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tt-field__control {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  resize: vertical;
+  transition: border-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-field__control::placeholder {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.tt-field__control:focus {
+  outline: none;
+}
+
+.tt-field__control:focus-visible,
+.tt-field__control:focus {
+  border-color: var(--interaction);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+[data-cd-kontrast="hoch"] .tt-field__control:focus {
+  outline-width: 3px;
+}
+
+/* A role-coloured chevron drawn with two gradient strokes, so no hard-coded icon colour. */
+select.tt-field__control {
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 40%, var(--ink-muted) 40% 60%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, var(--ink-muted) 40% 60%, transparent 60%);
+  background-size: 6px 6px;
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 15px) 50%;
+  background-repeat: no-repeat;
+}
+
+.tt-field__color {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tt-field__color input[type="color"] {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* ---- Inspector content (the host places the panel around it) --------------------------- */
+
+.tt-inspector__content,
+.tt-inspector__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tt-inspector__content {
+  font-size: 13px;
+}
+
+.tt-inspector__fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Read-only (guide §8, §9): the values stay readable, the controls turn neutral and refuse the
+   pointer; never faded. */
+.tt-inspector__fields:disabled .tt-field__control {
+  color: var(--ink-muted);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+.tt-inspector__fields:disabled input[type="color"] {
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+/* The 32px close target sits in the corner padding instead of pushing the content down. */
+.tt-inspector__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -8px -8px 0 0;
+}
+
+.tt-inspector__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.tt-inspector__meta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* Labels recede behind the values they name. */
+.tt-inspector__content .tt-field__label {
+  color: var(--ink-muted);
+}
+
+.tt-inspector__attachment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.tt-inspector__content .tt-btn--danger,
+.tt-inspector__delete {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ---- Notation previews (legend, inspector) ----------------------------------------- */
+
+.tt-shape-icon {
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+}
+
+.tt-shape-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Legend rows (the host renders the card around them) ------------------------------ */
+
+.tt-legend__heading {
+  max-width: 232px;
+  margin: 0 0 4px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tt-legend__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tt-legend__preview > svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+/* Name and explanation stack, so the card stays narrow next to the diagram. */
+.tt-legend__text {
+  display: flex;
+  flex-direction: column;
+  max-width: 200px;
+}
+
+.tt-legend__label {
+  color: var(--ink);
+}
+
+.tt-legend__explanation {
+  color: var(--ink-muted);
+}
+
+/* ---- Dialogs: keyboard shortcuts, diagram title (guide §5.4, §8) ----------------------
+   A modal <dialog> in the chrome's root: showModal() puts it in the top layer, above every
+   island, without a layer token. */
+
+.tt-dialog {
+  box-sizing: border-box;
+  width: min(560px, 100cqw - 32px);
+  max-width: none;
+  max-height: calc(100cqh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-3);
+}
+
+.tt-dialog[open] {
+  display: flex;
+}
+
+.tt-dialog::backdrop {
+  background: var(--cd-ui-backdrop);
+  backdrop-filter: blur(3px) grayscale(1);
+}
+
+.tt-dialog__panel,
+.tt-dialog__form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tt-dialog__header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px 24px;
+}
+
+.tt-dialog__title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tt-dialog__close svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.tt-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 8px 24px 24px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tt-dialog__footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+}
+
+/* One field: the narrow width of guide §8's short dialogs. */
+.tt-title-dialog {
+  width: min(440px, 100cqw - 32px);
+}
+
+.tt-shortcuts__group-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.tt-shortcuts__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tt-shortcuts__table tr + tr {
+  border-top: 1px solid var(--line);
+}
+
+.tt-shortcuts__action {
+  padding: 6px 12px 6px 0;
+  font-weight: 400;
+  text-align: left;
+}
+
+.tt-shortcuts__keys {
+  padding: 6px 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The chips look like the chrome tooltip's (guide §5.6). */
+.tt-shortcuts__key {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--ink-muted);
+  vertical-align: baseline;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.tt-shortcuts__key + .tt-shortcuts__key {
+  margin-left: 6px;
+}
+
+/* High contrast (guide §6, §8): no shadow but a contour edge; forced colours draw the edge in
+   CanvasText and the ring in Highlight. The shell applies these only to its own classes, so the
+   modeler's dialogs repeat them. */
+[data-cd-kontrast="hoch"] .tt-dialog {
+  border-color: var(--cd-ui-kontur);
+  box-shadow: none;
+}
+
+@media (forced-colors: active) {
+  .tt-dialog {
+    border-color: CanvasText;
+  }
+
+  .tt-dialog :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* ---- Narrow screens and touch ------------------------------------------------------------ */
+
+/* 16px keeps iOS Safari from zooming the page when a field gets focus. */
+@media (max-width: 760px), (pointer: coarse) {
+  .tt-field__control {
+    font-size: 16px;
+  }
+}
+
+/* ---- Reduced motion (guide §7) ---------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.tt-inspector__content, .tt-dialog),
+  :is(.tt-inspector__content, .tt-dialog) * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

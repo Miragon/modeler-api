@@ -1,0 +1,171 @@
+# Changelog
+
+## [0.13.2](https://github.com/Miragon/team-topologies-modeler/compare/v0.13.1...v0.13.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** adopt modeler-shell 0.5.0, whose legend starts closed ([#156](https://github.com/Miragon/team-topologies-modeler/issues/156)) ([737ae5a](https://github.com/Miragon/team-topologies-modeler/commit/737ae5a0524732de976514d6fec2ae012cd84d12))
+
+## [0.13.1](https://github.com/Miragon/team-topologies-modeler/compare/v0.13.0...v0.13.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** adopt modeler-shell 0.4.1 for a VS Code smoke that retries a missed theme switch ([#154](https://github.com/Miragon/team-topologies-modeler/issues/154)) ([71d1b31](https://github.com/Miragon/team-topologies-modeler/commit/71d1b31f24ebf6fe3f3ba03d4dc9747f23de9150))
+
+## [0.13.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.12.0...v0.13.0) (2026-10-23)
+
+
+### Features
+
+* **renderer:** report the content bounds a host fits to and adopt modeler-shell 0.4.0 ([#151](https://github.com/Miragon/team-topologies-modeler/issues/151)) ([3603dfb](https://github.com/Miragon/team-topologies-modeler/commit/3603dfb467da0a2e6ee9ae65598bd5d52e5a0d83))
+
+## [0.12.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.11.2...v0.12.0) (2026-10-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* parseDocument and documentIdProblems refuse ids that name a built-in property of JavaScript objects (constructor, toString, __proto__, hasOwnProperty, valueOf, ...).
+* **schema-model:** parseDocument refuses a version 2 or 3 document with an interaction that has no position or size instead of dropping that interaction.
+
+### Features
+
+* explain the notation in the legend, tighten document checks and implement modeler-api 1.2 ([#129](https://github.com/Miragon/team-topologies-modeler/issues/129)) ([bb58b61](https://github.com/Miragon/team-topologies-modeler/commit/bb58b612429efb451bdbe51695282b0365c587ab))
+
+## [0.11.2](https://github.com/Miragon/team-topologies-modeler/compare/v0.11.1...v0.11.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* **renderer:** ship the design tokens in a cascade layer so a host's own tokens win ([#126](https://github.com/Miragon/team-topologies-modeler/issues/126)) ([05dd296](https://github.com/Miragon/team-topologies-modeler/commit/05dd296b167f098f651580706ef87c55a797049a))
+
+## [0.11.1](https://github.com/Miragon/team-topologies-modeler/compare/v0.11.0...v0.11.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **vscode:** bundle jsonc-parser's ESM build so the extension activates again ([#123](https://github.com/Miragon/team-topologies-modeler/issues/123)) ([748a2ec](https://github.com/Miragon/team-topologies-modeler/commit/748a2ecea4ed3e57ec6bea761bfcf903ac0640ab))
+
+## [0.11.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.10.1...v0.11.0) (2026-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* parseDocument keeps unknown fields instead of stripping them and rejects duplicate and reserved ids; serializeDocument(doc) ends with "\n".
+* **renderer:** the canvas no longer binds +, -, Shift+0 and Shift+1; importDocument fires no commandStack.changed, rejects colliding ids and takes { fit }; palette entries are no tab stops and react to a click with detail 0 instead of keydown; the canvas svg has no role="group".
+
+### Features
+
+* adopt @miragon/modeler-api and @miragon/modeler-shell in VS Code and the web app ([#122](https://github.com/Miragon/team-topologies-modeler/issues/122)) ([72cbf24](https://github.com/Miragon/team-topologies-modeler/commit/72cbf247ea64c71d09add4ae113213e12857ba2a))
+* Miragon design system UI/UX overhaul, VS Code inspector and stacked-lane layout ([#118](https://github.com/Miragon/team-topologies-modeler/issues/118)) ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **plugin:** ship the Team Topologies skills as a Claude Code plugin ([#109](https://github.com/Miragon/team-topologies-modeler/issues/109)) ([98bc278](https://github.com/Miragon/team-topologies-modeler/commit/98bc2781b6a77c52baa1a27beedfdbf21f3916bc))
+* **plugin:** teach stacked stream-aligned lanes in the Team Topologies skills ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **renderer:** apply the Miragon design system and make the canvas keyboard-accessible ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **schema-model:** lay out the example with stacked stream-aligned lanes ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **ui:** add a private package with the inspector and legend shared by both apps ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **vscode:** add the inspector and a legend toggle to the custom editor ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+* **webapp:** redesign the editor chrome and guard against losing a diagram ([60e1ec6](https://github.com/Miragon/team-topologies-modeler/commit/60e1ec67982bad6c23dec29d8a3cb8fd17a46fa3))
+
+
+### Bug Fixes
+
+* **ci:** sign Claude's dependency-repair commits ([#116](https://github.com/Miragon/team-topologies-modeler/issues/116)) ([1f389ea](https://github.com/Miragon/team-topologies-modeler/commit/1f389ea9787b831039f858bc840f567605258e31))
+* **ci:** skip npm ci before the Claude dependency repair ([#115](https://github.com/Miragon/team-topologies-modeler/issues/115)) ([00dbadf](https://github.com/Miragon/team-topologies-modeler/commit/00dbadf05a64fe7075f9cb2236c666ec4fea0ebe))
+* **renderer:** only emit Lucide elements and attributes from iconMarkup ([#119](https://github.com/Miragon/team-topologies-modeler/issues/119)) ([ef29878](https://github.com/Miragon/team-topologies-modeler/commit/ef298784566f7735f901c4c28a84a1da18d0070b))
+
+
+### Reverts
+
+* **ci:** drop commit signing for Claude's dependency repair ([#117](https://github.com/Miragon/team-topologies-modeler/issues/117)) ([313a213](https://github.com/Miragon/team-topologies-modeler/commit/313a213d9cc99097e9922f8518e4f6023d9020e3))
+
+## [0.10.1](https://github.com/Miragon/team-topologies-modeler/compare/v0.10.0...v0.10.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **vscode:** one JSON language for *.tt and *.ttm.json ([#107](https://github.com/Miragon/team-topologies-modeler/issues/107)) ([14331f1](https://github.com/Miragon/team-topologies-modeler/commit/14331f122e01a9af81bb5b03e5deabc7e86cea00))
+
+## [0.10.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.9.0...v0.10.0) (2026-10-10)
+
+
+### Features
+
+* **vscode:** file icon for *.ttm.json ([#105](https://github.com/Miragon/team-topologies-modeler/issues/105)) ([e63b177](https://github.com/Miragon/team-topologies-modeler/commit/e63b1770f756d8b8e38db9ea3b56fd5cc6be83dc))
+
+## [0.9.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.8.0...v0.9.0) (2026-10-08)
+
+
+### Features
+
+* use the Team Topologies modeler icon for app, favicon and .tt files ([#101](https://github.com/Miragon/team-topologies-modeler/issues/101)) ([6aa6016](https://github.com/Miragon/team-topologies-modeler/commit/6aa60163982e0db0e877c2f504e3e3df8a16261e))
+
+## [0.8.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.7.1...v0.8.0) (2026-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* DOCUMENT_VERSION is 3 and TtDocument has a required `annotations` array (v1/v2 documents migrate on parse; an empty list is not serialised, so re-saving a v2 file only changes its version). isTtElement() now matches shapes only; annotation connectors are TtAssociation.
+
+### Features
+
+* multi-selection, text annotations and in-place label editing ([#94](https://github.com/Miragon/team-topologies-modeler/issues/94)) ([533e49a](https://github.com/Miragon/team-topologies-modeler/commit/533e49a113dcea50315b98def48afaf28364b880))
+
+## [0.7.1](https://github.com/Miragon/team-topologies-modeler/compare/v0.7.0...v0.7.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **deps:** publish shared runtime libs as ranged peerDependencies ([#88](https://github.com/Miragon/team-topologies-modeler/issues/88)) ([90f1aa5](https://github.com/Miragon/team-topologies-modeler/commit/90f1aa56a74310bf5d63261929e3c9541d75b7eb))
+
+## [0.7.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.6.0...v0.7.0) (2026-09-18)
+
+
+### Features
+
+* **webapp:** left-align legal footer and add dynamic copyright ([#57](https://github.com/Miragon/team-topologies-modeler/issues/57)) ([069620c](https://github.com/Miragon/team-topologies-modeler/commit/069620c3c7589d641ee82f35dea7ba27e8edf238))
+
+## [0.6.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.5.0...v0.6.0) (2026-07-17)
+
+
+### Features
+
+* adopt Miragon corporate identity ([#52](https://github.com/Miragon/team-topologies-modeler/issues/52)) ([900be13](https://github.com/Miragon/team-topologies-modeler/commit/900be13fdba1377789d66f27f7cd260fb3888b49))
+* **renderer:** add copy & paste of elements ([#56](https://github.com/Miragon/team-topologies-modeler/issues/56)) ([b9b13a3](https://github.com/Miragon/team-topologies-modeler/commit/b9b13a3b754c6314f258c086952d18f0004c57bc))
+
+## [0.5.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.4.0...v0.5.0) (2026-07-09)
+
+
+### Features
+
+* **webapp:** add empty-state welcome card and start empty ([#47](https://github.com/Miragon/team-topologies-modeler/issues/47)) ([3376b87](https://github.com/Miragon/team-topologies-modeler/commit/3376b87120bc34a3e668d5ee9c8885f720580e66))
+
+## [0.4.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.3.1...v0.4.0) (2026-07-07)
+
+
+### Features
+
+* **dev:** adopt documented Portless setup for worktree-aware dev URLs ([#31](https://github.com/Miragon/team-topologies-modeler/issues/31)) ([2155439](https://github.com/Miragon/team-topologies-modeler/commit/2155439858dea3af7023cf2cf0156a1b071fdabc))
+* **vscode:** add Get Started walkthrough and align README with Miragon Modeler reference ([#41](https://github.com/Miragon/team-topologies-modeler/issues/41)) ([a4afbad](https://github.com/Miragon/team-topologies-modeler/commit/a4afbad61606a87fa77fedac6448c9a2130e9794))
+
+## [0.3.1](https://github.com/Miragon/team-topologies-modeler/compare/v0.3.0...v0.3.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* README badges + repository URL casing for npm provenance (0.3.1) ([#27](https://github.com/Miragon/team-topologies-modeler/issues/27)) ([9a09a36](https://github.com/Miragon/team-topologies-modeler/commit/9a09a36b5308156a8d5dfd9b1a39870e48785790))
+
+## [0.3.0](https://github.com/Miragon/team-topologies-modeler/compare/v0.2.0...v0.3.0) (2026-06-22)
+
+
+### Features
+
+* setup vs-code plugin ([#2](https://github.com/Miragon/team-topologies-modeler/issues/2)) ([91f8103](https://github.com/Miragon/team-topologies-modeler/commit/91f81036b9079ddab129db0c92a548ca167e8a94))
+* **webapp:** legal notice footer + Portless named dev URL ([#16](https://github.com/Miragon/team-topologies-modeler/issues/16)) ([77f7ab4](https://github.com/Miragon/team-topologies-modeler/commit/77f7ab431d59c64fcc4105e8d6eb96113b4c8402))
+
+
+### Bug Fixes
+
+* **deps:** clear all npm audit advisories + Miragon favicon ([#21](https://github.com/Miragon/team-topologies-modeler/issues/21)) ([bf1d090](https://github.com/Miragon/team-topologies-modeler/commit/bf1d090074201de690aa924a6f75b72b09f8306c))
+* **deps:** clear all npm audit advisories + Miragon favicon ([#21](https://github.com/Miragon/team-topologies-modeler/issues/21)) ([7095661](https://github.com/Miragon/team-topologies-modeler/commit/70956619aa2e157d76bdbf591b97db56b6000ee5))
+* stop elements gluing together and unify the platform team border ([#13](https://github.com/Miragon/team-topologies-modeler/issues/13)) ([10ff90f](https://github.com/Miragon/team-topologies-modeler/commit/10ff90f6e71034e1368691668d7d42a91abb0eb8))

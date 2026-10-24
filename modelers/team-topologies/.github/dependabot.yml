@@ -1,0 +1,73 @@
+version: 2
+updates:
+  # npm — minor + patch grouped, every major opens its own PR for review.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    rebase-strategy: "disabled"
+    labels:
+      - "dependencies"
+    # majors arrive as individual PRs — leave headroom above the default of 5
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+    ignore:
+      # @types/vscode must stay <= engines.vscode (^1.96.0) or `vsce package` fails.
+      - dependency-name: "@types/vscode"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+      # release-please is the Release notes check's parser and stays on the version
+      # release-please-action bundles: bump it by hand, together with the action.
+      - dependency-name: "release-please"
+    groups:
+      # The shared modeler contract and chrome change what users see and what the release says
+      # (a 0.x minor of @miragon/modeler-shell breaks the chrome), so they come in a PR of their
+      # own that is never auto-merged (dependabot-automerge.yml) and land as
+      # `fix(deps): adopt modeler-shell x.y`, which release-please releases.
+      modeler-platform:
+        applies-to: version-updates
+        patterns:
+          - "@miragon/modeler-*"
+      npm-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@miragon/modeler-*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # github-actions — mechanical bumps, SHA-pinned and CI-gated, so group everything.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    rebase-strategy: "disabled"
+    labels:
+      - "dependencies"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
