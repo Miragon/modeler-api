@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or unexpected behaviour in wardley-maps-modeler
+description: Report a bug or unexpected behaviour in the Miragon modeler suite
 title: "[Fix]: "
 labels:
   - bug
@@ -8,6 +8,22 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report a bug! Please fill in the details below to help us reproduce and fix the issue.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the suite is it about?
+      options:
+        - Wardley Mapping modeler
+        - Event Storming modeler
+        - Team Topologies modeler
+        - Context Maps modeler
+        - Value Chain modeler
+        - modeler-api or modeler-shell
+        - Repository, CI or releases
+    validations:
+      required: true
 
   - type: textarea
     id: description

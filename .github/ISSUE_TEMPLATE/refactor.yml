@@ -9,6 +9,22 @@ body:
       value: |
         Thanks for proposing a refactoring! Please describe the current state, the target state, and the motivation.
 
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the suite is it about?
+      options:
+        - Wardley Mapping modeler
+        - Event Storming modeler
+        - Team Topologies modeler
+        - Context Maps modeler
+        - Value Chain modeler
+        - modeler-api or modeler-shell
+        - Repository, CI or releases
+    validations:
+      required: true
+
   - type: textarea
     id: summary
     attributes:

@@ -1,48 +1,79 @@
 version: 2
 updates:
+  # npm (every workspace resolves from the root lockfile): minor and patch arrive grouped, every
+  # major lands as its own PR so a breaking change gets its own review.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    rebase-strategy: "disabled"
     labels:
       - "dependencies"
-    rebase-strategy: "auto"
+    # majors arrive as individual PRs, which needs headroom above the default of 5
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore"
       include: "scope"
     cooldown:
-      default-days: 5
+      default-days: 3
       semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 3
+    ignore:
+      # The suite's own packages are workspaces, linked and released by release-please; a
+      # registry copy of them is never an update.
+      - dependency-name: "@miragon/*"
+      # @types/vscode must stay <= every extension's engines.vscode (^1.96.0) or `vsce package` fails.
+      - dependency-name: "@types/vscode"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+      # typescript-eslint caps its typescript peer below 6.1, so TypeScript 7 breaks `npm ci`.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+      # The Release notes check's parser stays on the release-please that release-please-action
+      # bundles (team-topologies' parser-version test): bump it by hand, together with the action.
+      - dependency-name: "release-please"
     groups:
       npm-minor-patch:
         applies-to: version-updates
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
       npm-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns:
+          - "*"
 
+  # github-actions: majors are mechanical (runner and Node bumps), and every `uses:` is SHA-pinned
+  # and CI-gated, so grouping all update types stays low-risk. The composite action under
+  # .github/actions pins actions of its own.
   - package-ecosystem: "github-actions"
     directories:
       - "/"
       - "/.github/actions/*"
     schedule:
       interval: "monthly"
+    rebase-strategy: "disabled"
     labels:
       - "dependencies"
-    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "chore"
       include: "scope"
     cooldown:
-      default-days: 5
+      default-days: 3
     groups:
       github-actions:
         applies-to: version-updates
-        patterns: ["*"]
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+          - "major"
       github-actions-security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns:
+          - "*"

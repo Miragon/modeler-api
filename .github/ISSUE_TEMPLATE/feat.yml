@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for value-chain-modeler
+description: Suggest a new feature or enhancement in the Miragon modeler suite
 title: "[Feat]: "
 labels:
   - enhancement
@@ -8,6 +8,22 @@ body:
     attributes:
       value: |
         Thanks for suggesting a new feature! Please describe what you'd like to see and why it would be useful.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the suite is it about?
+      options:
+        - Wardley Mapping modeler
+        - Event Storming modeler
+        - Team Topologies modeler
+        - Context Maps modeler
+        - Value Chain modeler
+        - modeler-api or modeler-shell
+        - Repository, CI or releases
+    validations:
+      required: true
 
   - type: textarea
     id: summary

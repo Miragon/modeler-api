@@ -1,5 +1,5 @@
 # release-please keeps one BREAKING CHANGE footer per squash commit, so every other one a pull
-# request's commits carry would miss CHANGELOG.md and the GitHub release. This check runs
+# request's commits carry would miss the changelogs and the GitHub releases. This check runs
 # release-please's own parser on the squash commit and the description (BEGIN_COMMIT_OVERRIDE) and
 # reruns on every edit of the description, where the fix goes.
 name: Release notes
@@ -19,9 +19,12 @@ concurrency:
 jobs:
   breaking-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: npm run check:release-notes
+      # The check lives with team-topologies, which wrote it; it reads any pull request of this
+      # repository.
+      - run: npm run team-topologies check:release-notes
         env:
           GITHUB_TOKEN: ${{ github.token }}
