@@ -13,7 +13,10 @@
  * Every mutation goes through `cmModeling`/`modeling`, so it is undoable and
  * lands in `exportDocument()`. Role/pattern constraints mirror the reference
  * inspector: upstream roles combine, downstream roles exclude each other, and
- * customer-supplier blocks OHS (upstream) and CF (downstream).
+ * customer-supplier blocks OHS (upstream) and CF (downstream). Connect, swap
+ * ends and delete hand the focus to the canvas, where Delete and Cmd/Ctrl+Z act
+ * on what they did. Append opens the subdomain-type menu, which takes the
+ * focus and hands it to the canvas when it closes.
  */
 
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
@@ -72,6 +75,7 @@ import type CmElementFactory from "../model/CmElementFactory.js";
 import { READ_ONLY_CHANGED_EVENT, type CmReadOnly } from "../read-only/index.js";
 import { contextIconSvg, relationshipIconSvg, roleChipSvg } from "../draw/palette-icons.js";
 import { chromeIcon } from "../draw/lucide.js";
+import { handFocusToCanvas } from "../keyboard/canvasFocus.js";
 
 const SUBDOMAIN_MENU = "cm-subdomain-menu";
 const PATTERN_MENU = "cm-pattern-menu";
@@ -300,7 +304,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
           { draggable: true },
         ),
         action: {
-          click: () => this.appendContext(context),
+          click: (event: Event) => this.appendContext(event, context),
           dragstart: (event: Event) => this.startAppend(event, context),
         },
       },
@@ -356,6 +360,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         context: { start: source, connectionStart: getMid(source) },
       },
     });
+    handFocusToCanvas(this.canvas, event);
     if (viaClick) {
       const swallowGestureClick = () => false;
       this.eventBus.once("connect.cleanup", 250, () => {
@@ -387,7 +392,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
    * both stamp the connection through the `connection.create` rule. After
    * placement the subdomain-type menu opens so classifying is one click away.
    */
-  private appendContext(source: CmContext): void {
+  private appendContext(event: Event, source: CmContext): void {
     const shape = this.elementFactory.createNewContext();
     // CmRules returns the relationship attrs (cmKind + default pattern), not
     // just a boolean — pass them on so the connection is stamped correctly.
@@ -400,6 +405,9 @@ export default class CmContextPadProvider implements ContextPadProvider {
       shape,
       connection && typeof connection === "object" ? { connection } : {},
     ) as unknown as CmContext;
+    // The type menu opens only while the pad shows on the new context; when it
+    // does not, the focus would otherwise stay on <body>.
+    handFocusToCanvas(this.canvas, event);
     this.openTypeMenu(appended);
   }
 
@@ -411,6 +419,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
     // fire on the next palette create otherwise.
     this.eventBus.once("create.cleanup", () => this.eventBus.off("create.end", onCreated));
     this.create.start(event as MouseEvent, shape, { source });
+    handFocusToCanvas(this.canvas, event);
   }
 
   /**
@@ -466,7 +475,12 @@ export default class CmContextPadProvider implements ContextPadProvider {
           chromeIcon("arrow-left-right"),
           "Swap ends — reverse upstream/downstream",
         ),
-        action: { click: () => this.cmModeling.swapEnds(relationship) },
+        action: {
+          click: (event: Event) => {
+            this.cmModeling.swapEnds(relationship);
+            handFocusToCanvas(this.canvas, event);
+          },
+        },
       };
     }
     entries["edit-label"] = this.editLabelEntry(relationship, "Edit label");
@@ -609,7 +623,12 @@ export default class CmContextPadProvider implements ContextPadProvider {
     return {
       group: "delete",
       html: padEntryHtml(chromeIcon("trash"), title, { danger: true }),
-      action: { click: () => this.modeling.removeElements(elements as Element[]) },
+      action: {
+        click: (event: Event) => {
+          this.modeling.removeElements(elements as Element[]);
+          handFocusToCanvas(this.canvas, event);
+        },
+      },
     };
   }
 

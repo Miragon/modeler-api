@@ -179,9 +179,18 @@ What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-s
 - `cmReadOnly` (part of the `Modeler`) locks every edit while a host cannot take edits from the
   canvas, an invalid file in an IDE: no context pad, move, create, connect, delete or label editor;
   selection, zoom, pan, select all and export stay.
-- The keyboard listens on the document but only acts on keys aimed at the canvas: keys someone
-  already handled (`defaultPrevented`) and keys from outside the canvas container pass. `Cmd/Ctrl+A`
-  selects every element.
+- The keyboard acts only while the canvas itself has the focus, as diagram-js 15's own keyboard
+  does: on keys whose target is the canvas `<svg>` or inside it. Keys with nothing focused
+  (`<body>`), on a host's chrome, on the palette, the context pad or an editor in the canvas
+  container pass, and so do keys someone already handled (`defaultPrevented`) and keys of an IME
+  composition. `Cmd/Ctrl+A` selects every element. A pointer on a palette entry, on the context
+  pad's connect, swap ends or delete, or on a connect handle of `cmConnectHandlesModule` hands the
+  focus to the canvas, so Delete and `Cmd/Ctrl+Z` act at once; Enter or Space leave it on the entry,
+  unless the entry goes away with its action. Append opens the subdomain-type menu, which takes the
+  focus and hands it to the canvas when it closes.
+- A host that hides the canvas without destroying the modeler makes its container `inert` or
+  `display: none`, not only transparent: a hidden or inert canvas cannot hold the focus, so no key
+  reaches it. There is no separate switch to pause the keyboard.
 
 ### Helpers & types
 
@@ -212,7 +221,7 @@ viewer via `additionalModules`:
 | `cmHoverTooltipModule`   | An element's own data (description, team, technology) on hover, inside the canvas container.                                                                                     |
 | `cmReadOnlyModule`       | The canvas lock (`cmReadOnly`) every editing feature consults.                                                                                                                   |
 | `cmLabelEditingModule`   | In-place direct name editing (double-click / pad), bpmn.io style.                                                                                                                |
-| `cmKeyboardModule`       | Select all / undo / redo / delete for keys aimed at the canvas (`undoRedoKeys` option).                                                                                          |
+| `cmKeyboardModule`       | Select all / undo / redo / delete while the canvas has the focus (`undoRedoKeys` option).                                                                                        |
 | `cmZOrderModule`         | Fixed stacking order (relationships behind, contexts on top).                                                                                                                    |
 
 ### Rendering

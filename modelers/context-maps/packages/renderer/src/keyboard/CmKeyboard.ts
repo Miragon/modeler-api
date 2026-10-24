@@ -1,9 +1,10 @@
 /**
- * Keyboard shortcuts: select all, undo / redo, delete-selection. Bound to the document so they
- * work without first clicking (focusing) the canvas, but only for keys aimed at the canvas: keys
- * from outside its container (a host's chrome) and keys someone closer to the target already
- * handled (`defaultPrevented`) are left alone, and typing inside form fields is never
- * intercepted. No container `tabindex`, so the canvas adds no tab stop of its own.
+ * Keyboard shortcuts: select all, undo / redo, delete-selection. They act only while the canvas
+ * itself has the focus, the rule of diagram-js 15's own keyboard: a key whose target is the canvas
+ * `<svg>` or inside it. Keys on the page (`<body>`), on a host's chrome, on the palette, the context
+ * pad or an editor in the canvas container pass, and so do keys someone closer to the target
+ * already handled (`defaultPrevented`) and keys of an IME composition. No container `tabindex`, so
+ * the canvas adds no tab stop of its own.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -24,30 +25,13 @@ export interface CmKeyboardConfig {
   undoRedoKeys?: boolean | undefined;
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  if (!el) return false;
+function isKeyForCanvas(event: KeyboardEvent, svg: SVGElement | null): boolean {
   return (
-    el.tagName === "INPUT" ||
-    el.tagName === "TEXTAREA" ||
-    el.tagName === "SELECT" ||
-    el.isContentEditable
-  );
-}
-
-/**
- * A key aimed at the canvas: from inside its container, or with nothing focused at all. The
- * palette lives in the container too, but a key on a focused palette entry is the palette's: Delete
- * there must not remove the selected elements.
- */
-function isCanvasTarget(target: EventTarget | null, container: HTMLElement): boolean {
-  if (!(target instanceof Node)) return false;
-  if (target instanceof Element && target.closest(".djs-palette")) return false;
-  const ownerDocument = container.ownerDocument;
-  return (
-    container.contains(target) ||
-    target === ownerDocument.body ||
-    target === ownerDocument.documentElement
+    typeof event.key === "string" &&
+    !event.defaultPrevented &&
+    !event.isComposing &&
+    event.target instanceof Node &&
+    svg?.contains(event.target) === true
   );
 }
 
@@ -75,12 +59,11 @@ export default class CmKeyboard {
   ) {
     const container = canvas.getContainer();
     const doc = container.ownerDocument ?? document;
+    const svg = container.querySelector<SVGElement>(":scope > svg");
     const undoRedoKeys = config?.undoRedoKeys ?? true;
 
     const onKeydown = (e: KeyboardEvent): void => {
-      if (e.defaultPrevented) return;
-      if (!isCanvasTarget(e.target, container)) return;
-      if (isTypingTarget(e.target)) return;
+      if (!isKeyForCanvas(e, svg)) return;
       const cmd = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
