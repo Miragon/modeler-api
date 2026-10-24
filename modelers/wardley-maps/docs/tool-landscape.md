@@ -1,6 +1,6 @@
 # A Wardley Map of this Wardley Mapping tool
 
-This map explains — in the tool's own language — which needs the tool serves, why it ships
+This map explains, in the tool's own language, which needs the tool serves, why it ships
 **both** a browser app and a VS Code extension, and why "maps as text" plus AI agents is the
 play that matters. It is written for people who own business topics and understand technology,
 not for IT architects.
@@ -13,7 +13,7 @@ not for IT architects.
 ## How to read it (30 seconds)
 
 - **Top = what users see and need.** Everything below is what those needs depend on.
-- **Left → right = evolution.** Left is novel and hand-made, right is standard and boring —
+- **Left → right = evolution.** Left is novel and hand-made, right is standard and boring,
   in the best sense. Things only ever move right.
 - **Dashed red arrow** = expected movement. **Dotted ring** = an ecosystem forms around it.
 
@@ -22,35 +22,35 @@ not for IT architects.
 Two kinds of users anchor the map:
 
 - The **strategist** (product lead, department head, founder) needs **situational awareness**:
-  a picture of the landscape that makes assumptions visible and discussable — that is
+  a picture of the landscape that makes assumptions visible and discussable. That is
   _mapping the landscape_.
 - The **team and stakeholders** need **alignment**: looking at the same picture, challenging
-  it, and deciding — that is _sharing and discussing_.
+  it, and deciding. That is _sharing and discussing_.
 
 Both needs only stay served if the maps stay **alive**: a map that is drawn once and pasted
 into a slide deck dies the day after the workshop. A map that lives as a plain file next to
-the everyday work — openable, diffable, editable — stays current.
+the everyday work (openable, diffable, editable) stays current.
 
-## Browser vs. VS Code — one tool, two variants (the pipeline)
+## Browser vs. VS Code: one tool, two variants (the pipeline)
 
 On the map the tooling is drawn as a **pipeline**: one capability ("Mapping Tools", the
-square anchor) with two concrete variants inside the box — the **VS Code extension** further
+square anchor) with two concrete variants inside the box: the **VS Code extension** further
 left, the **browser app** further right. Both share the same editor engine; they
 differ in **who they serve and when**:
 
-|               | **Browser app**                                       | **VS Code extension**                              |
-| ------------- | ----------------------------------------------------- | -------------------------------------------------- |
-| Best for      | Workshops, meetings, first contact                    | Continuous work, maps alongside code & docs        |
-| Entry barrier | None — open a link, no install, no account            | You already live in VS Code                        |
-| Sharing       | **Share link** — the whole map travels inside the URL | Git — versioned, diffed and reviewed like any file |
-| Map lifetime  | The conversation                                      | The product / the repository                       |
+|               | **Browser app**                                      | **VS Code extension**                             |
+| ------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| Best for      | Workshops, meetings, first contact                   | Continuous work, maps alongside code & docs       |
+| Entry barrier | None: open a link, no install, no account            | You already live in VS Code                       |
+| Sharing       | **Share link**: the whole map travels inside the URL | Git: versioned, diffed and reviewed like any file |
+| Map lifetime  | The conversation                                     | The product / the repository                      |
 
-That is why neither replaces the other: the browser app wins **adoption** (zero friction —
+That is why neither replaces the other: the browser app wins **adoption** (zero friction:
 anyone in the meeting can open the map), the VS Code extension wins **longevity** (the map is
 versioned and reviewed exactly like the work it describes). Like every pipeline, expect more
-variants over time — the format underneath stays the same.
+variants over time; the format underneath stays the same.
 
-## Why text + agents — the ecosystem play
+## Why text + agents: the ecosystem play
 
 Underneath everything on this map sits one quiet design decision: **every map is plain
 text** (the [OWM format](https://onlinewardleymaps.com)). The share link, the `.wmap` file on
@@ -58,22 +58,22 @@ the file system and the VS Code editor all speak the same few lines of readable 
 
 Text is the API. Because of it:
 
-- **AI agents** (Copilot, Claude & co. — already in your editor) can draft a first map from a
+- **AI agents** (Copilot, Claude & co., already in your editor) can draft a first map from a
   description, review an existing one, or update it when the underlying reality changes. The
   red arrow shows where this is heading: agents are racing to the right and become routine.
-- Any other tool can produce or consume maps — no exporter, no lock-in, no screenshot graveyard.
+- Any other tool can produce or consume maps: no exporter, no lock-in, no screenshot graveyard.
 
-And the map marks one component with the dotted ecosystem ring: **VS Code itself**. Millions of developers, their extensions and — increasingly — their AI agents already
+And the map marks one component with the dotted ecosystem ring: **VS Code itself**. Millions of developers, their extensions and, increasingly, their AI agents already
 live there. Shipping a plugin into that ecosystem is far cheaper than building another app and
 puts the maps exactly where the agents are.
 
-This is a classic ecosystem move: standardise the boring part (the format) and let everyone —
-humans in two apps, agents, other tools — build on top of it. The value of the tool grows with
+This is a classic ecosystem move: standardise the boring part (the format) and let everyone
+(humans in two apps, agents, other tools) build on top of it. The value of the tool grows with
 every consumer of the format, not just with its own feature list.
 
 ## The boring foundation (and why that is good)
 
 Web browser, VS Code and the file system sit bottom-right: commodities everyone already has.
-The tool deliberately builds **nothing novel** there — custom effort goes only into the parts
+The tool deliberately builds **nothing novel** there; custom effort goes only into the parts
 that differentiate it (the editor experience and the mapping semantics). That, too, is Wardley
 doctrine: use appropriate methods per evolution stage.

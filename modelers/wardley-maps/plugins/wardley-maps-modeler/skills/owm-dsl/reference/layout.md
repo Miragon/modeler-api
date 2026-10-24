@@ -1,12 +1,12 @@
-# `.wmap` / `.owm` — layout and geometry
+# `.wmap` / `.owm`: layout and geometry
 
 Coordinates are the part of a generated map that most often comes out wrong: components overlap,
 labels run into each other, notes cover what they comment on, or the value chain points upwards.
-This file has the numbers — taken from the Wardley Maps Modeler's renderer — and a worked map.
+This file has the numbers, taken from the Wardley Maps Modeler's renderer, and a worked map.
 
 ## Coordinate system
 
-- `[visibility, maturity]` — **visibility first** (the y axis), maturity second (the x axis).
+- `[visibility, maturity]`: **visibility first** (the y axis), maturity second (the x axis).
 - Visibility `1` is the top of the map (visible to the user), `0` the bottom. Maturity `0` is
   genesis on the left, `1` commodity on the right.
 - Both are normalised to `0…1`; values outside are clamped. There is no grid and no snapping in the
@@ -32,7 +32,7 @@ changes these factors, not the coordinates; label offsets and note boxes stay th
 | ------------- | --------------------------------------------- | ----------------------------------------------- |
 | `component`   | circle Ø 30 px                                | right of the circle (details below)             |
 | `inertia`     | thick bar 18 px right of the centre           | pushes the name 6 px further right              |
-| `(ecosystem)` | dotted ring Ø 37 px                           | —                                               |
+| `(ecosystem)` | dotted ring Ø 37 px                           | unchanged                                       |
 | `anchor`      | person icon 26 px                             | bold, centred above the icon                    |
 | `note`        | box centred on the coordinate (details below) | italic, inside the box                          |
 | `pipeline`    | dashed box 30 px high, top edge at its height | children 15 px below the top edge               |
@@ -45,7 +45,7 @@ changes these factors, not the coordinates; label offsets and note boxes stay th
 
 - **Component**: the circle covers `± 0.014` maturity and `± 0.022` visibility. The label starts
   22 px right of the centre, 13 px font, ≈ 7 px per character, so a name of `n` characters reaches
-  `(22 + 7n) / 1080` maturity to the right — ≈ `0.085` for 10 characters, ≈ `0.15` for 20. The
+  `(22 + 7n) / 1080` maturity to the right: ≈ `0.085` for 10 characters, ≈ `0.15` for 20. The
   method word (`buy`, …) sits in small type below the label. With `inertia` the label starts 28 px
   right of the centre.
 - **Evolve**: the target name sits 22 px right of the target circle, or 22 px left of it (ending
@@ -59,19 +59,19 @@ changes these factors, not the coordinates; label offsets and note boxes stay th
 ## The default grid
 
 ```text
-visibility 0.90 – 0.97   anchors — the users
+visibility 0.90 – 0.97   anchors, the users
            0.70 – 0.88   what the user touches directly; the need itself
            0.35 – 0.65   supporting capabilities
            0.05 – 0.30   infrastructure and utilities (power, compute, network)
 maturity   0 – 0.17 genesis · 0.17 – 0.40 custom-built · 0.40 – 0.70 product · 0.70 – 1 commodity
 ```
 
-- Keep anchors at or below `0.97` — the anchor's label sits about 30 px above its centre.
+- Keep anchors at or below `0.97`: the anchor's label sits about 30 px above its centre.
 - Keep everything at or above `0.05` visibility, so labels and method words stay on the plot.
 - With four to six levels in the value chain, step `0.12–0.18` visibility per level. A component
   sits **below everything that depends on it**: for every `A -> B`, `visibility(A) > visibility(B)`.
   A dependency pointing upwards means the value chain is upside down or the link is reversed.
-- Maturity is the component's real evolution stage — it is _content_, not layout. Never shift a
+- Maturity is the component's real evolution stage. It is _content_, not layout. Never shift a
   component across a stage boundary to make room; move it up or down a little instead.
 
 ## Spacing
@@ -80,7 +80,7 @@ Verified against the renderer's geometry:
 
 - **Same column** (similar maturity): `Δvisibility ≥ 0.06`. At `0.05` the circles are only 4 px
   apart.
-- **Same row** (similar visibility): `Δmaturity ≥ (7 × characters of the left name + 40) / 1080` —
+- **Same row** (similar visibility): `Δmaturity ≥ (7 × characters of the left name + 40) / 1080`:
   `0.1` for a 10-character name, `0.17` for 20. At `0.08` a 9-character label runs into the next
   circle.
 - **Crowded row**: stagger heights by `0.06` rather than pushing components along the maturity
@@ -94,7 +94,7 @@ Verified against the renderer's geometry:
 
 `label [dx, dy]` moves a label by pixels from its default place: `dx` to the right, `dy`
 **downwards** (screen coordinates). Supported on `anchor`, `component`, pipeline children and
-`evolve` (moves the red target name). Not on notes, pipelines, accelerators or submaps — there it is
+`evolve` (moves the red target name). Not on notes, pipelines, accelerators or submaps; there it is
 dropped on save, with a diagnostic. The offset is always measured from the plain OWM slot (22 px
 right of the circle, 4 px above its centre line), never from the automatic placements described
 above. In the Modeler, dragging a name writes this offset; Alt+double-click puts it back.
@@ -103,12 +103,12 @@ For a component name of `n` characters:
 
 | Label position           | Offset                      | Example, `Kettle` (n = 6) |
 | ------------------------ | --------------------------- | ------------------------- |
-| right (default)          | none                        | —                         |
+| right (default)          | none                        | no offset                 |
 | left of the circle       | `label [-(7n + 45), 0]`     | `label [-87, 0]`          |
 | centred above the circle | `label [-(22 + 3.5n), -18]` | `label [-43, -18]`        |
 | centred below the circle | `label [-(22 + 3.5n), 32]`  | `label [-43, 32]`         |
 
-Use offsets sparingly — to rescue a label that collides with a link or a neighbour, or that runs
+Use offsets sparingly: to rescue a label that collides with a link or a neighbour, or that runs
 off the right edge. Respect offsets the user set by hand.
 
 ## Pipelines
@@ -124,13 +124,13 @@ pipeline Kettle [0.25, 0.92]
 
 - The pipeline's top edge runs through the centre of its **anchor component** (the component with
   the same name); the children sit 15 px below that line, inside the box, all at one height.
-- Keep the anchor component at least `0.1` maturity away from every child — directly above a child
+- Keep the anchor component at least `0.1` maturity away from every child: directly above a child
   the two circles overlap. Placing it at a free spot in the range or at one end works well.
 - Range: from about `0.04` left of the leftmost child to about `0.04` right of the rightmost. Child
   labels may run past the dashed outline; that is fine.
 - Space children like row neighbours (`Δmaturity` rule above).
 - Leave about `0.08` visibility free below the pipeline's height for the box and the child labels.
-- A **standalone** pipeline (no component of that name) needs `(y <visibility>)` — without it, it
+- A **standalone** pipeline (no component of that name) needs `(y <visibility>)`; without it, it
   sits at `0.5`. The Modeler then draws a small square with the name on the top edge, and that is
   where links attach.
 
@@ -165,25 +165,25 @@ townplanners [0.4, 0.68, 0.05, 0.98]
 - Place commentary **`0.06` visibility above or below** the component it is about, at the same
   maturity. `0.05` just clears the circle and the method word; `0.04` overlaps them.
 - Keep the whole box on the plot: the maturity must be at least half the note's width from either
-  edge — for 30 characters, between `0.12` and `0.88`.
+  edge: for 30 characters, between `0.12` and `0.88`.
 - Notes cannot be link endpoints. Point at an area by placing the note next to it.
-- Append review notes; never move the user's components to make room — suggest moves in the notes.
+- Append review notes; never move the user's components to make room; suggest moves in the notes.
 
 ### Note colours
 
 The Modeler's note colour picker offers exactly these eight colours (plus "no colour"). Use the hex
 values verbatim and one meaning per colour, so feedback reads at a glance:
 
-| Colour | Hex       | Meaning                                    |
-| ------ | --------- | ------------------------------------------ |
-| Green  | `#0B7A55` | Good — a genuine strength, well placed     |
-| Amber  | `#92610A` | Watch — inertia risk, needs attention      |
-| Red    | `#C92A2A` | Problem — misplaced, risky or missing      |
-| Blue   | `#2B50D4` | Info — a neutral observation               |
-| Purple | `#6A3DB8` | Idea — an opportunity or a suggested play  |
-| Teal   | `#0E8181` | Free — a second information category       |
-| Pink   | `#C2185B` | Free — a further category the user defines |
-| Slate  | `#4A4A4A` | Neutral — de-emphasised remarks            |
+| Colour | Hex       | Meaning                                   |
+| ------ | --------- | ----------------------------------------- |
+| Green  | `#0B7A55` | Good: a genuine strength, well placed     |
+| Amber  | `#92610A` | Watch: inertia risk, needs attention      |
+| Red    | `#C92A2A` | Problem: misplaced, risky or missing      |
+| Blue   | `#2B50D4` | Info: a neutral observation               |
+| Purple | `#6A3DB8` | Idea: an opportunity or a suggested play  |
+| Teal   | `#0E8181` | Free: a second information category       |
+| Pink   | `#C2185B` | Free: a further category the user defines |
+| Slate  | `#4A4A4A` | Neutral: de-emphasised remarks            |
 
 ```text
 note Genuine differentiator, keep in-house [0.56, 0.2] (color #0B7A55)
@@ -232,7 +232,7 @@ Customer Data -> Compute
 ```
 
 Reading it: the reader's need is a book purchase, served by a custom-built storefront. Underneath,
-recommendations are the novel part (built in-house, expected to become a buyable product —
+recommendations are the novel part (built in-house, expected to become a buyable product:
 `evolve … (buy)`), while catalogue, payment and compute are bought or outsourced. Customer data
 carries inertia, flagged by an amber note right below it. Delivery is a pipeline from the company's
 own fleet (inertia) to an outsourced courier network; the storefront hands it orders as a flow.

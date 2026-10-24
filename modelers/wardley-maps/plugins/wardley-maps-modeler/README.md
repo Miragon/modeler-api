@@ -1,4 +1,4 @@
-# Wardley Maps Modeler — Claude Code plugin
+# Wardley Maps Modeler: Claude Code plugin
 
 Two skills that teach Claude [Wardley Mapping](https://learnwardleymapping.com/) and the OWM text
 format (`.wmap` / `.owm`) used by the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley-maps).
@@ -8,7 +8,7 @@ format (`.wmap` / `.owm`) used by the [Wardley Maps Modeler](https://github.com/
 | `wardley-mapping` | Simon Wardley's method: value chains, the evolution axis (genesis → custom-built → product → commodity), doctrine, climatic patterns and gameplay, creating maps from a strategic question, and map reviews with colour-coded feedback notes. |
 | `owm-dsl`         | The OWM format itself: full grammar, `[visibility, maturity]` coordinates and layout, evolve / pipeline / inertia / notes / annotations, parser diagnostics and their pitfalls, the round-trip guarantee, web-app share links.                |
 
-Together they let Claude read, review, edit and generate Wardley Maps as plain text — in any
+Together they let Claude read, review, edit and generate Wardley Maps as plain text, in any
 repository, next to the VS Code extension, and in Miragon AI Design. Claude never renders a map
 itself: it writes the `.wmap` / `.owm` file and the modeler draws it.
 
@@ -27,7 +27,7 @@ From a local checkout of [Miragon/modeler-suite](https://github.com/Miragon/mode
 ```
 
 Once installed the skills are available everywhere as `wardley-maps-modeler:wardley-mapping` and
-`wardley-maps-modeler:owm-dsl`. They load on demand — only their short descriptions stay in context.
+`wardley-maps-modeler:owm-dsl`. They load on demand; only their short descriptions stay in context.
 
 ## Using them
 
@@ -89,7 +89,7 @@ marketplace (`.claude-plugin/marketplace.json` at the repository root) carries n
 
 ## License
 
-MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley-maps/LICENSE).
+MIT, see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley-maps/LICENSE).
 Parts of the method content and the example maps are adapted from
 [haberlah/wardley-mapping](https://github.com/haberlah/wardley-mapping) (MIT); the tea shop map
 follows the example map of [Online Wardley Maps](https://github.com/damonsk/onlinewardleymaps)

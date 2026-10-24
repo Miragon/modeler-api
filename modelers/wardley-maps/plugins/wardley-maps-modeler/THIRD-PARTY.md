@@ -10,7 +10,7 @@ Wardley's.
 Source: [github.com/haberlah/wardley-mapping](https://github.com/haberlah/wardley-mapping)
 (commit `076da69721935404b7478385dc14cf4d5db9fb07`), MIT License, Copyright (c) 2026 haberlah.
 
-Adapted files — rewritten for the OWM dialect of the Wardley Maps Modeler, merged with existing
+Adapted files, rewritten for the OWM dialect of the Wardley Maps Modeler, merged with existing
 content and edited for this plugin:
 
 | File in this plugin                                                         | Adapted from                                                 |
@@ -58,8 +58,8 @@ Source: [github.com/damonsk/onlinewardleymaps](https://github.com/damonsk/online
 Skelhorn. Online Wardley Maps created the OWM text format that `.wmap` / `.owm` files use; the
 `owm-dsl` skill documents the dialect the Wardley Maps Modeler parses.
 
-The tea shop map — `skills/wardley-mapping/examples/tea-shop.wmap`, its copy in
-`skills/wardley-mapping/reference/creating-maps.md` and the shortened version in `README.md` —
+The tea shop map (`skills/wardley-mapping/examples/tea-shop.wmap`, its copy in
+`skills/wardley-mapping/reference/creating-maps.md` and the shortened version in `README.md`)
 follows the example map in `frontend/src/constants/defaults.ts`. Changes: label offsets, the
 `style` line and the generic note dropped, inertia and sourcing marked, the annotations rewritten
 as colour-coded review notes, positions nudged where the modeler's layout needed it.
@@ -88,15 +88,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Simon Wardley — Wardley Mapping
+## Simon Wardley: Wardley Mapping
 
 Wardley Mapping was created by Simon Wardley. His book
 [_Wardley Maps_](https://medium.com/wardleymaps) is published under the
 [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/);
 see [wardleymaps.com](https://wardleymaps.com) for the original framework.
 
-The `wardley-mapping` skill describes his method — evolution stages and their characteristics,
-doctrine, climatic patterns, gameplay, pioneers / settlers / town planners — in original prose
+The `wardley-mapping` skill describes his method (evolution stages and their characteristics,
+doctrine, climatic patterns, gameplay, pioneers / settlers / town planners) in original prose
 written for this plugin, with attribution to him. It keeps his terminology so that maps and reviews
 use the vocabulary practitioners know; its tables are condensed working summaries in the skill's
 own wording, not copies of the book's text or figures. Read the book for the full framework.

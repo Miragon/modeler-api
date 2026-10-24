@@ -26,11 +26,11 @@ version satisfies the pin, and the release PR bumps them.
 | `apps/webapp`                   | Vite demo editor                                                | yes |
 | `apps/vscode`                   | VS Code extension: custom editor for `.wmap`/`.owm`             | yes |
 
-**P1 — DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
 import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`); of
 `@miragon/modeler-api` they may import types only. No package under `packages/` imports
-`@miragon/modeler-shell` — the shared modeler chrome belongs to the apps. Enforced twice — ESLint
-(`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser` — so a violating
+`@miragon/modeler-shell`: the shared modeler chrome belongs to the apps. Enforced twice, by ESLint
+(`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`, so a violating
 import fails `npm run wardley-maps lint` and `npm run wardley-maps depcruise`.
 
 **Contract and shell:** the renderer implements the
@@ -47,7 +47,7 @@ project (`e2e/tests/webapp-shell-conformance.spec.ts`).
 
 ## Commands
 
-- `npm run wardley-maps build` — all packages; the unit tests resolve the workspace packages from
+- `npm run wardley-maps build`: all packages; the unit tests resolve the workspace packages from
   `dist`, so build before `npm run wardley-maps test` · `npm run wardley-maps build:webapp` (then
   `npm run check:build -w modelers/wardley-maps/apps/webapp` checks the mode markup and licence comment
   it ships) · `npm run wardley-maps build:vscode`
@@ -57,11 +57,11 @@ project (`e2e/tests/webapp-shell-conformance.spec.ts`).
   [`apps/webapp/portless.json`](apps/webapp/portless.json); one-time setup in the suite's
   [`CONTRIBUTING.md`](../../CONTRIBUTING.md#dev-servers)). `npm run wardley-maps dev:webapp:plain` for
   plain Vite on `:5180`. · `npm run wardley-maps dev:vscode`
-- `npm run wardley-maps test` — Vitest · `npm run wardley-maps test:browser` — Vitest browser mode ·
+- `npm run wardley-maps test`: Vitest · `npm run wardley-maps test:browser`: Vitest browser mode ·
   `npm run wardley-maps typecheck` · `npm run wardley-maps lint` (ESLint + typecheck)
-- `npm run wardley-maps test:e2e` — Playwright, two projects: `webapp` and `vscode-webview` (ports
+- `npm run wardley-maps test:e2e`: Playwright, two projects: `webapp` and `vscode-webview` (ports
   `E2E_PORT`, default 5180, and `E2E_WEBVIEW_PORT`, default 5190)
-- `npm run wardley-maps test:vscode` — the `vscode` Vitest project
+- `npm run wardley-maps test:vscode`: the `vscode` Vitest project
   ([`apps/vscode/test/smoke/`](apps/vscode/test/smoke/)): packs the extension like the release
   (`vsce package`, so `vscode:prepublish`), unpacks the VSIX outside the repo and runs
   `runVsCodeSmoke` of `@miragon/modeler-shell/testing/vscode-electron` in a real VS Code (open, evolve
@@ -70,7 +70,7 @@ project (`e2e/tests/webapp-shell-conformance.spec.ts`).
   window for ~5 s that takes the focus; Linux: `xvfb-run -a npm run wardley-maps test:vscode`;
   `VSCODE_VERSION=1.96.0` picks a version, `VSCODE_SMOKE_KEEP=1` keeps VS Code's logs,
   `VSCODE_SMOKE_VSIX=<path>` smokes a packed VSIX instead of packing one (the release does).
-- `npm run wardley-maps test:vscode:docker` — the local way to run that smoke test, without a VS Code
+- `npm run wardley-maps test:vscode:docker`: the local way to run that smoke test, without a VS Code
   window: `modeler-shell-vscode-docker` of `@miragon/modeler-shell` runs `npm run test:vscode`
   under `xvfb-run -a` in a Linux container (needs Docker; it copies the suite in, runs `npm ci`
   there, the host's `node_modules` stay untouched). Variables go in with `--env`
@@ -79,7 +79,7 @@ project (`e2e/tests/webapp-shell-conformance.spec.ts`).
   `test:vscode`, whose window would take the user's focus. Details in
   [`CONTRIBUTING.md`](CONTRIBUTING.md#vs-code-smoke-test); when CI runs the smoke is in the suite's
   [docs/ci-and-releases.md](../../docs/ci-and-releases.md).
-- `npm run wardley-maps format` — Prettier · `npm run wardley-maps depcruise` — check the module graph
+- `npm run wardley-maps format`: Prettier · `npm run wardley-maps depcruise`: check the module graph
 
 ## Releases
 
@@ -119,7 +119,7 @@ to `v0.5.0`) and is no longer written.
   text format (grammar, coordinates, round-trip, diagnostics). Install once with
   `/plugin marketplace add Miragon/modeler-suite` and
   `/plugin install wardley-maps-modeler@modeler-suite`; the skill files are readable directly under
-  `plugins/wardley-maps-modeler/skills/` either way. Keep the skills repo-independent — they also
+  `plugins/wardley-maps-modeler/skills/` either way. Keep the skills repo-independent: they also
   run in other repositories and in Miragon AI Design, where Claude writes the map file directly and
   the modeler renders it. Drift tests guard them:
   [`packages/dsl/test/skill-examples.test.ts`](packages/dsl/test/skill-examples.test.ts) parses
@@ -138,7 +138,7 @@ skill; see the suite's [`CLAUDE.md`](../../CLAUDE.md#design-system-mandatory)). 
 
 The skill's design-system files are vendored **verbatim** (guide 1.13.0) into
 [`packages/renderer/src/theme/`](packages/renderer/src/theme/): `cd-tokens.generated.css`,
-`cd-tokens.generated.json` and `cd-canvas.css` — do not fork hex values or edit them; re-copy from
+`cd-tokens.generated.json` and `cd-canvas.css`; do not fork hex values or edit them; re-copy from
 the skill to update. Reference implementation in this modeler: tokens
 [`packages/renderer/src/theme/palette.ts`](packages/renderer/src/theme/palette.ts) · drift test
 [`packages/renderer/test/theme.sync.test.ts`](packages/renderer/test/theme.sync.test.ts) (also: the

@@ -22,8 +22,8 @@ ready-made map to explore. From there you can open any `.wmap` or `.owm` file.
 
 Prefer commands? Run these from the Command Palette (`Cmd/Ctrl+Shift+P`, type _"Wardley"_):
 
-- **Wardley: New Map from Example** — pick a location, pre-filled with the Tea Shop example.
-- **Wardley: New Empty Map** — same, but a blank map (also under **File > New File…**).
+- **Wardley: New Map from Example**: pick a location, pre-filled with the Tea Shop example.
+- **Wardley: New Empty Map**: the same, but a blank map (also under **File > New File…**).
 
 ## Reading a map
 
@@ -68,7 +68,7 @@ Together they show _what_ you depend on and _how mature_ each piece is.
   the same menu, palette, zoom panel and keys as every Miragon modeler. The diagram stays light in
   dark VS Code themes (high contrast themes get the high-contrast chrome) until all Miragon
   modelers turn dark together.
-- **Self-hosted fonts** — no CDN, offline-capable. Third-party licenses:
+- **Self-hosted fonts**: no CDN, offline-capable. Third-party licenses:
   [THIRD_PARTY_NOTICES.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley-maps/apps/vscode/THIRD_PARTY_NOTICES.md).
 
 ## Commands

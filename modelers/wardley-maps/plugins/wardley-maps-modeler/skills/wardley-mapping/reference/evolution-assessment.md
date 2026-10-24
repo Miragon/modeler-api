@@ -11,7 +11,7 @@ when competition is intense.
 ## The stage boundaries
 
 The x axis is the component's **maturity**, `0..1`. The Wardley Maps Modeler derives the stage from
-it with these boundaries — use them consistently in every map, assessment and note:
+it with these boundaries; use them consistently in every map, assessment and note:
 
 | Stage                       | Maturity    | Early in the stage                    | Late in the stage                          |
 | --------------------------- | ----------- | ------------------------------------- | ------------------------------------------ |
@@ -26,19 +26,19 @@ own method is qualitative; these numbers are an operational convention so maps s
 
 ## Characteristics per stage
 
-### Stage I — Genesis (`0–0.17`)
+### Stage I: Genesis (`0–0.17`)
 
 Novel, uncertain, constantly changing.
 
 | Dimension       | Characteristic                                       |
 | --------------- | ---------------------------------------------------- |
-| Ubiquity        | Rare — very few examples exist anywhere.             |
+| Ubiquity        | Rare: very few examples exist anywhere.              |
 | Certainty       | Poorly understood; no agreed definition or approach. |
 | Publications    | Describe the wonder of the thing ("we tried X").     |
 | Market          | Undefined; no clear buyers or sellers.               |
 | Knowledge       | Tacit, in a few people's heads.                      |
 | User perception | Wonder, excitement, confusion.                       |
-| Failure         | Expected and tolerated — experiments fail.           |
+| Failure         | Expected and tolerated: experiments fail.            |
 | Focus           | Exploration, research, invention.                    |
 | Methods         | Agile experimentation, rapid prototyping.            |
 | Cost            | High per unit; investment is a bet on future worth.  |
@@ -49,13 +49,13 @@ only ones".
 **Examples (2026):** quantum error correction, brain-computer interfaces, experimental fusion
 reactor designs.
 
-### Stage II — Custom-Built (`0.17–0.40`)
+### Stage II: Custom-Built (`0.17–0.40`)
 
 Increasingly understood, still bespoke.
 
 | Dimension       | Characteristic                                           |
 | --------------- | -------------------------------------------------------- |
-| Ubiquity        | Uncommon — several organisations have built their own.   |
+| Ubiquity        | Uncommon: several organisations have built their own.    |
 | Certainty       | Rapidly increasing; patterns emerging.                   |
 | Publications    | How we built it, how it works.                           |
 | Market          | Forming; early buyers, consultancies, first vendors.     |
@@ -72,18 +72,18 @@ off-the-shelf option, but the need is recognised.
 **Examples (2026):** in-house ML pipelines, proprietary trading algorithms, a domain-specific
 pricing engine, agent orchestration in production.
 
-### Stage III — Product (+rental) (`0.40–0.70`)
+### Stage III: Product (+rental) (`0.40–0.70`)
 
 Well defined, with competing providers.
 
 | Dimension       | Characteristic                                     |
 | --------------- | -------------------------------------------------- |
-| Ubiquity        | Common — many organisations use it.                |
+| Ubiquity        | Common: many organisations use it.                 |
 | Certainty       | Well understood; clear requirements.               |
 | Publications    | How to operate, maintain, install; certifications. |
 | Market          | Growing and competitive; multiple vendors.         |
 | Knowledge       | Explicit, documented, trainable.                   |
-| User perception | Expected — "of course we have one".                |
+| User perception | Expected: "of course we have one".                 |
 | Failure         | Not tolerated; users expect it to work.            |
 | Focus           | Feature competition, profit.                       |
 | Methods         | Lean.                                              |
@@ -95,7 +95,7 @@ feature lists; switching is possible but costly.
 **Examples (2026):** CRM, ERP, CI/CD services, email-marketing platforms, foundation-model
 inference.
 
-### Stage IV — Commodity (+utility) (`0.70–1.0`)
+### Stage IV: Commodity (+utility) (`0.70–1.0`)
 
 Ubiquitous, standardised, invisible.
 
@@ -106,7 +106,7 @@ Ubiquitous, standardised, invisible.
 | Publications    | How to use it; operations manuals; utility price lists. |
 | Market          | Mature, stabilised; commodity or utility pricing.       |
 | Knowledge       | Codified; standard operating procedures.                |
-| User perception | Invisible, taken for granted — until it breaks.         |
+| User perception | Invisible, taken for granted, until it breaks.          |
 | Failure         | Operational; an outage is news.                         |
 | Focus           | Volume, cost, operational excellence.                   |
 | Methods         | Six sigma, standardisation, ITIL-style operations.      |
@@ -118,7 +118,7 @@ pricing is transparent; switching costs are low.
 **Examples (2026):** cloud compute, object storage, electricity, internet connectivity, DNS,
 payment processing.
 
-## Evolution types — what kind of thing is it?
+## Evolution types: what kind of thing is it?
 
 Not everything on a map is an activity. Practices, data and knowledge evolve too, under different
 names for the same four stages:
@@ -132,13 +132,13 @@ names for the same four stages:
 
 Identify the type first, then apply the matching progression: "machine learning model" is an
 activity, "MLOps" a practice, "customer behaviour data" data, "transformer architecture" knowledge.
-A map of practices can relabel its x axis (the `evolution` statement — see the `owm-dsl` skill);
+A map of practices can relabel its x axis (the `evolution` statement, see the `owm-dsl` skill);
 the modeler offers these four label sets as presets.
 
 Watch for **co-evolution**: when an activity moves to Commodity, its practices must move too. A
 Commodity activity run with novel or outdated practices is a mismatch worth a note.
 
-## Context heuristics — a first hypothesis
+## Context heuristics: a first hypothesis
 
 These help with a first placement and with comparing a map against its industry. They are
 hypotheses: confirm every placement with the characteristics above.
@@ -146,10 +146,10 @@ hypotheses: confirm every placement with the characteristics above.
 - **Start-up:** expect many Genesis and Custom-Built components; its commodities are rented.
 - **Enterprise IT:** expect mostly Product and Commodity; Custom-Built components where products
   exist are an inertia signal.
-- **"We built our own X":** question it — is Custom-Built justified, or is a Product or Commodity
+- **"We built our own X":** question it. Is Custom-Built justified, or is a Product or Commodity
   being resisted?
 - **"Everyone uses X":** likely Product or Commodity.
-- **"We're experimenting with X":** likely Genesis — unless the market already sells it.
+- **"We're experimenting with X":** likely Genesis, unless the market already sells it.
 - **Disruption:** look for compressed evolution and a value chain that is being restructured.
 
 ## The assessment process
@@ -158,7 +158,7 @@ For every component:
 
 1. **Score all dimensions**, not one. A component can be common (Product) in ubiquity yet poorly
    understood (Custom-Built) in certainty. Weight towards the majority signal.
-2. **Check the market evidence** — the strongest signal. How many competing providers? Published
+2. **Check the market evidence**, the strongest signal. How many competing providers? Published
    comparisons? Standard interfaces? Usage-based pricing?
 3. **Ask the disappearance question:** "If this vanished tomorrow, would people be surprised it
    existed, or outraged it was gone?" Surprise points left (Genesis/Custom); outrage points right
@@ -170,12 +170,12 @@ For every component:
    per-request pricing" is a rationale. "Feels like a product" is not.
 
 When dimensions disagree, place by the majority and record the tension in the rationale: "Product
-(0.45) — ubiquity says Commodity, but the market is still fragmenting."
+(0.45): ubiquity says Commodity, but the market is still fragmenting."
 
 ## Common assessment mistakes
 
 - **Novel to you is not novel to the market.** Building something for the first time does not make
-  it Genesis. If fifty vendors sell it, it is Product — and you should probably buy it.
+  it Genesis. If fifty vendors sell it, it is Product, and you should probably buy it.
 - **Old is not Commodity.** A thirty-year-old bespoke COBOL system is still Custom-Built if no
   product market exists for it.
 - **Complex is not Genesis.** ERP is enormously complex and firmly Product.

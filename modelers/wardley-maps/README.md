@@ -5,8 +5,8 @@
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-renderer)](https://www.npmjs.com/package/@miragon/wardley-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.wardley-mapping-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.wardley-mapping-modeler)
 
-Create, edit and embed [Wardley Maps](https://learnwardleymapping.com/) — a TypeScript library, a
-VS Code extension, and a web app, all built on [diagram-js](https://github.com/bpmn-io/diagram-js).
+Create, edit and embed [Wardley Maps](https://learnwardleymapping.com/) with a TypeScript library, a
+VS Code extension and a web app, all built on [diagram-js](https://github.com/bpmn-io/diagram-js).
 
 **[Try the web app →](https://wardley-maps.modeler.miragon.io)**
 
@@ -37,37 +37,37 @@ const { svg } = await viewer.saveSVG();
 
 ## What you get
 
-- **Embeddable viewer & modeler** on diagram-js — palette, context pad, move/connect/resize, inline
+- **Embeddable viewer & modeler** on diagram-js: palette, context pad, move/connect/resize, inline
   labels, undo/redo, evolve-by-drag.
 - **Lossless [OWM-DSL](https://docs.onlinewardleymaps.com/) round-trip** and a deterministic JSON model.
-- **VS Code extension** — a custom editor for `.wmap` / `.owm` files.
-- **Web app** — an Excalidraw-style editor with URL sharing and PNG/SVG picture export.
-- **Strict DOM-free core** (model, DSL, transforms) — usable in any JavaScript runtime.
-- **Self-hosted fonts** — no CDN, offline-capable.
+- **VS Code extension**: a custom editor for `.wmap` / `.owm` files.
+- **Web app**: an Excalidraw-style editor with URL sharing and PNG/SVG picture export.
+- **Strict DOM-free core** (model, DSL, transforms), usable in any JavaScript runtime.
+- **Self-hosted fonts**: no CDN, offline-capable.
 
 ### Editor interactions
 
 Press `?` in the web app for the same list, with the keys of your platform.
 
-| Action                          | How                                                                                                                                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Quick create                    | `C` component, `U` user/anchor, `N` note, `P` pipeline — at the cursor, or at the view centre without a pointer; placing a node opens its name editor                                            |
-| Connect from the selection      | `A` (one selected node), or the context pad                                                                                                                                                      |
-| Multi-select (lasso)            | Palette tool, `L`, or `Shift` + drag on the empty canvas                                                                                                                                         |
-| Add to selection / select all   | `Shift` + click / `Ctrl/Cmd+A`; `Esc` deselects                                                                                                                                                  |
-| Draw lines/shapes               | Palette tool — click point by point; click the last point again (or double-click/`Enter`/`Esc`) to finish, click the start point to close; drag the handles of a selected drawing to move points |
-| Copy / paste                    | `Ctrl/Cmd+C`, `Ctrl/Cmd+V` — paste attaches to the cursor; click places, `Esc` cancels                                                                                                           |
-| Duplicate (in place)            | `Ctrl/Cmd+D`                                                                                                                                                                                     |
-| Delete                          | `Delete` / `Backspace`                                                                                                                                                                           |
-| Nudge selection                 | Arrow keys (`Shift` = coarse)                                                                                                                                                                    |
-| Undo / redo                     | `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` or `Ctrl/Cmd+Y`                                                                                                                                                |
-| Zoom                            | `Ctrl/Cmd` + `+` / `-` / `0` (100 %), `Shift+1` fits; the zoom panel bottom-right                                                                                                                |
-| Edit label / note               | Double-click (notes: `Cmd/Ctrl+Enter` saves)                                                                                                                                                     |
-| Move a label                    | Drag the label; `Alt` + double-click puts it back                                                                                                                                                |
-| Edit link annotation/flow value | Double-click the connection (or pencil in the pad)                                                                                                                                               |
-| Evolve                          | Drag from the context pad; drag the red target circle                                                                                                                                            |
-| Pipeline membership             | Drop a component into/out of the pipeline box                                                                                                                                                    |
-| Resize the map                  | Drag the plot's right/bottom edge or corner (`Shift` keeps the ratio, `Alt` turns off snapping); double-click the corner to reset                                                                |
+| Action                          | How                                                                                                                                                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick create                    | `C` component, `U` user/anchor, `N` note, `P` pipeline, at the cursor or at the view centre without a pointer; placing a node opens its name editor                                             |
+| Connect from the selection      | `A` (one selected node), or the context pad                                                                                                                                                     |
+| Multi-select (lasso)            | Palette tool, `L`, or `Shift` + drag on the empty canvas                                                                                                                                        |
+| Add to selection / select all   | `Shift` + click / `Ctrl/Cmd+A`; `Esc` deselects                                                                                                                                                 |
+| Draw lines/shapes               | Palette tool: click point by point; click the last point again (or double-click/`Enter`/`Esc`) to finish, click the start point to close; drag the handles of a selected drawing to move points |
+| Copy / paste                    | `Ctrl/Cmd+C`, `Ctrl/Cmd+V`: paste attaches to the cursor; click places, `Esc` cancels                                                                                                           |
+| Duplicate (in place)            | `Ctrl/Cmd+D`                                                                                                                                                                                    |
+| Delete                          | `Delete` / `Backspace`                                                                                                                                                                          |
+| Nudge selection                 | Arrow keys (`Shift` = coarse)                                                                                                                                                                   |
+| Undo / redo                     | `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` or `Ctrl/Cmd+Y`                                                                                                                                               |
+| Zoom                            | `Ctrl/Cmd` + `+` / `-` / `0` (100 %), `Shift+1` fits; the zoom panel bottom-right                                                                                                               |
+| Edit label / note               | Double-click (notes: `Cmd/Ctrl+Enter` saves)                                                                                                                                                    |
+| Move a label                    | Drag the label; `Alt` + double-click puts it back                                                                                                                                               |
+| Edit link annotation/flow value | Double-click the connection (or pencil in the pad)                                                                                                                                              |
+| Evolve                          | Drag from the context pad; drag the red target circle                                                                                                                                           |
+| Pipeline membership             | Drop a component into/out of the pipeline box                                                                                                                                                   |
+| Resize the map                  | Drag the plot's right/bottom edge or corner (`Shift` keeps the ratio, `Alt` turns off snapping); double-click the corner to reset                                                               |
 
 In the web app also:
 
@@ -78,7 +78,7 @@ In the web app also:
 | Open a file                 | `Ctrl/Cmd+O` or Menu › Open…, or drop a `.wmap` / `.owm` / `.json` file anywhere                                                                |
 | Save the map as a file      | `Ctrl/Cmd+S` or Menu › Export as .wmap / Export as JSON                                                                                         |
 | Share                       | Share (top right) copies a link that holds the whole map                                                                                        |
-| Edit the map as text        | Menu › Edit as OWM-DSL… — edit, then Apply (`Ctrl/Cmd+Enter`); problems are listed by line. Menu › View as JSON… shows the model                |
+| Edit the map as text        | Menu › Edit as OWM-DSL…: edit, then Apply (`Ctrl/Cmd+Enter`); problems are listed by line. Menu › View as JSON… shows the model                 |
 | Import text or a share link | Paste OWM text or a `#mz=` link onto the canvas                                                                                                 |
 | Import problems             | Lines the map could not draw are listed by line behind the problems pill, bottom left                                                           |
 | Undo replacing the map      | New diagram, Open…, Show example, paste and Apply replace the map; the "Map replaced · Undo" toast or `Ctrl/Cmd+Z` brings the previous one back |
@@ -98,7 +98,7 @@ In the web app also:
 
 ## Claude Code plugin
 
-Two Claude skills — the Wardley Mapping method and the OWM text format — ship from the Miragon
+Two Claude skills, the Wardley Mapping method and the OWM text format, ship from the Miragon
 modeler suite as a Claude Code plugin, so you can use them in any project:
 
 ```
@@ -111,14 +111,14 @@ modeler suite as a Claude Code plugin, so you can use them in any project:
 | `wardley-mapping` | Simon Wardley's method: evolution, doctrine, gameplay, creating maps, reviews with colour-coded notes   |
 | `owm-dsl`         | The `.wmap` / `.owm` format: grammar, coordinates and layout, pipelines, notes, diagnostics, round-trip |
 
-Claude can then read, review, edit and generate `.wmap` / `.owm` maps anywhere — the modeler
+Claude can then read, review, edit and generate `.wmap` / `.owm` maps anywhere; the modeler
 renders what Claude writes. Details in [`plugins/wardley-maps-modeler/`](plugins/wardley-maps-modeler/);
 the suite's marketplace manifest is [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json).
 
 ## Fonts
 
 The renderer ships no fonts and loads nothing from a CDN. The typeface is **Geist** (Miragon
-corporate identity); provide it yourself — recommended self-hosted via
+corporate identity); provide it yourself, preferably self-hosted via
 [`@fontsource`](https://fontsource.org/) (one variable file covers all weights):
 
 ```ts
@@ -128,7 +128,7 @@ import "@fontsource-variable/geist/wght.css";
 The variable package registers the family as **`'Geist Variable'`** (not `'Geist'`). The renderer's
 font stack (`FONT.family`, set on every SVG `<text>`, and `.wardley-container` in `wardley.css`)
 starts with `'Geist Variable', 'Geist', …`, so both that package and a locally installed Geist are
-picked up. Use the same name in your own CSS — `font-family: 'Geist', …` alone never matches the
+picked up. Use the same name in your own CSS: `font-family: 'Geist', …` alone never matches the
 self-hosted face. Without a font the fallback chain degrades cleanly to system sans. Exported SVG/PNG
 files only show Geist where the font is available to the program that renders them.
 

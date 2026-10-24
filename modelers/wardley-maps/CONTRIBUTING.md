@@ -12,7 +12,7 @@ From the repository root (or with `npm run <script>` inside `modelers/wardley-ma
 
 ```bash
 npm run build:shared        # once, and after changing packages/api or packages/shell
-npm run wardley-maps build       # builds packages/* (workspace deps resolve to dist — build before testing)
+npm run wardley-maps build       # builds packages/* (workspace deps resolve to dist: build before testing)
 npm run wardley-maps test        # vitest run
 npm run wardley-maps lint        # eslint . + type-check (what the pre-commit hook runs for this modeler)
 ```
@@ -34,10 +34,10 @@ Vite directly on `:5180` and needs none of it.
 
 The Playwright config has two projects, each with its own dev server started for the run:
 
-- `webapp` — the demo web app (`apps/webapp`, Vite on `E2E_PORT`, default `5180`). It runs the
+- `webapp`: the demo web app (`apps/webapp`, Vite on `E2E_PORT`, default `5180`). It runs the
   shell's conformance kit on the web host, the app's handlers behind the chrome and the modelling
   interactions.
-- `vscode-webview` — the VS Code webview (`apps/vscode/src/webview/main.ts`) inside the VS Code
+- `vscode-webview`: the VS Code webview (`apps/vscode/src/webview/main.ts`) inside the VS Code
   stub of `@miragon/modeler-shell`, served by the test page in `e2e/webview/` (Vite on
   `E2E_WEBVIEW_PORT`, default `5190`). It runs the shell's conformance kit, the webview's side of
   the host protocol, and a smoke test of the production bundle behind the webview CSP.
@@ -101,10 +101,10 @@ without elements included), so it does not catch VS Code halfway through a save.
 | `apps/webapp`                   | Vite demo editor                                      | DOM      |
 | `apps/vscode`                   | VS Code custom editor for `.wmap`/`.owm`              | DOM      |
 
-**P1 — the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
 import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This
-is enforced twice — by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
-dependency-cruiser — so a violating import fails `npm run wardley-maps lint` and
+is enforced twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
+dependency-cruiser, so a violating import fails `npm run wardley-maps lint` and
 `npm run wardley-maps depcruise`.
 
 Also keep the OWM-DSL round-trip lossless and JSON serialization deterministic.
@@ -118,5 +118,5 @@ Also keep the OWM-DSL round-trip lossless and JSON serialization deterministic.
   `fix(wardley-maps): keep the url keyword on round-trip`.
 - Working on map/domain semantics? See the `wardley-mapping` and `owm-dsl` skills of the Claude Code
   plugin in [`plugins/wardley-maps-modeler/`](plugins/wardley-maps-modeler/). Changed the DSL? Keep
-  the `owm-dsl` skill and its examples in step — `npm run wardley-maps test` parses every example in the
+  the `owm-dsl` skill and its examples in step: `npm run wardley-maps test` parses every example in the
   plugin.

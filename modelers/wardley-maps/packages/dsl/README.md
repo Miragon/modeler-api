@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley-maps/LICENSE)
 
 DOM-free bridge between the [Online-Wardley-Maps](https://docs.onlinewardleymaps.com/) text DSL and
-the `WardleyMap` model — a lossless round-trip.
+the `WardleyMap` model, as a lossless round-trip.
 
 ## Install
 
