@@ -63,6 +63,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    // The suite links @miragon/modeler-api and @miragon/modeler-shell as workspaces. Kept at their
+    // node_modules path, the rules above still match them by name and the cruise stops there.
+    preserveSymlinks: true,
     tsConfig: { fileName: "tsconfig.json" },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {
