@@ -15,9 +15,8 @@ const METHOD_GROUP = { id: "method", name: "Sourcing" };
 const PROP_GROUP = { id: "props", name: "Properties" };
 
 /**
- * The menu handles its own keys (arrows select, Enter picks); without this the document-level
- * editor shortcuts would also nudge the element on arrow keys, which closes the menu. Escape must
- * still bubble: diagram-js closes the menu from a document listener.
+ * The menu handles its own keys (arrows select, Enter picks), so no listener further up acts on
+ * them too. Escape must still bubble: diagram-js closes the menu from a document listener.
  */
 function keepKeysInsidePopup(event: KeyboardEvent): void {
   if (event.key !== "Escape") event.stopPropagation();

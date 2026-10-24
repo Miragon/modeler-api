@@ -91,7 +91,7 @@ export default class WardleyPaletteKeyboard {
     else if (event.key === "End") next = entries[entries.length - 1];
 
     if (next) {
-      // Stop here so the document-level shortcuts (arrow-key nudge) do not also move the selection.
+      // The toolbar's own keys: no listener further up acts on them too.
       event.preventDefault();
       event.stopPropagation();
       next.focus();

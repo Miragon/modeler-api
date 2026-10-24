@@ -31,12 +31,14 @@ export default class WardleyColorPicker {
   private readonly onDocPointer = (e: MouseEvent): void => {
     if (this.popover && !this.popover.contains(e.target as Node)) this.close();
   };
+  // A capture listener on the document: only an Escape aimed at the modeler (the swatches, the
+  // canvas) is the picker's, never one that closes a host's menu or dialog.
   private readonly onKey = (e: KeyboardEvent): void => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      this.close({ restoreFocus: true });
-    }
+    if (e.key !== "Escape" || !(e.target instanceof Node)) return;
+    if (!this.canvas.getContainer().contains(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.close({ restoreFocus: true });
   };
 
   constructor(
@@ -45,8 +47,11 @@ export default class WardleyColorPicker {
     private readonly modeling: WardleyModeling,
     private readonly injector: Injector,
   ) {
-    // Close on pan/zoom, drag or re-import (otherwise the popover ends up misplaced).
-    eventBus.on(["canvas.viewbox.changing", "drag.init", "diagram.clear"], () => this.close());
+    // Close on pan/zoom, drag or re-import (otherwise the popover ends up misplaced), and with the
+    // modeler, whose document listeners would otherwise outlive it.
+    eventBus.on(["canvas.viewbox.changing", "drag.init", "diagram.clear", "diagram.destroy"], () =>
+      this.close(),
+    );
   }
 
   /** Opens the swatch grid for `shape` at the click position (viewport coordinates). */
@@ -104,8 +109,10 @@ export default class WardleyColorPicker {
 
     this.popover = pop;
     (activeButton ?? buttons[0])?.focus({ preventScroll: true });
-    // Attach listeners with a delay so the opening click does not immediately close the popover.
+    // Attach listeners with a delay so the opening click does not immediately close the popover,
+    // and not at all once it closed in the meantime.
     setTimeout(() => {
+      if (this.popover !== pop) return;
       document.addEventListener("click", this.onDocPointer, true);
       document.addEventListener("keydown", this.onKey, true);
     }, 0);
@@ -138,7 +145,7 @@ export default class WardleyColorPicker {
       next = (next + buttons.length) % buttons.length;
     }
     if (next === undefined) return;
-    // Arrow keys must not also nudge the selected element (document-level shortcut).
+    // The grid's own keys: no listener further up acts on them too.
     event.preventDefault();
     event.stopPropagation();
     buttons[Math.min(buttons.length - 1, Math.max(0, next))]?.focus();

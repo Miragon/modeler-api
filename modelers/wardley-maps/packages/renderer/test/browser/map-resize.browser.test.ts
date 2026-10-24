@@ -565,6 +565,28 @@ describe("map resize handles (Modeler)", () => {
     return start;
   }
 
+  it("hands the focus to the canvas from a host field, so Cmd/Ctrl+Z undoes the drag", () => {
+    const field = document.createElement("input");
+    document.body.appendChild(field);
+    try {
+      field.focus();
+      const original = modeler.exportDSL();
+      const start = startDrag("xy");
+      const svg = modeler.get<Canvas>("canvas").getContainer().querySelector(":scope > svg")!;
+      expect(document.activeElement).toBe(svg);
+      mouse("mousemove", document, { x: start.x + 180, y: start.y + 110 });
+      mouse("mouseup", document, { x: start.x + 180, y: start.y + 110 });
+      expect(modeler.exportDSL()).not.toBe(original);
+
+      svg.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true, cancelable: true }),
+      );
+      expect(modeler.exportDSL()).toBe(original);
+    } finally {
+      field.remove();
+    }
+  });
+
   it("sits above the axes and below the elements", () => {
     const viewport = container.querySelector(".viewport")!;
     const layers = [...viewport.children].map((child) => child.getAttribute("class") ?? "");

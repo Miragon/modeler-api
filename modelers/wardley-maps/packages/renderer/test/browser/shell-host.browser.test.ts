@@ -195,15 +195,32 @@ describe("inside a host chrome (the Miragon modeler shell)", () => {
     expect(canvas.viewbox().y).toBeCloseTo(fitted.y, 0);
   });
 
-  it("without a host chrome, a focused plain button still lets the single-key tools through", async () => {
+  it("hands the focus to the canvas after a pointer click on a palette entry", async () => {
+    const target = mount({ shell: true, insets: INSETS });
+    await target.importDSL(MAP);
+    const lasso = entry(target, "lasso-tool");
+    lasso.focus();
+    click(lasso, 1);
+    const svg = target.get<Canvas>("canvas").getContainer().querySelector(":scope > svg");
+    expect(document.activeElement).toBe(svg);
+    target.get<{ cancel(): void }>("dragging").cancel();
+  });
+
+  it("without a host chrome, a focused host button keeps the single-key tools and undo too", async () => {
     const target = mount();
     await target.importDSL(MAP);
+    target.setTitle("Edited");
     const button = document.createElement("button");
     document.body.appendChild(button);
     extras.push(button);
     button.focus();
     const before = components(target);
-    button.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true }));
-    expect(components(target)).toHaveLength(before.length + 1);
+    for (const init of [{ key: "c" }, { key: "z", metaKey: true }]) {
+      const event = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
+      button.dispatchEvent(event);
+      expect(event.defaultPrevented, init.key).toBe(false);
+    }
+    expect(components(target)).toEqual(before);
+    expect(target.exportMap().config.title).toBe("Edited");
   });
 });

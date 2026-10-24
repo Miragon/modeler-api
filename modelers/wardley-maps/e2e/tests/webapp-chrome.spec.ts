@@ -827,6 +827,47 @@ test.describe("keys and dialogs", () => {
     await expect(page.locator("dialog.wardley-shortcuts")).toBeHidden();
   });
 
+  test("while drawing, Enter on a zoom button zooms and Escape closes the menu", async ({
+    page,
+  }) => {
+    await startNewMap(page);
+    const canvas = canvasSlot(page).locator('svg[role="application"]');
+    const drawing = page.locator(".wardley-container.wardley-draw-mode");
+    const zoom = () =>
+      page.evaluate(() =>
+        (window.__wardleyViewer as unknown as { get(name: "canvas"): { zoom(): number } })
+          .get("canvas")
+          .zoom(),
+      );
+    const drawings = async () =>
+      (await exportMap(page)).elements.filter((element) => element.elementType === "drawing")
+        .length;
+
+    await page.locator('.djs-palette [data-action="draw-tool"]').click();
+    await expect(canvas).toBeFocused();
+    const box = (await canvasSlot(page).boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.5);
+    await page.mouse.click(box.x + box.width * 0.55, box.y + box.height * 0.45);
+    await expect(drawing).toHaveCount(1);
+
+    const before = await zoom();
+    await page.locator('[data-chrome="zoom"] [data-zoom="in"]').focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(zoom).toBeGreaterThan(before);
+    await expect(drawing).toHaveCount(1);
+
+    const menu = await openMenu(page);
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(drawing).toHaveCount(1);
+    expect(await drawings()).toBe(0);
+
+    await canvas.focus();
+    await page.keyboard.press("Escape");
+    await expect(drawing).toHaveCount(0);
+    expect(await drawings()).toBe(1);
+  });
+
   test("delete and undo work on the canvas again after a click on the chrome", async ({ page }) => {
     await openApp(page);
     await openExample(page);
