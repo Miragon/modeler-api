@@ -472,6 +472,35 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       drawTool().cancel();
     });
 
+    it.each(["a Monaco editor", "an EditContext editor"] as const)(
+      "leaves Enter and Escape to %s the host placed inside the canvas container",
+      (kind) => {
+        drawTool().activate();
+        placePoint(300, 300);
+        placePoint(420, 360);
+        const editor = document.createElement("div");
+        const input = document.createElement("div");
+        input.tabIndex = 0;
+        if (kind === "a Monaco editor") {
+          editor.className = "monaco-editor";
+        } else {
+          (input as unknown as { editContext: unknown }).editContext = new (
+            window as unknown as { EditContext: new () => unknown }
+          ).EditContext();
+        }
+        editor.appendChild(input);
+        service<Canvas>("canvas").getContainer().appendChild(editor);
+        input.focus();
+
+        expect(pressKey(input, "Enter").defaultPrevented).toBe(false);
+        expect(pressKey(input, "Escape").defaultPrevented).toBe(false);
+        expect(drawTool().isActive()).toBe(true);
+        expect(drawings()).toBe(0);
+        drawTool().cancel();
+        editor.remove();
+      },
+    );
+
     it("still cancels with Escape on the palette entry that started it with Enter", () => {
       const entry = container.querySelector<HTMLElement>(
         '.djs-palette .entry[data-action="draw-tool"]',
