@@ -25,7 +25,7 @@ module.exports = {
       name: "packages-no-shell",
       comment:
         "The renderer and the DOM-free packages never import @miragon/modeler-shell; only the apps " +
-        "mount the shell (dependency direction of Miragon/modeler-api#4).",
+        "mount the shell (dependency direction of Miragon/modeler-suite#4).",
       severity: "error",
       from: { path: "^packages/[^/]+/src" },
       // Matches the specifier too, so an import that does not resolve from the package fails.

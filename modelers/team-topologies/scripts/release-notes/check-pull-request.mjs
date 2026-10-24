@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { breakingChangeReport } from "./breaking-changes.mjs";
 
-const repository = process.env.GITHUB_REPOSITORY ?? "Miragon/team-topologies-modeler";
+const repository = process.env.GITHUB_REPOSITORY ?? "Miragon/modeler-suite";
 const apiUrl = process.env.GITHUB_API_URL ?? "https://api.github.com";
 const token = process.env.GITHUB_TOKEN;
 const event = process.env.GITHUB_EVENT_PATH

@@ -180,7 +180,7 @@ const shell: ShellHandle = mountShell(app, {
       shell.toast({ status: "success", text: "Link copied" });
     },
   },
-  legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/modeler-api" }] },
+  legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/modeler-suite" }] },
   file: {
     newDiagram: { onSelect: () => newDiagram() },
     open: { onSelect: () => calls.push("open"), shortcut: "⌘O" },

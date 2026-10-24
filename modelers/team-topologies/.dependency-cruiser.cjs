@@ -39,7 +39,7 @@ module.exports = {
       name: "packages-no-shell",
       comment:
         "The libraries never import @miragon/modeler-shell; only the apps (and the shared ui) mount " +
-        "the chrome (dependency direction of Miragon/modeler-api#4).",
+        "the chrome (dependency direction of Miragon/modeler-suite#4).",
       severity: "error",
       from: { path: "^packages/(schema-model|renderer)/" },
       // Also an unresolved specifier (the shell not installed next to the package) must fail.

@@ -852,7 +852,7 @@ test.describe("the legal line", () => {
     }
     await expect(legal.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "href",
-      "https://github.com/Miragon/wardley-maps-modeler",
+      "https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley",
     );
   });
 });

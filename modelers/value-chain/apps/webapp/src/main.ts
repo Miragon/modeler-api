@@ -47,7 +47,7 @@ interface CommandStackLike {
 }
 
 const APP_NAME = "Value Chain Modeler";
-const REPOSITORY_URL = "https://github.com/Miragon/value-chain-modeler";
+const REPOSITORY_URL = "https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain";
 // The MIME type decides during a drag, the extension at the drop (guide §9); a .vc file has none.
 const DIAGRAM_FILE_TYPES = [".vc", ".json", "application/json"];
 const CHECK_DIAGRAM_FILE = "Check that it contains a valid value chain diagram.";

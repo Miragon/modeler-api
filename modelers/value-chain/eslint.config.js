@@ -92,7 +92,7 @@ export default tseslint.config(
     },
   },
   // The renderer draws the canvas; the chrome around it is the apps' (dependency direction of
-  // Miragon/modeler-api#4).
+  // Miragon/modeler-suite#4).
   {
     files: ["packages/renderer/src/**/*.ts"],
     rules: {

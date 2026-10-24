@@ -644,7 +644,7 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     }
     await expect(legal.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "href",
-      "https://github.com/Miragon/event-storming-modeler",
+      "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming",
     );
   });
 

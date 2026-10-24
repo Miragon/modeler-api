@@ -65,7 +65,7 @@ interface CanvasLike {
 const APP_NAME = "Event Storming Modeler";
 const BOARD_NAME = "Event Storming board";
 const NEW_BOARD_TITLE = "New board";
-const REPOSITORY_URL = "https://github.com/Miragon/event-storming-modeler";
+const REPOSITORY_URL = "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming";
 /** Extensions for the file picker and the drop; the MIME types decide during a drag (guide §9). */
 const BOARD_FILE_TYPES = [".storm", ".json", ".txt", "application/json", "text/plain"];
 const BROKEN_LINK_TEXT =

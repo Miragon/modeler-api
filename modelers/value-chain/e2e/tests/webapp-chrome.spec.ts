@@ -213,7 +213,7 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     const legal = page.locator('[data-chrome="legal"]');
     await expect(legal.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "href",
-      "https://github.com/Miragon/value-chain-modeler",
+      "https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain",
     );
     await expect(legal.getByRole("link", { name: "Impressum" })).toHaveAttribute("lang", "de");
   });

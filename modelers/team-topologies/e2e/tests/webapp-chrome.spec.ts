@@ -138,7 +138,10 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await expect(page.locator('[data-chrome="legal"]')).toBeVisible();
     await expect(
       page.locator('[data-chrome="legal"]').getByRole("link", { name: "GitHub" }),
-    ).toHaveAttribute("href", "https://github.com/Miragon/team-topologies-modeler");
+    ).toHaveAttribute(
+      "href",
+      "https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies",
+    );
 
     await startBlankCanvas(page);
     for (const island of ["menu", "primary", "palette", "zoom"]) {

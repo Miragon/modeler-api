@@ -77,7 +77,7 @@ interface CanvasLike {
 const APP_NAME = "Context Maps Modeler";
 const CANVAS_NAME = "Context map";
 const DEFAULT_TITLE = emptyDocument().title;
-const REPOSITORY_URL = "https://github.com/Miragon/context-maps-modeler";
+const REPOSITORY_URL = "https://github.com/Miragon/modeler-suite/tree/main/modelers/context-maps";
 /** Extensions for the file pickers and the drop; the MIME type decides during a drag (guide §9). */
 const OPEN_TYPES = [".cm", ".json", "application/json"];
 const IMPORT_TYPES = [CML_EXTENSION];

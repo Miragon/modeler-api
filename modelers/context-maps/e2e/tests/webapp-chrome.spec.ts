@@ -580,7 +580,7 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     }
     await expect(legal.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "href",
-      "https://github.com/Miragon/context-maps-modeler",
+      "https://github.com/Miragon/modeler-suite/tree/main/modelers/context-maps",
     );
   });
 

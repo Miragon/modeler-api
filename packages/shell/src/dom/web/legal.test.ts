@@ -40,7 +40,10 @@ describe("legal line (guide §5.10, §2)", () => {
     const { element } = legalLine({
       year: 2026,
       links: [
-        { label: "GitHub", href: "https://github.com/Miragon/event-storming-modeler" },
+        {
+          label: "GitHub",
+          href: "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming",
+        },
         { label: "Quellcode", href: "https://example.org/", lang: "de" },
       ],
     });
@@ -48,7 +51,11 @@ describe("legal line (guide §5.10, §2)", () => {
       { text: "© 2026 Miragon GmbH", href: MIRAGON_HOME, lang: null },
       { text: "Impressum", href: MIRAGON_IMPRESSUM, lang: "de" },
       { text: "Datenschutz", href: MIRAGON_DATENSCHUTZ, lang: "de" },
-      { text: "GitHub", href: "https://github.com/Miragon/event-storming-modeler", lang: null },
+      {
+        text: "GitHub",
+        href: "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming",
+        lang: null,
+      },
       { text: "Quellcode", href: "https://example.org/", lang: "de" },
     ]);
   });

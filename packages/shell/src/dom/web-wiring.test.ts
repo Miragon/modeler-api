@@ -23,7 +23,7 @@ const komet =
 function webOptions(): Partial<ShellOptions> {
   return {
     primary: { onSelect() {} },
-    legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/modeler-api" }] },
+    legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/modeler-suite" }] },
     file: { newDiagram: { onSelect() {} }, open: { onSelect() {} } },
     appearance: { themeColors: { light: "#335DE5", dark: "#1D1D1D" } },
     problems: { onActivate() {} },

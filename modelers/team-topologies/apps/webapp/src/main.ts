@@ -83,7 +83,8 @@ const APP_NAME = "Miragon Modeler for Team Topologies";
 /** One line on the start card, as the other modelers' cards read. */
 const START_TITLE = "Team Topologies Modeler";
 const DIAGRAM_NAME = "Team Topologies diagram";
-const REPOSITORY_URL = "https://github.com/Miragon/team-topologies-modeler";
+const REPOSITORY_URL =
+  "https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies";
 /** Extensions for the drop; the MIME type decides while a file is dragged (guide §9). */
 const DROP_TYPES = [".tt", ".ttm.json", ".json", "application/json"];
 const AUTOSAVE_DELAY_MS = 600;

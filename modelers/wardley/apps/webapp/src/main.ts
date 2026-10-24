@@ -68,7 +68,7 @@ interface ElementRegistryLike {
 
 const APP_NAME = "Wardley Maps Modeler";
 const MAP_NAME = "Wardley map";
-const REPOSITORY_URL = "https://github.com/Miragon/wardley-maps-modeler";
+const REPOSITORY_URL = "https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley";
 /** Extensions for the file picker and the drop; the MIME types decide during a drag (guide §9). */
 const MAP_FILE_TYPES = [".wmap", ".owm", ".json", "application/json", "text/plain"];
 const CORRUPT_LINK_MESSAGE =
