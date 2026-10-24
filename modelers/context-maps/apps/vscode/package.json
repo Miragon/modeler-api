@@ -1,0 +1,310 @@
+{
+  "name": "context-maps-modeler",
+  "private": true,
+  "version": "0.9.0",
+  "displayName": "Context Maps Modeler",
+  "description": "View and edit Context Maps diagrams directly in VS Code, including .cm and .cm.json files.",
+  "publisher": "miragon-gmbh",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
+    "directory": "apps/vscode"
+  },
+  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
+  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/apps/vscode#readme",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "context maps",
+    "domain-driven design",
+    "ddd",
+    "diagram",
+    "architecture"
+  ],
+  "main": "./dist/extension.cjs",
+  "type": "module",
+  "activationEvents": [
+    "onCustomEditor:contextMaps.editor",
+    "onCustomEditor:contextMaps.pngEditor"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "context-maps",
+        "aliases": [
+          "Context Maps",
+          "context-maps"
+        ],
+        "extensions": [
+          ".cm",
+          ".cm.json"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./media/icons/context-maps-light.svg",
+          "dark": "./media/icons/context-maps-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "context-maps",
+        "scopeName": "source.context-maps",
+        "path": "./syntaxes/context-maps.tmLanguage.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "contextMaps.editor",
+        "displayName": "Context Maps Diagram",
+        "selector": [
+          {
+            "filenamePattern": "*.cm"
+          },
+          {
+            "filenamePattern": "*.cm.json"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "contextMaps.pngEditor",
+        "displayName": "Context Maps Diagram (PNG)",
+        "selector": [
+          {
+            "filenamePattern": "*.cm.png"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "contextMaps.newDiagram",
+        "title": "New Empty Diagram",
+        "category": "Context Maps",
+        "shortTitle": "Context Maps"
+      },
+      {
+        "command": "contextMaps.newFromExample",
+        "title": "New Diagram from Example",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.newPngDiagram",
+        "title": "New Empty Diagram (embedded PNG)",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.newFromCml",
+        "title": "New Diagram from CML…",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.openSource",
+        "title": "Open Source to the Side",
+        "category": "Context Maps",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "contextMaps.openDiagram",
+        "title": "Open Diagram to the Side",
+        "category": "Context Maps",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "contextMaps.fitView",
+        "title": "Fit to View",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.exportPng",
+        "title": "Export as PNG",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.exportSvg",
+        "title": "Export as SVG",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.exportJson",
+        "title": "Export as JSON",
+        "category": "Context Maps"
+      },
+      {
+        "command": "contextMaps.exportCml",
+        "title": "Export as CML",
+        "category": "Context Maps"
+      }
+    ],
+    "menus": {
+      "file/newFile": [
+        {
+          "command": "contextMaps.newDiagram",
+          "group": "contextMaps"
+        },
+        {
+          "command": "contextMaps.newPngDiagram",
+          "group": "contextMaps"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "contextMaps.openSource",
+          "when": "activeCustomEditorId == contextMaps.editor",
+          "group": "navigation"
+        },
+        {
+          "command": "contextMaps.openDiagram",
+          "when": "editorLangId == context-maps",
+          "group": "navigation"
+        },
+        {
+          "command": "contextMaps.fitView",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor",
+          "group": "contextMaps@1"
+        },
+        {
+          "command": "contextMaps.exportPng",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor",
+          "group": "contextMaps@2"
+        },
+        {
+          "command": "contextMaps.exportSvg",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor",
+          "group": "contextMaps@3"
+        },
+        {
+          "command": "contextMaps.exportJson",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor",
+          "group": "contextMaps@4"
+        },
+        {
+          "command": "contextMaps.exportCml",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor",
+          "group": "contextMaps@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "contextMaps.openSource",
+          "when": "activeCustomEditorId == contextMaps.editor"
+        },
+        {
+          "command": "contextMaps.openDiagram",
+          "when": "editorLangId == context-maps"
+        },
+        {
+          "command": "contextMaps.fitView",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor"
+        },
+        {
+          "command": "contextMaps.exportPng",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor"
+        },
+        {
+          "command": "contextMaps.exportSvg",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor"
+        },
+        {
+          "command": "contextMaps.exportJson",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor"
+        },
+        {
+          "command": "contextMaps.exportCml",
+          "when": "activeCustomEditorId == contextMaps.editor || activeCustomEditorId == contextMaps.pngEditor"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "getStarted",
+        "title": "Get Started with Context Maps Modeler",
+        "description": "Create and edit Context Maps diagrams — bounded contexts by subdomain type, connected by context-mapping relationship patterns — directly in VS Code, as plain .cm JSON files.",
+        "steps": [
+          {
+            "id": "new",
+            "title": "Create a diagram",
+            "description": "Start from an empty map: a plain .cm file that opens as a canvas.\n[Create empty diagram](command:contextMaps.newDiagram)",
+            "media": {
+              "markdown": "media/walkthrough/new.md"
+            },
+            "completionEvents": [
+              "onCommand:contextMaps.newDiagram"
+            ]
+          },
+          {
+            "id": "example",
+            "title": "Open the example",
+            "description": "See a finished map: a conference event planner with every subdomain type and four relationship patterns.\n[Create diagram from example](command:contextMaps.newFromExample)",
+            "media": {
+              "markdown": "media/walkthrough/example.md"
+            },
+            "completionEvents": [
+              "onCommand:contextMaps.newFromExample"
+            ]
+          },
+          {
+            "id": "source",
+            "title": "Open the source to the side",
+            "description": "The JSON is the map: edit it beside the canvas and watch both stay in sync.\n[Open Source to the Side](command:contextMaps.openSource)",
+            "media": {
+              "markdown": "media/walkthrough/source.md"
+            },
+            "completionEvents": [
+              "onCommand:contextMaps.openSource"
+            ]
+          },
+          {
+            "id": "learn",
+            "title": "Learn the basics",
+            "description": "Get to know the three subdomain types, the five context-mapping relationship patterns, and how to draw contexts and relationships on the canvas.",
+            "media": {
+              "markdown": "media/walkthrough/learn.md"
+            },
+            "completionEvents": [
+              "onStepSelected"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "notices": "node scripts/third-party-notices.mjs",
+    "vscode:prepublish": "node esbuild.config.mjs --production",
+    "package": "vsce package --no-dependencies -o context-maps-modeler.vsix"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@miragon/context-maps-cml": "0.1.5",
+    "@miragon/context-maps-renderer": "0.6.0",
+    "@miragon/context-maps-schema-model": "0.4.0",
+    "@miragon/modeler-shell": "0.5.0",
+    "diagram-js": "15.28.1",
+    "didi": "12.0.0",
+    "jsonc-parser": "3.3.1",
+    "tiny-svg": "4.1.4",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/vscode": "1.96.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1"
+  }
+}

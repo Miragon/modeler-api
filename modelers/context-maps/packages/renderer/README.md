@@ -1,0 +1,253 @@
+# @miragon/context-maps-renderer
+
+[![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
+[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
+
+The **browser layer** of the [Context Maps Modeler](../../README.md): a framework-agnostic viewer
+and full editor for strategic Domain-Driven Design [Context Maps](https://contextmapper.org/)
+diagrams, built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT).
+
+It renders the canonical document from
+[`@miragon/context-maps-schema-model`](../schema-model) and gives you palette, move,
+connect-by-relationship, context pad, inline label editing and undo/redo — with no UI framework
+required. Mount it into any `<div>`; the web app and the VS Code extension both wrap this
+exact package. It implements the collaborative-modeler contract of
+[`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api), and it hands a chrome
+such as [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell) its legend,
+menu entries and shortcuts dialog without importing it.
+
+## Install
+
+```bash
+npm install @miragon/context-maps-renderer @miragon/context-maps-schema-model
+```
+
+## Three entry points
+
+| Class             | Use it for                                                             |
+| ----------------- | ---------------------------------------------------------------------- |
+| `Viewer`          | Read-only rendering, no interaction (thumbnails, static embeds).       |
+| `NavigatedViewer` | Read-only + zoom (scroll), pan (drag) and selection.                   |
+| `Modeler`         | The full editor: palette, move, context pad, label editing, undo/redo. |
+
+All three share a common base (`CmBaseViewer`) with the same import/export and lifecycle API.
+
+## Quick start
+
+```ts
+import { Modeler } from "@miragon/context-maps-renderer";
+import "@miragon/context-maps-renderer/assets/context-maps.css";
+import { SAMPLE_DOCUMENT } from "@miragon/context-maps-schema-model";
+
+const modeler = new Modeler({ container: document.querySelector("#canvas")! });
+
+// Load a document (fits the content, never above 100 %; an empty map shows 100 %)
+const { warnings } = modeler.importDocument(SAMPLE_DOCUMENT);
+
+// Read the live canvas back as the canonical model
+const doc = modeler.exportDocument();
+
+// Export a standalone, self-contained SVG
+const { svg } = modeler.saveSVG();
+
+// Undo / redo are driven by the command stack
+modeler.undo();
+modeler.redo();
+```
+
+> **The CSS is required.** Import `@miragon/context-maps-renderer/assets/context-maps.css`
+> (it also pulls in `diagram-js`'s own stylesheet) — without it the palette, context pad and label
+> editor are unstyled.
+
+## API
+
+### Constructor — `CmViewerOptions`
+
+```ts
+new Modeler({
+  container?: HTMLElement,            // host element (a detached <div> if omitted)
+  width?: number | string,           // canvas width  (default "100%")
+  height?: number | string,          // canvas height (default "100%", or "600px" with no container)
+  additionalModules?: ModuleDeclaration[], // extra diagram-js modules
+  undoRedoKeys?: boolean,            // bind Cmd/Ctrl+Z, Shift+Z, Y to the canvas (default true)
+  freeArea?:                         // where the host's chrome leaves the canvas free
+    | { insets: () => { top: number; right: number; bottom: number; left: number } }
+    | { center: () => { x: number; y: number } | undefined },
+  fitOnImport?: boolean,             // fit the content after every import (default true)
+});
+```
+
+- `undoRedoKeys: false` leaves the undo and redo keys unbound and unprevented, for a host whose
+  document owns the history (the VS Code extension).
+- `freeArea` names the part of the container a host's chrome leaves free, with the names of the
+  `@miragon/modeler-api` 1.2 factory options: `{ insets }` are the margins the chrome covers (the
+  modeler shell's `shell.fitInsets()`), `{ center }` is the free rectangle's centre in diagram
+  coordinates (`viewport.freeRectCenter()`). Enter or Space on a palette entry (a click with
+  `detail === 0`) places the new context in that centre, 24px further down and right while that
+  spot is taken, selected and with its name editor open, and the fit after an import centres the
+  content in what the insets leave. Without it, and for the fit when only `center` is given, the
+  renderer keeps room for its own palette.
+- `fitOnImport: false` leaves the view to a host whose chrome fits the content itself after every
+  import, so the view changes once per import.
+- `freeRectInsets` (the insets function itself) is the deprecated name of `freeArea: { insets }`.
+  It is accepted through the 0.5 releases and ignored when `freeArea` is given.
+
+### Shared methods (`Viewer` / `NavigatedViewer` / `Modeler`)
+
+| Method                             | Returns                         | Purpose                                           |
+| ---------------------------------- | ------------------------------- | ------------------------------------------------- |
+| `importDocument(doc)`              | `{ warnings: ImportWarning[] }` | Replace canvas content and fit (see below).       |
+| `importText(text)`                 | `{ warnings: ImportWarning[] }` | Parse a `.cm` text and import it; throws if not.  |
+| `exportDocument()`                 | `CmDocument`                    | Rebuild the canonical model from the live canvas. |
+| `exportText()`                     | `string`                        | The canonical `.cm` text (ends in a line break).  |
+| `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot (fitted viewBox).     |
+| `contentBounds()`                  | `ElementBounds` or `undefined`  | The content's box for a host's fit (see below).   |
+| `setMeta(partial)` / `getMeta()`   | — / `RootBusinessObject`        | Rename the map (an undoable command) / read it.   |
+| `attachTo(el)` / `detach()`        | `void`                          | Move the canvas in/out of the DOM (keeps state).  |
+| `clear()` / `destroy()`            | `void`                          | Empty the canvas / tear it down.                  |
+| `on(event, cb)` / `off(event, cb)` | `void`                          | Subscribe to diagram-js events.                   |
+| `get<T>(name)`                     | `T`                             | Resolve a diagram-js service (advanced).          |
+
+An import is **silent**: the previous document's undo history goes without a
+`commandStack.changed`, so a host that saves on every change never writes an import back. It
+**rejects without a trace**: a document with a duplicate id, an id of the engine's roots or the
+name of a built-in object property as an id throws before anything is removed. It is **lossless**:
+keys the model does not know and relationships whose ends are not on the map come back on export. A
+label edit open during an import is taken down and reopened on the element with the same id, with
+the typed text.
+
+`contentBounds()` is the tight box around what the canvas draws of the map in diagram coordinates,
+without a margin: the contexts, wider where a team row or a subdomain type's name runs past a
+context's sides (the renderer does not cut them), and the relationships' waypoints. It is the box a
+host's chrome fits to (the modeler shell's `connectDiagramJs` reads it from the instance it gets as
+`modeler`). It reads the live canvas, so a context created or moved counts at once, ignores zoom
+and scroll, and is `undefined` while the map is empty. The fit after an import centres this box in
+the free rectangle of `freeArea.insets`, or in the room the renderer's own palette needs.
+
+A **view change never commits** an open label edit or description prompt: a pan or zoom, the user's
+or the host's (`canvas.viewbox(…)`, `setViewState`, a fit), keeps it open with the typed text and
+moves it with its element or pad entry. Only the user's own gestures commit it: Enter, leaving the
+field, or starting a drag.
+
+### Modeler-only
+
+`undo()`, `redo()`, `canUndo()`, `canRedo()`.
+
+## Collaborative modeler
+
+```ts
+import { createCollaborativeModeler } from "@miragon/context-maps-renderer";
+
+const modeler = createCollaborativeModeler({ additionalModules: [], undoRedoKeys: true });
+modeler.attachTo(host); // attached to the document, with a size
+await modeler.importText(text); // silent; rejects (and changes nothing) for a non-importable text
+modeler.onContentChanged(() => save(modeler.exportText()));
+```
+
+`createCollaborativeModeler` and `createCollaborativeViewer` implement the `CollaborativeModeler`
+contract of `@miragon/modeler-api` 1.3 (`meta.notation` is `"context-maps"`): the canonical JSON text
+as the text lane, `onContentChanged` for every user-visible change (element commands, the title,
+undo, redo) and never for an import or a view change, the viewbox as view state, and the `elements`
+surface over the context and relationship ids (their labels as names). `elements.bounds(id)` reads
+an element's box from the live canvas in diagram coordinates (a relationship: the box around its
+waypoints), `undefined` for an id `elements.list()` does not report. `contentBounds()` is the
+diagram's `contentBounds()`, the box around all of them, `undefined` before the first import, for
+an empty map and after `destroy()`. Both factories take the contract's
+`CollaborativeModelerOptions` (`freeArea`, `fitOnImport`, `undoRedoKeys`, which the viewer ignores)
+next to `additionalModules` and the deprecated `freeRectInsets`. `modeler.diagram` is the wrapped
+`Modeler` or `NavigatedViewer`. The contract's conformance kit runs in this package's browser
+tests, every case and every hook, without a skip or an advisory.
+
+## Around the canvas
+
+What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-shell` handle fits):
+
+- `renderLegend(body, { tooltip })` renders the notation legend (subdomain types, integration roles,
+  relationship patterns) into a chrome's legend card, each row explained in the chrome's tooltip.
+  Hosts without such a chrome add `cmLegendModule`, a legend card on the canvas. It starts closed
+  on every canvas size, so it never covers the map unasked; the user opens it with its button, and
+  the `cmLegend` service's `setOpen(open)` restores a state the host stored.
+- `contextMapMenu({ exports, showKeyboardShortcuts, editTitle })` builds the Model group's "Map
+  title…" (with `editTitle`), the Export group (PNG, SVG, JSON, CML; an export's `shortcut` shows as
+  its chip) and the Help group's "Keyboard shortcuts…". `createShortcutsDialog(chrome, { fileKeys })`
+  is that dialog, with a File group (Open… and Export as JSON on Cmd/Ctrl+O and S) for a web app
+  that binds those keys; `createTitleDialog(chrome, { title, setTitle })` renames the map in a
+  modal dialog with one field, Cancel and Apply. Both dialogs live in the chrome's root and go with
+  `destroy()`.
+- While a drag runs on the canvas, the chrome's legend island (`[data-chrome="legend"]`) lets the
+  pointer through, so a connect drag released on a context behind it still connects.
+- `cmReadOnly` (part of the `Modeler`) locks every edit while a host cannot take edits from the
+  canvas, an invalid file in an IDE: no context pad, move, create, connect, delete or label editor;
+  selection, zoom, pan, select all and export stay.
+- The keyboard listens on the document but only acts on keys aimed at the canvas: keys someone
+  already handled (`defaultPrevented`) and keys from outside the canvas container pass. `Cmd/Ctrl+A`
+  selects every element.
+
+### Helpers & types
+
+- **Type guards:** `isCmElement`, `isCmContext`, `isCmRelationship`.
+- **Runtime element types:** `CmContext`, `CmRelationship`, `CmElement`.
+- **Palette icon generators:** `contextIconSvg(type)`, `relationshipIconSvg(pattern)` —
+  WYSIWYG SVG glyphs matching what the canvas draws.
+- **Other:** `CmViewerOptions`, `ImportWarning`, `RootBusinessObject`, `ROOT_ID`, `saveSVG`.
+
+## How it's built
+
+The package is a set of [didi](https://github.com/nikku/didi) modules layered on diagram-js. Each is
+exported (e.g. `cmDrawModule`, `cmPaletteModule`, `cmModelingModule`) so you can compose your own
+viewer via `additionalModules`:
+
+| Module                   | Responsibility                                                                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmModelModule`          | Element factory with notation defaults (`CmElementFactory`).                                                                                                                     |
+| `cmDrawModule`           | Custom SVG rendering of contexts and relationships (`ContextMapsRenderer`).                                                                                                      |
+| `ioModule`               | Document ↔ canvas bridge (`CmImporter`, `CmExporter`, `saveSVG`).                                                                                                                |
+| `cmModelingModule`       | High-level mutations — label, subdomain type, relationship pattern, roles, colours.                                                                                              |
+| `cmRulesModule`          | Editing rules (what can move / be created / connected; no resize).                                                                                                               |
+| `cmBehaviorsModule`      | Keeps the model **flat** — shapes never nest.                                                                                                                                    |
+| `cmPaletteModule`        | The tool palette: lasso tool + create contexts (drag, click, or Enter/Space into the free rectangle).                                                                            |
+| `cmConnectHandlesModule` | Opt-in (not in the default `Modeler`): four outward connect arrows around the selected context.                                                                                  |
+| `cmContextPadModule`     | Per-element quick actions: append a connected context, connect, subdomain-type / pattern / integration-role menus, owning team, description, in-place rename, swap ends, delete. |
+| `cmLegendModule`         | Opt-in: the notation legend as a collapsible card (bottom-left), for hosts without a chrome that renders `renderLegend`.                                                         |
+| `cmHoverTooltipModule`   | An element's own data (description, team, technology) on hover, inside the canvas container.                                                                                     |
+| `cmReadOnlyModule`       | The canvas lock (`cmReadOnly`) every editing feature consults.                                                                                                                   |
+| `cmLabelEditingModule`   | In-place direct name editing (double-click / pad), bpmn.io style.                                                                                                                |
+| `cmKeyboardModule`       | Select all / undo / redo / delete for keys aimed at the canvas (`undoRedoKeys` option).                                                                                          |
+| `cmZOrderModule`         | Fixed stacking order (relationships behind, contexts on top).                                                                                                                    |
+
+### Rendering
+
+A custom `ContextMapsRenderer` (priority `1500`, beating diagram-js's default) draws each element
+from the spec in [`@miragon/context-maps-schema-model`](../schema-model): bounded-context boxes
+coloured by subdomain type (core / supporting / generic) with their glyphs; and relationships drawn
+as lines styled per context-mapping pattern (partnership, shared kernel, customer-supplier,
+upstream-downstream, separate ways), carrying the pattern abbreviation, U/D end markers and the
+OHS/PL/ACL/CF integration-role badges. Labels are word-wrapped and centred. Per-element `fill`/`stroke`
+overrides win over the spec defaults.
+
+## Import / export
+
+The package reads and writes the canonical `CmDocument` (JSON) and exports a standalone **SVG**.
+PNG export and the embedded-scene round-trip (storing the document inside the exported image) live in
+the [web app](../../apps/webapp) and the [VS Code extension](../../apps/vscode), which add the canvas
+rasterisation those formats need.
+
+## Development
+
+Part of the [Context Maps Modeler](../../README.md) monorepo; consumed from source by the apps.
+From the repo root:
+
+```bash
+npm run build -w packages/renderer   # Vite library build → dist/ (publish build)
+npm test                             # Vitest unit tests
+npm run test:browser                 # renderer integration tests in real Chromium
+npm run typecheck
+```
+
+## License
+
+[MIT](../../LICENSE). diagram-js and its dependencies are MIT / ISC / Apache-2.0. The icons of the
+context pad, the connect handles, the validation markers, the lasso and the shortcuts dialog are
+[Lucide](https://lucide.dev) icons (lucide-static 1.59.0, ISC, © Lucide Icons and Contributors),
+copied into `src/draw/lucide.ts`; `arrow-right`, `circle-x`, `trash`, `triangle-alert` and `x` derive
+from [Feather](https://feathericons.com) (MIT, © Cole Bemis).

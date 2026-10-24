@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@miragon/context-maps-schema-model": ["../../packages/schema-model/src/index.ts"],
+      "@miragon/context-maps-cml": ["../../packages/cml/src/index.ts"],
+      "@miragon/context-maps-renderer": ["../../packages/renderer/src/index.ts"]
+    }
+  },
+  "include": ["src", "test", "../../packages/renderer/src/diagram-js-direct-editing.d.ts"]
+}

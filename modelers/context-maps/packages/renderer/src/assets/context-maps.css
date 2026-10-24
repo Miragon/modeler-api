@@ -1,0 +1,866 @@
+/* Design-system files vendored unchanged from Miragon/corporate-identity (src/theme/), in the
+   order of guide §10.3. The tokens sit in a cascade layer, so a host page's own --cd-* tokens
+   (unlayered) win over this copy. cd-canvas.css stays unlayered and comes after diagram-js.css,
+   so its mapping of the --bio-* and .djs-parent variables onto the --cd-ui-* roles beats
+   diagram-js's defaults. Everything below reads the roles (--cd-ui-*) and the mode-independent
+   tokens (radius, shadow, motion) only; the canvas drawing keeps its light SVG attributes. */
+@import "../theme/cd-tokens.generated.css" layer(context-maps-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
+
+/* ============================================================================
+   Context Maps diagram-js renderer — the in-canvas chrome.
+   Scoped to .cm-djs-container so it composes inside any host (web app, VS Code webview, the
+   Miragon modeler shell). The host owns the surrounding chrome (menu, zoom, legend slot).
+   ========================================================================== */
+
+.cm-djs-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: var(--cd-ui-grund);
+  background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
+  background-size: 22px 22px;
+  font-family:
+    "Geist Variable",
+    "Geist",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  overflow: hidden;
+}
+
+/* The container is no tab stop; the canvas <svg> shows its ring for keyboard focus only. */
+.cm-djs-container:focus,
+.cm-djs-container svg:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.cm-djs-container .djs-element text {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hover and selection: the shape's outline in the interaction role (guide §10.4), never a tint. */
+.cm-djs-container .djs-element.hover .djs-visual > :first-child:not(text),
+.cm-djs-container .djs-element.selected .djs-visual > :first-child:not(text) {
+  stroke: var(--cd-ui-interaktion) !important;
+}
+
+.cm-djs-container .djs-outline {
+  stroke: var(--cd-ui-interaktion);
+  stroke-dasharray: 3 3;
+}
+
+/* --- Palette without the modeler shell (hosts that embed the renderer alone) */
+/* A palette the shell skins (data-chrome="palette") takes the shell's look alone. */
+.djs-palette:not([data-chrome="palette"]) {
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 110;
+  width: auto;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-1);
+}
+.djs-palette:not([data-chrome="palette"]) .djs-palette-entries,
+.djs-palette:not([data-chrome="palette"]) .group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+.djs-palette:not([data-chrome="palette"]) .entry {
+  position: relative;
+  float: none;
+  width: 32px;
+  height: 32px;
+  line-height: normal;
+  border-radius: var(--cd-radius-sm);
+  color: var(--cd-ui-text);
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease);
+}
+.djs-palette:not([data-chrome="palette"]) .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+/* Vertical divider between the tools group and the create entries. */
+.djs-palette:not([data-chrome="palette"]) .group + .group {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 9px;
+}
+.djs-palette:not([data-chrome="palette"]) .group + .group::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  background: var(--cd-ui-linie);
+}
+.djs-palette:not([data-chrome="palette"]) .cm-palette-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* The armed tool carries diagram-js' `highlighted-entry`; the !important matches diagram-js' own
+   highlighted-entry colour rule. A ring, never a full fill (guide §5.5). */
+.djs-palette:not([data-chrome="palette"]) .entry.highlighted-entry {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-text) !important;
+  box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
+}
+
+.cm-palette-svg {
+  display: block;
+  pointer-events: none;
+}
+
+/* --- Connect handles (four arrows around a selected context) -------------- */
+.cm-connect-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: var(--cd-shadow-1);
+  color: var(--cd-ui-text);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+.cm-connect-handle:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.cm-connect-handle__arrow {
+  display: flex;
+}
+
+/* --- Context pad (per-element quick actions) ------------------------------ */
+/* One opaque island (guide §8): flaeche-hoch, a line border, shadow-2, 3px padding and 28px entries
+   with 16px icons. The container stays click-through (diagram-js: pointer-events none), only the
+   entries take the pointer, so the gaps never swallow canvas clicks. */
+.djs-context-pad.open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  box-sizing: border-box;
+  width: auto;
+  padding: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+}
+/* A read-only canvas offers nothing: no empty island under the lock (guide §13.5). */
+.djs-context-pad.open:not(:has(.entry)) {
+  display: none;
+}
+/* diagram-js anchors a connection's pad at the LAST waypoint — on the target context's edge. When
+   the closing segment points into that box (rightward / downward), flip the stack to the free side
+   so it never covers the target. */
+.djs-context-pad.cm-pad-flip-x {
+  transform: translate(calc(-100% - 16px), 14px);
+}
+.djs-context-pad.cm-pad-flip-y {
+  transform: translateY(calc(-100% - 16px));
+}
+.djs-context-pad .group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.djs-context-pad .group + .group {
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 1px solid var(--cd-ui-linie);
+}
+.djs-context-pad .entry.cm-pad-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+  color: var(--cd-ui-text);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+.djs-context-pad .entry.cm-pad-entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.djs-context-pad .entry.cm-pad-entry--danger:hover {
+  background: var(--cd-ui-danger-flaeche);
+  color: var(--cd-ui-danger);
+}
+.djs-context-pad .cm-palette-svg {
+  pointer-events: none;
+}
+/* While a drag is in flight the pad must not swallow the pointer either (releasing a connect drag
+   on top of it has to reach the element beneath). */
+.cm-dragging .djs-context-pad,
+.cm-dragging .djs-context-pad * {
+  pointer-events: none !important;
+}
+
+/* --- Popup menus (subdomain type / pattern / integration roles) ----------- */
+/* The colours come from cd-canvas.css (--bio-*, --popup-*); the menu is a transient popup and may
+   cover the palette while it is open (guide §5.13). */
+.djs-popup {
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  animation: cm-popup-in var(--cd-motion-fast) var(--cd-ease-out);
+}
+.djs-popup .djs-popup-results {
+  padding: 4px 6px 6px;
+}
+/* diagram-js sizes the icon box 1em at font-size 1.4em (≈19.6px) — the previews are drawn for
+   24px; without this the 26er viewBox (and the role chips' text) shrinks below legibility. */
+.djs-popup .djs-popup-entry-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 1em;
+}
+.djs-popup .djs-popup-entry-icon .cm-palette-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Rule-blocked entries (OHS/CF under customer-supplier) must read inert: diagram-js marks hovered
+   entries `.selected` even when disabled, so the hover has to be taken back. The description (the
+   reason) stays fully legible. */
+.djs-popup .entry.disabled,
+.djs-popup .entry.disabled.selected {
+  background-color: transparent;
+}
+.djs-popup .entry.disabled .djs-popup-entry-name {
+  color: var(--cd-ui-text-leise);
+}
+/* The entry matching the element's current state: interaction colour + trailing check. */
+.djs-popup .djs-popup-entry-name.cm-popup-active {
+  color: var(--cd-ui-interaktion);
+  font-weight: 600;
+}
+.djs-popup .djs-popup-entry-name.cm-popup-active .djs-popup-label::after {
+  content: " ✓";
+}
+@keyframes cm-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .djs-popup {
+    animation: none;
+  }
+}
+
+/* --- Notation legend card (opt-in cmLegendModule, hosts without the modeler shell) --- */
+.cm-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  /* Never taller than the canvas box — the head (collapse button) must stay reachable; the body
+     scrolls instead. No backdrop-filter: it would become the containing block of the
+     fixed-positioned row tips and re-clip them. */
+  max-height: calc(100% - 32px);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+  padding: 8px 12px 12px 16px;
+  z-index: 20;
+  min-width: 184px;
+  color: var(--cd-ui-text);
+}
+.cm-legend__body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.cm-legend__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.cm-legend__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  color: var(--cd-ui-text);
+  font: inherit;
+  cursor: pointer;
+}
+.cm-legend__close:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.cm-legend__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cm-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  font-size: 13px;
+  color: var(--cd-ui-text);
+}
+.cm-legend__divider {
+  height: 1px;
+  background: var(--cd-ui-linie);
+  margin: 8px 0;
+}
+.cm-legend__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+/* Collapsed: a button in the same corner that expands the legend again. */
+.cm-legend-toggle {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--cd-ui-text);
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+.cm-legend-toggle:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.cm-legend-item {
+  position: relative;
+  white-space: nowrap;
+  cursor: help;
+}
+/* Instant notation explanation beside the legend row (no native title delay), styled like the
+   chrome tooltip (guide §5.6). Anchored to the row's right edge — the legend sits in the
+   bottom-left corner, so the canvas side is the only direction with guaranteed room. */
+.cm-legend-tip {
+  display: none;
+  position: fixed;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 280px;
+  padding: 3px 8px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: var(--cd-shadow-2);
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: normal;
+  pointer-events: none;
+}
+.cm-legend-item:hover .cm-legend-tip {
+  display: block;
+}
+/* Visible keyboard focus (WCAG 2.4.7). */
+.cm-legend__close:focus-visible,
+.cm-legend-toggle:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+/* While a drag is in flight the legend floats above the map but must not swallow the pointer —
+   releasing a connect drag on a context behind it has to reach that context. */
+.cm-dragging .cm-legend,
+.cm-dragging .cm-legend-toggle {
+  pointer-events: none;
+}
+
+/* --- Notation legend content (rendered into the modeler shell's legend card) --- */
+/* Rows, previews and separators are the shell's (cd-shell-legend-*); a group keeps its rows at
+   the body's 4px rhythm. */
+.cm-legend-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The chrome's legend floats beside the canvas, not in it: while a drag runs on the canvas it lets
+   the pointer through, so releasing a connect drag on a context behind it reaches that context. */
+:has(> .cm-djs-container > .cm-dragging) > [data-chrome="legend"] {
+  pointer-events: none;
+}
+
+.cm-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- In-place direct editing (name inside the element, bpmn.io style) ----- */
+/* While an element's name is edited, the rendered text is hidden so the contenteditable box is
+   the only visible copy. The editor stays below the palette (guide §5.13: overlays ≤ 100). */
+.cm-direct-editing .djs-visual text.cm-name {
+  display: none;
+}
+.cm-direct-editing-team .djs-visual .cm-team {
+  display: none;
+}
+.cm-djs-container .djs-direct-editing-parent {
+  z-index: 100;
+  color: var(--cd-ui-text);
+}
+.cm-djs-container .djs-direct-editing-content {
+  caret-color: var(--cd-ui-interaktion);
+  /* Words longer than the line hard-break — exactly like the renderer wraps. */
+  overflow-wrap: break-word;
+}
+
+/* --- Anchored free-text prompt (description via the pad) ------------------ */
+/* A transient popup (it closes on commit, cancel or a view change), so it may cover the palette. */
+.cm-pad-prompt {
+  position: fixed;
+  z-index: 210;
+  min-width: 240px;
+  padding: 8px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  color: var(--cd-ui-text);
+}
+.cm-pad-prompt__field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--cd-ui-text);
+  padding: 6px 8px;
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-flaeche);
+  outline: none;
+  resize: vertical;
+}
+.cm-pad-prompt__field:focus-visible,
+.cm-pad-prompt__field:focus {
+  border-color: var(--cd-ui-interaktion);
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+.cm-pad-prompt__hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--cd-ui-text-leise);
+}
+
+/* --- Validation markers (semantic-rule findings on the canvas) ------------ */
+/* The problem pill's icons in the status roles (guide §5.10): circle-x for an error,
+   triangle-alert for a warning, on an opaque chip so they stay legible over lines. */
+.cm-validation-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-pill);
+  box-shadow: var(--cd-shadow-1);
+  cursor: help;
+}
+.cm-validation-marker[data-severity="error"] {
+  color: var(--cd-ui-danger);
+}
+.cm-validation-marker[data-severity="warning"] {
+  color: var(--cd-ui-warning);
+}
+
+/* Instant hover tooltip — a native `title` only shows after the OS delay. Transient: it shows only
+   while the pointer rests on the marker. */
+.cm-validation-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 280px;
+  padding: 3px 8px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: var(--cd-shadow-2);
+  font-family:
+    "Geist Variable",
+    "Geist",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--cd-ui-text);
+  pointer-events: none;
+  z-index: 200;
+}
+
+.cm-validation-marker:hover .cm-validation-tooltip {
+  display: block;
+}
+
+.cm-validation-tooltip__message + .cm-validation-tooltip__message {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--cd-ui-linie);
+}
+
+/* --- Hover tooltip (an element's own data) -------------------------------- */
+/* Styled like the chrome tooltip (guide §5.6). Transient, inside the canvas container: it may cover
+   the palette while the pointer rests on an element, never an island around the canvas. */
+.cm-hover-tooltip {
+  position: absolute;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  max-width: min(280px, 100% - 24px);
+  padding: 3px 8px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: var(--cd-shadow-2);
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 20px;
+  pointer-events: none;
+}
+.cm-hover-tooltip[hidden] {
+  display: none;
+}
+.cm-hover-tooltip strong {
+  font-weight: 600;
+}
+.cm-hover-tooltip span {
+  color: var(--cd-ui-text-leise);
+}
+.cm-hover-tooltip span[hidden] {
+  display: none;
+}
+
+/* --- Dialogs: keyboard shortcuts, map title (guide §5.4, §8) --------------- */
+/* A modal <dialog> in the chrome's root: showModal() puts it in the top layer, above every island,
+   without a layer token. */
+.cm-dialog {
+  box-sizing: border-box;
+  width: min(560px, 100cqw - 32px);
+  max-width: none;
+  max-height: calc(100cqh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+}
+.cm-dialog[open] {
+  display: flex;
+}
+.cm-dialog::backdrop {
+  background: var(--cd-ui-backdrop);
+  backdrop-filter: blur(3px) grayscale(1);
+}
+.cm-dialog-panel,
+.cm-dialog-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.cm-dialog-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px 24px;
+}
+.cm-dialog-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.cm-dialog-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--cd-ui-text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--cd-radius-sm);
+}
+.cm-dialog-close:hover {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+.cm-dialog-close svg {
+  display: block;
+}
+.cm-dialog-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px 24px 24px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cm-dialog-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--cd-ui-linie);
+}
+/* A field (guide §8): sunk into the panel on --cd-ui-grund, the label 4px above it. */
+.cm-dialog-label {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cm-dialog-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-grund);
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: var(--cd-radius-sm);
+}
+.cm-dialog-input::placeholder {
+  color: var(--cd-ui-text-leise);
+}
+.cm-dialog-input:focus {
+  border-color: var(--cd-ui-interaktion);
+}
+/* Buttons (guide §8): 36px, 13px/600, radius md; Cancel secondary, left of the primary action. */
+.cm-dialog-button {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--cd-radius-md);
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease),
+    transform var(--cd-motion-fast) var(--cd-ease);
+}
+.cm-dialog-button[data-variant="secondary"] {
+  color: var(--cd-ui-text);
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+}
+.cm-dialog-button[data-variant="secondary"]:hover {
+  color: var(--cd-ui-link);
+  background: var(--cd-ui-hover);
+  border-color: var(--cd-ui-interaktion);
+}
+/* The one place with fixed palette tokens: guide §8 fills the primary button with --cd-blau and
+   white text in both modes, hover --cd-blau-link. */
+.cm-dialog-button[data-variant="primary"] {
+  color: var(--cd-weiss);
+  background: var(--cd-blau);
+  border: 1px solid transparent;
+  box-shadow: var(--cd-shadow-1);
+}
+.cm-dialog-button[data-variant="primary"]:hover,
+.cm-dialog-button[data-variant="primary"]:active {
+  background: var(--cd-blau-link);
+  box-shadow: var(--cd-shadow-2);
+  transform: translateY(-1px);
+}
+.cm-dialog-close:focus-visible,
+.cm-dialog-button:focus-visible,
+.cm-dialog-input:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-dialog-button {
+    transition: none;
+  }
+  .cm-dialog-button[data-variant="primary"]:hover,
+  .cm-dialog-button[data-variant="primary"]:active {
+    transform: none;
+  }
+}
+/* The map title asks for one field: the narrow width of guide §8's short dialogs. */
+.cm-title-dialog {
+  width: min(440px, 100cqw - 32px);
+}
+.cm-shortcuts-body {
+  gap: 16px;
+}
+.cm-shortcuts-group-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-ui-text-leise);
+}
+.cm-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cm-shortcuts-table tr + tr {
+  border-top: 1px solid var(--cd-ui-linie);
+}
+.cm-shortcuts-action {
+  padding: 6px 12px 6px 0;
+  font-weight: 400;
+  text-align: left;
+}
+.cm-shortcuts-keys {
+  padding: 6px 0;
+  text-align: right;
+  white-space: nowrap;
+}
+/* The chips of the chrome tooltip (guide §5.6), whatever the host styles kbd with. */
+.cm-shortcuts-key {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--cd-ui-text-leise);
+  background: var(--cd-ui-grund);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+  vertical-align: baseline;
+}
+.cm-shortcuts-key + .cm-shortcuts-key {
+  margin-left: 6px;
+}
+/* High contrast (guide §6, §8): no shadow but a --cd-ui-kontur edge, and a 3px focus ring; forced
+   colours draw the edges in CanvasText and ButtonText and the ring in Highlight. The shell applies
+   these rules only to its own classes, so the modeler's dialogs repeat them. */
+:root[data-cd-kontrast="hoch"] .cm-dialog {
+  border-color: var(--cd-ui-kontur);
+  box-shadow: none;
+}
+:root[data-cd-kontrast="hoch"] .cm-dialog-button {
+  box-shadow: none;
+}
+:root[data-cd-kontrast="hoch"] .cm-dialog-close:focus-visible,
+:root[data-cd-kontrast="hoch"] .cm-dialog-button:focus-visible,
+:root[data-cd-kontrast="hoch"] .cm-dialog-input:focus-visible {
+  outline-width: 3px;
+}
+@media (forced-colors: active) {
+  .cm-dialog {
+    border-color: CanvasText;
+  }
+  .cm-dialog-button {
+    border-color: ButtonText;
+  }
+  .cm-dialog-close:focus-visible,
+  .cm-dialog-button:focus-visible,
+  .cm-dialog-input:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* --- Drag state ------------------------------------------------------------ */
+/* While any drag is in flight, HTML overlays (handles, markers, tooltips) must not swallow the
+   pointer — releasing a connect drag on top of one has to reach the element underneath. */
+.cm-dragging .djs-overlay-container,
+.cm-dragging .djs-overlay-container * {
+  pointer-events: none !important;
+}
+
+/* Connect feedback: signal on the cursor whether dropping here connects. */
+.cm-djs-container .djs-element.connect-ok,
+.cm-djs-container svg.connect-ok {
+  cursor: crosshair;
+}
+.cm-djs-container .djs-element.connect-not-ok,
+.cm-djs-container svg.connect-not-ok {
+  cursor: not-allowed;
+}

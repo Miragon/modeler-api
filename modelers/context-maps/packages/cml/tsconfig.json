@@ -1,0 +1,12 @@
+{
+  "//": "DOM-free: converts CML text <-> model, no browser APIs. Resolves @miragon/context-maps-schema-model from its built dist (like the workspace symlink), so schema-model must be built first.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}
