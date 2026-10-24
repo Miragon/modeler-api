@@ -88,7 +88,7 @@ const MENU_GAP = 8;
 /** Why OHS / CF are unavailable while the pattern is customer-supplier. */
 const CUSTOMER_SUPPLIER_BLOCKERS: Partial<Record<UpstreamRole | DownstreamRole, string>> = {
   OHS: "Open Host Service is one-size-fits-all and not applicable in a customer-supplier relationship.",
-  CF: "Conformist is not applicable in a customer-supplier relationship — a customer can negotiate.",
+  CF: "Conformist is not applicable in a customer-supplier relationship; a customer can negotiate.",
 };
 
 function escapeAttribute(value: string): string {
@@ -300,7 +300,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           chromeIcon("square-plus"),
-          "Append a connected context — click to place automatically, drag to position",
+          "Append a connected context: click to place automatically, drag to position",
           { draggable: true },
         ),
         action: {
@@ -322,7 +322,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           contextIconSvg(context.subdomainType),
-          `Change subdomain type — currently ${spec?.label ?? "unclassified"}`,
+          `Change subdomain type (currently ${spec?.label ?? "unclassified"})`,
         ),
         action: {
           click: (event: Event) => this.openMenu(event, context, SUBDOMAIN_MENU, "Subdomain type"),
@@ -332,7 +332,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           chromeIcon("users"),
-          `Set owning team — currently ${context.team ?? "none"}`,
+          `Set owning team (currently ${context.team ?? "none"})`,
         ),
         action: { click: () => this.labelEditing.activateTeam(context) },
       },
@@ -449,7 +449,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           relationshipIconSvg(spec?.pattern),
-          `Change pattern — currently ${spec?.label ?? relationship.pattern}`,
+          `Change pattern (currently ${spec?.label ?? relationship.pattern})`,
         ),
         action: {
           click: (event: Event) =>
@@ -462,7 +462,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           chromeIcon("sliders-horizontal"),
-          "Edit integration roles — OHS/PL upstream, ACL/CF downstream",
+          "Edit integration roles: OHS/PL upstream, ACL/CF downstream",
         ),
         action: {
           click: (event: Event) =>
@@ -473,7 +473,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
         group: "edit",
         html: padEntryHtml(
           chromeIcon("arrow-left-right"),
-          "Swap ends — reverse upstream/downstream",
+          "Swap ends: reverse upstream/downstream",
         ),
         action: {
           click: (event: Event) => {
@@ -494,7 +494,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
   private editLabelEntry(element: CmElement, title: string): ContextPadEntry {
     return {
       group: "edit",
-      html: padEntryHtml(chromeIcon("pencil"), `${title} — edit the name in place`),
+      html: padEntryHtml(chromeIcon("pencil"), `${title}: edit the name in place`),
       action: { click: () => this.labelEditing.activate(element) },
     };
   }
@@ -744,7 +744,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
             : blocker
           : UPSTREAM_ROLE_SPECS[role].description,
         imageHtml: roleChipSvg(role),
-        group: { id: "upstream", name: "Upstream (from) — OHS and/or PL" },
+        group: { id: "upstream", name: "Upstream (from): OHS and/or PL" },
         ...(blocked ? { disabled: true } : {}),
         ...(active ? { className: ACTIVE_CLASS } : {}),
         action: () => {
@@ -769,7 +769,7 @@ export default class CmContextPadProvider implements ContextPadProvider {
             : blocker
           : DOWNSTREAM_ROLE_SPECS[role].description,
         imageHtml: roleChipSvg(role),
-        group: { id: "downstream", name: "Downstream (to) — ACL or CF, not both" },
+        group: { id: "downstream", name: "Downstream (to): ACL or CF, not both" },
         ...(blocked ? { disabled: true } : {}),
         ...(active ? { className: ACTIVE_CLASS } : {}),
         action: () => {

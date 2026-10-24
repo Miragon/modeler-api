@@ -143,7 +143,7 @@ Design choices:
 ```jsonc
 {
   "version": 1,
-  "title": "Conference event planner — context map",
+  "title": "Conference event planner: context map",
   "contexts": [
     {
       "id": "ctx_cfp",

@@ -193,7 +193,7 @@ export function parseDocumentText(text: string): ParseResult {
     return failure([
       {
         path: [],
-        message: `not valid JSON — ${error instanceof Error ? error.message : String(error)}`,
+        message: `not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
       },
     ]);
   }
@@ -481,7 +481,7 @@ export function validateDocument(doc: CmDocument): ValidationReport {
       if (fromTeam && toTeam && fromTeam !== toTeam) {
         warnings.push({
           rule: "shared-kernel-team-coupling",
-          message: `A shared kernel across two teams (${fromTeam}, ${toTeam}) couples them tightly — consider a partnership or an upstream-downstream relationship.`,
+          message: `A shared kernel across two teams (${fromTeam}, ${toTeam}) couples them tightly; consider a partnership or an upstream-downstream relationship.`,
           relationshipId: r.id,
         });
       }

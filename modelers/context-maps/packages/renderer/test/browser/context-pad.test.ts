@@ -799,3 +799,41 @@ test("viewers stay pad-free", () => {
     container.remove();
   }
 });
+
+test("the pad's tooltips and the roles menu read without an em dash", () => {
+  const { modeler, container } = mount();
+  try {
+    modeler.importDocument(connectedContexts("customer-supplier"));
+    const registry = modeler.get<{ getAll(): unknown[] }>("elementRegistry");
+    const selection = modeler.get<{ select(el: unknown): void }>("selection");
+    const [a] = registry.getAll().filter(isCmContext);
+    const [relationship] = registry.getAll().filter(isCmRelationship);
+    const padTitles = (): string[] =>
+      [...container.querySelectorAll(".djs-context-pad.open .entry")].map(
+        (entry) => entry.getAttribute("title") ?? "",
+      );
+
+    selection.select(a);
+    const contextTitles = padTitles();
+    selection.select(relationship);
+    const relationshipTitles = padTitles();
+    clickPadEntry(container, "roles");
+    const popup = document.querySelector<HTMLElement>(".djs-popup");
+    expect(popup).not.toBeNull();
+    const menuTexts = [
+      popup!.textContent ?? "",
+      ...[...popup!.querySelectorAll("[title]")].map((entry) => entry.getAttribute("title") ?? ""),
+    ];
+
+    expect(contextTitles).toContain("Set owning team (currently none)");
+    expect(relationshipTitles).toContain("Swap ends: reverse upstream/downstream");
+    expect(menuTexts.join("\n")).toContain("Upstream (from): OHS and/or PL");
+    expect(menuTexts.join("\n")).toContain("a customer can negotiate");
+    for (const text of [...contextTitles, ...relationshipTitles, ...menuTexts]) {
+      expect(text).not.toContain("—");
+    }
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});

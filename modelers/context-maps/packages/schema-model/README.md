@@ -44,7 +44,7 @@ A diagram is a single JSON object: a set of **bounded contexts** (boxes) and the
 ```jsonc
 {
   "version": 1,
-  "title": "Conference event planner — context map",
+  "title": "Conference event planner: context map",
   "contexts": [
     {
       "id": "ctx_cfp",
