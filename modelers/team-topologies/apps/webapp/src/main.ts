@@ -76,6 +76,7 @@ interface SelectionLike {
   select(elements: unknown): void;
 }
 interface CanvasLike {
+  getContainer(): HTMLElement;
   scrollToElement(element: unknown): void;
 }
 /** Matches the static <title> in index.html. */
@@ -109,6 +110,7 @@ modeler.get("canvas");
 const registry = modeler.get<ElementRegistryLike>("elementRegistry");
 const selection = modeler.get<SelectionLike>("selection");
 const canvas = modeler.get<CanvasLike>("canvas");
+const canvasSvg = findCanvasSvg(canvas);
 
 /** Whether the browser keeps a diagram the autosave wrote over (see `autosave`). */
 let previousAvailable = hasPreviousDiagram();
@@ -632,8 +634,15 @@ function historyLetter(event: KeyboardEvent): string {
   return event.code === "KeyZ" ? "z" : event.code === "KeyY" ? "y" : "";
 }
 
+/** The `<svg>` diagram-js puts into its own container, inside the one the modeler was given. */
+function findCanvasSvg(diagramCanvas: CanvasLike): SVGSVGElement {
+  const svg = diagramCanvas.getContainer().querySelector<SVGSVGElement>(":scope > svg");
+  if (!svg) throw new Error("The canvas has no <svg>.");
+  return svg;
+}
+
 function isOnCanvas(target: Node): boolean {
-  return modeler.container.querySelector(":scope > svg")?.contains(target) ?? false;
+  return canvasSvg.contains(target);
 }
 
 /**
