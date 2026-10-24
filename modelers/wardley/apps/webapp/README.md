@@ -17,11 +17,12 @@ Press `?` for the keyboard shortcuts. The demo app for the `@miragon/wardley-*` 
 
 ## Run locally
 
-From the monorepo root:
+From the root of the Miragon modeler suite:
 
 ```bash
-npm install
-npm run dev:webapp   # http://localhost:5180
+npm ci && npm run build:shared     # once
+npm run wardley dev:webapp         # named HTTPS URL via Portless — one-time setup in the suite's CONTRIBUTING.md
+npm run wardley dev:webapp:plain   # plain Vite, http://127.0.0.1:5180
 ```
 
 ## License

@@ -25,7 +25,7 @@ pins 12): `packages/renderer/test/peer-dependencies.sync.test.ts` checks both, b
 the monorepo does not. Each package is released with its own version, and release-please's
 `node-workspace` plugin bumps every internal `@miragon/wardley-*` reference (also in
 `peerDependencies`) when the package it names is released, so a new internal dependency edge needs
-no release config (see [`CLAUDE.md`](../../CLAUDE.md) → Releases). Exact pinning is enforced in CI by
+no release config (see the suite's [docs/ci-and-releases.md](../../../../docs/ci-and-releases.md)). Exact pinning is enforced in CI by
 [`miragon/pin-npm-dependencies`](https://github.com/Miragon/pin-npm-dependencies).
 
 When adding a new dependency: install it first with `npm install <pkg>` (the root `.npmrc` sets `save-exact=true`, so npm pins the exact version), then verify the installed version with `npm ls <pkg>` or in `package-lock.json` and make sure that exact version is written into `package.json`.

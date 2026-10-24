@@ -1,7 +1,7 @@
 # Wardley Maps
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](LICENSE)
-[![CI](https://github.com/Miragon/wardley-maps-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/wardley-maps-modeler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](LICENSE)
+[![CI](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-renderer)](https://www.npmjs.com/package/@miragon/wardley-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.wardley-mapping-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.wardley-mapping-modeler)
 
@@ -98,12 +98,12 @@ In the web app also:
 
 ## Claude Code plugin
 
-Two Claude skills — the Wardley Mapping method and the OWM text format — ship from this repository
-as a Claude Code plugin, so you can use them in any project:
+Two Claude skills — the Wardley Mapping method and the OWM text format — ship from the Miragon
+modeler suite as a Claude Code plugin, so you can use them in any project:
 
 ```
-/plugin marketplace add Miragon/wardley-maps-modeler
-/plugin install wardley-maps-modeler@wardley-maps
+/plugin marketplace add Miragon/modeler-suite
+/plugin install wardley-maps-modeler@modeler-suite
 ```
 
 | Skill             | Covers                                                                                                  |
@@ -113,7 +113,7 @@ as a Claude Code plugin, so you can use them in any project:
 
 Claude can then read, review, edit and generate `.wmap` / `.owm` maps anywhere — the modeler
 renders what Claude writes. Details in [`plugins/wardley-maps-modeler/`](plugins/wardley-maps-modeler/);
-the marketplace manifest is [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json).
+the suite's marketplace manifest is [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json).
 
 ## Fonts
 
@@ -161,17 +161,24 @@ files only show Geist where the font is available to the program that renders th
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the inner-loop commands.
+The Wardley Maps Modeler is developed in the [Miragon modeler suite](../../README.md) as
+`modelers/wardley`, next to the shared `@miragon/modeler-api` and `@miragon/modeler-shell`. Setup,
+scripts, hooks and conventions are in the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md), what is
+special here in [this modeler's CONTRIBUTING.md](CONTRIBUTING.md), CI and releases in
+[docs/ci-and-releases.md](../../docs/ci-and-releases.md). Issues go to
+[Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues).
+
+```bash
+npm ci && npm run build:shared   # once, at the repository root
+npm run wardley build
+npm run wardley test
+npm run wardley dev:webapp       # the web editor locally
+```
 
 The VS Code extension has a smoke test in a real VS Code: it packs the extension like the release,
 opens a map, edits, saves and undoes through VS Code, and screenshots VS Code's four default themes
-into `test-results/vscode-smoke/`. Locally run `npm run test:vscode:docker`: it runs the test in a
-Linux container, so no VS Code window opens (needs Docker). `npm run test:vscode` runs it directly
-(on macOS a VS Code window opens for a few seconds; on Linux run it under `xvfb-run -a`). CI runs it
-on the newest stable VS Code and the oldest one the extension supports, in every CI run whose
-changes can reach the extension, as part of the merge gate, and weekly
-([`vscode-smoke.yml`](.github/workflows/vscode-smoke.yml)). A release runs it on the newest stable
-VS Code against the VSIX it is about to publish. See
+into `test-results/vscode-smoke/`. Locally run `npm run wardley test:vscode:docker`: it runs the
+test in a Linux container, so no VS Code window opens (needs Docker). See
 [CONTRIBUTING.md](CONTRIBUTING.md#vs-code-smoke-test).
 
 ## License
