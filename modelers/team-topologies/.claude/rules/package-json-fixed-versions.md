@@ -9,11 +9,11 @@ Never use version ranges (`^`, `~`, `>=`, `*`) in `dependencies` or `devDependen
 Always pin to an exact version (e.g. `"eslint": "9.17.0"`).
 
 This applies to `dependencies` and `devDependencies` — including internal
-`@miragon/team-topologies-*` workspace deps, which pin the current shared version from
-`.release-please-manifest.json` (not `*`; npm still links them to the local workspace). Exact
-pinning is enforced in CI by the `pin-check` job. A new internal dep also needs two `extra-files`
-entries in `release-please-config.json`, one for the `package.json` path and one for the matching
-`package-lock.json` path, or the release leaves it behind (see `CLAUDE.md`, Releases).
+`@miragon/team-topologies-*` workspace deps, which pin the current version of that workspace (not
+`*`; npm still links them to the local workspace). Exact pinning is enforced in CI by the
+`pin-check` job. How a release keeps internal pins in step, and whether a new internal dep needs
+an entry in the release configuration, is in the suite's
+[docs/ci-and-releases.md](../../../../docs/ci-and-releases.md).
 
 **Exception — `peerDependencies` of published libraries.** Consumer-shared / singleton
 runtime libs are declared as **ranged `peerDependencies`** (caret) so a downstream app
@@ -22,8 +22,8 @@ dedupes them against its own copy instead of getting a second, broken instance �
 injector. `schema-model` declares `zod` as a peer (its zod schema objects are part of the
 public API); `renderer` declares `diagram-js`, `didi`, `tiny-svg`, `zod` as peers. Each
 ranged peer is also kept as an **exact `devDependency`** for reproducible in-repo builds. The
-internal lockstep dep (`schema-model` in `renderer`) stays an exact `dependency` that
-release-please keeps in sync. The `pin-check` job does not check `peerDependencies` by
+internal dep (`schema-model` in `renderer`) stays an exact `dependency` that release-please keeps
+in sync. The `pin-check` job does not check `peerDependencies` by
 default, so ranges there are allowed.
 
 When adding a new dependency: install it first with `npm install <pkg>` (the root `.npmrc` sets

@@ -248,14 +248,15 @@ rasterisation those formats need.
 
 ## Development
 
-Part of the [Team Topologies Modeler](../../README.md) monorepo; consumed from source by the apps.
-From the repo root:
+Part of the [Team Topologies Modeler](../../README.md) in the
+[Miragon modeler suite](https://github.com/Miragon/modeler-suite); consumed from source by the
+apps. From the suite's root:
 
 ```bash
-npm run build -w packages/renderer   # Vite library build → dist/ (publish build)
-npm test                             # Vitest unit tests
-npm run test:browser                 # renderer integration tests in real Chromium
-npm run typecheck
+npm run build -w @miragon/team-topologies-renderer   # Vite library build → dist/ (publish build)
+npm run team-topologies test                         # Vitest unit tests
+npm run team-topologies test:browser                 # renderer integration tests in real Chromium
+npm run team-topologies typecheck
 ```
 
 ## License

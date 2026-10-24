@@ -55,26 +55,27 @@ and a diagram is shared by encoding it into the URL.
 
 ## Run it
 
-From the repo root (Node ≥ 22.13):
+From the root of the Miragon modeler suite:
 
 ```bash
-npm install
-npm run dev:webapp            # stable per-worktree https://<worktree>.team-topologies-modeler.localhost
+npm ci && npm run build:shared                    # once
+npm run team-topologies dev:webapp                # stable per-worktree https://<worktree>.team-topologies-modeler.localhost
 ```
 
-`npm run dev:webapp` serves the app via [Portless](https://portless.sh) at a stable per-worktree
-`.localhost` URL (needs Node ≥ 24 + a one-time `npx portless service install` — see
-[`CONTRIBUTING.md`](../../CONTRIBUTING.md)). For plain Vite on a fixed port instead:
+`npm run team-topologies dev:webapp` serves the app via [Portless](https://portless.sh) at a
+stable per-worktree `.localhost` URL (needs Node ≥ 24 + a one-time `npx portless service install` —
+see the suite's [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md#dev-servers)). For plain Vite on a
+fixed port instead:
 
 ```bash
-npm run dev:webapp:plain      # http://localhost:5181
+npm run team-topologies dev:webapp:plain          # http://127.0.0.1:5181
 ```
 
 Production build (also what Netlify runs), and the check of what it ships:
 
 ```bash
-npm run build:webapp          # → apps/webapp/dist
-npm run check:build -w apps/webapp
+npm run team-topologies build:webapp              # → apps/webapp/dist
+npm run check:build -w modelers/team-topologies/apps/webapp
 ```
 
 On first load the app shows, in priority order, a diagram from a **shared link** (`#d=…`), then the
@@ -103,7 +104,7 @@ shell's inspector slot:
   that SVG on a canvas with Geist embedded. Downloads are named after the diagram's title.
 
 The renderer, schema-model and ui packages are aliased to their **TypeScript source** in
-`vite.config.ts`, so there is no separate library build step — `npm run dev:webapp` and the Netlify
+`vite.config.ts`, so there is no separate library build step — `npm run team-topologies dev:webapp` and the Netlify
 build compile the whole monorepo from source.
 
 ## Deployment

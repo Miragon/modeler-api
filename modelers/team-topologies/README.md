@@ -1,7 +1,7 @@
 # Team Topologies Modeler
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/team-topologies-modeler)](LICENSE)
-[![CI](https://github.com/Miragon/team-topologies-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/team-topologies-modeler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](LICENSE)
+[![CI](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/team-topologies-renderer)](https://www.npmjs.com/package/@miragon/team-topologies-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.team-topologies-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.team-topologies-modeler)
 
@@ -9,8 +9,9 @@ A fast, offline-friendly modeler for **Team Topologies** diagrams — the four t
 team-interaction modes from the book by Matthew Skelton & Manuel Pais. Ships as a **web app** and a
 **VS Code extension** sharing one diagram-js core.
 
-It is built around an npm-workspaces monorepo with CI/CD, release automation and a "full-bleed canvas +
-floating chrome" editing feel, a clean DOM-free domain model and lossless, version-controllable files.
+It is built with a "full-bleed canvas + floating chrome" editing feel, a clean DOM-free domain model
+and lossless, version-controllable files, as `modelers/team-topologies` of the
+[Miragon modeler suite](../../README.md).
 
 **[Try the web app →](https://team-topologies.modeler.miragon.io)**
 
@@ -62,22 +63,23 @@ Both targets share two published packages:
 
 ## Getting started
 
-Requires Node ≥ 22.13 and npm. From the repo root:
+Requires Node `^22.22.2` or `>=24.15.0` and npm. From the root of the suite:
 
 ```bash
-npm install
-npm run dev:webapp          # start the webapp dev server (http://localhost:5181)
-npm run dev:vscode          # watch-build the VS Code extension (then F5 in VS Code)
-npm test                    # unit tests (Vitest)
-npm run test:vscode:docker  # the extension in a real VS Code, in Docker without a window
-npm run test:vscode         # the same with a VS Code window here (see CONTRIBUTING.md)
-npm run lint                # eslint + type-check
-npm run build               # build the publishable packages (schema-model, renderer)
+npm ci && npm run build:shared                 # once: every workspace, the shared packages
+npm run team-topologies dev:webapp:plain       # start the webapp dev server (http://127.0.0.1:5181)
+npm run team-topologies dev:vscode             # watch-build the VS Code extension (then F5 in VS Code)
+npm run team-topologies test                   # unit tests (Vitest)
+npm run team-topologies test:vscode:docker     # the extension in a real VS Code, in Docker without a window
+npm run team-topologies test:vscode            # the same with a VS Code window here (see CONTRIBUTING.md)
+npm run team-topologies lint                   # eslint + type-check
+npm run team-topologies build                  # build the publishable packages (schema-model, renderer)
 ```
 
 ## Architecture
 
-An **npm-workspaces monorepo** with a strict boundary between the pure model and the view:
+npm workspaces inside the suite's one workspace, with a strict boundary between the pure model and
+the view:
 
 ```
 packages/
@@ -100,7 +102,8 @@ e2e/                                       — Playwright end-to-end tests: the 
 The `schema-model` package compiles **without the DOM lib**, so a stray browser import fails
 type-checking. The DOM boundary is enforced twice — by ESLint and by dependency-cruiser. The apps and
 tests consume the packages straight from their TS source via Vite/esbuild/tsconfig aliases, so there
-is no separate library build step for development (`npm run build` is only needed to publish the libs).
+is no separate library build step for development (`npm run team-topologies build` is only needed to
+publish the libs).
 
 Design choices:
 
@@ -155,23 +158,27 @@ or flow (drawn as a dashed connector). An empty `annotations` list is left out o
 
 ## Claude Code plugin
 
-The repository ships two Claude skills as a [Claude Code](https://claude.com/claude-code) plugin, so
-an agent can design, draw, review and edit Team Topologies diagrams in any project:
+The modeler ships two Claude skills as a [Claude Code](https://claude.com/claude-code) plugin, from
+the suite's marketplace, so an agent can design, draw, review and edit Team Topologies diagrams in
+any project:
 
 ```
-/plugin marketplace add Miragon/team-topologies-modeler
-/plugin install team-topologies-modeler@team-topologies
+/plugin marketplace add Miragon/modeler-suite
+/plugin install team-topologies-modeler@modeler-suite
 ```
 
 `team-topologies` covers the method (team types, interaction modes, cognitive load, reviews);
 `tt-format` covers the `.tt` / `.ttm.json` format, a layout grid and a dependency-free checker that
 validates a file and reads back which teams each interaction connects. Details in
-[`plugins/team-topologies-modeler/`](plugins/team-topologies-modeler/README.md); the marketplace
-manifest is [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json).
+[`plugins/team-topologies-modeler/`](plugins/team-topologies-modeler/README.md); the suite's
+marketplace manifest is [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the agent notes in [CLAUDE.md](CLAUDE.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the agent notes in [CLAUDE.md](CLAUDE.md) for this
+modeler, the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md) for setup, scripts, hooks and
+conventions, and [docs/ci-and-releases.md](../../docs/ci-and-releases.md) for CI and releases.
+Issues go to [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues).
 
 ## Licence
 

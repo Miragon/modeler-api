@@ -187,13 +187,14 @@ console.log(SAMPLE_DOCUMENT.title);
 
 ## Development
 
-This package is part of the [Team Topologies Modeler](../../README.md) monorepo and is normally
-consumed from source. From the repo root:
+This package is part of the [Team Topologies Modeler](../../README.md) in the
+[Miragon modeler suite](https://github.com/Miragon/modeler-suite) and is normally consumed from
+source. From the suite's root:
 
 ```bash
-npm run build -w packages/schema-model   # tsup → dist/ (publish build)
-npm test                                 # Vitest unit tests
-npm run typecheck                        # tsc, compiled WITHOUT the DOM lib
+npm run build -w @miragon/team-topologies-schema-model   # tsup → dist/ (publish build)
+npm run team-topologies test                             # Vitest unit tests
+npm run team-topologies typecheck                        # tsc, compiled WITHOUT the DOM lib
 ```
 
 ## License
