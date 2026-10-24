@@ -25,16 +25,6 @@
     "dev:webapp": "npm run dev -w apps/webapp",
     "dev:webapp:plain": "npm run dev:app -w apps/webapp",
     "dev:vscode": "npm run watch -w apps/vscode",
-    "depcruise": "depcruise packages apps --config .dependency-cruiser.cjs",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,jsonc,md,yaml,yml,css,html}": [
-      "prettier --write"
-    ]
+    "depcruise": "depcruise packages apps --config .dependency-cruiser.cjs"
   }
 }

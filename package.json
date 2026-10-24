@@ -34,7 +34,16 @@
     "event-storming": "npm run -w @miragon/event-storming-modeler-workspace",
     "team-topologies": "npm run -w @miragon/team-topologies-modeler-workspace",
     "context-maps": "npm run -w @miragon/context-maps-modeler-workspace",
-    "value-chain": "npm run -w @miragon/value-chain-modeler-workspace"
+    "value-chain": "npm run -w @miragon/value-chain-modeler-workspace",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "modelers/**/*.{ts,tsx}": [
+      "eslint --fix --no-warn-ignored",
+      "prettier --write"
+    ],
+    "{packages,test,plugins}/**/*.{ts,tsx}": "prettier --write",
+    "*.{js,mjs,cjs,json,jsonc,md,yaml,yml,css,html}": "prettier --write"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

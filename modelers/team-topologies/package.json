@@ -26,17 +26,7 @@
     "dev:webapp:plain": "npm run dev:app -w apps/webapp",
     "dev:vscode": "npm run watch -w apps/vscode",
     "depcruise": "depcruise packages apps --config .dependency-cruiser.cjs",
-    "check:release-notes": "node scripts/release-notes/check-pull-request.mjs",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,jsonc,md,yaml,yml,css,html}": [
-      "prettier --write"
-    ]
+    "check:release-notes": "node scripts/release-notes/check-pull-request.mjs"
   },
   "devDependencies": {
     "@miragon/modeler-shell": "0.5.0",
