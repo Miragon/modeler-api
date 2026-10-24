@@ -1,7 +1,7 @@
 # Laying out a Team Topologies diagram
 
 Generated diagrams go wrong in four ways: stream-aligned teams one after the other along the flow of
-change (side by side or staggered — that reads as a hand-off chain), interactions that do not
+change (side by side or staggered, which reads as a hand-off chain), interactions that do not
 overlap the two teams they relate, X-as-a-Service triangles pointing the wrong way, and labels that
 do not fit. A fixed grid avoids all four. Every number below is in canvas pixels; `position` is the
 top-left corner.
@@ -26,7 +26,7 @@ The `y` values assume the flow at `y = 40`. For a flow at any `flowY` (e.g. a se
 [Several groups](#several-groups-on-one-canvas)), lane `n` sits at `flowY + 110 + (n − 1) × 126`;
 everything else is placed relative to the lanes, as below.
 
-- **Lanes** share one `x` and one `width` (220 and 600) — widen them together, never one alone
+- **Lanes** share one `x` and one `width` (220 and 600); widen them together, never one alone
   (the one exception: a lane that consumes a
   [complicated subsystem as a service](#a-complicated-subsystem-as-a-service)). Lane `n` sits at
   `y = 150 + (n − 1) × 126`; its centre is `y + 48`.
@@ -38,23 +38,23 @@ everything else is placed relative to the lanes, as below.
   lanes (business areas or value streams with a platform of their own) start ≥ 120 px apart.
 - **Enabling teams** at the left side, `x = 40`, width 120, spanning **exactly** the lanes they
   facilitate, with one facilitating glyph per lane. Position reads as a relationship, so an enabling
-  team never sits beside a lane it does not support — make its lanes neighbours. Spanning `n`
+  team never sits beside a lane it does not support: make its lanes neighbours. Spanning `n`
   lanes: `y` = the first lane's top, height `n × 96 + (n − 1) × 30` (222 for two). One lane (96)
   is lower than the enabling minimum (120), so centre a 120 × 120 team on it:
   `y = lane centre − 60` (138 for lane 1). A second enabling team whose lanes overlap the first
   one's goes on the right side, `x = 880`, if no subsystem sits there; otherwise reorder the lanes.
 - **Complicated-subsystem teams** that **collaborate** with a lane sit to its right:
   `x = lane right + 60 = 880`, `y = lane centre − 75`. Two subsystems on neighbouring lanes collide
-  at the default height (150 is more than the 126 px pitch) — make them 170 × 100 at
+  at the default height (150 is more than the 126 px pitch); make them 170 × 100 at
   `y = lane centre − 50`. A subsystem collaborating with two neighbouring lanes spans both: 170 × 222
   at `y` = the upper lane's top, one glyph per lane. Once it provides **X-as-a-Service**, it moves
   [under an extension of the lane](#a-complicated-subsystem-as-a-service).
 - **Platform** below the stack: `x = 220`, `y = lowest lane bottom + 54`, the lanes' width and a
   height of 110. The 54 px gap lets the 78 px triangle bite 12 px into both.
-- **Horizontal gap 60 px** between the lanes and the teams beside them — the default glyphs (84–112
+- **Horizontal gap 60 px** between the lanes and the teams beside them: the default glyphs (84–112
   px wide) then bite 12–26 px into both teams.
-- **Flow of change**: from the leftmost to the rightmost **team** edge — `x` = leftmost left edge,
-  `width` = rightmost right edge − leftmost left edge — `y = 40`, height 56. Annotations do not
+- **Flow of change**: from the leftmost to the rightmost **team** edge (`x` = leftmost left edge,
+  `width` = rightmost right edge − leftmost left edge), `y = 40`, height 56. Annotations do not
   count and may stick out past it. With several flows, measure across the whole canvas so they all
   share one `x` and `width`. The flow clears every shape below, including a subsystem beside the
   first lane (top `y = 123`).
@@ -64,7 +64,7 @@ everything else is placed relative to the lanes, as below.
   - below the platform;
   - below the enabling team, `x = 40`, width ≤ 156 (it ends 24 px before the lanes),
     `y = enabling bottom + 24`. A note there about the facilitating engagement attaches to the
-    enabling team itself — a connector to the glyph would cut across the team.
+    enabling team itself; a connector to the glyph would cut across the team.
 
   A note about the whole diagram (headcount, a general assumption) stays unattached, right of the
   first lane. Size a note with the formula in the skill (`Labels and text`); a 200 × 64 note holds
@@ -85,7 +85,7 @@ everything else is placed relative to the lanes, as below.
 Between two lanes, an X-as-a-Service triangle reads the lower lane as the provider. For any other
 pair, use the general rule from the skill: centre the glyph on the gap, on the axis where both teams
 overlap. If two teams that must interact are not neighbours on the grid, reorder the lanes rather
-than stretching a glyph across a third team — the checker flags a glyph that touches more than two
+than stretching a glyph across a third team: the checker flags a glyph that touches more than two
 teams.
 
 ## The platform under the stack
@@ -100,10 +100,10 @@ is a stream-aligned team that
 
 - lies entirely above the current lane, at most 60 px away;
 - overlaps both the current lane and the platform horizontally (any overlap counts);
-- has no other team in the strip between the two lanes — an interaction glyph there is fine, and so
-  is a team that encloses both lanes (a grouping drawn around the stack).
+- has no other team in the strip between the two lanes (an interaction glyph there is fine, and so
+  is a team that encloses both lanes, such as a grouping drawn around the stack).
 
-Every lane that qualifies is taken, so two lanes side by side above one lane are both read — but
+Every lane that qualifies is taken, so two lanes side by side above one lane are both read, but
 they also draw the hand-off warning. The walk stops where no lane qualifies, so **the stack breaks**
 at a gap over 60 px, at a lane that does not overlap the platform horizontally at all, and at any
 team squeezed between two lanes (an enabling team, a subsystem, a second platform). Lanes above the
@@ -120,7 +120,7 @@ in the flow label or an annotation instead.
 ## A complicated subsystem as a service
 
 A complicated-subsystem team that provides **as a service** must sit below its consumer, like a
-platform — but it serves only the lane its triangle touches, never the stack. Extend that lane to
+platform, but it serves only the lane its triangle touches, never the stack. Extend that lane to
 the right beyond the others and put the subsystem under the extension, clear of the lanes below:
 
 - consumer lane: `width = 830` (right edge 1050 instead of 820);
@@ -135,7 +135,7 @@ lanes, label the triangle with one short word so the consumer is clear.
 
 For the middle lane of the worked example (`team_booking`, bottom 372) that is the subsystem at
 `(880, 426)` and the triangle at `(921, 360)`. Delete the collaboration glyph, and move or drop the
-annotation that explained it — it sits where the subsystem now goes: re-attach it to the new
+annotation that explained it: it sits where the subsystem now goes: re-attach it to the new
 triangle at `(1074, 426)`, 24 px right of the subsystem, or delete it once the collaboration has
 ended. The subsystem sits beside the lower lane, not between two lanes, so the platform still serves
 all three:
@@ -157,7 +157,7 @@ The stack convention covers stream-aligned lanes only, so a subsystem that consu
 needs a triangle of its own, and for that it must sit above the platform. That takes room: the
 consumer lane needs at least two lanes below it (e.g. the top lane of three).
 
-- subsystem: `x = 880`, `y = consumer bottom + 54`, stretched down to the lowest lane's bottom —
+- subsystem: `x = 880`, `y = consumer bottom + 54`, stretched down to the lowest lane's bottom,
   height `lowest lane bottom − consumer bottom − 54` (198 for the top lane of three);
 - platform: widened to the extended lane's width, 830;
 - second triangle: `x = 921`, `y = platform top − 27 − 39` (486 on the grid).
@@ -183,30 +183,30 @@ depends on the platform, and the drawing must not decide that question:
 
 - **One platform serves several areas** (the common case): keep all their lanes in **one stack**
   under one flow of change, the platform under the last lane. Separate the areas by a 60 px gap
-  instead of 30 — still one stack for the checker, so the readings list every lane of every area —
+  instead of 30 (still one stack for the checker, so the readings list every lane of every area)
   and name each area with a tall annotation right of its lanes: `x = rightmost team edge + 24`,
   `y` = the area's first lane top, height = the span of its lanes, text `Business area: Lending`,
   unattached.
 - **Each area has a platform of its own** (only when the organisation really has one): repeat the
   whole stack per area, the groups **one below the other**, each with its own flow of change
-  labelled with the area (`Lending — flow of change`) and its own platform. Start each group 120 px
+  labelled with the area (`Lending: flow of change`) and its own platform. Start each group 120 px
   below the previous group's lowest team edge (its platform): next flow at
   `y = previous bottom + 120`, its first lane at `flow y + 110`, and keep the previous group's
   annotations ≥ 24 px clear of that flow. The gap is too large for the stack walk (≤ 60 px), so a
   platform under one group serves only that group.
 
-Never put groups side by side — their lanes would read as one chain of hand-offs.
+Never put groups side by side: their lanes would read as one chain of hand-offs.
 
 ## Platform groupings under the stack
 
 A **platform grouping** is a large `platform` shape containing the platform teams that make up the
 platform. Rules (the checker enforces them):
 
-- The grouping's id must sort **before** the inner teams' ids, or it is painted over them —
+- The grouping's id must sort **before** the inner teams' ids, or it is painted over them:
   `grp_platform` versus `team_runtime`, `team_maps`.
 - Its label is centred: keep the middle free and put the inner teams in the lower part, starting
   ≥ 20 px below the grouping's vertical centre.
-- Interactions from consuming teams touch the grouping's edge, not the inner teams — the checker
+- Interactions from consuming teams touch the grouping's edge, not the inner teams; the checker
   ignores a grouping when it surrounds another team the glyph also touches. The grouping serves the
   stack like a single platform.
 - Inner teams of any type may sit side by side: they build the platform and are not stages of the
@@ -214,7 +214,7 @@ platform. Rules (the checker enforces them):
 
 Grid for a grouping under the stack: grouping `x = 220`, `y = lowest lane bottom + 54 = 552`,
 600 × 260 (centre 682); inner teams `y = grouping y + 150 = 702`, height 90, inset 40 px from the
-grouping's left and right edges, 40 px apart — two teams of 240 at `x = 260` and `x = 540`.
+grouping's left and right edges, 40 px apart: two teams of 240 at `x = 260` and `x = 540`.
 
 ## The worked example
 
@@ -278,7 +278,7 @@ examples/ride-hailing-platform-grouping.tt — "Ride-hailing — with platform g
 
 ## Wrong / right
 
-**Wrong** — two stream-aligned teams side by side in one row. Along the flow of change that reads
+**Wrong:** two stream-aligned teams side by side in one row. Along the flow of change that reads
 as Checkout handing its work over to Fulfilment.
 
 ```json
@@ -290,7 +290,7 @@ as Checkout handing its work over to Fulfilment.
   warning  team_fulfilment: "Checkout" and "Fulfilment" sit one after the other along the flow of change (side by side or staggered); that reads as a hand-off — stack stream-aligned teams as parallel lanes, one below the other
 ```
 
-**Right** — stack them as parallel lanes of one width, 30 px apart; each owns its stream end to end.
+**Right:** stack them as parallel lanes of one width, 30 px apart; each owns its stream end to end.
 
 ```json
 { "id": "team_checkout", "type": "stream-aligned", "label": "Checkout", "position": { "x": 220, "y": 150 }, "size": { "width": 600, "height": 96 } },
@@ -299,10 +299,10 @@ as Checkout handing its work over to Fulfilment.
 
 The checker warns once per neighbouring pair (a row of three gives two warnings), on the right-hand
 team, whenever two stream-aligned teams share less than half of the narrower one's width
-horizontally and lie at most 60 px apart vertically — side by side, staggered, or stepping down like
+horizontally and lie at most 60 px apart vertically: side by side, staggered, or stepping down like
 a staircase. Teams inside a platform grouping are exempt.
 
-**Wrong** — the platform sits above the stream-aligned team, so the triangle points from the
+**Wrong:** the platform sits above the stream-aligned team, so the triangle points from the
 stream-aligned team up at the platform: it reads "Checkout provides a service to the platform".
 
 ```json
@@ -311,7 +311,7 @@ stream-aligned team up at the platform: it reads "Checkout provides a service to
 { "id": "int_platform_checkout", "mode": "x-as-a-service", "position": { "x": 296, "y": 138 }, "size": { "width": 88, "height": 78 } }
 ```
 
-**Right** — swap them; the triangle now points from the platform (below) up at its consumer.
+**Right:** swap them; the triangle now points from the platform (below) up at its consumer.
 
 ```json
 { "id": "team_checkout", "type": "stream-aligned", "label": "Checkout", "position": { "x": 220, "y": 40 }, "size": { "width": 240, "height": 96 } },
@@ -319,5 +319,5 @@ stream-aligned team up at the platform: it reads "Checkout provides a service to
 { "id": "int_platform_checkout", "mode": "x-as-a-service", "position": { "x": 296, "y": 124 }, "size": { "width": 88, "height": 78 } }
 ```
 
-**Wrong** — a collaboration glyph centred on a team instead of on the gap overlaps only that team,
-so it relates nothing. **Right** — centre it on the gap between the two teams' facing edges.
+**Wrong:** a collaboration glyph centred on a team instead of on the gap overlaps only that team,
+so it relates nothing. **Right:** centre it on the gap between the two teams' facing edges.

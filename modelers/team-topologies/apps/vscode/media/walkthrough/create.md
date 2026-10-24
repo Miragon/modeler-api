@@ -8,7 +8,7 @@ the Command Palette with `Cmd/Ctrl+Shift+P` and run **Team Topologies: New Diagr
 
 Then:
 
-1. A save dialog appears — choose a folder and file name ending in `.tt` and confirm.
+1. A save dialog appears: choose a folder and file name ending in `.tt` and confirm.
 2. The file opens straight in the visual editor, pre-filled with a few teams and interactions you
    can rearrange and learn from.
 

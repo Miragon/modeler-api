@@ -111,10 +111,10 @@ fails when the action's pin moves without it. Whether CI runs the check on every
 | `apps/webapp`                           | Vite demo editor on the modeler shell's web host                                  | DOM      |
 | `apps/vscode`                           | VS Code custom editor for `.tt`/`.ttm.json`                                       | DOM      |
 
-**P1 — the DOM boundary:** the DOM-free package (`schema-model`) must **never** import
+**P1, the DOM boundary:** the DOM-free package (`schema-model`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This is
-enforced twice — by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
-dependency-cruiser — so a violating import fails `npm run team-topologies lint` and
+enforced twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
+dependency-cruiser, so a violating import fails `npm run team-topologies lint` and
 `npm run team-topologies depcruise`.
 
 Also keep JSON serialization deterministic.

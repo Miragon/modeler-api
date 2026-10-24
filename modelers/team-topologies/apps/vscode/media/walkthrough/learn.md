@@ -4,16 +4,16 @@ Team Topologies models an organisation as **teams** and the **interactions** bet
 
 **The four team types**
 
-- **Stream-aligned** — delivers a continuous flow of value for a business domain.
-- **Enabling** — helps other teams adopt new skills or technologies.
-- **Complicated-subsystem** — owns a part that needs deep specialist knowledge.
-- **Platform** — provides internal services that reduce cognitive load for stream-aligned teams.
+- **Stream-aligned:** delivers a continuous flow of value for a business domain.
+- **Enabling:** helps other teams adopt new skills or technologies.
+- **Complicated-subsystem:** owns a part that needs deep specialist knowledge.
+- **Platform:** provides internal services that reduce cognitive load for stream-aligned teams.
 
 **The three interaction modes**
 
-- **Collaboration** — two teams work closely together for a while.
-- **X-as-a-Service** — one team consumes something another team provides.
-- **Facilitating** — one team helps another for a defined period.
+- **Collaboration:** two teams work closely together for a while.
+- **X-as-a-Service:** one team consumes something another team provides.
+- **Facilitating:** one team helps another for a defined period.
 
 **Working in the editor**
 

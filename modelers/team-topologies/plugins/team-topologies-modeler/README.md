@@ -1,4 +1,4 @@
-# Team Topologies Modeler — Claude Code plugin
+# Team Topologies Modeler: Claude Code plugin
 
 Two skills that teach Claude [Team Topologies](https://teamtopologies.com/) and the `.tt` /
 `.ttm.json` file format used by the
@@ -12,7 +12,7 @@ Two skills that teach Claude [Team Topologies](https://teamtopologies.com/) and 
 `tt-format` ships a dependency-free checker (`scripts/check.mjs`, Node ≥ 18) that validates a file
 exactly like the modeler does, spells out which teams every interaction connects (including every
 lane a platform serves under a stack), flags layout mistakes such as stream-aligned teams side by
-side or staggered (a hand-off along the flow) and rewrites the file in canonical form — so Claude can check a
+side or staggered (a hand-off along the flow) and rewrites the file in canonical form, so Claude can check a
 diagram it drew without seeing it. Two worked example diagrams live in `skills/tt-format/examples/`.
 
 ## Install
@@ -37,7 +37,7 @@ Once installed the skills are available everywhere as `team-topologies-modeler:t
 Nothing to invoke by hand. The skills trigger when you ask Claude to work on Team Topologies:
 
 - "Draw a team topology for our three product teams and the platform team" → both
-- "Review `org.tt` — where are we overloading teams?" → `team-topologies` (+ `tt-format` to annotate)
+- "Review `org.tt`: where are we overloading teams?" → `team-topologies` (+ `tt-format` to annotate)
 - "Why does my X-as-a-Service triangle point the wrong way?" → `tt-format`
 
 You can also call them explicitly with `/team-topologies-modeler:tt-format`.
@@ -63,4 +63,4 @@ carries none, which `npm run test:plugin` checks. How a release bumps it is in
 
 ## License
 
-MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE).
+MIT. See the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE).

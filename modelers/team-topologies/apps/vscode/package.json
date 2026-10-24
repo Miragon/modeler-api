@@ -198,12 +198,12 @@
       {
         "id": "getStarted",
         "title": "Get Started with Team Topologies Modeler",
-        "description": "Create and edit Team Topologies diagrams — the four team types, three interaction modes, and flow-of-change — directly in VS Code.",
+        "description": "Create and edit Team Topologies diagrams (the four team types, three interaction modes, and flow-of-change) directly in VS Code.",
         "steps": [
           {
             "id": "create",
             "title": "Create your first diagram",
-            "description": "Start from the bundled example or a blank canvas — it opens right in the visual editor.\n[Create diagram from example](command:teamTopologies.newFromExample)",
+            "description": "Start from the bundled example or a blank canvas; it opens right in the visual editor.\n[Create diagram from example](command:teamTopologies.newFromExample)",
             "media": {
               "markdown": "media/walkthrough/create.md"
             },
