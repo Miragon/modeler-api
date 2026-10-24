@@ -104,8 +104,8 @@ export interface MenuActionEntry extends MenuItemBase {
   /** Shortcut chip text shown on the right, verbatim. */
   shortcut?: string | undefined;
   /**
-   * `aria-keyshortcuts` (WAI-ARIA names, guide §5.6); default `ariaKeyShortcutsFromLabel(shortcut)`.
-   * An empty string sets none.
+   * `aria-keyshortcuts` (WAI-ARIA names, guide §5.6); default `ariaKeyShortcutsFromLabel(shortcut)`,
+   * which names keys, not characters (`"?"` → `"Shift+/ Shift+ß"`). An empty string sets none.
    */
   ariaKeyShortcuts?: string | undefined;
   /** Destructive: icon in `--cd-ui-danger` (confirm per guide §9 in `onSelect`). */

@@ -257,7 +257,8 @@ still acts on its target, also on the canvas.
   entry's accessible name: Chrome named the entries "Keyboard shortcuts… ?" and "Export as SVG ⌘E",
   a screen reader heard the key twice next to `aria-keyshortcuts`, and a dialog entry's name no
   longer ended with "…". Where `aria-keyshortcuts` names no key (`ariaKeyShortcuts: ""`, a chip
-  such as "G then D"), the chip describes the entry through `aria-describedby` instead. An element
+  such as "G then D", a character such as "@" that guide [§5.6][guide-5.6] rules out as a
+  shortcut), the chip describes the entry through `aria-describedby` instead. An element
   referenced there counts even though it is `aria-hidden`, so the name stays clean and the key still
   reaches assistive technology.
 
@@ -632,6 +633,35 @@ key names.
   unshifted character, the plus sign as `Plus`; `code` names such as `Equal` are invalid): zoom in
   `Meta+= Meta+Plus`, zoom out `Meta+-`, 100 % `Meta+0`, fit `Shift+1`; outside macOS `Control`
   instead of `Meta`.
+- A chip's `aria-keyshortcuts` (`ariaKeyShortcutsFromLabel`: palette, menu, the start screen's
+  link) names keys, not the character they type (guide [§5.6][guide-5.6] since design system
+  1.21.0, [corporate-identity#54][ci-54], [#72](https://github.com/Miragon/modeler-suite/issues/72)).
+  WAI-ARIA 1.2 makes it a MUST: "If the character used is determined by a modifier key, the author
+  MUST specify the actual key used to generate the character … It is incorrect to specify "%" or
+  "Shift+%"." Which key that is depends on the layout, so a character that needs ⇧ on the US or the
+  German layout names the keys of both, US first, as zoom in names two: `?` → `Shift+/ Shift+ß`,
+  `/` → `/ Shift+7`, `#` → `Shift+3 #`, and once where both agree, `!` → `Shift+1`. Up to 0.5 the
+  shell passed the character through (`?` → `?`). The table in `keymap.ts` holds only the
+  characters that need ⇧ in one of the two; letters, digits, `,`, `.` and `-` sit on the same
+  unshifted key in both, and `ß` keeps its case, as the key is called (`"ß".toUpperCase()` is
+  `"SS"`).
+- ⇧ stands only where the main keys need it. Zoom in reacts to `=` as well (`matchChromeKey`), so a
+  chip `⌘+` or `Ctrl+Plus` gets the zoom panel's `Meta+= Meta+Plus`, not `Meta+Shift+= Meta+Plus`;
+  `⌘−` and `Ctrl+Minus` get `Meta+-`. A shortcut on a fixed key names only that key: fit binds
+  `Digit1` by `code` and stays `Shift+1` on every layout.
+- A character that needs AltGr or ⌥ in one of the two layouts, sits on a dead key there or is
+  missing gets no `aria-keyshortcuts`: `@` is AltGr+Q on German Windows and Linux but ⌥L on macOS,
+  so not even per layout is there one key to name, `^` is a dead key, `ä` is missing in US. §5.6
+  rules such a character out as a shortcut; where a modeler still shows one, the chip describes the
+  menu entry, and the kit fails it.
+- The kit's `aria` case (palette entries and menu items; `emptyState` for the link) reads each chip
+  with `shortcutKeyKind`, which parses it as `ariaKeyShortcutsFromLabel` does, so the kit and the
+  derivation share one table. It fails a chip on a ruled-out character (`@`, `[`, `⌘ä`) whatever
+  the control carries, wants exactly the two-layout value for a chip whose character needs ⇧ in one
+  of the layouts, also where `ariaKeyShortcuts: ""` would leave the chip as description only, and
+  rejects a key name that is a character no key of either layout types alone (`?`, `Shift+?`, `@`,
+  the bare `+`) and a KeyboardEvent code (`Equal`, `Slash`, `KeyA`). Key symbols such as `⏎` and
+  `⌫` are no characters: a chip `⌘⏎`, which the derivation does not know, keeps its description.
 
 ## Fit
 
@@ -2055,6 +2085,7 @@ To re-check on every diagram-js upgrade, because these notes rely on internals:
 
 [ci-36]: https://github.com/Miragon/corporate-identity/issues/36
 [ci-37]: https://github.com/Miragon/corporate-identity/issues/37
+[ci-54]: https://github.com/Miragon/corporate-identity/pull/54
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
 [guide-2]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#2-marken-grundlagen
 [guide-5]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md#5-abst%C3%A4nde-layout-und-chrome

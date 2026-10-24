@@ -19,6 +19,7 @@ import {
   type ChromeMeasurement,
   type IslandBox,
 } from "./geometry.js";
+import { shortcutChipProblems } from "./key-shortcut-checks.js";
 import type { ModeChange, RecordedKey } from "./page-tools.js";
 import type {
   DropZoneFacts,
@@ -684,6 +685,9 @@ export function startScreenOpenProblems(
       `empty-state: "${link.name}" has ${link.keyShortcuts ? `aria-keyshortcuts="${link.keyShortcuts}"` : "no aria-keyshortcuts"}, expected "${open.keyShortcuts}" like the File group's Open…`,
     );
   }
+  problems.push(
+    ...shortcutChipProblems(`empty-state: "${link.name}"`, link.chip ?? "", link.keyShortcuts),
+  );
   if (open.shortcut && link.chip !== open.shortcut) {
     problems.push(
       `empty-state: "${link.name}" shows ${link.chip ? `the chip "${link.chip}"` : "no shortcut chip"}, expected "${open.shortcut}" like the File group's Open… (guide §8)`,
