@@ -23,7 +23,8 @@ special to its notation (packages, DSL or file format, renderer architecture, te
 | `modelers/value-chain`            | Value Chain, `.vc` / `.vc.json`                                                                              | [CLAUDE.md](modelers/value-chain/CLAUDE.md)                      |
 | `plugins/modeler-kit`             | Claude plugin: the `new-modeler` skill and its template                                                      | [README](plugins/modeler-kit/README.md)                          |
 | `.claude-plugin/marketplace.json` | the suite's one Claude plugin marketplace (`modeler-suite`)                                                  |                                                                  |
-| `test/`                           | repository-level checks: the modeler-kit drift test                                                          |                                                                  |
+| `tooling/`                        | the ESLint and dependency-cruiser presets every modeler's config calls                                       |                                                                  |
+| `test/`                           | repository-level checks: the modeler-kit drift test, every modeler's boundaries                              |                                                                  |
 | `docs/`                           | [shell implementation notes](docs/shell/implementation-notes.md), [CI and releases](docs/ci-and-releases.md) |                                                                  |
 
 Each modeler folder holds `packages/` (its npm libraries), `apps/webapp`, `apps/vscode`, `e2e/`
@@ -78,8 +79,12 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
   | Value Chain     | `schema-model`                      |
 
   ESLint (`no-restricted-imports` / `no-restricted-globals`) and dependency-cruiser enforce it, so a
-  violation fails `npm run <modeler> lint` and `npm run <modeler> depcruise`. The renderer and the
-  apps are the DOM side. Keep each DSL round-trip lossless and each JSON serialization deterministic.
+  violation fails `npm run <modeler> lint` and `npm run <modeler> depcruise`. Both configs come from
+  the presets in `tooling/`; a modeler names its DOM-free packages (and Team Topologies its
+  shell-importing `ui`) once, in `modelerSuite` of its `package.json`, and adds only its own rules.
+  `test/modeler-boundaries.test.ts` (`npm run test:plugin`) runs every modeler's configs against
+  these rules. The renderer and the apps are the DOM side. Keep each DSL round-trip lossless and
+  each JSON serialization deterministic.
 
 - **Contract.** Every renderer implements `@miragon/modeler-api`
   (`createCollaborativeModeler` / `createCollaborativeViewer` in

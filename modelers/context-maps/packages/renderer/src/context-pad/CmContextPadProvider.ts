@@ -413,8 +413,10 @@ export default class CmContextPadProvider implements ContextPadProvider {
     this.create.start(event as MouseEvent, shape, { source });
   }
 
-  /** Open the subdomain-type menu for a freshly appended context, anchored to
-   *  its pad entry — deferred one task so the pad has been positioned first. */
+  /**
+   * Open the subdomain-type menu for a freshly appended context, anchored to
+   *  its pad entry — deferred one task so the pad has been positioned first.
+   */
   private openTypeMenu(context: CmContext): void {
     void this.scheduler.schedule(() => {
       if (!this.contextPad.isOpen(context)) return;

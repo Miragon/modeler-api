@@ -353,10 +353,12 @@ export default class ContextMapsRenderer extends BaseRenderer {
 
   // --- shared label rendering (wrapped, top-anchored) ----------------------
 
-  /** The name starts at the FIXED offset below the type header — the gap
+  /**
+   * The name starts at the FIXED offset below the type header — the gap
    *  between header and name never varies with box size or line count. Lines
    *  that would run past the (fixed-size) box are dropped, the last kept line
-   *  gets an ellipsis. */
+   *  gets an ellipsis.
+   */
   private appendLabel(
     visuals: SVGElement,
     text: string,

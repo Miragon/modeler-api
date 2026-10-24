@@ -7,6 +7,13 @@
   "engines": {
     "node": ">=22.22.2"
   },
+  "modelerSuite": {
+    "domFreePackages": [
+      "schema-model",
+      "dsl",
+      "transforms"
+    ]
+  },
   "scripts": {
     "build": "npm run build -w packages/schema-model -w packages/dsl -w packages/transforms -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",

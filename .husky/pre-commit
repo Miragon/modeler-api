@@ -5,6 +5,9 @@ npx lint-staged
 # packages' built types, so a fresh checkout builds them once.
 staged=$(git diff --cached --name-only)
 modelers=$(printf '%s\n' "$staged" | grep -E '\.(ts|tsx|js|mjs|cjs|json)$' | sed -n 's|^modelers/\([^/]*\)/.*|\1|p' | sort -u)
+if printf '%s\n' "$staged" | grep -q '^tooling/'; then
+  modelers=$(ls modelers)
+fi
 if [ -n "$modelers" ] && { [ ! -f packages/api/dist/index.d.ts ] || [ ! -f packages/shell/dist/index.d.ts ]; }; then
   npm run build:shared
 fi
