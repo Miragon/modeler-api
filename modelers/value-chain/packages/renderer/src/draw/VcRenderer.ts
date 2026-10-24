@@ -6,7 +6,9 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type GraphicsFactory from "diagram-js/lib/core/GraphicsFactory";
 import type { Connection, Element, Shape } from "diagram-js/lib/model/Types";
 import { append as svgAppend, attr as svgAttr, create as svgCreate } from "tiny-svg";
+import type { Bounds } from "@miragon/value-chain-schema-model";
 import { chevronPath, chevronPathAt, ellipsePathAt, labelInset } from "./geometry.js";
+import { labelTextBox } from "./labelBox.js";
 import { COLORS, FONT, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
 import {
   isOrgUnit,
@@ -38,6 +40,9 @@ export default class VcRenderer extends BaseRenderer {
 
   /** Unique per instance so marker ids never collide across diagrams on one page. */
   private readonly markerSuffix = `${(rendererInstances += 1)}`;
+
+  /** Each shape's label box as last drawn, relative to the shape. */
+  private readonly labelBoxes = new WeakMap<Shape, Bounds>();
 
   constructor(
     eventBus: EventBus,
@@ -103,6 +108,7 @@ export default class VcRenderer extends BaseRenderer {
     });
     svgAppend(visuals, path);
 
+    this.labelBoxes.delete(element);
     if (shape.vcLabel) {
       const inset = orgUnit ? LABEL_PADDING + 5 : labelInset(shape.width, shape.height);
       const label = this.textUtil.createText(shape.vcLabel, {
@@ -117,9 +123,22 @@ export default class VcRenderer extends BaseRenderer {
         style: { fill: stroke },
       });
       svgAppend(visuals, label);
+      const box = labelTextBox(label as SVGTextElement);
+      if (box) this.labelBoxes.set(element, box);
     }
 
     return path;
+  }
+
+  /**
+   * The box the shape's label covers in diagram coordinates, a long label on a small shape well
+   * past the shape; undefined without a label. Measured when the shape was last drawn, that is once
+   * per content change, so zoom and scroll leave it alone.
+   */
+  labelBounds(shape: Shape): Bounds | undefined {
+    const box = this.labelBoxes.get(shape);
+    if (!box) return undefined;
+    return { x: shape.x + box.x, y: shape.y + box.y, width: box.width, height: box.height };
   }
 
   override drawConnection(visuals: SVGElement, element: Connection): SVGElement {

@@ -45,7 +45,7 @@ The stylesheet is required. It loads, in this order, the design-system tokens
 diagram-js' own CSS and `cd-canvas.css`, which maps diagram-js' chrome onto the `--cd-ui-*` roles;
 then it styles the canvas surround, the context pad, the label editor and the shortcuts dialog on
 those roles only. The three design-system files are vendored unchanged from the
-`miragon-brand:modeler-tool-design` skill (design system 1.13.0) into `src/theme/`. The diagram
+`miragon-brand:modeler-tool-design` skill (design system 1.20.1) into `src/theme/`. The diagram
 itself is drawn with SVG presentation values in the light roles of those tokens, so SVG and PNG
 exports stay light in every mode.
 
@@ -126,10 +126,12 @@ contract 1.3 (`meta.notation` `"value-chain"`): blank text opens as an empty dia
 diagram-js viewbox, a host's `setViewState` or fit never commits a label being typed, the
 `elements` surface lists steps and organizational units (name = label) with `reveal`, selection and
 `bounds(id)`, the live box of a step or an organizational unit in diagram coordinates, and
-`contentBounds()` is the live, tight box around every step, organizational unit and connection in
-diagram coordinates (`undefined` while the diagram is empty): what a host that fits the view itself
-fits to, as `connectDiagramJs(shell, diagram, { modeler, isEmpty })` of `@miragon/modeler-shell`
-does. Label text that overflows its shape is not part of the box, as in the SVG export. Both take
+`contentBounds()` is the live, tight box around every step, organizational unit and connection and
+every label, also where a long label runs past a small shape, in diagram coordinates (`undefined`
+while the diagram is empty): what a host that fits the view itself fits to, as
+`connectDiagramJs(shell, diagram, { modeler, isEmpty })` of `@miragon/modeler-shell` does, and what
+the SVG export frames. The renderer measures each label once per content change, so zoom and
+scroll leave the box alone. Both take
 the contract's factory options `freeArea`, `fitOnImport` and `undoRedoKeys` (the viewer ignores
 the two that need editing) and the deprecated `freeRectCenter`. The browser test suite runs the
 contract's conformance kit on every law, with no case skipped and no advisory. `diagram` is the

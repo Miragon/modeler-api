@@ -62,7 +62,7 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
   as presentation values, so exports stay light. Labels drawn before the web font arrived are laid
   out again once it has. Tool and chrome icons are Lucide, inlined in `draw/lucide.ts`.
 - `src/theme/` holds the design system's `cd-tokens.generated.css`/`.json` and `cd-canvas.css`
-  (1.13.0), vendored unchanged with a header; re-copy them from the
+  (1.20.1), vendored unchanged with a header; re-copy them from the
   `miragon-brand:modeler-tool-design` skill, never edit. `assets/value-chain.css` loads tokens
   (layered), `diagram-js.css`, `cd-canvas.css`, then styles only on `--cd-ui-*` roles;
   `test/theme.sync.test.ts` guards both, `apps/vscode/test/tokens.sync.test.ts` pins the shell's
@@ -70,7 +70,9 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
 - `collaborative/` implements the `@miragon/modeler-api` 1.3 contract
   (`createCollaborativeModeler`/`createCollaborativeViewer`, `elements.bounds` included, and
   `contentBounds()`, `vcBounds.contentBounds(0)`: tight, `undefined` while empty, which the apps'
-  `connectDiagramJs(…, { modeler, isEmpty })` fits to);
+  `connectDiagramJs(…, { modeler, isEmpty })` fits to and the SVG export frames; it includes label
+  text that runs past its shape, whose box `VcRenderer` measures on a 2D canvas each time it draws
+  the shape, never on the live SVG, so the box holds at every zoom);
   `importDocument` validates first, erases the history silently (`clear(false)`), fits (unless
   `fitOnImport: false`, which both apps pass because the shell's viewport fits), and keeps an open
   label edit across the import. A view change never commits a label edit: the text box follows
