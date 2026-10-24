@@ -13,6 +13,7 @@ import {
   harnessHookProblems,
   isCanvasMenuAction,
   isToolEntry,
+  isViewAtActualSize,
   keptDocumentProblems,
   keyReachProblem,
   labelEditorCommitProblems,
@@ -1335,6 +1336,28 @@ describe("label editor checks (contract L5, and the keep-open it recommends)", (
     expect(labelEditorStepProblems(step({ after: { ...EDITING, view: null } }))).toEqual([
       "label editor: a click on Fit left the view as it was, so it proved nothing about a view change",
     ]);
+  });
+
+  it("tells a view at 100 % from one a zoom step or a fit left elsewhere", () => {
+    // 100 % as one zoom step from a fit at 74 % leaves it, then the 74 % and 135 % steps
+    expect(isViewAtActualSize("1 0 0 1 -112.5 41")).toBe(true);
+    expect(isViewAtActualSize(" 1 0 0 1 0 0 ")).toBe(true);
+    expect(isViewAtActualSize("0.741 0 0 0.741 4.2 -8")).toBe(false);
+    expect(isViewAtActualSize("1.349 0 0 1.349 -40 -60")).toBe(false);
+    expect(isViewAtActualSize("1 0 0 0.5 0 0")).toBe(false);
+  });
+
+  it("takes only an exact 1 in the probe's three decimals for 100 %, as the shell's Cmd/Ctrl+0 does", () => {
+    // Cmd/Ctrl+0 leaves only a zoom of exactly 1 as it is and resets these, so they need no extra step
+    expect(isViewAtActualSize("0.999 0 0 0.999 0 0")).toBe(false);
+    expect(isViewAtActualSize("1.001 0 0 1.001 0 0")).toBe(false);
+  });
+
+  it("does not take a view it cannot read as a matrix for 100 %", () => {
+    expect(isViewAtActualSize(null)).toBe(false);
+    expect(isViewAtActualSize("")).toBe(false);
+    expect(isViewAtActualSize("matrix(1, 0, 0, 1, 0, 0)")).toBe(false);
+    expect(isViewAtActualSize("1 0 0 1 0")).toBe(false);
   });
 
   it("wants the user's commit after the view changes to show in documentChanged", () => {

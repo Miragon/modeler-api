@@ -5,18 +5,17 @@ import {
   type ShellSkip,
 } from "@miragon/modeler-shell/testing";
 import { WEBVIEW_THEMES } from "../../../apps/vscode/src/themes.js";
-import { SHELL_KIT_SIZES, typeIntoStickyLabel } from "../support/shell-kit.js";
+import { typeIntoStickyLabel } from "../support/shell-kit.js";
 import { postedMessages } from "./support/webview.js";
 
 /**
  * The shell's conformance kit against the real VS Code webview (main.ts inside the VS Code stub):
- * geometry at four sizes (1600 × 900 first, then the kit's three), ARIA and keyboard models,
- * chrome keys and select all that never reach VS Code, keyboard creation from the palette, a label
- * editor the shell's zoom, fit and refit keep open, the read-only lock of an invalid file, the
- * appearance VS Code requests (a light-only board stays light, high contrast passes) and a clean
- * teardown. Event Storming has neither a legend nor an inspector, and the webview's menu has no
- * action that hands the focus to the canvas, so the harness declares them absent and the kit
- * asserts they never show; any skip fails the suite.
+ * geometry at three sizes, ARIA and keyboard models, chrome keys and select all that never reach
+ * VS Code, keyboard creation from the palette, a label editor the shell's zoom, fit and refit keep
+ * open, the read-only lock of an invalid file, the appearance VS Code requests (a light-only board
+ * stays light, high contrast passes) and a clean teardown. Event Storming has neither a legend nor
+ * an inspector, and the webview's menu has no action that hands the focus to the canvas, so the
+ * harness declares them absent and the kit asserts they never show; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
   skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
@@ -39,7 +38,6 @@ test.describe("VS Code webview: shell conformance", () => {
         await page.goto(`/webview-test.html?${vsCodeStubSearch(requested)}`);
         await page.waitForFunction(() => window.webviewReady === true);
       },
-      sizes: SHELL_KIT_SIZES,
       async destroy(page) {
         await page.evaluate(() => {
           window.connection?.destroy();

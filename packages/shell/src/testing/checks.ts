@@ -970,6 +970,19 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
 }
 
 /**
+ * Whether `view` (`LabelEditorFacts.view`, the viewport layer's matrix as six numbers) shows 100 %
+ * as the shell's Cmd/Ctrl+0 reads it, the one view it leaves as it is: both scales exactly 1 in
+ * the probe's three decimals, the rounding of diagram-js's `canvas.zoom()`. `false` for a view
+ * that is no such matrix.
+ */
+export function isViewAtActualSize(view: string | null): boolean {
+  const values = view?.trim().split(/\s+/).map(Number) ?? [];
+  if (values.length !== 6 || !values.every(Number.isFinite)) return false;
+  const [scaleX, , , scaleY] = values;
+  return scaleX === 1 && scaleY === 1;
+}
+
+/**
  * After every step kept the editor open: the user's own commit, a click on an empty spot of the
  * canvas, must show in `labelEditor.documentChanged`, or the steps proved nothing.
  */

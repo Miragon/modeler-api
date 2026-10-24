@@ -75,10 +75,7 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   inspector and the invalid-file state are absent). Both feed the `labelEditor` hooks
   ([`e2e/tests/support/label-editor.ts`](e2e/tests/support/label-editor.ts): a double-click on a
   context, typed text; a commit shows as a changed map in the web app and as an `edit` message in
-  the webview). Both suites register the cases themselves (`shellConformanceCases()`): every case
-  opens the example, the `labelEditor` case `COMPACT_MAP`, which fits at 100 % in the kit's wide
-  size. The example fits at 68 % there, where that case's zoom in lands on 100 % and its Cmd/Ctrl+0
-  step cannot change the view (modeler-shell 0.4.0). Any skip fails the suite.
+  the webview). Every case opens the example, and any skip fails the suite.
 - **Real VS Code.** `npm run context-maps test:vscode` (Vitest project `vscode`, in
   [`apps/vscode/test-smoke/`](apps/vscode/test-smoke)) packs the extension as the release does
   (`vsce package --no-dependencies`), unpacks the VSIX outside the repository and runs the shell's
