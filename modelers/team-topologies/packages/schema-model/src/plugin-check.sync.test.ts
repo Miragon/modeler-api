@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -306,7 +307,7 @@ const handOffWarnings = (document: TestTopology): Finding[] =>
   checker.checkDocument(document).warnings.filter(({ message }) => message.includes("hand-off"));
 
 const handOffMessage = (left: string, right: string): string =>
-  `"${left}" and "${right}" sit one after the other along the flow of change (side by side or staggered); that reads as a hand-off — stack stream-aligned teams as parallel lanes, one below the other`;
+  `"${left}" and "${right}" sit one after the other along the flow of change (side by side or staggered), which reads as a hand-off; stack stream-aligned teams as parallel lanes, one below the other`;
 
 describe("plugin checker: a platform under stacked stream-aligned lanes", () => {
   it("serves every lane of the stack through the one triangle, bottom-up", () => {
@@ -641,5 +642,18 @@ describe("plugin checker: interaction labels", () => {
           'x-as-a-service int_platform_fulfilment: the label "model API" runs over the triangle\'s slanted edges (~7 characters fit on one line); use one short word, enlarge the triangle or explain it in an annotation',
       },
     ]);
+  });
+});
+
+describe("plugin checker: the report people read", () => {
+  it("heads a file with its path and title", () => {
+    const example = join(examplesDirectory, "ride-hailing.tt");
+    const report = execFileSync(process.execPath, [checkerPath, example], { encoding: "utf8" });
+    expect(report.split("\n")[0]).toBe(`${example}: "Ride-hailing team topology"`);
+  });
+
+  // brand-lint reads no strings in scripts, and the design guide rules out the em dash (§2, A2).
+  it("contains no em dash, so it prints none", () => {
+    expect(readFileSync(checkerPath, "utf8")).not.toContain("\u2014");
   });
 });
