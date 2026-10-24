@@ -144,7 +144,12 @@ the skill to update. Reference implementation in this modeler: tokens
 [`packages/renderer/test/theme.sync.test.ts`](packages/renderer/test/theme.sync.test.ts) (also: the
 in-canvas chrome uses only `--cd-ui-*`/`--cd-shell-*` roles, no colour literals, overlays at most
 z-index 100) · canvas colours [`packages/renderer/src/draw/styles.ts`](packages/renderer/src/draw/styles.ts)
-· in-canvas chrome [`packages/renderer/src/assets/wardley.css`](packages/renderer/src/assets/wardley.css)
+· context-pad icons [`packages/renderer/src/draw/lucide.ts`](packages/renderer/src/draw/lucide.ts)
+(lucide-static 1.59.0, plus the derived `chevrons-right-x`), pinned by
+[`packages/renderer/test/icons.test.ts`](packages/renderer/test/icons.test.ts) to
+[`packages/renderer/test/fixtures/lucide-static-1.59.0.icon-nodes.json`](packages/renderer/test/fixtures/lucide-static-1.59.0.icon-nodes.json):
+re-copy both from the same Lucide release, together with the licence notices in the renderer
+README and in `apps/vscode/scripts/third-party-notices.mjs` · in-canvas chrome [`packages/renderer/src/assets/wardley.css`](packages/renderer/src/assets/wardley.css)
 · web app and VS Code webview: the chrome of `@miragon/modeler-shell` (light only: `THEMES` in
 [`apps/webapp/src/themes.ts`](apps/webapp/src/themes.ts) and `WEBVIEW_THEMES` in
 [`apps/vscode/src/themes.ts`](apps/vscode/src/themes.ts), kept equal by a unit test; `style dark`
