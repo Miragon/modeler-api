@@ -53,6 +53,11 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // The suite lints several modelers in one ESLint run (pre-commit, editors), where the parser
+    // can no longer infer which modeler a file's tsconfig root is.
+    languageOptions: { parserOptions: { tsconfigRootDir: import.meta.dirname } },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2022,
