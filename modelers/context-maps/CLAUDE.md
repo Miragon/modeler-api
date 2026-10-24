@@ -44,7 +44,9 @@ Icons are Lucide (`draw/lucide.ts`), on the canvas too: the team glyph is `users
 glyphs (a filled star for core, an open hand for supporting, a dotted circle for generic) are
 notation, not function icons, and keep their shapes (guide §3.6, §11); the star and the hand are the
 Material Icons paths `star` and `pan_tool` (Apache-2.0) in `draw/subdomainGlyphs.ts`, named in the
-renderer README's licence notice.
+renderer README's licence notice, in the VSIX's `THIRD_PARTY_NOTICES.md` (written by
+`apps/vscode/scripts/third-party-notices.mjs`) and in a legal comment the web app's bundle keeps
+(`check:build`).
 
 ## Contract and chrome
 

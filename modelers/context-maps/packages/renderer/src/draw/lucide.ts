@@ -1,9 +1,14 @@
+/*! @miragon/context-maps-renderer icon geometry
+ * Lucide (lucide-static 1.59.0) @license ISC
+ * Copyright (c) 2026 Lucide Icons and Contributors
+ * Derived from Feather, as Lucide's LICENSE lists them: arrow-right, circle-x, trash,
+ * triangle-alert and x. Feather @license MIT
+ * Copyright (c) 2013-present Cole Bemis */
+
 /**
  * The Lucide icons of the in-canvas chrome (context pad, connect handles, the lasso tool, the
  * shortcuts dialog) and of the team glyph on the canvas, inlined so the renderer has no icon
- * runtime dependency. Copied unchanged from lucide-static 1.59.0 (`icon-nodes.json`; ISC,
- * © Lucide Icons and Contributors; `arrow-right`, `circle-x`, `trash`, `triangle-alert` and `x`
- * derive from Feather, MIT, © Cole Bemis).
+ * runtime dependency. Copied unchanged from lucide-static 1.59.0 (`icon-nodes.json`).
  */
 export const LUCIDE = {
   "arrow-left-right":

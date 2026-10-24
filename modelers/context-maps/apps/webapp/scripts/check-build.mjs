@@ -1,7 +1,7 @@
 // Checks what the production build must carry and the dev server never shows: the mode markup
 // written into index.html by the Vite plugin (guide §13.3), the vendored Komet of the start screen
-// and the shell's Lucide/Feather licence comment in the bundle (THIRD_PARTY_NOTICES of
-// @miragon/modeler-shell).
+// and the licence comments of the icons the shell and the renderer copy into their sources (Lucide
+// and Feather, the renderer's Material star and hand) in the bundle.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -25,12 +25,21 @@ if (!html.includes('class="cd-shell-document"')) {
 if (!existsSync(join(dist, "miragon-komet-blau.svg"))) {
   problems.push("the start screen's miragon-komet-blau.svg is missing");
 }
-if (!scripts.some((source) => /@license[\s\S]{0,400}Lucide/.test(source))) {
-  problems.push("no bundle keeps the shell's @license comment naming Lucide");
+const LICENCE_COMMENTS = {
+  "the shell's Lucide icons": /@miragon\/modeler-shell icon geometry[\s\S]{0,120}@license ISC/,
+  "the renderer's Lucide icons":
+    /@miragon\/context-maps-renderer icon geometry[\s\S]{0,120}@license ISC/,
+  "the renderer's Material star and hand":
+    /@miragon\/context-maps-renderer notation glyphs[\s\S]{0,120}@license Apache-2\.0/,
+};
+for (const [icons, comment] of Object.entries(LICENCE_COMMENTS)) {
+  if (!scripts.some((source) => comment.test(source))) {
+    problems.push(`no bundle keeps the @license comment of ${icons}`);
+  }
 }
 
 if (problems.length > 0) {
   console.error(`apps/webapp build check failed:\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
-console.log("apps/webapp build check: mode markup, Komet and licence comment present");
+console.log("apps/webapp build check: mode markup, Komet and licence comments present");

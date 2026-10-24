@@ -95,5 +95,6 @@ publish `apps/webapp/dist`, with an SPA catch-all redirect to `index.html` (hash
 
 ## License
 
-[MIT](../../LICENSE). The bundled Lucide icons of the modeler shell are ISC (partly Feather, MIT); the
-bundle keeps their licence comment.
+[MIT](../../LICENSE). The bundled Lucide icons of the modeler shell and the renderer are ISC (partly
+Feather, MIT); the renderer's star and open hand of the core and supporting subdomains are Material
+Icons `star` and `pan_tool`, Apache-2.0 (© Google LLC). The bundle keeps their licence comments.

@@ -1,8 +1,12 @@
+/*! @miragon/context-maps-renderer notation glyphs
+ * Material Icons star and pan_tool @license Apache-2.0
+ * Copyright Google LLC */
+
 /**
  * Kaiser's subdomain glyphs on a 24×24 viewBox: a filled star for a core domain, an open hand for a
  * supporting subdomain (a generic subdomain draws a dotted circle). They are notation, not function
  * icons, so they keep their filled shapes instead of Lucide outlines (guide §3.6, §11). The paths are
- * Material Icons `star` and `pan_tool` (Apache-2.0, © Google LLC).
+ * Material Icons `star` and `pan_tool`.
  */
 export const STAR_PATH =
   "M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z";

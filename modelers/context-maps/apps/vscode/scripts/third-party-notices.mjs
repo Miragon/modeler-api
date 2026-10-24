@@ -1,7 +1,7 @@
 // Writes THIRD_PARTY_NOTICES.md for the VSIX: the license of every npm package that ends up in
 // dist/ (read from esbuild's metafile, so a new dependency cannot go unlisted), the fonts, and the
-// Lucide icons the renderer and the shell inline. `node scripts/third-party-notices.mjs --check`
-// fails when the committed file is stale; the unit test runs that check.
+// Lucide and Material icons the renderer and the shell inline. `node scripts/third-party-notices.mjs
+// --check` fails when the committed file is stale; the unit test runs that check.
 import * as esbuild from "esbuild";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -16,9 +16,9 @@ const output = join(app, "THIRD_PARTY_NOTICES.md");
 // Inlined as geometry (no npm dependency), so not visible in the metafile.
 const LUCIDE = `## Lucide (lucide-static 1.59.0)
 
-The map's lasso, context pad, connect handle and validation marker icons
-(\`@miragon/context-maps-renderer\`) and the chrome icons (\`@miragon/modeler-shell\`) are Lucide
-icons, copied into the sources.
+The map's lasso, context pad, connect handle and validation marker icons, the dialogs' Close icon
+and the team glyph on the canvas (\`@miragon/context-maps-renderer\`) and the chrome icons
+(\`@miragon/modeler-shell\`) are Lucide icons, copied into the sources.
 
 ISC License
 
@@ -60,6 +60,24 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+`;
+
+// Apache-2.0 §4(a) asks for a copy of the licence itself, not only a link to it.
+const APACHE_LICENSE = readFileSync(join(here, "apache-2.0.txt"), "utf8")
+  .replace(/^\n+/, "")
+  .trimEnd();
+
+const MATERIAL = `## Material Icons
+
+The star and the open hand that mark core and supporting subdomains on the map
+(\`@miragon/context-maps-renderer\`) are the paths of the Material Icons \`star\` and \`pan_tool\`
+(https://github.com/google/material-design-icons), copied into the sources.
+
+Copyright Google LLC. Licensed under the Apache License, Version 2.0:
+
+\`\`\`text
+${APACHE_LICENSE}
+\`\`\`
 `;
 
 const sources = (path) => resolve(root, path);
@@ -141,6 +159,7 @@ export async function noticesText() {
     "`npm run notices -w apps/vscode`; do not edit by hand.",
     "",
     LUCIDE,
+    MATERIAL,
     ...sections,
   ].join("\n");
 }
