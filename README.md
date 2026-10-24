@@ -9,6 +9,8 @@ notation: a plain-text file is the source of truth, a [diagram-js](https://githu
 renderer shows and edits it, and a web app and a VS Code extension put the renderer in front of
 users. Every package and extension keeps its own version and its own npm or Marketplace name.
 
+![The web apps of Wardley Maps, Event Storming, Team Topologies, Context Maps and Value Chain open their built-in examples one after another](docs/assets/demo.gif)
+
 ## Modelers
 
 | Modeler                                               | Files                                                 | Web app                                                                          | VS Code extension                                                                                                                                                                         |
