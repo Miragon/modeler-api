@@ -103,13 +103,13 @@ fails when the action's pin moves without it. Whether CI runs the check on every
 
 ## Monorepo map & the DOM boundary (P1)
 
-| Package                                 | Purpose                                               | DOM      |
-| --------------------------------------- | ----------------------------------------------------- | -------- |
-| `@miragon/team-topologies-schema-model` | Types, notation spec, Zod validation, serialization   | DOM-free |
-| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer, import/export | DOM      |
-| `@miragon/team-topologies-ui` (private) | Chrome content: inspector, legend rows, dialogs, menu | DOM      |
-| `apps/webapp`                           | Vite demo editor on the modeler shell's web host      | DOM      |
-| `apps/vscode`                           | VS Code custom editor for `.tt`/`.ttm.json`           | DOM      |
+| Package                                 | Purpose                                                                           | DOM      |
+| --------------------------------------- | --------------------------------------------------------------------------------- | -------- |
+| `@miragon/team-topologies-schema-model` | Types, notation spec, Zod validation, serialization                               | DOM-free |
+| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer, import/export, menu, legend rows, dialogs | DOM      |
+| `@miragon/team-topologies-ui` (private) | The React inspector for the chrome's inspector slot                               | DOM      |
+| `apps/webapp`                           | Vite demo editor on the modeler shell's web host                                  | DOM      |
+| `apps/vscode`                           | VS Code custom editor for `.tt`/`.ttm.json`                                       | DOM      |
 
 **P1 — the DOM boundary:** the DOM-free package (`schema-model`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This is

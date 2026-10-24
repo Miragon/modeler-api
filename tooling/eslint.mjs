@@ -5,7 +5,7 @@ import jsdoc from "eslint-plugin-jsdoc";
 import globals from "globals";
 import { readModelerBoundaries } from "./modeler-boundaries.cjs";
 
-const SHELL_MESSAGE = "Only the apps mount the shell; a published package never imports it.";
+const SHELL_MESSAGE = "Only the apps mount the shell; no package under packages/ imports it.";
 const CONTRACT_MESSAGE = "DOM-free packages take only types from the contract.";
 
 const SHELL_RESTRICTED_IMPORTS = {
@@ -84,7 +84,7 @@ function sourcesOf(packageNames) {
 }
 
 export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
-  const { domFreePackages, shellImportingPackages } = readModelerBoundaries(modelerRoot);
+  const { domFreePackages } = readModelerBoundaries(modelerRoot);
   return tseslint.config(
     IGNORED_FILES,
     js.configs.recommended,
@@ -93,12 +93,7 @@ export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
     TYPESCRIPT_RULES,
     SOURCE_COMPLEXITY_RATCHET,
     {
-      files: [
-        "packages/renderer/**/*.{ts,tsx}",
-        ...sourcesOf(shellImportingPackages),
-        "apps/**/*.{ts,tsx}",
-        "e2e/**/*.ts",
-      ],
+      files: ["packages/renderer/**/*.{ts,tsx}", "apps/**/*.{ts,tsx}", "e2e/**/*.ts"],
       languageOptions: { globals: globals.browser },
     },
     VSCODE_HOST_AND_WEBVIEW_GLOBALS,
@@ -106,7 +101,6 @@ export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
     ...modelerConfigs,
     {
       files: ["packages/*/src/**/*.{ts,tsx}"],
-      ignores: sourcesOf(shellImportingPackages),
       rules: { "no-restricted-imports": ["error", SHELL_RESTRICTED_IMPORTS] },
     },
     {

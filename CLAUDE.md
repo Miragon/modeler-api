@@ -80,11 +80,11 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
 
   ESLint (`no-restricted-imports` / `no-restricted-globals`) and dependency-cruiser enforce it, so a
   violation fails `npm run <modeler> lint` and `npm run <modeler> depcruise`. Both configs come from
-  the presets in `tooling/`; a modeler names its DOM-free packages (and Team Topologies its
-  shell-importing `ui`) once, in `modelerSuite` of its `package.json`, and adds only its own rules.
-  `test/modeler-boundaries.test.ts` (`npm run test:plugin`) runs every modeler's configs against
-  these rules. The renderer and the apps are the DOM side. Keep each DSL round-trip lossless and
-  each JSON serialization deterministic.
+  the presets in `tooling/`; a modeler names its DOM-free packages once, in `modelerSuite` of its
+  `package.json`, and adds only its own rules. `test/modeler-boundaries.test.ts`
+  (`npm run test:plugin`) runs every modeler's configs against these rules. The renderer and the
+  apps are the DOM side. Keep each DSL round-trip lossless and each JSON serialization
+  deterministic.
 
 - **Contract.** Every renderer implements `@miragon/modeler-api`
   (`createCollaborativeModeler` / `createCollaborativeViewer` in
@@ -92,14 +92,13 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
   case or an advisory fails the run. The DOM-free packages may import the contract's **types only**.
   The contract has no runtime dependencies; its laws, versioning and the rule for a new kit case are
   in [packages/api/README.md](packages/api/README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
-- **Shell.** Only the apps (`apps/webapp`, `apps/vscode`), the `e2e/` suites and Team Topologies'
-  private `ui` package import `@miragon/modeler-shell`; **no published package under
-  `modelers/*/packages/` does** (ESLint and dependency-cruiser). A renderer hands the chrome
-  structurally typed parts (menu entries, dialogs, legend rows, a read-only lock) and never the
-  shell's own types. Both apps of every modeler mount the shell and run its conformance kit in the
-  e2e projects `webapp` (`chromium` in Context Maps) and `vscode-webview`. The shell itself has zero
-  runtime dependencies and a DOM-free `src/core`; `packages/shell/test/package-boundaries.test.ts`
-  enforces both.
+- **Shell.** Only the apps (`apps/webapp`, `apps/vscode`) and the `e2e/` suites import
+  `@miragon/modeler-shell`; **no package under `modelers/*/packages/` does** (ESLint and
+  dependency-cruiser). A renderer hands the chrome structurally typed parts (menu entries, dialogs,
+  legend rows, a read-only lock) and never the shell's own types. Both apps of every modeler mount
+  the shell and run its conformance kit in the e2e projects `webapp` (`chromium` in Context Maps)
+  and `vscode-webview`. The shell itself has zero runtime dependencies and a DOM-free `src/core`;
+  `packages/shell/test/package-boundaries.test.ts` enforces both.
 - **Shared code changes reach every modeler at once.** The modelers pin the workspace's current
   `@miragon/modeler-api` and `@miragon/modeler-shell` and npm links them, so a change in
   `packages/` is live in all five: rebuild (`npm run build:shared`) and run the affected modelers'

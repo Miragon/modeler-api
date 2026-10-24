@@ -1,10 +1,11 @@
 /**
- * The legend's content for a host's legend card (the modeler shell's `legend.body`): each shape
- * of the notation with its name and a short explanation, grouped into team types, interaction
- * modes and the other elements. It carries the notation primer the help dialog had before 0.11:
- * what each team type and interaction mode is for, and that solid shapes are long-lived teams while
- * dashed ones are short-lived interactions. Framework-free, because the card is the host's and
- * renders it once.
+ * The notation legend for a host's legend card (the modeler shell's `legend.render`, or a panel of
+ * the host's own): each shape of the notation with its name and a short explanation, grouped into
+ * team types, interaction modes and the other elements. Driven by the notation spec and drawn with
+ * the palette's glyphs, so it shows the official notation colours and can never drift from what
+ * the canvas draws. `legendGroups` is DOM-free data; `renderLegend` turns it into rows with the
+ * shell's row, preview and separator classes next to its own, which the renderer's stylesheet lays
+ * out the same, so the rows look alike with and without the shell.
  */
 
 import {
@@ -20,21 +21,21 @@ import {
   flowIconSvg,
   interactionIconSvg,
   teamIconSvg,
-} from "@miragon/team-topologies-renderer";
+} from "../draw/palette-icons.js";
 
 export interface LegendRow {
   /** The palette's glyph as SVG markup, so legend and palette always show the same shape. */
-  preview: string;
-  label: string;
+  readonly preview: string;
+  readonly label: string;
   /** One short line under the name: what the shape stands for. */
-  explanation: string;
+  readonly explanation: string;
 }
 
 export interface LegendGroup {
-  label: string;
+  readonly label: string;
   /** The visible heading: the group and what its shapes share (solid or dashed). */
-  heading: string;
-  rows: readonly LegendRow[];
+  readonly heading: string;
+  readonly rows: readonly LegendRow[];
 }
 
 const TEAM_TYPE_EXPLANATIONS: Readonly<Record<TeamType, string>> = {
@@ -50,6 +51,11 @@ const INTERACTION_MODE_EXPLANATIONS: Readonly<Record<InteractionMode, string>> =
   facilitating: "One team helps another learn",
 };
 
+/**
+ * The legend's groups and rows, in reading order. It carries the notation primer: what each team
+ * type and interaction mode is for, and that solid shapes are long-lived teams while dashed ones
+ * are short-lived interactions.
+ */
 export function legendGroups(): LegendGroup[] {
   return [
     {
@@ -89,14 +95,20 @@ export function legendGroups(): LegendGroup[] {
   ];
 }
 
-/** Renders the legend rows into `body`, with the shell's row, preview and separator classes. */
-export function renderLegendRows(body: HTMLElement): void {
+/**
+ * Renders the legend's rows into `body` (the shell's `legend.render`) and returns the function
+ * that removes them again. The explanation stands under each name, so the rows need no tooltip.
+ */
+export function renderLegend(body: HTMLElement): () => void {
   const document = body.ownerDocument;
+  const rendered: Element[] = [];
   legendGroups().forEach((group, index) => {
     if (index > 0) {
-      const separator = document.createElement("hr");
-      separator.className = "cd-shell-legend-separator";
-      body.append(separator);
+      // A <div>, not an <hr>: it brings no browser border a host's own separator rule must reset.
+      const separator = document.createElement("div");
+      separator.className = "cd-shell-legend-separator tt-legend__separator";
+      separator.setAttribute("role", "separator");
+      rendered.push(separator);
     }
     const heading = document.createElement("p");
     heading.className = "tt-legend__heading";
@@ -125,6 +137,10 @@ export function renderLegendRows(body: HTMLElement): void {
       item.append(preview, text);
       list.append(item);
     }
-    body.append(heading, list);
+    rendered.push(heading, list);
   });
+  body.append(...rendered);
+  return () => {
+    for (const node of rendered.splice(0)) node.remove();
+  };
 }

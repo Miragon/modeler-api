@@ -7,11 +7,8 @@ function readModelerBoundaries(modelerRoot) {
   if (!Array.isArray(manifest?.domFreePackages) || manifest.domFreePackages.length === 0) {
     throw new Error(`${packageJson.name}: package.json needs "modelerSuite.domFreePackages".`);
   }
-  const boundaries = {
-    domFreePackages: manifest.domFreePackages,
-    shellImportingPackages: manifest.shellImportingPackages ?? [],
-  };
-  for (const packageName of [...boundaries.domFreePackages, ...boundaries.shellImportingPackages]) {
+  const boundaries = { domFreePackages: manifest.domFreePackages };
+  for (const packageName of boundaries.domFreePackages) {
     if (!existsSync(join(modelerRoot, "packages", packageName))) {
       throw new Error(
         `${packageJson.name}: "modelerSuite" names packages/${packageName}, which does not exist.`,

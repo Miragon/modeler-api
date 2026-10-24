@@ -1,5 +1,6 @@
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import globals from "globals";
 import { modelerEslintConfig } from "../../tooling/eslint.mjs";
 
 const reactHooksRules = {
@@ -7,8 +8,9 @@ const reactHooksRules = {
   "react-hooks/exhaustive-deps": "warn",
 };
 
-const uiReactRules = {
+const uiBrowserAndReactRules = {
   files: ["packages/ui/**/*.{ts,tsx}"],
+  languageOptions: { globals: globals.browser },
   plugins: { "react-hooks": reactHooks, "react-refresh": reactRefresh },
   rules: {
     ...reactHooksRules,
@@ -24,6 +26,6 @@ const webviewWithoutHotReloadReactRules = {
 
 export default modelerEslintConfig(
   import.meta.dirname,
-  uiReactRules,
+  uiBrowserAndReactRules,
   webviewWithoutHotReloadReactRules,
 );

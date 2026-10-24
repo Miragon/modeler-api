@@ -86,11 +86,12 @@ packages/
   schema-model/  @miragon/team-topologies-schema-model — DOM-free core: types, notation spec, Zod schema,
                                             deterministic JSON, migrations, factory, the example.
   renderer/      @miragon/team-topologies-renderer     — diagram-js bootstrap: viewer/modeler, renderer, palette,
-                                            context-pad, label editing, import/export, CSS.
-  ui/            @miragon/team-topologies-ui           — private: what the modeler puts into the chrome (the
-                                            React inspector, legend rows, shortcuts and title
-                                            dialogs, menu entries), shared by the webapp and the
-                                            VS Code webview.
+                                            context-pad, label editing, import/export, CSS, and what
+                                            a host's chrome shows (menu entries, legend rows,
+                                            shortcuts and title dialogs).
+  ui/            @miragon/team-topologies-ui           — private: the React inspector for the chrome's
+                                            inspector slot, shared by the webapp and the VS Code
+                                            webview.
 apps/
   webapp/        @miragon/team-topologies-webapp       — Vite editor on the modeler shell's web host.
   vscode/        team-topologies-modeler  — VS Code custom editor for .tt / .ttm.json.

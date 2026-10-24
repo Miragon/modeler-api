@@ -11,9 +11,6 @@
   "modelerSuite": {
     "domFreePackages": [
       "schema-model"
-    ],
-    "shellImportingPackages": [
-      "ui"
     ]
   },
   "scripts": {

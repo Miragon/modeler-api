@@ -2,24 +2,21 @@
 import "./zod-jitless.js";
 import "@fontsource-variable/geist/wght.css";
 import "@fontsource-variable/geist-mono/wght.css";
-// The renderer's stylesheet brings the tokens, diagram-js.css and cd-canvas.css, the ui package
-// its content styles; the shell's stylesheet comes last.
+// The renderer's stylesheet brings the tokens, diagram-js.css, cd-canvas.css and the content of
+// legend and dialogs, the ui package the inspector's; the shell's stylesheet comes last.
 import {
   createCollaborativeModeler,
+  createShortcutsDialog,
+  diagramMenu,
   isTtElement,
   parseDocumentText,
+  renderLegend,
   type CollaborativeTeamTopologiesModeler,
   type Modeler,
   type TtReadOnly,
 } from "@miragon/team-topologies-renderer";
 import { serializeDocument } from "@miragon/team-topologies-schema-model";
-import {
-  createShortcutsDialog,
-  diagramMenu,
-  makeRoomForLegend,
-  mountInspector,
-  renderLegendRows,
-} from "@miragon/team-topologies-ui";
+import { makeRoomForLegend, mountInspector } from "@miragon/team-topologies-ui";
 import "@miragon/modeler-shell/shell.css";
 import type { ShellHandle } from "@miragon/modeler-shell";
 import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell/core";
@@ -91,12 +88,14 @@ const shell: ShellHandle = mountVsCodeShell(app, {
   canvas: modeler.container,
   messages: { canvas: DIAGRAM_NAME },
   menu: diagramMenu({
-    exportPng: () => void exportPng(),
-    exportSvg: () => exportSvg(),
+    exports: {
+      png: { onSelect: () => void exportPng() },
+      svg: { onSelect: () => exportSvg() },
+    },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
   }),
   legend: {
-    render: renderLegendRows,
+    render: renderLegend,
     open: storedShellState.legendOpen ?? legacyLegendOpen,
     onToggle: (open) => {
       // A bottom sheet hides the legend; asking for the legend closes the sheet.
