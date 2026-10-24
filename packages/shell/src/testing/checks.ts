@@ -971,6 +971,12 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
 }
 
 /**
+ * In binary, `1 - 0.999` lies a hair above `VIEW_TOLERANCE`, yet the probe reports 0.999 for scales
+ * the shell's Cmd/Ctrl+0 takes for 100 % and leaves as they are.
+ */
+const ROUNDED_SCALE_SLACK = 1e-9;
+
+/**
  * Whether `view` (`LabelEditorFacts.view`, the viewport layer's matrix as six numbers) shows 100 %,
  * within `VIEW_TOLERANCE`; `false` for a view that is no such matrix.
  */
@@ -978,7 +984,9 @@ export function isViewAtActualSize(view: string | null): boolean {
   const values = view?.trim().split(/\s+/).map(Number) ?? [];
   if (values.length !== 6 || !values.every(Number.isFinite)) return false;
   const [scaleX = 0, , , scaleY = 0] = values;
-  return Math.abs(scaleX - 1) <= VIEW_TOLERANCE && Math.abs(scaleY - 1) <= VIEW_TOLERANCE;
+  const atActualSize = (scale: number) =>
+    Math.abs(scale - 1) <= VIEW_TOLERANCE + ROUNDED_SCALE_SLACK;
+  return atActualSize(scaleX) && atActualSize(scaleY);
 }
 
 /**

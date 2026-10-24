@@ -97,7 +97,7 @@ const VIEW_STEPS: readonly ViewStep[] = [
     due: isViewAtActualSize,
   },
   canvasKey("Cmd/Ctrl+0 on the canvas", { key: "0", code: "Digit0", ctrlKey: true }),
-  canvasKey("a second Cmd/Ctrl+Plus on the canvas", ZOOM_IN_KEY),
+  canvasKey("Cmd/Ctrl+Plus on the canvas after Cmd/Ctrl+0", ZOOM_IN_KEY),
   canvasKey("Shift+1 on the canvas", { key: "!", code: "Digit1", shiftKey: true }),
   containerResize,
 ];

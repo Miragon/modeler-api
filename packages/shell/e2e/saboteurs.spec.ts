@@ -761,11 +761,13 @@ test.describe("saboteurs", () => {
         /label editor: a click on Fit committed the open label editor/,
         /label editor: Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
         /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
-        /label editor: a second Cmd\/Ctrl\+Plus on the canvas committed the open label editor/,
+        /label editor: Cmd\/Ctrl\+Plus on the canvas after Cmd\/Ctrl\+0 committed the open label editor/,
         /label editor: Shift\+1 on the canvas committed the open label editor/,
         /label editor: a container resize committed the open label editor/,
       ]);
       expect(failure).not.toMatch(/labelEditor\.open/);
+      // the demo fits at 100 % here, so the first Cmd/Ctrl+Plus already left 100 %
+      expect(failure).not.toMatch(/one more Cmd\/Ctrl\+Plus/);
     });
 
     test("appearance fails for a renderer colour on the armed tool's icon", async ({ page }) => {

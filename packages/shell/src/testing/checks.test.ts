@@ -1341,10 +1341,18 @@ describe("label editor checks (contract L5, and the keep-open it recommends)", (
   it("tells a view at 100 % from one a zoom step or a fit left elsewhere", () => {
     // 100 % as one zoom step from a fit at 74 % leaves it, then the 74 % and 135 % steps
     expect(isViewAtActualSize("1 0 0 1 -112.5 41")).toBe(true);
-    expect(isViewAtActualSize(" 0.9995 0 0 1.001 0 0 ")).toBe(true);
+    expect(isViewAtActualSize(" 1 0 0 1 0 0 ")).toBe(true);
     expect(isViewAtActualSize("0.741 0 0 0.741 4.2 -8")).toBe(false);
     expect(isViewAtActualSize("1.349 0 0 1.349 -40 -60")).toBe(false);
     expect(isViewAtActualSize("1 0 0 0.5 0 0")).toBe(false);
+  });
+
+  it("reads 100 % at the edge of VIEW_TOLERANCE in the probe's three decimals, as Cmd/Ctrl+0 does", () => {
+    // the shell's Cmd/Ctrl+0 leaves a scale within VIEW_TOLERANCE of 1 as it is
+    expect(isViewAtActualSize("0.999 0 0 0.999 0 0")).toBe(true);
+    expect(isViewAtActualSize("1.001 0 0 1.001 0 0")).toBe(true);
+    expect(isViewAtActualSize("0.998 0 0 0.998 0 0")).toBe(false);
+    expect(isViewAtActualSize("1.002 0 0 1.002 0 0")).toBe(false);
   });
 
   it("does not take a view it cannot read as a matrix for 100 %", () => {
