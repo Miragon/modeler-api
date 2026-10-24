@@ -5,9 +5,12 @@
  * (press-drag-release ONLY: a click listener would restart the tool after the
  * mouseup and leave the preview line chasing the cursor). Implemented as
  * diagram-js overlays so the handles float outside the shape, follow it, and
- * never collide with the resize handles on the selection outline.
+ * never collide with the resize handles on the selection outline. A press
+ * hands the focus to the canvas, where Delete and Cmd/Ctrl+Z act on the new
+ * relationship.
  */
 
+import type Canvas from "diagram-js/lib/core/Canvas";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type Overlays from "diagram-js/lib/features/overlays/Overlays";
 import type Selection from "diagram-js/lib/features/selection/Selection";
@@ -53,7 +56,15 @@ function handlePosition(
 }
 
 export default class CmConnectHandles {
-  static $inject = ["eventBus", "selection", "overlays", "connect", "dragging", "cmReadOnly"];
+  static $inject = [
+    "eventBus",
+    "selection",
+    "overlays",
+    "connect",
+    "dragging",
+    "cmReadOnly",
+    "canvas",
+  ];
 
   constructor(
     private readonly eventBus: EventBus,
@@ -62,6 +73,7 @@ export default class CmConnectHandles {
     connect: Connect,
     private readonly dragging: Dragging,
     private readonly readOnly: Pick<CmReadOnly, "isReadOnly">,
+    private readonly canvas: Canvas,
   ) {
     // Not used to start the drag, but injecting Connect instantiates it so its
     // connect.* event handlers (hover/end → modeling.connect) are registered —
@@ -112,6 +124,9 @@ export default class CmConnectHandles {
             context: { start: element, connectionStart: getMid(element) },
           },
         });
+        // preventDefault above keeps the browser from moving the focus, and the
+        // keyboard acts only on the focused canvas.
+        this.canvas.focus();
         // Keep the source context marked after the drag: the drag lifecycle
         // clears the selection, but the user is still "at" this context. Low
         // priority so this runs after the stock cleanup listeners.

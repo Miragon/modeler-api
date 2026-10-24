@@ -13,10 +13,10 @@
  * Every mutation goes through `cmModeling`/`modeling`, so it is undoable and
  * lands in `exportDocument()`. Role/pattern constraints mirror the reference
  * inspector: upstream roles combine, downstream roles exclude each other, and
- * customer-supplier blocks OHS (upstream) and CF (downstream). An entry that
- * opens no menu, editor or prompt at once (append, connect, swap ends, delete)
- * hands the focus to the canvas, where Delete and Cmd/Ctrl+Z act on what it
- * did.
+ * customer-supplier blocks OHS (upstream) and CF (downstream). Connect, swap
+ * ends and delete hand the focus to the canvas, where Delete and Cmd/Ctrl+Z act
+ * on what they did. Append opens the subdomain-type menu, which takes the
+ * focus and hands it to the canvas when it closes.
  */
 
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
@@ -405,6 +405,8 @@ export default class CmContextPadProvider implements ContextPadProvider {
       shape,
       connection && typeof connection === "object" ? { connection } : {},
     ) as unknown as CmContext;
+    // The type menu opens only while the pad shows on the new context; when it
+    // does not, the focus would otherwise stay on <body>.
     handFocusToCanvas(this.canvas, event);
     this.openTypeMenu(appended);
   }

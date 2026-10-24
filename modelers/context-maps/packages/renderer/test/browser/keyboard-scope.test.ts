@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { Modeler } from "@miragon/context-maps-renderer";
+import { Modeler, cmConnectHandlesModule } from "@miragon/context-maps-renderer";
 import { emptyDocument, type CmDocument } from "@miragon/context-maps-schema-model";
 
 /**
@@ -34,7 +34,7 @@ interface Mounted {
   text: HTMLElement;
 }
 
-function mount(): Mounted {
+function mount(additionalModules: (typeof cmConnectHandlesModule)[] = []): Mounted {
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "position:absolute;left:0;top:0;width:900px;height:700px";
   const text = document.createElement("p");
@@ -45,7 +45,7 @@ function mount(): Mounted {
   wrapper.append(text, container);
   document.body.appendChild(wrapper);
   wrappers.push(wrapper);
-  const modeler = new Modeler({ container });
+  const modeler = new Modeler({ container, additionalModules });
   modeler.importDocument(mapDocument());
   const svg = container.querySelector<SVGSVGElement>(".djs-container > svg")!;
   return { modeler, wrapper, container, svg, text };
@@ -58,6 +58,13 @@ function select(modeler: Modeler, id: string): void {
 
 function exists(modeler: Modeler, id: string): boolean {
   return modeler.get<{ get(id: string): unknown }>("elementRegistry").get(id) !== undefined;
+}
+
+/** A click with no pointer behind it, the one Enter or Space on a focused entry sends. */
+function keyboardClick(entry: HTMLElement): void {
+  entry.tabIndex = 0;
+  entry.focus();
+  entry.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }));
 }
 
 function press(target: EventTarget, init: KeyboardEventInit): KeyboardEvent {
@@ -196,7 +203,11 @@ test("a pointer on the palette hands the keys to the canvas", async () => {
 
     await userEvent.click(paletteEntry(container, "context.core"));
     expect(document.activeElement).toBe(svg);
-    await userEvent.keyboard("{Escape}");
+    await userEvent.click(svg, { position: { x: 450, y: 520 } });
+    expect(modeler.exportDocument().contexts).toHaveLength(2);
+    expect(document.activeElement).toBe(svg);
+    await userEvent.keyboard("{Delete}");
+    expect(modeler.exportDocument().contexts.map((context) => context.id)).toEqual(["b"]);
   } finally {
     modeler.destroy();
   }
@@ -206,10 +217,23 @@ test("Enter or Space on a focused tool entry leave the focus on the entry", () =
   const { modeler, container } = mount();
   try {
     const lasso = paletteEntry(container, "lasso-tool");
-    lasso.tabIndex = 0;
-    lasso.focus();
-    lasso.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }));
+    keyboardClick(lasso);
     expect(document.activeElement).toBe(lasso);
+  } finally {
+    modeler.destroy();
+  }
+});
+
+test("Enter or Space on an entry that goes away with its action hand the keys to the canvas", async () => {
+  const { modeler, container, svg } = mount();
+  try {
+    select(modeler, "b");
+    await settle();
+    keyboardClick(padEntry(container, "delete"));
+    expect(exists(modeler, "b")).toBe(false);
+    expect(document.activeElement).toBe(svg);
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(exists(modeler, "b")).toBe(true);
   } finally {
     modeler.destroy();
   }
@@ -267,6 +291,45 @@ test("pad entries that open a menu, an editor or a prompt keep the focus there",
     await userEvent.click(padEntry(container, "append-context"));
     await settle();
     expect(document.activeElement?.closest(".djs-popup")).not.toBeNull();
+  } finally {
+    modeler.destroy();
+  }
+});
+
+test("a press on a connect handle hands the keys to the canvas", async () => {
+  const { modeler, container, svg, text } = mount([cmConnectHandlesModule]);
+  try {
+    svg.focus();
+    await userEvent.click(text);
+    select(modeler, "a");
+    expect(document.activeElement).toBe(document.body);
+
+    const registry = modeler.get<{ get(id: string): unknown }>("elementRegistry");
+    const canvas = modeler.get<{ getGraphics(element: unknown): SVGElement }>("canvas");
+    const eventBus = modeler.get<{ createEvent(data: unknown): Event }>("eventBus");
+    const dragging = modeler.get<{
+      hover(event: Event): void;
+      move(event: Event): void;
+      end(): void;
+    }>("dragging");
+    // The rules allow one relationship per pair of contexts.
+    modeler
+      .get<{ removeElements(elements: unknown[]): void }>("modeling")
+      .removeElements([registry.get("r")]);
+    const target = registry.get("b");
+    const handle = container.querySelector<HTMLElement>('.cm-connect-handle[data-side="right"]')!;
+    handle.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 340, clientY: 295 }),
+    );
+    dragging.move(eventBus.createEvent({ x: 500, y: 255, clientX: 500, clientY: 295 }));
+    dragging.hover(eventBus.createEvent({ element: target, gfx: canvas.getGraphics(target) }));
+    dragging.move(eventBus.createEvent({ x: 700, y: 255, clientX: 700, clientY: 295 }));
+    dragging.end();
+    expect(modeler.exportDocument().relationships).toMatchObject([{ from: "a", to: "b" }]);
+    expect(document.activeElement).toBe(svg);
+
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(modeler.exportDocument().relationships).toEqual([]);
   } finally {
     modeler.destroy();
   }

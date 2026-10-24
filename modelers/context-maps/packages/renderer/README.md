@@ -183,10 +183,11 @@ What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-s
   does: on keys whose target is the canvas `<svg>` or inside it. Keys with nothing focused
   (`<body>`), on a host's chrome, on the palette, the context pad or an editor in the canvas
   container pass, and so do keys someone already handled (`defaultPrevented`) and keys of an IME
-  composition. `Cmd/Ctrl+A` selects every element. A pointer on a palette entry, or on a context-pad
-  entry that opens no menu, editor or prompt at once (append, connect, swap ends, delete), hands
-  the focus to the canvas, so Delete and `Cmd/Ctrl+Z` act at once; Enter or Space leave it on the
-  entry.
+  composition. `Cmd/Ctrl+A` selects every element. A pointer on a palette entry, on the context
+  pad's connect, swap ends or delete, or on a connect handle of `cmConnectHandlesModule` hands the
+  focus to the canvas, so Delete and `Cmd/Ctrl+Z` act at once; Enter or Space leave it on the entry,
+  unless the entry goes away with its action. Append opens the subdomain-type menu, which takes the
+  focus and hands it to the canvas when it closes.
 - A host that hides the canvas without destroying the modeler makes its container `inert` or
   `display: none`, not only transparent: a hidden or inert canvas cannot hold the focus, so no key
   reaches it. There is no separate switch to pause the keyboard.
