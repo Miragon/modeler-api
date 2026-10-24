@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 DOM-free bridge between the Event Storming `.storm` text DSL and the `EventStormingBoard`
-model — a lossless round-trip.
+model, as a lossless round-trip.
 
 ## Install
 
@@ -29,7 +29,7 @@ const text = serializeDSL(board); // back to .storm text, losslessly
 ## The `.storm` format
 
 One statement per line. Coordinates are `[x, y]` in board pixels (x first), optional
-(default `[0, 0]`), unbounded — the canvas is free.
+(default `[0, 0]`) and unbounded: the canvas is free.
 
 ```
 title Order Checkout            // config; also: style classic|dark

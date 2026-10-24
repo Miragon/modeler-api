@@ -1,4 +1,4 @@
-# `@miragon/event-storming-dsl` — API
+# `@miragon/event-storming-dsl`: API
 
 ```bash
 npm install @miragon/event-storming-dsl
@@ -16,7 +16,7 @@ const board = parseDSL(stormText); // EventStormingBoard
 const text = serializeDSL(board); // canonical .storm text, trailing newline included
 ```
 
-`parseDSL` never throws on malformed DSL — unreadable lines are diverted into
+`parseDSL` never throws on malformed DSL: unreadable lines are diverted into
 `board.rawPassthrough`. (It _can_ throw if the resulting board violates a cross-field invariant,
 which hand-written text cannot normally produce.)
 
@@ -41,7 +41,7 @@ interface ParseDiagnostic {
 ```
 
 An empty `diagnostics` array means every line was understood. A non-empty one does **not** mean the
-parse failed — the board is still usable, some lines just did not become elements or arrows. See the
+parse failed. The board is still usable, some lines just did not become elements or arrows. See the
 catalogue in `grammar.md`.
 
 Round-trip check, useful as a self-test after generating a board:
@@ -51,7 +51,7 @@ const canonical = serializeDSL(parseDSL(stormText));
 const stable = serializeDSL(parseDSL(canonical)) === canonical; // always true
 ```
 
-Comparing `canonical` against your own text shows exactly what the canonicaliser changed — dropped
+Comparing `canonical` against your own text shows exactly what the canonicaliser changed: dropped
 blank lines, relocated comments, added or removed `(id …)`, escaped labels.
 
 ## The board model
@@ -72,7 +72,7 @@ interface EventStormingBoard {
 element's **centre**) and an optional `color`. `actor`, `hotspot` and `note` may carry `attachedTo`;
 `note` may carry `size` and `align`; `drawing` carries `points`, `closed` and `strokeStyle`.
 
-Everything is `readonly` — the model is a serialization format, not an editing structure. Build a
+Everything is `readonly`: the model is a serialization format, not an editing structure. Build a
 new board rather than mutating one, or use the pure transforms in
 `@miragon/event-storming-transforms`.
 
@@ -86,7 +86,7 @@ const back = boardFromJSON(json); // validated EventStormingBoard
 const any = loadBoard(unknownValue); // validate + migrate an older schemaVersion
 ```
 
-`boardFromJSON` / `loadBoard` validate against the Zod schema and **do** throw on invalid input —
+`boardFromJSON` / `loadBoard` validate against the Zod schema and **do** throw on invalid input,
 unlike `parseDSL`. That includes a coordinate or size beyond ±1e38, the bound the DSL applies line
 by line: the whole board is refused with an `UndrawableBoardError` naming the element, the field
 and the number.

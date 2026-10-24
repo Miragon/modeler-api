@@ -1,4 +1,4 @@
-# Event Storming Modeler — Web App
+# Event Storming Modeler: Web App
 
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
@@ -20,7 +20,7 @@ From the root of the Miragon modeler suite:
 
 ```bash
 npm ci && npm run build:shared            # once
-npm run event-storming dev:webapp         # named HTTPS URL via Portless — one-time setup in the suite's CONTRIBUTING.md
+npm run event-storming dev:webapp         # named HTTPS URL via Portless; one-time setup in the suite's CONTRIBUTING.md
 npm run event-storming dev:webapp:plain   # plain Vite, http://127.0.0.1:5180
 ```
 

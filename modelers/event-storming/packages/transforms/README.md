@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-transforms)](https://www.npmjs.com/package/@miragon/event-storming-transforms)
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
-DOM-free, pure `EventStormingBoard → EventStormingBoard` transforms — move, kind, color, arrange.
+DOM-free, pure `EventStormingBoard → EventStormingBoard` transforms: move, kind, color, arrange.
 No undo stack: every transform returns a new board and leaves the input untouched.
 
 ## Install

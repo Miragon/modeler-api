@@ -1,8 +1,8 @@
-# `.storm` — exhaustive grammar
+# `.storm`: exhaustive grammar
 
 Reference for the parser in `@miragon/event-storming-dsl` (`packages/dsl/src/{lexer,parser,serializer}.ts`
 of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the Miragon modeler suite). Where
-this file and the implementation disagree, the implementation wins — the behaviours below were
+this file and the implementation disagree, the implementation wins. The behaviours below were
 verified against it.
 
 ## File model
@@ -12,14 +12,14 @@ no significant indentation; leading and trailing whitespace on a line is ignored
 
 Each line is classified in this order:
 
-1. **Block comment continuation** — if a `/*` is still open, everything up to the next `*/` is
+1. **Block comment continuation**: if a `/*` is still open, everything up to the next `*/` is
    comment.
-2. **Comment stripping** — `/* … */` spans and a trailing `// …` are removed from the line and
+2. **Comment stripping**: `/* … */` spans and a trailing `// …` are removed from the line and
    pushed to `rawPassthrough`.
-3. **Blank** — an empty remainder is skipped entirely (and _not_ preserved).
-4. **Arrow pre-detection** — see below.
-5. **Keyword dispatch** — `title`, `style`, `level`, the eight sticky kinds, `note`, `line`.
-6. **Fallback** — try once more as an arrow; otherwise keep the line verbatim in `rawPassthrough`.
+3. **Blank**: an empty remainder is skipped entirely (and _not_ preserved).
+4. **Arrow pre-detection**: see below.
+5. **Keyword dispatch**: `title`, `style`, `level`, the eight sticky kinds, `note`, `line`.
+6. **Fallback**: try once more as an arrow; otherwise keep the line verbatim in `rawPassthrough`.
 
 The resulting board is validated (`validateBoard`, Zod plus cross-field invariants) before it is
 returned. Parsing itself never throws: everything unreadable was already diverted to
@@ -31,7 +31,7 @@ A line is taken as an **arrow** before keyword dispatch when all of these hold:
 
 - the part **before the first `;`** contains no `[x, y]` tuple, **and**
 - that part contains `->` with a non-empty side on each end, **and**
-- the first word is not `title` — unless the text left of `->` is an already-declared sticky label.
+- the first word is not `title`, unless the text left of `->` is an already-declared sticky label.
 
 This exists because sticky labels may begin with a keyword. A sticky named `Command` produces
 `Command -> Place Order`, which without the pre-check would be misread as a broken `command`
@@ -84,7 +84,7 @@ level big-picture|process|design
 - Suffixes are only looked up **after** the tuple, and in this extraction order: `(on …)` first
   (its host name runs to the final `)`, so it may itself contain other suffix-looking text), then
   `(id …)`, `(align …)`, `(size …)`, `(color …)`.
-- `(size …)` and `(align …)` on a sticky are ignored with a diagnostic — they are note-only.
+- `(size …)` and `(align …)` on a sticky are ignored with a diagnostic, since they are note-only.
 - `(on …)` on a non-attachable kind is ignored with a diagnostic. Only `actor`, `hotspot` and `note`
   are attachable.
 
@@ -96,7 +96,7 @@ drawings.
 
 ### `(id …)`
 
-Charset `[A-Za-z0-9_-]+` — deliberately tight so an id can never collide with the line grammar.
+Charset `[A-Za-z0-9_-]+`, deliberately tight so an id can never collide with the line grammar.
 
 - Ids exist for **every** element whether or not they appear in the text. Auto-allocated as
   `<prefix>_<slug(label)>`, with a `_2`, `_3`, … suffix on collision. Prefixes: `event`, `cmd`,
@@ -113,7 +113,7 @@ Charset `[A-Za-z0-9_-]+` — deliberately tight so an id can never collide with 
   sticky that claims one gets a fresh id and a diagnostic.
 - A malformed id yields a diagnostic; a duplicate id yields a diagnostic and the element gets a
   fresh one.
-- Notes and drawings cannot carry `(id …)` — they are never referenced. Attempting it is a
+- Notes and drawings cannot carry `(id …)`, since they are never referenced. Attempting it is a
   diagnostic.
 - Elements and arrows share one id namespace (diagram-js has a single element registry). Arrow ids
   are `arrow_1`, `arrow_2`, … skipping any value an element already occupies.
@@ -121,12 +121,12 @@ Charset `[A-Za-z0-9_-]+` — deliberately tight so an id can never collide with 
 ### `(on <Host Label>)`
 
 Pins `actor` / `hotspot` / `note` onto a host sticky, so it moves with the host. The pinned element
-keeps its own absolute `position` — pinning adds behaviour, it does not change how coordinates are
+keeps its own absolute `position`: pinning adds behaviour, it does not change how coordinates are
 stored.
 
 - Host kinds: `event`, `command`, `aggregate`, `policy`, `readmodel`, `external`. Attachable kinds
   and drawings are never hosts, so attach chains cannot exist.
-- The host is referenced by label or by `#id`, and resolved **after** the whole file is read — a
+- The host is referenced by label or by `#id`, and resolved **after** the whole file is read, so a
   host may be declared below its attacher.
 - An unresolved host, or a host of the wrong kind, produces a diagnostic; the element is still
   created, just unpinned. The line is _not_ duplicated into `rawPassthrough` (it is otherwise fully
@@ -139,10 +139,10 @@ stored.
 note <Text> [x, y] (color …) (size <w>x<h>) (align <h> <v>) (on <Host Label>)
 ```
 
-- `(size …)` — positive numbers, board pixels. Absent = the note auto-sizes to its text (minimum
+- `(size …)`: positive numbers, board pixels. Absent = the note auto-sizes to its text (minimum
   180 × 110). The serializer writes no spaces around the `x`; the parser tolerates them. A malformed
   or non-positive size, or one beyond 1e38, is a diagnostic and is ignored.
-- `(align …)` — `left|center|right` then `top|middle|bottom`, both words always together. The
+- `(align …)`: `left|center|right` then `top|middle|bottom`, both words always together. The
   serializer emits the suffix only when at least one axis differs from the default `left top`, so
   unaligned boards stay byte-identical. `(align left top)` and no suffix are the same board.
 - Note text supports a tiny Markdown subset rendered on the canvas: `**bold**`, `*italic*`,
@@ -171,38 +171,38 @@ line [[x,y], [x,y], …] (closed) (dashed|dotted) (color …)
 
 - Split at the **first** `->`; the annotation is everything after the first `;`, trimmed. An empty
   annotation is dropped.
-- Endpoints resolve by label, or by `#id` when the token starts with `#`. `#` _always_ means id —
+- Endpoints resolve by label, or by `#id` when the token starts with `#`. `#` _always_ means id:
   there is no fallback to a label lookup, and no fallback from a label to an id.
 - Label lookup is registered per sticky kind, **first declaration wins**. Notes and drawings are not
   registered, so they are unreachable by label.
 - Resolution happens after the whole file is read, so an arrow may precede its endpoints.
 - An unresolved endpoint, or an endpoint that resolves to a note or drawing, produces a diagnostic
-  and the **whole line** is kept in `rawPassthrough` — the arrow does not exist on the board.
+  and the **whole line** is kept in `rawPassthrough`, and the arrow does not exist on the board.
 
 ## Comments
 
 - `// …` to end of line. The scanner is:
-  - **URL-aware** — `//` immediately after `:` is a scheme separator, not a comment, so
+  - **URL-aware**: `//` immediately after `:` is a scheme separator, not a comment, so
     `https://example.com` survives.
-  - **Quote-aware** — an apostrophe `'` toggles "inside quotes", and `//` inside quotes is not a
+  - **Quote-aware**: an apostrophe `'` toggles "inside quotes", and `//` inside quotes is not a
     comment. A single `'` in a label therefore suppresses comment detection for the rest of that
     line: `note It's fine // really` keeps `// really` as note text.
 - `/* … */` blocks, possibly spanning lines. Block-comment scanning is quote-aware too.
 - Comments never produce diagnostics.
 - **Placement is not preserved.** Comments go to `rawPassthrough`, which the serializer appends at
-  the very end of the file, after the arrows — in source order. Use `note` elements for anything
+  the very end of the file, after the arrows, in source order. Use `note` elements for anything
   that must stay anchored to a sticky.
 
 ## Escaping on serialize
 
 Applied to every label written into the line-based grammar:
 
-| Input        | Written as    | Why                                                     |
-| ------------ | ------------- | ------------------------------------------------------- |
-| real newline | `\n`          | the grammar is line-based                               |
-| `//`         | `∕∕` (U+2215) | would otherwise be stripped as a comment — `://` exempt |
-| `/*`         | `∕*`          | would otherwise open a block comment                    |
-| `->`         | `→` (U+2192)  | **names only** — would otherwise be read as an arrow    |
+| Input        | Written as    | Why                                                    |
+| ------------ | ------------- | ------------------------------------------------------ |
+| real newline | `\n`          | the grammar is line-based                              |
+| `//`         | `∕∕` (U+2215) | would otherwise be stripped as a comment; `://` exempt |
+| `/*`         | `∕*`          | would otherwise open a block comment                   |
+| `->`         | `→` (U+2192)  | **names only**: would otherwise be read as an arrow    |
 
 Note _text_ is not arrow-escaped (notes are never arrow endpoints). On parse, only `\n` is decoded
 back; the U+2215 / U+2192 substitutions are permanent, by design.
@@ -240,7 +240,7 @@ Trailing newline at the end of the file.
 - labels are escaped as above;
 - elements are emitted before arrows.
 
-Everything else — labels, colours, sizes, pins, unknown lines, comment text — survives unchanged.
+Everything else (labels, colours, sizes, pins, unknown lines, comment text) survives unchanged.
 
 ## Diagnostics catalogue
 
