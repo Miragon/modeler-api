@@ -218,8 +218,10 @@ so a host without the shell needs nothing else:
   diagram's teardown.
 - `renderLegend(body)` renders the notation legend into a chrome's legend card (the shell's
   `legend.render`): team types, interaction modes and the other elements, each with the palette's
-  glyph in its official notation colours, its name and a short explanation, with the shell's
-  `cd-shell-legend-*` row classes. It returns the function that removes the rows again.
+  glyph in its official notation colours, its name and a short explanation. Rows, previews and
+  separators carry the shell's `cd-shell-legend-*` classes next to their own, and the renderer's
+  stylesheet lays them out with the shell's values, so the legend looks the same with or without
+  the shell. It returns the function that removes the rows again.
   `legendGroups()` is the same content as DOM-free data (`preview` is SVG markup) for a host that
   draws the legend itself.
 

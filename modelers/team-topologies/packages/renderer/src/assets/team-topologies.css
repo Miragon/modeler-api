@@ -339,6 +339,8 @@
    ========================================================================== */
 
 /* --- Legend rows (the host renders the card around them) ------------------- */
+/* Row, preview and separator repeat the shell's cd-shell-legend-* values, so the rows look the
+   same in a host that styles only some of those classes, or none. */
 .tt-legend__heading {
   max-width: 232px;
   margin: 0 0 4px;
@@ -355,6 +357,24 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.tt-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  color: var(--cd-ui-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tt-legend__preview {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
 }
 
 .tt-legend__preview > svg {
@@ -376,6 +396,23 @@
 
 .tt-legend__explanation {
   color: var(--cd-ui-text-leise);
+}
+
+/* 4px margin plus the shell's 4px body gap: 8px before and after (guide §5.10). */
+.tt-legend__separator {
+  flex: none;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--cd-ui-linie);
+  border: 0;
+}
+
+/* Forced colours drop backgrounds, and the shell keeps the line only inside its own card. */
+@media (forced-colors: active) {
+  .tt-legend__separator {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
 }
 
 /* --- Dialogs (guide §5.4, §8) ---------------------------------------------- */

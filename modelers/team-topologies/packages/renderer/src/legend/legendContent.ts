@@ -4,7 +4,8 @@
  * team types, interaction modes and the other elements. Driven by the notation spec and drawn with
  * the palette's glyphs, so it shows the official notation colours and can never drift from what
  * the canvas draws. `legendGroups` is DOM-free data; `renderLegend` turns it into rows with the
- * shell's row, preview and separator classes.
+ * shell's row, preview and separator classes next to its own, which the renderer's stylesheet lays
+ * out the same, so the rows look alike with and without the shell.
  */
 
 import {
@@ -103,8 +104,10 @@ export function renderLegend(body: HTMLElement): () => void {
   const rendered: Element[] = [];
   legendGroups().forEach((group, index) => {
     if (index > 0) {
-      const separator = document.createElement("hr");
-      separator.className = "cd-shell-legend-separator";
+      // A <div>, not an <hr>: it brings no browser border a host's own separator rule must reset.
+      const separator = document.createElement("div");
+      separator.className = "cd-shell-legend-separator tt-legend__separator";
+      separator.setAttribute("role", "separator");
       rendered.push(separator);
     }
     const heading = document.createElement("p");

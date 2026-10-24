@@ -81,7 +81,7 @@ describe("renderLegend", () => {
     expect([...body.querySelectorAll(".tt-legend__heading")].map((h) => h.textContent)).toEqual(
       legendGroups().map((group) => group.heading),
     );
-    expect(body.querySelectorAll("hr.cd-shell-legend-separator")).toHaveLength(2);
+    expect(body.querySelectorAll("[role='separator'].cd-shell-legend-separator")).toHaveLength(2);
 
     const rows = [...body.querySelectorAll("li.cd-shell-legend-row")];
     expect(rows).toHaveLength(9);
@@ -108,6 +108,37 @@ describe("renderLegend", () => {
     expect(getComputedStyle(body.querySelector(".tt-legend__explanation")!).color).toBe(
       computedColour("var(--cd-ui-text-leise)"),
     );
+  });
+
+  test("puts each glyph left of its name in the chrome's small text, without the shell's styles", () => {
+    const body = legendBody();
+    renderLegend(body);
+
+    const row = body.querySelector<HTMLElement>(".tt-legend__row")!;
+    const style = getComputedStyle(row);
+    expect([style.display, style.alignItems, style.minHeight]).toEqual(["flex", "center", "24px"]);
+    expect([style.fontSize, style.lineHeight]).toEqual(["13px", "19.5px"]);
+    expect(style.color).toBe(computedColour("var(--cd-ui-text)"));
+    const preview = row.querySelector(".tt-legend__preview")!.getBoundingClientRect();
+    const text = row.querySelector(".tt-legend__text")!.getBoundingClientRect();
+    expect([preview.width, preview.height]).toEqual([24, 24]);
+    expect(text.left - preview.right).toBe(8);
+    expect(preview.top).toBeGreaterThanOrEqual(text.top);
+  });
+
+  test("draws the separators as 1px lines in the line role, with no browser border", () => {
+    const body = legendBody();
+    renderLegend(body);
+
+    const separators = [...body.querySelectorAll<HTMLElement>(".cd-shell-legend-separator")];
+    expect(separators).toHaveLength(2);
+    for (const separator of separators) {
+      const style = getComputedStyle(separator);
+      expect(separator.getBoundingClientRect().height).toBe(1);
+      expect(style.borderTopWidth).toBe("0px");
+      expect(style.backgroundColor).toBe(computedColour("var(--cd-ui-linie)"));
+      expect([style.marginTop, style.marginBottom]).toEqual(["4px", "4px"]);
+    }
   });
 
   test("returns the function that removes the rows again, and leaves the body's own content", () => {

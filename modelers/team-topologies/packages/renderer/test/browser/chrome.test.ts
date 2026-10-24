@@ -69,9 +69,14 @@ function chrome(platform: "mac" | "other" = "other"): ShortcutsDialogChrome & {
   };
 }
 
-/** The `close` event of a <dialog> arrives in a task of its own. */
-function nextTask(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+/**
+ * Resolves after the dialog's `close` event. It arrives in a task of its own, which a zero timer
+ * does not reliably wait for; the dialog's own listener, added first, has run by then.
+ */
+function closeEventOf(dialog: HTMLDialogElement): Promise<void> {
+  return new Promise((resolve) =>
+    dialog.addEventListener("close", () => resolve(), { once: true }),
+  );
 }
 
 /** A CSS colour (a token's `var()` or hex value) as the browser computes it. */
@@ -234,14 +239,38 @@ describe("createShortcutsDialog", () => {
     const dialog = createShortcutsDialog(host);
     dialog.open();
 
+    const closed = closeEventOf(host.root.querySelector("dialog")!);
     host.root.querySelector<HTMLButtonElement>(".tt-dialog__close")!.click();
-    await nextTask();
+    await closed;
     expect(dialog.isOpen()).toBe(false);
     expect(document.activeElement).toBe(host.menu.trigger);
 
     dialog.destroy();
     expect(host.root.querySelector("dialog")).toBeNull();
     expect(dialog.isOpen()).toBe(false);
+  });
+
+  test("gives the focus back to the control that opened it, else to the menu trigger", async () => {
+    const host = chrome();
+    const opener = document.createElement("button");
+    opener.textContent = "Help";
+    host.root.append(opener);
+    const dialog = createShortcutsDialog(host);
+
+    opener.focus();
+    dialog.open();
+    let closed = closeEventOf(host.root.querySelector("dialog")!);
+    dialog.close();
+    await closed;
+    expect(document.activeElement).toBe(opener);
+
+    opener.focus();
+    dialog.open();
+    opener.remove();
+    closed = closeEventOf(host.root.querySelector("dialog")!);
+    dialog.close();
+    await closed;
+    expect(document.activeElement).toBe(host.menu.trigger);
   });
 
   test("brings its own styles: a raised panel and the key chips in Geist Mono", () => {
@@ -309,8 +338,9 @@ describe("createTitleDialog", () => {
     const { dialog, field, form } = parts(host.root);
 
     type(field, "  Checkout  ");
+    const closed = closeEventOf(dialog);
     form.requestSubmit();
-    await nextTask();
+    await closed;
 
     expect(title.setTitle).toHaveBeenCalledExactlyOnceWith("Checkout");
     expect(dialog.open).toBe(false);
@@ -341,7 +371,25 @@ describe("createTitleDialog", () => {
     expect(host.root.querySelector("dialog")).toBeNull();
   });
 
-  test("fills Apply in the brand blue in every mode and greys it out while it cannot apply", async () => {
+  test("closes on a press on the backdrop, but not when a press that began in the panel ends there", () => {
+    const host = chrome();
+    const dialog = createTitleDialog(host, titleOf("Payments"));
+    dialog.open();
+    const { dialog: element, field } = parts(host.root);
+    // A press outside the panel lands on the <dialog> itself (its ::backdrop).
+    const pressAndRelease = (pressed: Element) => {
+      pressed.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    };
+
+    pressAndRelease(field);
+    expect(dialog.isOpen()).toBe(true);
+
+    pressAndRelease(element);
+    expect(dialog.isOpen()).toBe(false);
+  });
+
+  test("fills Apply in the brand blue and greys it out while it cannot apply", async () => {
     const host = chrome();
     createTitleDialog(host, titleOf("Payments")).open();
     const { apply, cancel, field } = parts(host.root);
@@ -356,6 +404,18 @@ describe("createTitleDialog", () => {
     // The button eases into its disabled colours.
     await Promise.all(apply.getAnimations().map((animation) => animation.finished));
     expect(getComputedStyle(apply).backgroundColor).toBe(computedColour("var(--cd-ui-hover)"));
+  });
+
+  test("keeps Apply in the brand blue in the dark mode, whose interaction role is lighter", () => {
+    const host = chrome();
+    host.root.dataset.cdTheme = "dark";
+    createTitleDialog(host, titleOf("Payments")).open();
+    const { apply } = parts(host.root);
+
+    const interaction = getComputedStyle(host.root).getPropertyValue("--cd-ui-interaktion");
+    expect(computedColour(interaction)).not.toBe(computedColour(CD_TOKENS["--cd-blau"]));
+    expect(getComputedStyle(apply).backgroundColor).toBe(computedColour(CD_TOKENS["--cd-blau"]));
+    expect(getComputedStyle(apply).color).toBe(computedColour(CD_TOKENS["--cd-weiss"]));
   });
 
   test("renames a modeler's diagram as one undo step through ttModeling", async () => {
@@ -377,8 +437,9 @@ describe("createTitleDialog", () => {
 
     dialog.open();
     type(parts(host.root).field, "Team landscape 2026");
+    const closed = closeEventOf(parts(host.root).dialog);
     parts(host.root).form.requestSubmit();
-    await nextTask();
+    await closed;
 
     expect(modeler.getMeta()?.title).toBe("Team landscape 2026");
     expect(modeler.exportDocument().title).toBe("Team landscape 2026");

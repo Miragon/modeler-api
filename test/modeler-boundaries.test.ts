@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,8 +23,20 @@ const modelers = readdirSync(join(ROOT, "modelers")).map((name) => {
   const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
     modelerSuite: ModelerBoundaries;
   };
-  return { name, root, boundaries: manifest.modelerSuite };
+  const packageNames = readdirSync(join(root, "packages"))
+    .filter((packageName) => existsSync(join(root, "packages", packageName, "package.json")))
+    .sort();
+  return { name, root, boundaries: manifest.modelerSuite, packageNames };
 });
+
+function dependsOnShell(modelerRoot: string, packageName: string) {
+  const manifest = JSON.parse(
+    readFileSync(join(modelerRoot, "packages", packageName, "package.json"), "utf8"),
+  ) as Partial<Record<"dependencies" | "devDependencies" | "peerDependencies", object>>;
+  return [manifest.dependencies, manifest.devDependencies, manifest.peerDependencies].some(
+    (dependencies) => dependencies !== undefined && "@miragon/modeler-shell" in dependencies,
+  );
+}
 
 async function restrictionsReported(modelerRoot: string, relativePath: string, code: string) {
   const eslint = new ESLint({ cwd: modelerRoot });
@@ -50,7 +62,7 @@ function ruleCovers(rule: ForbiddenRule, relativePath: string) {
   return matchesPath && !excluded;
 }
 
-describe.each(modelers)("$name boundaries", ({ root, boundaries }) => {
+describe.each(modelers)("$name boundaries", ({ root, boundaries, packageNames }) => {
   const shellImportingPackages = boundaries.shellImportingPackages ?? [];
 
   describe.each(boundaries.domFreePackages)("DOM-free package %s", (packageName) => {
@@ -98,12 +110,29 @@ describe.each(modelers)("$name boundaries", ({ root, boundaries }) => {
     });
   });
 
-  it("keeps the shell out of the renderer", async () => {
+  it("names exactly the packages that depend on the shell as shell-importing", () => {
+    expect(packageNames.filter((packageName) => dependsOnShell(root, packageName))).toEqual(
+      [...shellImportingPackages].sort(),
+    );
+  });
+
+  it("keeps the shell out of every package it does not name", async () => {
+    const packagesWithoutShell = packageNames.filter(
+      (packageName) => !shellImportingPackages.includes(packageName),
+    );
+    expect(packagesWithoutShell).toContain("renderer");
+    for (const packageName of packagesWithoutShell) {
+      const source = `packages/${packageName}/src/boundary-probe.ts`;
+      expect(
+        await restrictionsReported(root, source, 'import "@miragon/modeler-shell";'),
+        source,
+      ).not.toHaveLength(0);
+      expect(ruleCovers(forbiddenRule(root, "packages-no-shell"), source), source).toBe(true);
+    }
+  });
+
+  it("keeps the renderer outside the DOM-free rules", () => {
     const source = "packages/renderer/src/boundary-probe.ts";
-    expect(
-      await restrictionsReported(root, source, 'import "@miragon/modeler-shell";'),
-    ).not.toHaveLength(0);
-    expect(ruleCovers(forbiddenRule(root, "packages-no-shell"), source)).toBe(true);
     expect(ruleCovers(forbiddenRule(root, "dom-free-no-diagram-js"), source)).toBe(false);
   });
 

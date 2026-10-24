@@ -74,9 +74,9 @@ The `ui` package is consumed from source only (no build, not published). It hold
 (React, mounted into the shell's inspector slot) and `makeRoomForLegend`, ships its styles as
 `@miragon/team-topologies-ui/ui.css` (role aliases, buttons, fields, the inspector's content; where
 it sits is the host's), and must never import from `apps/**`; `schema-model` and `renderer` must
-never import it, nor `@miragon/modeler-shell` (all enforced by `dependency-cruiser`, the shell ban
-also by ESLint, so the pre-commit hook catches it; `schema-model` takes only types from
-`@miragon/modeler-api`).
+never import it. No package imports `@miragon/modeler-shell`: only the apps mount it (all enforced
+by `dependency-cruiser`, the shell ban also by ESLint, so the pre-commit hook catches it;
+`schema-model` takes only types from `@miragon/modeler-api`).
 
 ## Commands
 
