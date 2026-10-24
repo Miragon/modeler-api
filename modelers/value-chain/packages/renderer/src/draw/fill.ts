@@ -41,7 +41,7 @@ function readColor(value: string): Rgba | undefined {
 
 function browserColor(value: string): Rgba | undefined {
   const context = canvasContext();
-  if (!context) return undefined;
+  if (!context) return parseColor(value);
   const canonical = canonicalColor(context, value);
   if (canonical === undefined) return undefined;
   return parseColor(canonical) ?? paintedColor(context, canonical);
