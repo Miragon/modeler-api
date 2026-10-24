@@ -13,6 +13,7 @@ import type EventStormingElementFactory from "../model/EventStormingElementFacto
 import type EventStormingReadOnly from "../read-only/EventStormingReadOnly.js";
 import { STICKY_STYLES } from "../draw/styles.js";
 import { isEventStormingConnection, isEventStormingShape } from "../model/di-types.js";
+import { isUnhandledKey, targetsCanvas } from "./key-scope.js";
 
 /** Arrow-key nudge in diagram px (Shift = coarse). */
 const NUDGE_STEP = 2;
@@ -36,8 +37,9 @@ export interface EventStormingKeyboardConfig {
 /**
  * Minimal keyboard binding: undo/redo, select all, delete, copy/paste/duplicate, arrow-key nudge
  * of the selection, plus the single-key tools E (domain event), C (command) and L (lasso).
- * Deliberately a DOM listener (no diagram-js keyboard-service binding needed). Under the
- * read-only lock only select all, copy and the lasso stay.
+ * Deliberately a DOM listener (no diagram-js keyboard-service binding needed) that acts only while
+ * the canvas has the focus, as diagram-js 15's own keyboard does. Under the read-only lock only
+ * select all, copy and the lasso stay.
  */
 export default class EventStormingKeyboard {
   static $inject = [
@@ -71,20 +73,13 @@ export default class EventStormingKeyboard {
     elementRegistry?: ElementRegistry,
     readOnly?: Pick<EventStormingReadOnly, "isReadOnly">,
   ) {
-    const container = canvas.getContainer();
     const undoRedoKeys = config?.undoRedoKeys ?? true;
 
-    // Bind on the DOCUMENT (not the canvas container): single-key tools (E/C/L) must work
-    // without the canvas having focus first — same trade-off bpmn-js makes for its keyboard.
+    // On the document, after every listener closer to the target, so a key one of them handled
+    // stays theirs. The label editor's field, the palette and the context pad sit in the container
+    // next to the <svg>, so the board ignores their keys.
     const onKeydown = (e: KeyboardEvent) => {
-      // Someone closer to the target (menu, palette, a host's own chrome) already handled it.
-      if (e.defaultPrevented) return;
-      if (!isCanvasTarget(e.target, container)) return;
-      // If the user is currently typing in an input field, do NOT intercept: inline label editing
-      // (EventStormingLabelEditing) attaches its <textarea> to the canvas container, and the
-      // web-app chrome has its own fields. Without the guard, Backspace/Delete would delete the
-      // selected element (instead of a character) and Cmd+Z would reset the diagram.
-      if (isEditableTarget(e.target)) return;
+      if (!isUnhandledKey(e) || !targetsCanvas(e, canvas)) return;
 
       if (handleReadingKey(e)) return;
       if (readOnly?.isReadOnly()) return;
@@ -160,18 +155,4 @@ export default class EventStormingKeyboard {
     document.addEventListener("keydown", onKeydown);
     eventBus.on("diagram.destroy", () => document.removeEventListener("keydown", onKeydown));
   }
-}
-
-function isCanvasTarget(target: EventTarget | null, container: HTMLElement): boolean {
-  if (!(target instanceof Node)) return false;
-  // Body/html as target means nothing is focused — the single-key tools must work right away.
-  return (
-    container.contains(target) || target === document.body || target === document.documentElement
-  );
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
 }

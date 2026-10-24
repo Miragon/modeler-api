@@ -26,6 +26,7 @@ import {
 } from "../model/di-types.js";
 import { NOTE_STYLE, STICKY_STYLES } from "../draw/styles.js";
 import { PALETTE_ICONS } from "../draw/palette-icons.js";
+import { focusCanvasWithoutRing } from "../keyboard/index.js";
 
 /** Container margins in screen px that the host's chrome covers. */
 export interface FreeRectInsets {
@@ -200,7 +201,9 @@ export default class EventStormingPaletteProvider implements PaletteProvider {
       shortcut: "L",
       html: `<div class="entry event-storming-palette-entry">${PALETTE_ICONS.lasso}</div>`,
       action: {
-        click: (event: Event) => this.lassoTool.activateSelection(event as MouseEvent),
+        click: this.focusingCanvas((event) =>
+          this.lassoTool.activateSelection(event as MouseEvent),
+        ),
       },
     };
 
@@ -209,7 +212,7 @@ export default class EventStormingPaletteProvider implements PaletteProvider {
       title: "Draw",
       html: `<div class="entry event-storming-palette-entry">${PALETTE_ICONS.draw}</div>`,
       action: {
-        click: () => this.drawTool.toggle(),
+        click: this.focusingCanvas(() => this.drawTool.toggle()),
       },
     };
 
@@ -217,11 +220,11 @@ export default class EventStormingPaletteProvider implements PaletteProvider {
     const allowed = LEVEL_STICKY_KINDS[this.eventStormingModeling.getLevel()];
     for (const spec of SPECS) {
       if (spec.type !== "note" && !allowed.includes(spec.type)) continue;
-      const start = (event: Event) => {
+      const start = this.focusingCanvas((event) => {
         const shape = this.factory.createNew(spec.type, spec.label);
         if (isKeyboardClick(event) && this.placeInFreeRect(shape)) return;
         this.create.start(event, shape);
-      };
+      });
       entries[`create.${spec.key}`] = {
         group: spec.group,
         title: spec.title,
@@ -231,6 +234,18 @@ export default class EventStormingPaletteProvider implements PaletteProvider {
       };
     }
     return entries;
+  }
+
+  /**
+   * After a pointer click or drag the focus is on the entry or on `<body>`, where the board's keys
+   * do not act, and no host chrome may be there to move it (guide §5.8). Enter and Space keep it on
+   * the entry (guide §5.5).
+   */
+  private focusingCanvas(action: (event: Event) => void): (event: Event) => void {
+    return (event) => {
+      action(event);
+      if (this.canvas && !isKeyboardClick(event)) focusCanvasWithoutRing(this.canvas);
+    };
   }
 
   /**

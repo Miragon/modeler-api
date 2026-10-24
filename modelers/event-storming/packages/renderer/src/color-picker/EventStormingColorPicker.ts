@@ -91,5 +91,8 @@ export default class EventStormingColorPicker {
     this.popover = undefined;
     document.removeEventListener("click", this.onDocPointer, true);
     document.removeEventListener("keydown", this.onKey, true);
+    // A removed swatch leaves the focus on <body>, where the board's keys do not act. Like
+    // diagram-js's popup menu, hand it back unless the closing click put it somewhere else.
+    this.canvas.restoreFocus();
   }
 }

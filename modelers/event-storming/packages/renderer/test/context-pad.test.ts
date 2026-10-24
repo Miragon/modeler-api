@@ -152,3 +152,77 @@ describe("EventStormingContextPadProvider: entry order", () => {
     expect(Object.values(entries).filter((entry) => entry.group === "delete")).toHaveLength(1);
   });
 });
+
+describe("EventStormingContextPadProvider: focus after an entry ran", () => {
+  function focusHarness() {
+    const calls: string[] = [];
+    const record = (name: string) => vi.fn(() => void calls.push(name));
+    const svg = { focus: record("focus") };
+    const canvas = {
+      focus: record("canvas.focus"),
+      getContainer: () => ({ querySelector: () => svg }),
+    };
+    const provider = new EventStormingContextPadProvider(
+      { registerProvider: vi.fn() } as never,
+      { removeElements: record("remove") } as never,
+      { start: record("connect") } as never,
+      { start: record("create") } as never,
+      { open: record("popup") } as never,
+      { setStrokeStyle: record("stroke"), getLevel: () => "design" } as never,
+      { activate: record("label"), activateConnection: record("label") } as never,
+      { createProvisional: vi.fn(() => ({})) } as never,
+      { open: record("color") } as never,
+      undefined,
+      undefined,
+      canvas as never,
+    );
+    const run = (element: Element, entry: string, type: "click" | "dragstart" = "click") => {
+      calls.length = 0;
+      const handlers = provider.getContextPadEntries(element)[entry]!.action as Record<
+        string,
+        (event: Event) => void
+      >;
+      handlers[type]!({ type, detail: 1, clientX: 0, clientY: 0 } as unknown as Event);
+      return [...calls];
+    };
+    return { run, svg };
+  }
+
+  const drawing = () =>
+    ({
+      ...sticky("draw_a", "drawing"),
+      drawingPoints: [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ],
+    }) as unknown as Element;
+  const connection = () =>
+    ({ id: "arrow_1", eventStormingType: "arrow", waypoints: [] }) as unknown as Element;
+
+  // The pad's entries take no focus: a click on one drops it to <body>, where the board's keys
+  // do not act, so Cmd/Ctrl+Z after a delete or Delete after a connect would do nothing.
+  it("hands the focus to the canvas after an entry that opens no editor or popup", () => {
+    const { run } = focusHarness();
+    expect(run(sticky("cmd_a"), "delete")).toEqual(["remove", "focus"]);
+    expect(run(sticky("cmd_a"), "connect")).toEqual(["connect", "focus"]);
+    expect(run(sticky("cmd_a"), "connect", "dragstart")).toEqual(["connect", "focus"]);
+    expect(run(sticky("cmd_a"), "append")).toEqual(["create", "focus"]);
+    expect(run(sticky("cmd_a"), "append", "dragstart")).toEqual(["create", "focus"]);
+    expect(run(drawing(), "stroke-style")).toEqual(["stroke", "focus"]);
+    expect(run(connection(), "delete")).toEqual(["remove", "focus"]);
+  });
+
+  it("hands the focus over without the keyboard focus ring", () => {
+    const { run, svg } = focusHarness();
+    run(sticky("cmd_a"), "delete");
+    expect(svg.focus).toHaveBeenCalledWith({ preventScroll: true, focusVisible: false });
+  });
+
+  it("leaves the focus to the label editor, the type popup and the colour picker", () => {
+    const { run } = focusHarness();
+    expect(run(sticky("cmd_a"), "edit-label")).toEqual(["label"]);
+    expect(run(sticky("cmd_a"), "change-kind")).toEqual(["popup"]);
+    expect(run(drawing(), "color")).toEqual(["color"]);
+    expect(run(connection(), "edit-label")).toEqual(["label"]);
+  });
+});

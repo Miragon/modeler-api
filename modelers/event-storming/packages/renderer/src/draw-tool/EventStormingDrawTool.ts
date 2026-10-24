@@ -12,6 +12,7 @@ import type { Element, Shape } from "diagram-js/lib/model/Types";
 import { COLORS, DRAWING_INK } from "../draw/styles.js";
 import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
 import { READ_ONLY_CHANGED_EVENT } from "../read-only/index.js";
+import { focusCanvasWithoutRing, isTextField, isUnhandledKey } from "../keyboard/index.js";
 
 interface Point {
   x: number;
@@ -145,10 +146,28 @@ export default class EventStormingDrawTool {
     return !!target?.closest(".djs-palette, .djs-context-pad, .event-storming-color-picker");
   }
 
+  /**
+   * Enter and Escape belong to the tool only when aimed at the modeler: the canvas, or the palette
+   * entry Enter started it from. A host's fields and buttons, the zoom panel, an open menu or
+   * dialog and the label editor keep theirs.
+   */
+  private ownsKey(e: KeyboardEvent): boolean {
+    const target = e.target;
+    return (
+      isUnhandledKey(e) &&
+      target instanceof Node &&
+      this.outerContainer().contains(target) &&
+      !isTextField(target)
+    );
+  }
+
   private readonly onMouseDown = (e: MouseEvent): void => {
     if (e.button !== 0 || this.isChromeTarget(e)) return;
     e.preventDefault();
     e.stopPropagation();
+    // The prevented default is the browser's focus move: without it Enter and Escape would go to
+    // whatever held the focus before.
+    focusCanvasWithoutRing(this.canvas);
     const p = this.toCanvasPoint(e);
     const first = this.points[0];
     if (first && this.points.length >= 3 && distance(p, first) <= CLOSE_RADIUS) {
@@ -180,6 +199,7 @@ export default class EventStormingDrawTool {
   };
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (!this.ownsKey(e)) return;
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();

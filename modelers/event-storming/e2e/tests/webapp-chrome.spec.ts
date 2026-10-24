@@ -622,6 +622,81 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await expect.poll(stickies).toBe(before - 1);
   });
 
+  // Issue #91: Enter leaves the focus on the palette's Draw entry (guide §5.5), so the tool must
+  // still take Escape there.
+  test("Escape on the Draw entry cancels the tool that Enter on it started", async ({ page }) => {
+    await page.goto("/");
+    await waitForViewer(page);
+    await openExample(page);
+    const drawMode = page.locator(".event-storming-container.event-storming-draw-mode");
+    const drawEntry = page.locator('[data-chrome="palette"] [data-action="draw-tool"]');
+
+    await drawEntry.focus();
+    await page.keyboard.press("Enter");
+    await expect(drawMode).toHaveCount(1);
+    await expect(drawEntry).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(drawMode).toHaveCount(0);
+    await expect(drawEntry).toBeFocused();
+  });
+
+  // Issue #91: while a line is drawn, the chrome keeps its Escape and Enter, and the drawing
+  // goes on; on the canvas, Enter still finishes it.
+  test("while drawing, Escape closes the menu and the shortcuts dialog and Enter zooms", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await waitForViewer(page);
+    await openExample(page);
+    const drawings = async () =>
+      (await exportBoard(page)).elements.filter((element) => element.elementType === "drawing")
+        .length;
+    const before = await drawings();
+    const drawMode = page.locator(".event-storming-container.event-storming-draw-mode");
+
+    await page.locator('[data-chrome="palette"] [data-action="draw-tool"]').click();
+    await expect(drawMode).toHaveCount(1);
+    const canvas = (await page.locator(".cd-shell-canvas").boundingBox())!;
+    const y = canvas.y + canvas.height - 160;
+    await page.mouse.click(canvas.x + canvas.width / 2 - 60, y);
+    await page.mouse.click(canvas.x + canvas.width / 2 + 60, y - 40);
+
+    const dropdown = await openMenu(page);
+    await page.keyboard.press("Escape");
+    await expect(dropdown).toBeHidden();
+    await expect(drawMode).toHaveCount(1);
+
+    const zoom = page.locator('[data-chrome="zoom"] [data-zoom="actual"]');
+    const zoomBefore = (await zoom.textContent()) ?? "";
+    await page.locator('[data-chrome="zoom"] [data-zoom="in"]').focus();
+    await page.keyboard.press("Enter");
+    await expect(zoom).not.toHaveText(zoomBefore);
+    await expect(drawMode).toHaveCount(1);
+
+    await (await openMenu(page)).locator('[data-menu-id="keyboard-shortcuts"]').click();
+    const dialog = page.locator(".cd-shell dialog.event-storming-shortcuts");
+    await expect(dialog).toBeVisible();
+    // The dialog hands the focus to the menu trigger in its `close` event, a task of its own.
+    await dialog.evaluate((element) => {
+      const closed = new Promise((resolve) =>
+        element.addEventListener("close", () => setTimeout(resolve), { once: true }),
+      );
+      Object.assign(window, { shortcutsDialogClosed: closed });
+    });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.evaluate(
+      () => (window as unknown as { shortcutsDialogClosed: unknown }).shortcutsDialogClosed,
+    );
+    await expect(drawMode).toHaveCount(1);
+    expect(await drawings()).toBe(before);
+
+    await page.locator(".cd-shell-canvas svg[tabindex]").focus();
+    await page.keyboard.press("Enter");
+    await expect(drawMode).toHaveCount(0);
+    await expect.poll(drawings).toBe(before + 1);
+  });
+
   test("the legal line names Miragon GmbH and keeps Impressum and Datenschutz German", async ({
     page,
   }) => {

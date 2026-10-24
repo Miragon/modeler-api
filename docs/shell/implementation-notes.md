@@ -553,11 +553,12 @@ the zoom panel, a palette entry or a menu entry that acts on the canvas hands th
 so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on the control.
 
 - Why the focus matters: the diagram-js 15 keyboard listens on the canvas `<svg>`, and the
-  renderers' own key handlers act only while their canvas or the page itself has the focus (Wardley
-  since 0.7, Event Storming and Context Maps since 0.3, Team Topologies since 0.11). Chromium (and
-  Firefox outside macOS) focus a clicked button on `mousedown`, so after a click on + the next Delete
-  went to the button. A click on a creating palette entry was worse: the click that places the
-  element does not move the focus either, because diagram-js ends the create drag on that
+  renderers' own key handlers act only while their canvas has the focus (Value Chain, and Event
+  Storming, whose palette and context pad also hand it back without the shell) or while the canvas
+  or the page itself has it (Wardley since 0.7, Context Maps since 0.3, Team Topologies since 0.11).
+  Chromium (and Firefox outside macOS) focus a clicked button on `mousedown`, so after a click on +
+  the next Delete went to the button. A click on a creating palette entry was worse: the click that
+  places the element does not move the focus either, because diagram-js ends the create drag on that
   `mousedown` in the capture phase and prevents its default, the browser's focus move. Delete then
   missed the new element.
 - Pointer or keyboard is told by `event.detail` of the `click`: 1 or more for mouse, pen and touch
@@ -591,9 +592,13 @@ so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on th
   `dialog` entries, which keep the trigger.
 - A click on a zoom button while the menu is open: the capture-phase `pointerdown` closes the menu
   without moving the focus (see [Menu](#menu)), then the click hands it to the canvas.
-- Touch: a tap is a click with `detail` 1 and hands the focus over too, which a tablet with a keyboard
-  needs. The `<svg>` takes no ring then: a focus a script moves after a pointer interaction does not
-  match `:focus-visible` (checked in Chromium, see [Open verification points](#open-verification-points)).
+- Touch: a tap is a click with `detail` 1 and hands the focus over too, which a tablet with a
+  keyboard needs. The `<svg>` takes no ring then: the clicked or tapped control took the focus
+  first, and a focus a script moves after such a pointer focus does not match `:focus-visible`
+  (checked in Chromium, see [Open verification points](#open-verification-points)). Without that
+  pointer focus, on the first click on the page or on an entry that takes no focus after the
+  keyboard moved it last, the script focus rings the whole canvas; a renderer that hands the focus
+  back without the shell (Event Storming) therefore focuses the `<svg>` with `focusVisible: false`.
 - Not handed back: the menu trigger, the pill and the primary action open something that takes the
   focus; the legend's close button returns it to the trigger; a problem row already focuses the
   canvas (see [Problems popover](#problems-popover)).
