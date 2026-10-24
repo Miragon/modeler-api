@@ -13,10 +13,11 @@
     "modelers/*/e2e"
   ],
   "scripts": {
-    "build": "npm run build:shared && npm run build:modelers",
+    "build": "npm run build:shared && npm run build:modelers && npm run build:apps",
     "build:shared": "npm run build -w @miragon/modeler-api -w @miragon/modeler-shell",
     "build:modelers": "npm run modelers build",
     "build:apps": "npm run modelers build:webapp && npm run modelers build:vscode",
+    "package:vscode": "npm run modelers package:vscode",
     "typecheck": "npm run typecheck:shared && npm run modelers typecheck",
     "typecheck:shared": "npm run typecheck -w @miragon/modeler-api -w @miragon/modeler-shell && tsc -p test/tsconfig.json",
     "lint": "npm run typecheck:shared && npm run modelers lint",
@@ -24,6 +25,7 @@
     "test:shared": "npm run test -w @miragon/modeler-api -w @miragon/modeler-shell && npm run test:plugin",
     "test:plugin": "vitest run --config test/vitest.config.mts",
     "test:browser": "npm run modelers test:browser",
+    "test:e2e": "npm run test:e2e:shared && npm run modelers test:e2e",
     "test:e2e:shared": "npm run test:e2e -w @miragon/modeler-shell",
     "depcruise": "npm run modelers depcruise",
     "publint": "npm run publint -w @miragon/modeler-api -w @miragon/modeler-shell",

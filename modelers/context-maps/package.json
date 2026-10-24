@@ -12,6 +12,7 @@
     "build": "npm run build -w packages/schema-model -w packages/cml -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",
     "build:vscode": "npm run build -w apps/vscode",
+    "package:vscode": "npm run package -w apps/vscode",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/webapp/tsconfig.node.json && npm run typecheck -w apps/vscode && npm run typecheck -w e2e",
     "lint": "eslint . && npm run typecheck",
     "format": "prettier --write . --ignore-path .gitignore --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
