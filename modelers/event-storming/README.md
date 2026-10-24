@@ -235,7 +235,7 @@ on the same page takes the Miragon roles too. The canvas is drawn light; exports
 
 ## Acknowledgements
 
-Based on the [Wardley Maps Modeler](../wardley/README.md).
+Based on the [Wardley Maps Modeler](../wardley-maps/README.md).
 
 ## License
 

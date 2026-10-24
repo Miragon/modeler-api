@@ -3,7 +3,7 @@
 TypeScript library for viewing and editing value chain diagrams
 (ARIS-style "Wertschöpfungskettendiagramme"), built on
 [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT) and styled by the Miragon design
-system. Architecture mirrors the Wardley Maps modeler ([`modelers/wardley`](../wardley/CLAUDE.md)).
+system. Architecture mirrors the Wardley Maps modeler ([`modelers/wardley-maps`](../wardley-maps/CLAUDE.md)).
 
 This modeler is `modelers/value-chain` in the Miragon modeler suite. The suite's
 [`CLAUDE.md`](../../CLAUDE.md) holds the rules for every modeler (setup, commands, commits and

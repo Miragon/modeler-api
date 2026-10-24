@@ -79,7 +79,9 @@ on Mondays; a failure opens, or comments on, the issue "VS Code smoke: the weekl
 | `modelers/<m>/apps/webapp`       | `<m>-webapp`                             | nothing (Netlify deploys `main`)       |
 | `modelers/team-topologies`       | `team-topologies`                        | its two npm packages and its extension |
 
-for `<m>` in wardley, event-storming, context-maps and value-chain. Team Topologies stays in
+for `<m>` in event-storming, context-maps and value-chain; Wardley Maps lives in
+`modelers/wardley-maps` and keeps its released components `wardley-<p>`, `wardley-vscode` and
+`wardley-webapp`. Team Topologies stays in
 lockstep: one component whose `extra-files` move every one of its packages, the plugin and the
 marketplace entry to the same version, with its changelog in `modelers/team-topologies/CHANGELOG.md`.
 Every other changelog stays in its package.

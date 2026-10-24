@@ -4,7 +4,7 @@
 # these paths. The last matching line wins.
 
 # wardley and event-storming asked for a review of every change, as their own repositories did.
-/modelers/wardley/          @emaarco @dominikhorn93
+/modelers/wardley-maps/          @emaarco @dominikhorn93
 /modelers/event-storming/   @emaarco @dominikhorn93
 
 # Dependency manifests and the lockfile (Dependabot `npm` updates)

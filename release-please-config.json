@@ -55,7 +55,7 @@
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/modeler-api']"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/renderer'].dependencies['@miragon/modeler-api']"
         }
       ]
     },
@@ -150,13 +150,13 @@
         },
         {
           "type": "json",
-          "path": "/modelers/wardley/e2e/package.json",
+          "path": "/modelers/wardley-maps/e2e/package.json",
           "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/e2e'].devDependencies['@miragon/modeler-shell']"
+          "jsonpath": "$.packages['modelers/wardley-maps/e2e'].devDependencies['@miragon/modeler-shell']"
         },
         {
           "type": "json",
@@ -201,122 +201,122 @@
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/modeler-shell']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/vscode'].dependencies['@miragon/modeler-shell']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/modeler-shell']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/webapp'].dependencies['@miragon/modeler-shell']"
         }
       ]
     },
-    "modelers/wardley/packages/schema-model": {
+    "modelers/wardley-maps/packages/schema-model": {
       "component": "wardley-schema-model",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/schema-model'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/schema-model'].version"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-schema-model']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/vscode'].dependencies['@miragon/wardley-schema-model']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-schema-model']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/webapp'].dependencies['@miragon/wardley-schema-model']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/dsl'].dependencies['@miragon/wardley-schema-model']"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/dsl'].dependencies['@miragon/wardley-schema-model']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/wardley-schema-model']"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/renderer'].dependencies['@miragon/wardley-schema-model']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/transforms'].dependencies['@miragon/wardley-schema-model']"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/transforms'].dependencies['@miragon/wardley-schema-model']"
         }
       ]
     },
-    "modelers/wardley/packages/dsl": {
+    "modelers/wardley-maps/packages/dsl": {
       "component": "wardley-dsl",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/dsl'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/dsl'].version"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-dsl']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/vscode'].dependencies['@miragon/wardley-dsl']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-dsl']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/webapp'].dependencies['@miragon/wardley-dsl']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/wardley-dsl']"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/renderer'].dependencies['@miragon/wardley-dsl']"
         }
       ]
     },
-    "modelers/wardley/packages/transforms": {
+    "modelers/wardley-maps/packages/transforms": {
       "component": "wardley-transforms",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/transforms'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/transforms'].version"
         }
       ]
     },
-    "modelers/wardley/packages/renderer": {
+    "modelers/wardley-maps/packages/renderer": {
       "component": "wardley-renderer",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/packages/renderer'].version"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-renderer']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/vscode'].dependencies['@miragon/wardley-renderer']"
         },
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-renderer']"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/webapp'].dependencies['@miragon/wardley-renderer']"
         }
       ]
     },
-    "modelers/wardley/apps/vscode": {
+    "modelers/wardley-maps/apps/vscode": {
       "component": "wardley-vscode",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/vscode'].version"
         }
       ]
     },
-    "modelers/wardley/apps/webapp": {
+    "modelers/wardley-maps/apps/webapp": {
       "component": "wardley-webapp",
       "extra-files": [
         {
           "type": "json",
           "path": "/package-lock.json",
-          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].version"
+          "jsonpath": "$.packages['modelers/wardley-maps/apps/webapp'].version"
         }
       ]
     },

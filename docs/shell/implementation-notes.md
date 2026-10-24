@@ -70,7 +70,7 @@ The design system names its tokens and attributes in German. The names used in t
   <https://corporate-identity.netlify.app/brand/cd-tokens.generated.json>. The `shell` group appears
   there with design system release 1.12.0.
 - The modelers vendor them unchanged, for example
-  [`modelers/wardley/packages/renderer/src/theme/cd-tokens.generated.css`](../../modelers/wardley/packages/renderer/src/theme/cd-tokens.generated.css).
+  [`modelers/wardley-maps/packages/renderer/src/theme/cd-tokens.generated.css`](../../modelers/wardley-maps/packages/renderer/src/theme/cd-tokens.generated.css).
   A vendored copy is never edited by hand; it is re-copied from the source.
 - The shell's scripts compute with their own copy of the sizes (`SHELL`), its stylesheet reads the
   vendored `--cd-shell-*` tokens. A modeler pins the two together in a unit test (Vitest or
