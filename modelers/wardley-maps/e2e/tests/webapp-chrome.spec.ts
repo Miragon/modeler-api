@@ -48,12 +48,21 @@ async function importText(page: Page, text: string): Promise<void> {
 }
 
 async function pasteText(page: Page, text: string): Promise<void> {
-  await page.evaluate((value) => {
+  await pasteAt(page.locator("body"), text);
+}
+
+/** Pastes `text` at `target` and tells whether a listener took the paste (prevented it). */
+async function pasteAt(target: Locator, text: string): Promise<boolean> {
+  return target.evaluate((element, value) => {
     const data = new DataTransfer();
     data.setData("text/plain", value);
-    document.body.dispatchEvent(
-      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
-    );
+    const paste = new ClipboardEvent("paste", {
+      clipboardData: data,
+      bubbles: true,
+      cancelable: true,
+    });
+    element.dispatchEvent(paste);
+    return paste.defaultPrevented;
   }, text);
 }
 
@@ -338,6 +347,29 @@ test.describe("replacing the map", () => {
     expect(link).toContain("#mz=");
     await pasteText(page, link);
     await expect.poll(async () => (await exportMap(page)).config.title).toBe("Linked");
+  });
+
+  test("OWM text or a share link pasted into a code editor (EditContext, Monaco) stays there", async ({
+    page,
+  }) => {
+    await openLink(page, MY_MAP);
+    const before = await exportDSL(page);
+    const link = new URL(
+      `#mz=${await encodeMapCompressed("title Linked\ncomponent Gamma [0.4, 0.4]")}`,
+      page.url(),
+    ).href;
+
+    for (const editor of await codeEditors(page)) {
+      await editor.focus();
+      expect(await pasteAt(editor, "title Pasted\ncomponent Delta [0.4, 0.4]")).toBe(false);
+      expect(await pasteAt(editor, link)).toBe(false);
+    }
+
+    // Had a paste above replaced the map, Undo would bring back that map instead of the first.
+    await pasteText(page, link);
+    await expect.poll(async () => (await exportMap(page)).config.title).toBe("Linked");
+    await toast(page, "Map replaced").getByRole("button", { name: "Undo" }).click();
+    await expect.poll(() => exportDSL(page)).toBe(before);
   });
 
   test("a link pasted into the address bar replaces the map, with Undo", async ({ page }) => {
