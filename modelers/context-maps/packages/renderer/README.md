@@ -234,14 +234,15 @@ rasterisation those formats need.
 
 ## Development
 
-Part of the [Context Maps Modeler](../../README.md) monorepo; consumed from source by the apps.
-From the repo root:
+Part of the [Context Maps Modeler](../../README.md) in the
+[Miragon modeler suite](https://github.com/Miragon/modeler-suite); consumed from source by the
+apps. From the suite's root:
 
 ```bash
-npm run build -w packages/renderer   # Vite library build → dist/ (publish build)
-npm test                             # Vitest unit tests
-npm run test:browser                 # renderer integration tests in real Chromium
-npm run typecheck
+npm run build -w @miragon/context-maps-renderer   # Vite library build → dist/ (publish build)
+npm run context-maps test                         # Vitest unit tests
+npm run context-maps test:browser                 # renderer integration tests in real Chromium
+npm run context-maps typecheck
 ```
 
 ## License

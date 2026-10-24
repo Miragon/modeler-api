@@ -188,13 +188,14 @@ console.log(SAMPLE_DOCUMENT.title);
 
 ## Development
 
-This package is part of the [Context Maps Modeler](../../README.md) monorepo and is normally
-consumed from source. From the repo root:
+This package is part of the [Context Maps Modeler](../../README.md) in the
+[Miragon modeler suite](https://github.com/Miragon/modeler-suite) and is normally consumed from
+source. From the suite's root:
 
 ```bash
-npm run build -w packages/schema-model   # tsup → dist/ (publish build)
-npm test                                 # Vitest unit tests
-npm run typecheck                        # tsc, compiled WITHOUT the DOM lib
+npm run build -w @miragon/context-maps-schema-model   # tsup → dist/ (publish build)
+npm run context-maps test                             # Vitest unit tests
+npm run context-maps typecheck                        # tsc, compiled WITHOUT the DOM lib
 ```
 
 ## License

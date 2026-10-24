@@ -1,7 +1,7 @@
 # Context Maps Modeler
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](LICENSE)
-[![CI](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/context-maps-modeler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](LICENSE)
+[![CI](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
 
@@ -10,9 +10,9 @@ context maps: bounded contexts coloured by subdomain type, connected by context-
 patterns. Ships as a **web app**
 and a **VS Code extension** sharing one diagram-js core.
 
-Built as an npm-workspaces monorepo with CI/CD and release automation, a "full-bleed canvas +
-floating chrome" editing feel, a clean DOM-free domain model, and lossless, version-controllable
-files — all around the Context Maps notation.
+Built with a "full-bleed canvas + floating chrome" editing feel, a clean DOM-free domain model, and
+lossless, version-controllable files — all around the Context Maps notation — as
+`modelers/context-maps` of the [Miragon modeler suite](../../README.md).
 
 **[Try the web app →](https://context-maps.modeler.miragon.io)**
 
@@ -83,26 +83,28 @@ Both targets share the published packages:
 
 ## Getting started
 
-Requires Node ≥ 24.15 and npm. From the repo root:
+Requires Node `^22.22.2` or `>=24.15.0` and npm; the Portless dev server needs Node ≥ 24.15. From
+the root of the suite:
 
 ```bash
-npm install
-npm run dev:webapp   # start the webapp dev server (prints a stable .localhost URL; Portless)
-npm run dev:vscode   # watch-build the VS Code extension (then F5 in VS Code)
-npm test             # unit tests (Vitest)
-npm run test:browser # renderer and the modeler-api conformance kit in Chromium
-npm run test:e2e     # Playwright: the web app and the VS Code webview (with the shell's kit)
-npm run test:vscode  # the packaged extension in a real VS Code window (see CONTRIBUTING.md)
-npm run lint         # eslint + type-check
-npm run build        # build the publishable packages (schema-model, renderer)
+npm ci && npm run build:shared        # once: every workspace, the shared packages
+npm run context-maps dev:webapp       # start the webapp dev server (prints a stable .localhost URL; Portless)
+npm run context-maps dev:vscode       # watch-build the VS Code extension (then F5 in VS Code)
+npm run context-maps test             # unit tests (Vitest)
+npm run context-maps test:browser     # renderer and the modeler-api conformance kit in Chromium
+npm run context-maps test:e2e         # Playwright: the web app and the VS Code webview (with the shell's kit)
+npm run context-maps test:vscode      # the packaged extension in a real VS Code window (see CONTRIBUTING.md)
+npm run context-maps lint             # eslint + type-check
+npm run context-maps build            # build the publishable packages (schema-model, cml, renderer)
 ```
 
-On your machine, run the VS Code smoke test with `npm run test:vscode:docker`: the same test in a
-Linux container, so no window opens and nothing takes the focus (needs Docker).
+On your machine, run the VS Code smoke test with `npm run context-maps test:vscode:docker`: the
+same test in a Linux container, so no window opens and nothing takes the focus (needs Docker).
 
 ## Architecture
 
-An **npm-workspaces monorepo** with a strict boundary between the pure model and the view:
+npm workspaces inside the suite's one workspace, with a strict boundary between the pure model and
+the view:
 
 ```
 packages/
@@ -121,7 +123,8 @@ e2e/                                       — Playwright end-to-end tests: the 
 The `schema-model` package compiles **without the DOM lib**, so a stray browser import fails
 type-checking. The DOM boundary is enforced twice — by ESLint and by dependency-cruiser. The apps and
 tests consume the packages straight from their TS source via Vite/esbuild/tsconfig aliases, so there
-is no separate library build step for development (`npm run build` is only needed to publish the libs).
+is no separate library build step for development (`npm run context-maps build` is only needed to
+publish the libs).
 
 Design choices:
 
@@ -165,7 +168,10 @@ Design choices:
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the agent notes in [CLAUDE.md](CLAUDE.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the agent notes in [CLAUDE.md](CLAUDE.md) for this
+modeler, the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md) for setup, scripts, hooks and
+conventions, and [docs/ci-and-releases.md](../../docs/ci-and-releases.md) for CI and releases.
+Issues go to [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues).
 
 ## Licence
 

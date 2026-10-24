@@ -42,26 +42,26 @@ is local, and a map is shared by encoding it into the URL.
 
 ## Run it
 
-From the repo root (Node ≥ 24.15):
+From the root of the Miragon modeler suite (Node ≥ 24.15 for Portless):
 
 ```bash
-npm install
-npm run dev:webapp            # stable per-worktree http://<worktree>.context-maps-modeler.localhost:8080
+npm ci && npm run build:shared                    # once
+npm run context-maps dev:webapp                   # stable per-worktree http://<worktree>.context-maps-modeler.localhost:8080
 ```
 
-`npm run dev:webapp` serves the app via [Portless](https://portless.sh) at a stable per-worktree
-`.localhost` URL (see [`CONTRIBUTING.md`](../../CONTRIBUTING.md)). For plain Vite on a fixed port
-instead:
+`npm run context-maps dev:webapp` serves the app via [Portless](https://portless.sh) at a stable
+per-worktree `.localhost` URL (see [`CONTRIBUTING.md`](../../CONTRIBUTING.md)). For plain Vite on
+a fixed port instead:
 
 ```bash
-npm run dev:webapp:plain      # http://localhost:5181
+npm run context-maps dev:webapp:plain             # http://127.0.0.1:5181
 ```
 
 Production build (also what Netlify runs), and the check of what it ships:
 
 ```bash
-npm run build:webapp          # → apps/webapp/dist
-npm run check:build -w apps/webapp
+npm run context-maps build:webapp                 # → apps/webapp/dist
+npm run check:build -w modelers/context-maps/apps/webapp
 ```
 
 On first load the app shows, in priority order, a map from a **shared link** (`#d=…`), then the

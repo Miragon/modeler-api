@@ -5,13 +5,17 @@ notation (bounded contexts by subdomain type, connected by context-mapping relat
 OHS/PL/ACL/CF integration roles), built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT).
 Shared core for two targets: a web app and a VS Code extension.
 
+This modeler is `modelers/context-maps` in the Miragon modeler suite. The suite's
+[`CLAUDE.md`](../../CLAUDE.md) holds the rules for every modeler (setup, commands, commits and
+signing, exact pins, releases, the design system, the contract and shell boundaries); this file
+adds what is special to Context Maps. Run its scripts from the repository root as
+`npm run context-maps <script>`, or as `npm run <script>` inside `modelers/context-maps`.
+
 ## Design system (mandatory)
 
-All UI/visual work MUST follow the Miragon product design system — this is not optional. Source of
-truth: the **`miragon-brand:modeler-tool-design`** Claude skill (design system **1.15.0**; plugin
-`miragon-brand` from [`Miragon/corporate-identity`](https://github.com/Miragon/corporate-identity));
-install with `/plugin marketplace add Miragon/corporate-identity` +
-`/plugin install miragon-brand@miragon`.
+All UI/visual work follows the Miragon product design system: the
+**`miragon-brand:modeler-tool-design`** Claude skill (design system **1.15.0**; see the suite's
+[`CLAUDE.md`](../../CLAUDE.md#design-system-mandatory)). Here:
 
 Its files are **vendored unchanged** in [`packages/renderer/src/theme/`](packages/renderer/src/theme):
 `cd-tokens.generated.css`, `cd-tokens.generated.json` and `cd-canvas.css` (the same bytes from
@@ -33,11 +37,11 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
 ## Contract and chrome
 
 - **Contract.** The renderer implements the collaborative-modeler contract of
-  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) (1.3):
+  [`@miragon/modeler-api`](../../packages/api/README.md) (1.3):
   `createCollaborativeModeler` / `createCollaborativeViewer` in
   [`packages/renderer/src/collaborative/`](packages/renderer/src/collaborative), the text lane being
   the canonical JSON of a `.cm` file (`serializeDocumentText`, ends in one line break). Its
-  conformance kit runs in `npm run test:browser`
+  conformance kit runs in `npm run context-maps test:browser`
   ([`conformance.browser.test.ts`](packages/renderer/test/browser/conformance.browser.test.ts)) with
   every hook filled; a skip or an advisory fails it. Imports are silent (the history goes without an
   event), reject without a trace (ids, coordinates, newer versions checked first) and keep unknown
@@ -49,7 +53,7 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   not from the SVG. The fit after an import centres it with the insets of `freeArea: { insets }` or
   with room for the renderer's own palette (also when only `{ center }` is given; a test pins
   both), and a browser test compares the box with the drawing at zoom 1.
-- **Chrome.** Both apps mount [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)
+- **Chrome.** Both apps mount [`@miragon/modeler-shell`](../../packages/shell/README.md)
   with `themes: ["light"]`: the VS Code webview on the `ide` host (menu, palette skin, zoom panel and
   keys, fit, legend slot, problems pill, status box, empty-file hint), the web app on the `web` host
   (the same plus File group, Share, legal line, toasts, problems list, start screen and drop zone;
@@ -75,7 +79,7 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   opens the example, the `labelEditor` case `COMPACT_MAP`, which fits at 100 % in the kit's wide
   size. The example fits at 68 % there, where that case's zoom in lands on 100 % and its Cmd/Ctrl+0
   step cannot change the view (modeler-shell 0.4.0). Any skip fails the suite.
-- **Real VS Code.** `npm run test:vscode` (Vitest project `vscode`, in
+- **Real VS Code.** `npm run context-maps test:vscode` (Vitest project `vscode`, in
   [`apps/vscode/test-smoke/`](apps/vscode/test-smoke)) packs the extension as the release does
   (`vsce package --no-dependencies`), unpacks the VSIX outside the repository and runs the shell's
   `runVsCodeSmoke` on it: open, the default palette edit, save (`parseDocumentText`, one more
@@ -85,29 +89,24 @@ applies to everything else (chrome, typography, selection, neutrals, the app ico
   driver's failures are a soft assertion, so another step's failure cannot hide the save's. A
   theme switch VS Code missed is retried by the driver (since 0.4.1: the setting written again,
   then a detour through another theme), so the test needs no retry of its own. Opt-in
-  (needs a display, downloads VS Code once). CI runs it under `xvfb-run -a` in the reusable
-  `vscode-smoke.yml`: `ci.yml` calls it as the job `vscode-smoke` (part of the `ci-ok` gate; it runs
-  only when a path the extension or the test depends on changed), `vscode-smoke-weekly.yml` every
-  Monday (a failure opens a tracking issue), and the release smokes the very VSIX it publishes
-  (`VSCODE_SMOKE_VSIX`); screenshots as the `vscode-smoke-<stable|minimum>` artifacts, logs of a
-  failed run as `vscode-smoke-logs-<stable|minimum>`. Locally run `npm run test:vscode:docker` (the
-  shell's `modeler-shell-vscode-docker`: the same test in a Linux container, no window, no focus
-  taken; `-- --env VSCODE_SMOKE_KEEP=1` brings VS Code's logs back into
-  `test-results/vscode-smoke/vscode-logs/`); `npm run test:vscode` opens a real VS Code window on
-  macOS.
+  (needs a display, downloads VS Code once); the release smokes the very VSIX it publishes
+  (`VSCODE_SMOKE_VSIX`), and when CI runs it is in the suite's
+  [docs/ci-and-releases.md](../../docs/ci-and-releases.md). Locally run
+  `npm run context-maps test:vscode:docker` (the shell's `modeler-shell-vscode-docker`: the same
+  test in a Linux container, no window, no focus taken; `-- --env VSCODE_SMOKE_KEEP=1` brings VS
+  Code's logs back into `test-results/vscode-smoke/vscode-logs/`);
+  `npm run context-maps test:vscode` opens a real VS Code window on macOS.
 
-## Monorepo (npm workspaces)
+## Packages
 
-Workspaces are declared in the root `package.json` (`workspaces` array, listed in topological build
-order). **All** versions are pinned to exact values inline in each package's `package.json` (`.npmrc`
-sets `save-exact=true`) — including internal `@miragon/context-maps-*` deps, which use the exact local
-workspace version as found in the workspace's `package.json` (npm still links them to the local
-workspace). Exact pinning is enforced in CI by the `pin-check` job.
+The workspaces are `packages/*`, `apps/*` and `e2e` of this folder. Internal
+`@miragon/context-maps-*` deps use the exact local workspace version as found in the workspace's
+`package.json` (npm still links them to the local workspace).
 
 Shared toolchain deps (`typescript`, `vitest`, `tsup`, `vite`, `playwright`) are pinned **once** in
-the root `package.json` and hoisted to the workspaces — don't re-add them to workspace manifests.
-`vite` is additionally listed in the root `overrides` so transitive copies (vitest, plugins) resolve
-to the same version; keep the two entries identical. The vscode app pins its own `esbuild` (its
+the suite's root `package.json` and hoisted to the workspaces — don't re-add them to workspace
+manifests. `vite` is additionally listed in the root `overrides` so transitive copies (vitest,
+plugins) resolve to the same version; keep the two entries identical. The vscode app pins its own `esbuild` (its
 bundler), separate from tsup's `esbuild` pinned via `overrides` — intentional, don't unify; `e2e`
 pins the same `esbuild` as the vscode app for its smoke test of the shipped webview bundle. The
 vscode app also pins `playwright-core` and `@vscode/test-electron`, the optional peers of the shell's
@@ -124,65 +123,51 @@ VS Code smoke driver; keep `playwright-core` equal to the root `playwright`.
 **P1 — DOM boundary:** the DOM-free packages (`schema-model`, `cml`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced
 twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser` — so a
-violating import fails `npm run lint` and `npm run depcruise`.
+violating import fails `npm run context-maps lint` and `npm run context-maps depcruise`.
 
 ## Commands
 
-- `npm run build` — packages (schema-model, then renderer) · `npm run build:webapp` (then
-  `npm run check:build -w apps/webapp`: mode markup and licence comment in the bundle) ·
-  `npm run build:vscode`
-- `npm run dev:webapp` (alias: `npm run dev`) serves the webapp via [Portless](https://portless.sh)
-  at a stable per-worktree `http://<worktree>.context-maps-modeler.localhost:8080` URL (Portless-derived
-  from the git worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json)). The `dev`
-  script sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless runs plain HTTP on the non-privileged
+- `npm run context-maps build` — packages (schema-model, cml, then renderer) ·
+  `npm run context-maps build:webapp` (then `npm run check:build -w modelers/context-maps/apps/webapp`:
+  mode markup and licence comment in the bundle) · `npm run context-maps build:vscode`
+- `npm run context-maps dev:webapp` (alias: `npm run context-maps dev`) serves the webapp via
+  [Portless](https://portless.sh) at a stable per-worktree
+  `http://<worktree>.context-maps-modeler.localhost:8080` URL (Portless-derived from the git
+  worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json)). The `dev` script
+  sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless runs plain HTTP on the non-privileged
   port 8080 and auto-starts — no `sudo`/`service install` (needs Node ≥ 24.15; see
-  [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run dev:webapp:plain` for plain Vite on `:5181`. ·
-  `npm run dev:vscode`
-- `npm test` — Vitest (unit; includes the VS Code host against a `vscode` mock) ·
-  `npm run test:browser` — renderer and the contract kit in Chromium · `npm run test:e2e` —
-  Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`, default 5180) and the VS Code
-  webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) · `npm run test:vscode:docker`
-  — the packaged extension in a real VS Code inside Docker, without a window (the local way;
-  `-- --env VSCODE_VERSION=1.96.0` picks the version) · `npm run test:vscode` — the same on the
-  host, for CI (Linux under `xvfb-run -a`) and for a visible window on macOS (`VSCODE_VERSION`
-  picks the version; see [`CONTRIBUTING.md`](CONTRIBUTING.md))
-- `npm run notices -w apps/vscode` — regenerate `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test
-  fails when it is stale)
-- `npm run typecheck` · `npm run lint` (ESLint + typecheck)
-- `npm run format` — Prettier · `npm run depcruise` — check the module graph
+  [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run context-maps dev:webapp:plain` for plain Vite on
+  `:5181`. · `npm run context-maps dev:vscode`
+- `npm run context-maps test` — Vitest (unit; includes the VS Code host against a `vscode` mock) ·
+  `npm run context-maps test:browser` — renderer and the contract kit in Chromium ·
+  `npm run context-maps test:e2e` — Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`,
+  default 5180) and the VS Code webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) ·
+  `npm run context-maps test:vscode:docker` — the packaged extension in a real VS Code inside
+  Docker, without a window (the local way; `-- --env VSCODE_VERSION=1.96.0` picks the version) ·
+  `npm run context-maps test:vscode` — the same on the host, for CI (Linux under `xvfb-run -a`)
+  and for a visible window on macOS (`VSCODE_VERSION` picks the version; see
+  [`CONTRIBUTING.md`](CONTRIBUTING.md))
+- `npm run notices -w modelers/context-maps/apps/vscode` — regenerate
+  `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test fails when it is stale)
+- `npm run context-maps typecheck` · `npm run context-maps lint` (ESLint + typecheck)
+- `npm run context-maps format` — Prettier · `npm run context-maps depcruise` — check the module
+  graph
 
-Requirements: Node ≥ 24.15, npm. The packages are consumed from **source** (Vite/esbuild/tsconfig
-aliases), so neither the apps nor the tests need a prior package build; `npm run build` is for
-publishing the libraries. The Husky pre-commit hook runs **only** lint-staged + `npm run lint`
-(ESLint + type-check) — **not** tests/build/depcruise; run `npm test` yourself before pushing.
-
-**CI:** the job `ci-ok` in [`ci.yml`](.github/workflows/ci.yml) is the merge gate. It needs every
-other job of `ci.yml` and fails when one of them failed, was cancelled or was skipped (only
-`dependency-review` may skip, outside pull requests), so a **new job in `ci.yml` goes into `ci-ok`'s
-`needs`**. `ci-ok` and the PR title check `validate-pr-title` are the checks for the `main` ruleset
-to require, not the single jobs. See [`CONTRIBUTING.md`](CONTRIBUTING.md#ci-and-the-merge-gate).
-
-## Git
-
-Everything is managed via **Conventional Commits** — primarily `feat`, `fix`, `refactor`, `chore`,
-`docs`. Example: `feat(renderer): add a context-pad colour picker`.
+The packages are consumed from **source** (Vite/esbuild/tsconfig aliases), so neither the apps nor
+the tests need a prior package build; `npm run context-maps build` is for publishing the libraries.
+How the packages and the extension (`miragon-gmbh.context-maps-modeler`) are released is in the
+suite's [docs/ci-and-releases.md](../../docs/ci-and-releases.md).
 
 ## Conventions
 
 - Keep the core package (`schema-model`) strictly DOM-free (P1, above).
 - JSON serialization must stay deterministic (sorted, rounded, version-stamped) so diffs and share
   URLs stay stable.
-- Pin **all** dependencies to exact versions — no version ranges (`^`/`~`/`>=`/`*`), internal
-  workspace deps included (use the current local workspace version). See
+- Pins follow the suite's rule, internal workspace deps included (use the current local workspace
+  version). See
   [`.claude/rules/package-json-fixed-versions.md`](.claude/rules/package-json-fixed-versions.md).
   The exception is `peerDependencies`: the libraries a host shares (`zod`, `diagram-js`, `didi`,
   `tiny-svg`) are caret-ranged peers, mirrored by exact devDependencies and pinned exactly by the
   apps. [`peer-dependencies.test.ts`](packages/renderer/test/peer-dependencies.test.ts) checks that
   every range admits its devDependency, the apps' pins and what the other peers require.
-- Contributor onboarding in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## Code Style
-
-- Write comments only when explicitly requested. Otherwise write self-explanatory code — descriptive
-  function and parameter names, no abbreviations.
-- If comments are needed: make them **WHY**-driven, not **HOW**.
+- Contributor notes for this modeler in [`CONTRIBUTING.md`](CONTRIBUTING.md).
