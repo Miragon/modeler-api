@@ -261,6 +261,17 @@ describe("theme.sync — MIRAGON mirrors the vendored design-system tokens", () 
     expect(COLORS.inkSoft).toBe(MIRAGON.textLeise);
   });
 
+  it("fills the plot and every element surface with the light plot role (§10.1)", () => {
+    const surfaces = {
+      plotBackground: COLORS.plotBackground,
+      componentFill: COLORS.componentFill,
+      annotationFill: COLORS.annotationFill,
+    };
+    for (const [key, value] of Object.entries(surfaces)) {
+      expect(norm(value), `COLORS.${key}`).toBe(norm(vendoredJson.hell["--cd-ui-plot"]!));
+    }
+  });
+
   it("draws every canvas colour from the tokens, apart from the pinned notation status colours", () => {
     const tokens = new Set(Object.values(vendoredJson.fest).map(norm));
     // Their hex values are pinned by the next cases.

@@ -82,8 +82,8 @@ export const COLORS = {
   inertia: MIRAGON.schwarz,
   noteText: MIRAGON.textLeise,
   pipeline: MIRAGON.schwarz,
-  // The warm off-white of the palette sets the marker apart from the white components.
-  annotationFill: MIRAGON.grau,
+  // An element surface like the components (guide §10.1); its stroke and number set it apart.
+  annotationFill: MIRAGON.weiss,
   plotBackground: MIRAGON.weiss,
   accelerator: NOTATION_STATUS.success,
   deaccelerator: NOTATION_STATUS.danger,
