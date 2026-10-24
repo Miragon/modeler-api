@@ -1,19 +1,19 @@
-import { chromeIcon } from '../draw/lucide.js';
+import { chromeIcon } from "../draw/lucide.js";
 import {
   boardShortcuts,
   type BoardShortcutOptions,
   type ShortcutGroup,
   type ShortcutsChrome,
-} from './shortcuts.js';
+} from "./shortcuts.js";
 
-const DIALOG_CLASS = 'event-storming-shortcuts';
-const TITLE_ID = 'event-storming-shortcuts-title';
+const DIALOG_CLASS = "event-storming-shortcuts";
+const TITLE_ID = "event-storming-shortcuts-title";
 
 /** What the dialog needs of the chrome around the board; a `@miragon/modeler-shell` handle fits. */
 export interface ShortcutsDialogChrome extends ShortcutsChrome {
   /** Where the dialog lives (the shell root), so it shares the chrome's mode and fonts. */
   readonly root: HTMLElement;
-  readonly messages: ShortcutsChrome['messages'] & { readonly close: string };
+  readonly messages: ShortcutsChrome["messages"] & { readonly close: string };
   /** The control the focus returns to once the dialog closes. */
   readonly menu: { readonly trigger: HTMLElement };
 }
@@ -37,19 +37,19 @@ function element<K extends keyof HTMLElementTagNameMap>(
 }
 
 function shortcutTable(group: ShortcutGroup, index: number): HTMLElement {
-  const section = element('section', `${DIALOG_CLASS}-group`);
+  const section = element("section", `${DIALOG_CLASS}-group`);
   const headingId = `${TITLE_ID}-group-${index}`;
-  const heading = element('h4', `${DIALOG_CLASS}-group-title`, group.title);
+  const heading = element("h4", `${DIALOG_CLASS}-group-title`, group.title);
   heading.id = headingId;
-  const table = element('table', `${DIALOG_CLASS}-table`);
-  table.setAttribute('aria-labelledby', headingId);
+  const table = element("table", `${DIALOG_CLASS}-table`);
+  table.setAttribute("aria-labelledby", headingId);
   const body = table.createTBody();
   for (const row of group.rows) {
     const line = body.insertRow();
-    const action = element('th', `${DIALOG_CLASS}-action`, row.action);
-    action.scope = 'row';
-    const keys = element('td', `${DIALOG_CLASS}-keys`);
-    for (const key of row.keys) keys.append(element('kbd', `${DIALOG_CLASS}-key`, key));
+    const action = element("th", `${DIALOG_CLASS}-action`, row.action);
+    action.scope = "row";
+    const keys = element("td", `${DIALOG_CLASS}-keys`);
+    for (const key of row.keys) keys.append(element("kbd", `${DIALOG_CLASS}-key`, key));
     line.append(action, keys);
   }
   section.append(heading, table);
@@ -61,18 +61,18 @@ function dialogContent(
   options: BoardShortcutOptions,
   onClose: () => void,
 ): HTMLElement {
-  const panel = element('div', `${DIALOG_CLASS}-panel`);
-  const header = element('header', `${DIALOG_CLASS}-header`);
-  const title = element('h3', `${DIALOG_CLASS}-title`, 'Keyboard shortcuts');
+  const panel = element("div", `${DIALOG_CLASS}-panel`);
+  const header = element("header", `${DIALOG_CLASS}-header`);
+  const title = element("h3", `${DIALOG_CLASS}-title`, "Keyboard shortcuts");
   title.id = TITLE_ID;
-  const close = element('button', `${DIALOG_CLASS}-close`);
-  close.type = 'button';
-  close.setAttribute('aria-label', chrome.messages.close);
-  close.innerHTML = chromeIcon('x');
-  close.addEventListener('click', onClose);
+  const close = element("button", `${DIALOG_CLASS}-close`);
+  close.type = "button";
+  close.setAttribute("aria-label", chrome.messages.close);
+  close.innerHTML = chromeIcon("x");
+  close.addEventListener("click", onClose);
   header.append(title, close);
 
-  const body = element('div', `${DIALOG_CLASS}-body`);
+  const body = element("div", `${DIALOG_CLASS}-body`);
   body.append(...boardShortcuts(chrome, options).map(shortcutTable));
   panel.append(header, body);
   return panel;
@@ -91,14 +91,14 @@ export function createShortcutsDialog(
   let dialog: HTMLDialogElement | undefined;
 
   function build(): HTMLDialogElement {
-    const created = element('dialog', DIALOG_CLASS);
-    created.setAttribute('aria-labelledby', TITLE_ID);
+    const created = element("dialog", DIALOG_CLASS);
+    created.setAttribute("aria-labelledby", TITLE_ID);
     created.append(dialogContent(chrome, options, () => created.close()));
     // A click on the backdrop targets the <dialog> itself; the panel covers all of its own box.
-    created.addEventListener('click', (event) => {
+    created.addEventListener("click", (event) => {
       if (event.target === created) created.close();
     });
-    created.addEventListener('close', () => {
+    created.addEventListener("close", () => {
       if (!chrome.menu.trigger.hidden) chrome.menu.trigger.focus({ preventScroll: true });
     });
     chrome.root.append(created);

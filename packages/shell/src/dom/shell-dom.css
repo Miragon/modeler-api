@@ -128,7 +128,11 @@ html.cd-shell-document {
   box-sizing: border-box;
   margin: 0;
   color: var(--cd-ui-text);
-  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  background: color-mix(
+    in srgb,
+    var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft),
+    transparent
+  );
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border: 1px solid var(--cd-ui-linie);
@@ -493,7 +497,9 @@ html.cd-shell-document kbd {
 
 /* The web app keeps its legal line (20px, more where it wraps) below the pill. */
 .cd-shell[data-cd-shell-host="web"] .cd-shell-problems {
-  bottom: calc(var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke));
+  bottom: calc(
+    var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke)
+  );
 }
 
 /* ---- Status box under the palette (guide §5.12) --------------------------------------------- */
@@ -576,7 +582,8 @@ html.cd-shell-document kbd {
 /* Centred in the free rectangle of the fit; the script sets the exact insets of what is open. */
 .cd-shell-hint {
   position: absolute;
-  inset: var(--cd-shell-einpassen-oben) var(--cd-shell-einpassen-seite) var(--cd-shell-einpassen-unten);
+  inset: var(--cd-shell-einpassen-oben) var(--cd-shell-einpassen-seite)
+    var(--cd-shell-einpassen-unten);
   z-index: var(--cd-shell-ebene-inseln);
   display: flex;
   flex-direction: column;
@@ -637,7 +644,8 @@ html.cd-shell-document kbd {
   min-width: 184px;
   max-height: calc(
     100cqh - var(--modeler-shell-legend-top) -
-      max(var(--modeler-shell-legend-bottom), var(--modeler-shell-legend-min-bottom)) - var(--cd-shell-rand)
+      max(var(--modeler-shell-legend-bottom), var(--modeler-shell-legend-min-bottom)) -
+      var(--cd-shell-rand)
   );
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -647,7 +655,9 @@ html.cd-shell-document kbd {
 }
 
 .cd-shell[data-problems="shown"] .cd-shell-legend {
-  --modeler-shell-legend-bottom: calc(var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke));
+  --modeler-shell-legend-bottom: calc(
+    var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke)
+  );
 }
 
 .cd-shell[data-cd-shell-host="web"] .cd-shell-legend {
@@ -664,7 +674,9 @@ html.cd-shell-document kbd {
 }
 
 .cd-shell[data-palette="second-row"] .cd-shell-legend {
-  --modeler-shell-legend-top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+  --modeler-shell-legend-top: calc(
+    var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand)
+  );
 }
 
 /* Too narrow to sit beside the zoom panel: above the bottom row. */
@@ -794,7 +806,9 @@ html.cd-shell-document kbd {
   }
 
   .cd-shell-legend {
-    --modeler-shell-legend-top: calc(var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand));
+    --modeler-shell-legend-top: calc(
+      var(--cd-shell-frei) + var(--cd-shell-zeile) + var(--cd-shell-rand)
+    );
   }
 }
 
@@ -878,7 +892,14 @@ html.cd-shell-no-transition *::after {
 /* ---- Forced colours (guide §5.14): nothing disappears --------------------------------------- */
 
 @media (forced-colors: active) {
-  .cd-shell :is(.cd-shell-island, .cd-shell-menu, .cd-shell-tooltip, .cd-shell-status, .cd-shell-inspector) {
+  .cd-shell
+    :is(
+      .cd-shell-island,
+      .cd-shell-menu,
+      .cd-shell-tooltip,
+      .cd-shell-status,
+      .cd-shell-inspector
+    ) {
     border-color: CanvasText;
   }
 

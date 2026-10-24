@@ -1,4 +1,4 @@
-import type { Element } from 'diagram-js/lib/model/Types';
+import type { Element } from "diagram-js/lib/model/Types";
 
 export interface UpdatePropertiesContext {
   element: Element;

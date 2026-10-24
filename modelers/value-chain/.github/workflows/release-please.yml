@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Validate packaging/publish without releasing'
+        description: "Validate packaging/publish without releasing"
         type: boolean
         default: false
 
@@ -81,7 +81,7 @@ jobs:
         env:
           VSCODE_VERSION: stable
           VSCODE_SMOKE_VSIX: ${{ github.workspace }}/apps/vscode/value-chain-modeler.vsix
-          VSCODE_SMOKE_KEEP: '1'
+          VSCODE_SMOKE_KEEP: "1"
           TMPDIR: ${{ runner.temp }}
       # The release is already tagged when this smoke fails, so its screenshots and VS Code's logs are
       # all there is to tell why.
@@ -122,7 +122,7 @@ jobs:
         env:
           VSCODE_VERSION: stable
           VSCODE_SMOKE_VSIX: ${{ github.workspace }}/apps/vscode/value-chain-modeler.vsix
-          VSCODE_SMOKE_KEEP: '1'
+          VSCODE_SMOKE_KEEP: "1"
           TMPDIR: ${{ runner.temp }}
       - if: failure()
         uses: actions/upload-artifact@v7

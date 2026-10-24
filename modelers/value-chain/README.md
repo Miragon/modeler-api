@@ -42,12 +42,12 @@ npm run dev:webapp        # editor at http://localhost:5181
 ## Usage (library)
 
 ```ts
-import { Modeler } from '@miragon/value-chain-renderer';
-import '@miragon/value-chain-renderer/assets/value-chain.css';
-import { createEmptyDocument } from '@miragon/value-chain-schema-model';
+import { Modeler } from "@miragon/value-chain-renderer";
+import "@miragon/value-chain-renderer/assets/value-chain.css";
+import { createEmptyDocument } from "@miragon/value-chain-schema-model";
 
-const modeler = new Modeler({ container: document.querySelector('#canvas') });
-modeler.importDocument(createEmptyDocument('My value chain'));
+const modeler = new Modeler({ container: document.querySelector("#canvas") });
+modeler.importDocument(createEmptyDocument("My value chain"));
 
 const document = modeler.exportDocument(); // JSON document
 const { svg } = modeler.saveSVG(); // standalone SVG

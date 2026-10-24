@@ -33,7 +33,8 @@ export function decidePaletteRow(input: PaletteRowInput): PaletteRow {
   const paletteLeft = (containerWidth - paletteWidth) / 2;
   const paletteRight = (containerWidth + paletteWidth) / 2;
   if (paletteLeft < menuRight + PALETTE_CLEARANCE) return "second-row";
-  if (primaryLeft !== undefined && paletteRight > primaryLeft - PALETTE_CLEARANCE) return "second-row";
+  if (primaryLeft !== undefined && paletteRight > primaryLeft - PALETTE_CLEARANCE)
+    return "second-row";
   return "top";
 }
 
@@ -67,7 +68,9 @@ export interface TooltipPlacementInput {
 export function placeTooltip(input: TooltipPlacementInput): Point {
   const { anchor, island, tooltip, container } = input;
   const inUpperHalf = island.y + island.height / 2 < container.height / 2;
-  const y = inUpperHalf ? island.y + island.height + SHELL.gap : island.y - SHELL.gap - tooltip.height;
+  const y = inUpperHalf
+    ? island.y + island.height + SHELL.gap
+    : island.y - SHELL.gap - tooltip.height;
   const centred = anchor.x + anchor.width / 2 - tooltip.width / 2;
   const rightmost = container.width - SHELL.edge - tooltip.width;
   // In a container narrower than the tooltip plus both edges, the left edge wins.

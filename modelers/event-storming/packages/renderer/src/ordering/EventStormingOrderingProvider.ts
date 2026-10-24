@@ -1,7 +1,7 @@
-import OrderingProvider from 'diagram-js/lib/features/ordering/OrderingProvider';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { ElementLike, ShapeLike } from 'diagram-js/lib/model/Types';
-import { isDrawing, isEventStormingConnection } from '../model/di-types.js';
+import OrderingProvider from "diagram-js/lib/features/ordering/OrderingProvider";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { ElementLike, ShapeLike } from "diagram-js/lib/model/Types";
+import { isDrawing, isEventStormingConnection } from "../model/di-types.js";
 
 /**
  * Keeps the z-order stable for INTERACTIVELY created/moved elements, matching the import order:
@@ -9,7 +9,7 @@ import { isDrawing, isEventStormingConnection } from '../model/di-types.js';
  * connections drawn in the editor would land above the stickies (unlike imported ones).
  */
 export default class EventStormingOrderingProvider extends OrderingProvider {
-  static override $inject = ['eventBus'];
+  static override $inject = ["eventBus"];
 
   constructor(eventBus: EventBus) {
     super(eventBus);

@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import type CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
-import type { Connection, Shape } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
-import VcLayouter from '../src/modeling/VcLayouter.js';
+import { describe, expect, it } from "vitest";
+import type CroppingConnectionDocking from "diagram-js/lib/layout/CroppingConnectionDocking";
+import type { Connection, Shape } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import VcLayouter from "../src/modeling/VcLayouter.js";
 
-const source = { id: 'a', x: 0, y: 0, width: 160, height: 60 } as Shape;
-const target = { id: 'b', x: 300, y: 0, width: 160, height: 60 } as Shape;
+const source = { id: "a", x: 0, y: 0, width: 160, height: 60 } as Shape;
+const target = { id: "b", x: 300, y: 0, width: 160, height: 60 } as Shape;
 
 function createLayouter(crop?: (waypoints: Point[]) => Point[]): VcLayouter {
   const docking = {
@@ -15,12 +15,12 @@ function createLayouter(crop?: (waypoints: Point[]) => Point[]): VcLayouter {
   return new VcLayouter(docking);
 }
 
-function connection(waypoints: Point[] = [], vcType = 'sequence'): Connection {
-  return { id: 'c', source, target, waypoints, vcType } as unknown as Connection;
+function connection(waypoints: Point[] = [], vcType = "sequence"): Connection {
+  return { id: "c", source, target, waypoints, vcType } as unknown as Connection;
 }
 
-describe('VcLayouter', () => {
-  it('lays out mid to mid by default', () => {
+describe("VcLayouter", () => {
+  it("lays out mid to mid by default", () => {
     const waypoints = createLayouter().layoutConnection(connection());
     expect(waypoints).toEqual([
       { x: 80, y: 30 },
@@ -28,7 +28,7 @@ describe('VcLayouter', () => {
     ]);
   });
 
-  it('preserves interior bendpoints', () => {
+  it("preserves interior bendpoints", () => {
     const waypoints = createLayouter().layoutConnection(
       connection([
         { x: 80, y: 30 },
@@ -39,15 +39,15 @@ describe('VcLayouter', () => {
     expect(waypoints[1]).toEqual({ x: 200, y: 150 });
   });
 
-  it('row: exits the bottom center, bus, then drops into the sub-step top', () => {
+  it("row: exits the bottom center, bus, then drops into the sub-step top", () => {
     // source spans x 0..160 (notch 30); a child centered at x=60 sits under it
-    const below = { id: 'b', x: 20, y: 200, width: 80, height: 50 } as Shape;
+    const below = { id: "b", x: 20, y: 200, width: 80, height: 50 } as Shape;
     const hierarchy = {
-      id: 'c',
+      id: "c",
       source,
       target: below,
       waypoints: [],
-      vcType: 'hierarchy',
+      vcType: "hierarchy",
     } as unknown as Connection;
 
     const waypoints = createLayouter().layoutConnection(hierarchy);
@@ -59,15 +59,15 @@ describe('VcLayouter', () => {
     ]);
   });
 
-  it('column: runs straight under the center exit when the children clear it', () => {
+  it("column: runs straight under the center exit when the children clear it", () => {
     // child at x=90: center (80) <= 90 - clearance (10) → trunk directly under the exit
-    const below = { id: 'b', x: 90, y: 200, width: 130, height: 50 } as Shape;
+    const below = { id: "b", x: 90, y: 200, width: 130, height: 50 } as Shape;
     const hierarchy = {
-      id: 'c',
+      id: "c",
       source,
       target: below,
       waypoints: [],
-      vcType: 'hierarchy',
+      vcType: "hierarchy",
     } as unknown as Connection;
 
     const waypoints = createLayouter().layoutConnection(hierarchy);
@@ -78,14 +78,14 @@ describe('VcLayouter', () => {
     ]);
   });
 
-  it('column: jogs to a trunk left of the children when they overlap the center', () => {
-    const below = { id: 'b', x: 70, y: 200, width: 130, height: 50 } as Shape;
+  it("column: jogs to a trunk left of the children when they overlap the center", () => {
+    const below = { id: "b", x: 70, y: 200, width: 130, height: 50 } as Shape;
     const hierarchy = {
-      id: 'c',
+      id: "c",
       source,
       target: below,
       waypoints: [],
-      vcType: 'hierarchy',
+      vcType: "hierarchy",
     } as unknown as Connection;
 
     const waypoints = createLayouter().layoutConnection(hierarchy);
@@ -99,18 +99,18 @@ describe('VcLayouter', () => {
     ]);
   });
 
-  it('always exits at the parent bottom center and shares the column trunk', () => {
+  it("always exits at the parent bottom center and shares the column trunk", () => {
     const layouter = createLayouter();
-    const first = { id: 'b1', x: 90, y: 200, width: 130, height: 50 } as Shape;
-    const second = { id: 'b2', x: 90, y: 280, width: 130, height: 50 } as Shape;
+    const first = { id: "b1", x: 90, y: 200, width: 130, height: 50 } as Shape;
+    const second = { id: "b2", x: 90, y: 280, width: 130, height: 50 } as Shape;
 
     const route = (child: Shape) =>
       layouter.layoutConnection({
-        id: 'c',
+        id: "c",
         source,
         target: child,
         waypoints: [],
-        vcType: 'hierarchy',
+        vcType: "hierarchy",
       } as unknown as Connection);
 
     // both exit at the parent's center x and share the straight trunk under it
@@ -123,7 +123,7 @@ describe('VcLayouter', () => {
     expect(route(second).at(-1)).toEqual({ x: 155, y: 305 });
   });
 
-  it('falls back to mid-to-mid when a non-finite anchor hint comes in', () => {
+  it("falls back to mid-to-mid when a non-finite anchor hint comes in", () => {
     // getResizedSourceAnchor against degenerate zero-size old bounds yields NaN anchors
     const waypoints = createLayouter().layoutConnection(connection(), {
       connectionStart: { x: Number.NaN, y: 30 },
@@ -134,7 +134,7 @@ describe('VcLayouter', () => {
     ]);
   });
 
-  it('falls back to mid-to-mid when cropping produces non-finite points', () => {
+  it("falls back to mid-to-mid when cropping produces non-finite points", () => {
     const layouter = createLayouter(() => [
       { x: Number.NaN, y: Number.NaN },
       { x: 380, y: 30 },

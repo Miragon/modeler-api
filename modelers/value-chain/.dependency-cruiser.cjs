@@ -8,55 +8,55 @@
 module.exports = {
   forbidden: [
     {
-      name: 'dom-free-no-diagram-js',
-      comment: 'DOM-free packages must not import diagram-js / DOM libraries.',
-      severity: 'error',
-      from: { path: '^packages/schema-model/src' },
-      to: { path: 'node_modules/(diagram-js|tiny-svg|min-dom)' },
+      name: "dom-free-no-diagram-js",
+      comment: "DOM-free packages must not import diagram-js / DOM libraries.",
+      severity: "error",
+      from: { path: "^packages/schema-model/src" },
+      to: { path: "node_modules/(diagram-js|tiny-svg|min-dom)" },
     },
     {
-      name: 'dom-free-no-renderer',
-      comment: 'DOM-free packages must not depend on the DOM-dependent renderer.',
-      severity: 'error',
-      from: { path: '^packages/schema-model/src' },
-      to: { path: '^packages/renderer/src' },
+      name: "dom-free-no-renderer",
+      comment: "DOM-free packages must not depend on the DOM-dependent renderer.",
+      severity: "error",
+      from: { path: "^packages/schema-model/src" },
+      to: { path: "^packages/renderer/src" },
     },
     {
-      name: 'packages-no-shell',
+      name: "packages-no-shell",
       comment:
-        'The renderer and the DOM-free package never import @miragon/modeler-shell; only the apps ' +
-        'mount the shell (dependency direction of Miragon/modeler-api#4).',
-      severity: 'error',
-      from: { path: '^packages/[^/]+/src' },
+        "The renderer and the DOM-free package never import @miragon/modeler-shell; only the apps " +
+        "mount the shell (dependency direction of Miragon/modeler-api#4).",
+      severity: "error",
+      from: { path: "^packages/[^/]+/src" },
       // Matched on the specifier, so an import that does not resolve from the package fails too.
-      to: { path: '@miragon/modeler-shell' },
+      to: { path: "@miragon/modeler-shell" },
     },
     {
-      name: 'dom-free-contract-types-only',
+      name: "dom-free-contract-types-only",
       comment:
-        'The DOM-free package takes only types from @miragon/modeler-api, never runtime code.',
-      severity: 'error',
-      from: { path: '^packages/schema-model/src' },
-      to: { path: '@miragon/modeler-api', dependencyTypesNot: ['type-only'] },
+        "The DOM-free package takes only types from @miragon/modeler-api, never runtime code.",
+      severity: "error",
+      from: { path: "^packages/schema-model/src" },
+      to: { path: "@miragon/modeler-api", dependencyTypesNot: ["type-only"] },
     },
     {
-      name: 'no-circular',
-      comment: 'No circular dependencies.',
-      severity: 'error',
+      name: "no-circular",
+      comment: "No circular dependencies.",
+      severity: "error",
       from: {},
       to: { circular: true },
     },
   ],
   options: {
-    doNotFollow: { path: 'node_modules' },
+    doNotFollow: { path: "node_modules" },
     // The suite links @miragon/modeler-api and @miragon/modeler-shell as workspaces. Kept at their
     // node_modules path, the rules above still match them by name and the cruise stops there.
     preserveSymlinks: true,
-    tsConfig: { fileName: 'tsconfig.json' },
+    tsConfig: { fileName: "tsconfig.json" },
     tsPreCompilationDeps: true,
     enhancedResolveOptions: {
-      exportsFields: ['exports'],
-      conditionNames: ['import', 'require', 'node', 'default', 'types'],
+      exportsFields: ["exports"],
+      conditionNames: ["import", "require", "node", "default", "types"],
     },
   },
 };

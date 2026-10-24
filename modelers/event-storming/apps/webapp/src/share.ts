@@ -6,15 +6,15 @@
 
 /** Bytes -> URL-safe Base64 (A-Za-z0-9-_, no padding). */
 function toBase64Url(bytes: Uint8Array): string {
-  let bin = '';
+  let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromBase64Url(b64: string): Uint8Array {
-  let norm = b64.replace(/-/g, '+').replace(/_/g, '/');
+  let norm = b64.replace(/-/g, "+").replace(/_/g, "/");
   const pad = norm.length % 4;
-  if (pad) norm += '='.repeat(4 - pad);
+  if (pad) norm += "=".repeat(4 - pad);
   const bin = atob(norm);
   return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
@@ -36,18 +36,18 @@ export function decodeMap(b64: string): string {
 
 /** UTF-8 -> deflate-raw -> URL-safe Base64. Real-world boards shrink by ~5-8x. */
 export async function encodeMapCompressed(text: string): Promise<string> {
-  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
+  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream("deflate-raw"));
   return toBase64Url(deflated);
 }
 
 /** URL-safe Base64 -> inflate -> UTF-8. */
 export async function decodeMapCompressed(b64: string): Promise<string> {
-  const inflated = await pipe(fromBase64Url(b64), new DecompressionStream('deflate-raw'));
+  const inflated = await pipe(fromBase64Url(b64), new DecompressionStream("deflate-raw"));
   return new TextDecoder().decode(inflated);
 }
 
-const HASH_PREFIX_COMPRESSED = '#mz=';
-const HASH_PREFIX_LEGACY = '#m=';
+const HASH_PREFIX_COMPRESSED = "#mz=";
+const HASH_PREFIX_LEGACY = "#m=";
 
 /** Whether the hash carries a board at all, readable or not (a link cut off when it was copied). */
 export function hashHoldsBoard(): boolean {
@@ -74,7 +74,7 @@ export async function readHashMap(): Promise<string | null> {
 
 /** Updates the hash with the current DSL (no history entry). */
 export async function writeHashMap(dsl: string): Promise<void> {
-  history.replaceState(null, '', HASH_PREFIX_COMPRESSED + (await encodeMapCompressed(dsl)));
+  history.replaceState(null, "", HASH_PREFIX_COMPRESSED + (await encodeMapCompressed(dsl)));
 }
 
 /** Full shareable URL for the given DSL. */

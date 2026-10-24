@@ -71,7 +71,10 @@ export class SmokeFailures {
 }
 
 /** The islands of `expected` that were not visible, as a failure text; undefined when all were. */
-export function missingChrome(expected: readonly ChromeIsland[], chrome: ChromePresence): string | undefined {
+export function missingChrome(
+  expected: readonly ChromeIsland[],
+  chrome: ChromePresence,
+): string | undefined {
   const missing = expected.filter((island) => chrome[island] !== true);
   if (missing.length === 0) return undefined;
   return `the shell's chrome is incomplete: ${missing.map((island) => `[data-chrome="${island}"]`).join(", ")} not visible`;
@@ -80,7 +83,9 @@ export function missingChrome(expected: readonly ChromeIsland[], chrome: ChromeP
 /** Whether the webview shows `expected`, both attributes. */
 export function sameAppearance(expected: Appearance, observed: Appearance | undefined): boolean {
   return (
-    observed !== undefined && observed.theme === expected.theme && observed.kontrast === expected.kontrast
+    observed !== undefined &&
+    observed.theme === expected.theme &&
+    observed.kontrast === expected.kontrast
   );
 }
 
@@ -99,7 +104,9 @@ export function formatVsCodeSmoke(result: VsCodeSmokeResult): string {
     `VS Code ${result.vscodeVersion ?? "(not resolved)"}`,
     result.extensionId ?? "(unknown extension)",
     result.viewType ?? "(no custom editor)",
-    result.ok ? "ok" : `${result.failures.length} failure${result.failures.length === 1 ? "" : "s"}`,
+    result.ok
+      ? "ok"
+      : `${result.failures.length} failure${result.failures.length === 1 ? "" : "s"}`,
   ].join(" · ");
   const timings = [...VSCODE_SMOKE_STEPS, "total" as const]
     .filter((step) => result.timings[step] !== undefined)
@@ -112,5 +119,10 @@ export function formatVsCodeSmoke(result: VsCodeSmokeResult): string {
       (entry.screenshot ? `, ${entry.screenshot}` : ""),
   );
   const failures = result.failures.map((failure) => `  - ${failure}`);
-  return [head, timings, ...themes, ...(failures.length > 0 ? ["failures:", ...failures] : [])].join("\n");
+  return [
+    head,
+    timings,
+    ...themes,
+    ...(failures.length > 0 ? ["failures:", ...failures] : []),
+  ].join("\n");
 }

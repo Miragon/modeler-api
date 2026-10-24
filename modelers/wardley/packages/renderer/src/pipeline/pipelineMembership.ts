@@ -1,5 +1,5 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import { isComponent, isPipeline, type WardleyShape } from '../model/di-types.js';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import { isComponent, isPipeline, type WardleyShape } from "../model/di-types.js";
 
 interface Point {
   x: number;

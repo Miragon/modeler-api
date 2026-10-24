@@ -19,10 +19,10 @@ npm install @miragon/wardley-renderer
 ```
 
 ```ts
-import { NavigatedViewer } from '@miragon/wardley-renderer';
-import '@miragon/wardley-renderer/assets/wardley.css';
+import { NavigatedViewer } from "@miragon/wardley-renderer";
+import "@miragon/wardley-renderer/assets/wardley.css";
 
-const viewer = new NavigatedViewer({ container: document.querySelector('#canvas')! });
+const viewer = new NavigatedViewer({ container: document.querySelector("#canvas")! });
 
 await viewer.importDSL(`title Tea Shop
 anchor Business [0.95, 0.63]
@@ -122,7 +122,7 @@ corporate identity); provide it yourself — recommended self-hosted via
 [`@fontsource`](https://fontsource.org/) (one variable file covers all weights):
 
 ```ts
-import '@fontsource-variable/geist/wght.css';
+import "@fontsource-variable/geist/wght.css";
 ```
 
 The variable package registers the family as **`'Geist Variable'`** (not `'Geist'`). The renderer's

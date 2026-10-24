@@ -1,4 +1,9 @@
-import { TEXT_FIELD_SELECTOR, defaultMessages, isUndoRedoKey, matchChromeKey } from "../core/index.js";
+import {
+  TEXT_FIELD_SELECTOR,
+  defaultMessages,
+  isUndoRedoKey,
+  matchChromeKey,
+} from "../core/index.js";
 import type { ShellHandle } from "../dom/index.js";
 import { PaletteSkin, type PaletteEntryLike } from "./palette-skin.js";
 import type {

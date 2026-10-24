@@ -1,11 +1,17 @@
 import { mountShell, type ShellHandle, type ShellOptions } from "../../dom/index.js";
-import { connectAppearance, connectReducedMotion, type AppearanceListenerOptions } from "./appearance.js";
+import {
+  connectAppearance,
+  connectReducedMotion,
+  type AppearanceListenerOptions,
+} from "./appearance.js";
 
 /** The web column's options (0.2): a VS Code webview has none of them (guide §5.2, §13.5). */
 type WebHostOptionKey = "primary" | "legal" | "file" | "appearance" | "emptyState" | "dropZone";
 
 export interface VsCodeShellOptions
-  extends Omit<ShellOptions, "host" | "keyScope" | "themes" | WebHostOptionKey>, AppearanceListenerOptions {}
+  extends
+    Omit<ShellOptions, "host" | "keyScope" | "themes" | WebHostOptionKey>,
+    AppearanceListenerOptions {}
 
 /** The shell's handle with a `destroy` that runs `beforeDestroy` first; every other member delegates. */
 function withDestroyHook(shell: ShellHandle, beforeDestroy: () => void): ShellHandle {

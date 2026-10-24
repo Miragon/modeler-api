@@ -55,7 +55,13 @@ export interface MenuController extends MenuHandle {
 }
 
 function isPrintable(event: KeyboardEvent): boolean {
-  return event.key.length === 1 && /\S/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey;
+  return (
+    event.key.length === 1 &&
+    /\S/.test(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  );
 }
 
 export function createMenu(context: MenuContext): MenuController {
@@ -105,7 +111,8 @@ export function createMenu(context: MenuContext): MenuController {
   // Guide §13.5: on a read-only canvas the Model entries that change the document are aria-disabled.
   // View-only toggles (the shell's Legend, a modeler's Type captions) opt out and stay usable.
   function isDisabled(entry: MenuEntry, group: GroupName): boolean {
-    if (group === "model" && context.isReadOnly() && entry.keepEnabledWhenReadOnly !== true) return true;
+    if (group === "model" && context.isReadOnly() && entry.keepEnabledWhenReadOnly !== true)
+      return true;
     return entry.disabled?.() ?? false;
   }
 
@@ -127,10 +134,12 @@ export function createMenu(context: MenuContext): MenuController {
       { type: "button", class: "cd-shell-menu-item", role, tabindex: "-1" },
       iconSlot,
       createElement(ownerDocument, "span", { class: "cd-shell-menu-item-label" }, label),
-      options.end && createElement(ownerDocument, "span", { class: "cd-shell-menu-item-end" }, options.end),
+      options.end &&
+        createElement(ownerDocument, "span", { class: "cd-shell-menu-item-end" }, options.end),
     );
     toggleAttribute(element, "aria-disabled", options.disabled && "true");
-    if (options.checked !== undefined) element.setAttribute("aria-checked", String(options.checked));
+    if (options.checked !== undefined)
+      element.setAttribute("aria-checked", String(options.checked));
     return element;
   }
 
@@ -138,7 +147,11 @@ export function createMenu(context: MenuContext): MenuController {
     return iconElement("check", { className: "cd-shell-menu-check" });
   }
 
-  function renderEntry(entry: Exclude<MenuEntry, MenuRadioGroup>, group: GroupName, chipId: string): Item {
+  function renderEntry(
+    entry: Exclude<MenuEntry, MenuRadioGroup>,
+    group: GroupName,
+    chipId: string,
+  ): Item {
     const disabled = isDisabled(entry, group);
     if (entry.kind === "checkbox") {
       const checked = entry.checked();
@@ -162,7 +175,8 @@ export function createMenu(context: MenuContext): MenuController {
       };
     }
     const keyShortcuts =
-      entry.ariaKeyShortcuts ?? (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
+      entry.ariaKeyShortcuts ??
+      (entry.shortcut ? ariaKeyShortcutsFromLabel(entry.shortcut) : undefined);
     // Read as part of the name the chip would be heard twice next to aria-keyshortcuts, and a dialog
     // entry's name would no longer end with "…". A chip aria-keyshortcuts cannot name ("G then D",
     // ariaKeyShortcuts "") describes the entry instead, or assistive technology would lose the key.
@@ -171,11 +185,19 @@ export function createMenu(context: MenuContext): MenuController {
       ? createElement(
           ownerDocument,
           "span",
-          { class: "cd-shell-menu-shortcut", "aria-hidden": "true", id: chipDescribes ? chipId : undefined },
+          {
+            class: "cd-shell-menu-shortcut",
+            "aria-hidden": "true",
+            id: chipDescribes ? chipId : undefined,
+          },
           entry.shortcut,
         )
       : undefined;
-    const element = itemElement("menuitem", entry.label, { icon: entry.icon, end: shortcut, disabled });
+    const element = itemElement("menuitem", entry.label, {
+      icon: entry.icon,
+      end: shortcut,
+      disabled,
+    });
     element.dataset.menuId = entry.id;
     element.dataset.menuGroup = group;
     toggleAttribute(element, "aria-keyshortcuts", keyShortcuts || null);
@@ -253,7 +275,10 @@ export function createMenu(context: MenuContext): MenuController {
       if (entries.length === 0) continue;
       if (nodes.length > 0) {
         nodes.push(
-          createElement(ownerDocument, "div", { class: "cd-shell-menu-separator", role: "separator" }),
+          createElement(ownerDocument, "div", {
+            class: "cd-shell-menu-separator",
+            role: "separator",
+          }),
         );
       }
       for (const entry of entries) {

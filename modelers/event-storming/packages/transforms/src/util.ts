@@ -1,4 +1,4 @@
-import type { BoardElement, EventStormingBoard } from '@miragon/event-storming-schema-model';
+import type { BoardElement, EventStormingBoard } from "@miragon/event-storming-schema-model";
 
 export function updateElement(
   board: EventStormingBoard,

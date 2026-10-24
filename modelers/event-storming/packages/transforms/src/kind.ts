@@ -2,19 +2,19 @@ import type {
   BoardElement,
   ElementType,
   EventStormingBoard,
-} from '@miragon/event-storming-schema-model';
-import { updateElement, compact } from './util.js';
+} from "@miragon/event-storming-schema-model";
+import { updateElement, compact } from "./util.js";
 
 /** The eight retypeable sticky kinds — every element kind except notes and drawings. */
 export const STICKY_ELEMENT_TYPES = [
-  'event',
-  'command',
-  'actor',
-  'aggregate',
-  'policy',
-  'readmodel',
-  'external',
-  'hotspot',
+  "event",
+  "command",
+  "actor",
+  "aggregate",
+  "policy",
+  "readmodel",
+  "external",
+  "hotspot",
 ] as const;
 
 export type StickyElementType = (typeof STICKY_ELEMENT_TYPES)[number];

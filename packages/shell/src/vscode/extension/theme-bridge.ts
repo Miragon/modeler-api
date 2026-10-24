@@ -19,7 +19,10 @@ function isColorThemeSetting(value: unknown): value is ColorThemeSetting {
   return value === "automatic" || value === "light" || value === "dark";
 }
 
-function readColorThemeSetting(vscode: VsCodeLike, settingKey: string): ColorThemeSetting | undefined {
+function readColorThemeSetting(
+  vscode: VsCodeLike,
+  settingKey: string,
+): ColorThemeSetting | undefined {
   const separator = settingKey.lastIndexOf(".");
   const value =
     separator < 0
@@ -35,8 +38,13 @@ function readColorThemeSetting(vscode: VsCodeLike, settingKey: string): ColorThe
  * A setting value outside `automatic | light | dark` counts as `automatic`.
  */
 export function currentAppearance(vscode: VsCodeLike, options: ThemeBridgeOptions): Appearance {
-  const setting = options.settingKey ? readColorThemeSetting(vscode, options.settingKey) : undefined;
-  return resolveAppearance(requestedAppearance(vscode.window.activeColorTheme.kind, setting), options.themes);
+  const setting = options.settingKey
+    ? readColorThemeSetting(vscode, options.settingKey)
+    : undefined;
+  return resolveAppearance(
+    requestedAppearance(vscode.window.activeColorTheme.kind, setting),
+    options.themes,
+  );
 }
 
 /**

@@ -9,8 +9,8 @@ export type {
   ChainConnection,
   DocumentMeta,
   ValueChainDocument,
-} from './types.js';
-export { DEFAULT_STEP_SIZE, DEFAULT_ORG_UNIT_SIZE, MIN_STEP_SIZE } from './types.js';
+} from "./types.js";
+export { DEFAULT_STEP_SIZE, DEFAULT_ORG_UNIT_SIZE, MIN_STEP_SIZE } from "./types.js";
 export {
   COORDINATE_LIMIT,
   stepElementSchema,
@@ -20,8 +20,8 @@ export {
   documentMetaSchema,
   valueChainDocumentSchema,
   type ValueChainDocumentInput,
-} from './schema.js';
-export { CURRENT_SCHEMA_VERSION, migrate } from './migrations.js';
+} from "./schema.js";
+export { CURRENT_SCHEMA_VERSION, migrate } from "./migrations.js";
 export {
   RESERVED_IDS,
   MAX_NESTING_DEPTH,
@@ -37,4 +37,4 @@ export {
   elementExtensions,
   connectionExtensions,
   type DocumentIssue,
-} from './serialize.js';
+} from "./serialize.js";

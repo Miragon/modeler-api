@@ -74,14 +74,21 @@ const INERT_TOAST: ToastHandle = Object.freeze({ dismiss() {} });
 /** The element's box relative to the root while it is rendered and visible, else `undefined`. */
 function visibleBoxIn(element: HTMLElement | undefined, root: HTMLElement) {
   if (!element || element.hidden || !element.isConnected) return undefined;
-  if (typeof element.checkVisibility === "function" && !element.checkVisibility({ visibilityProperty: true }))
+  if (
+    typeof element.checkVisibility === "function" &&
+    !element.checkVisibility({ visibilityProperty: true })
+  )
     return undefined;
   const box = boxRelativeTo(element, root);
   return box.width > 0 && box.height > 0 ? box : undefined;
 }
 
 // In a foreign page the closest [lang] is the page's language, not the tool's (guide §2).
-function languageOf(root: HTMLElement, host: ShellOptions["host"], requested: string | undefined): string {
+function languageOf(
+  root: HTMLElement,
+  host: ShellOptions["host"],
+  requested: string | undefined,
+): string {
   if (requested) return requested;
   const declared =
     host === "embedded" ? root.getAttribute("lang") : root.closest("[lang]")?.getAttribute("lang");
@@ -108,7 +115,8 @@ function hostKontrast(root: HTMLElement): "hoch" | null {
  */
 export function mountShell(root: HTMLElement, options: ShellOptions): ShellHandle {
   const themes = options.themes ?? DEFAULT_THEMES;
-  if (themes.length === 0) throw new Error("@miragon/modeler-shell: mountShell needs at least one theme");
+  if (themes.length === 0)
+    throw new Error("@miragon/modeler-shell: mountShell needs at least one theme");
   const ledger = new Ledger();
   try {
     return renderShell(root, options, themes, ledger);
@@ -217,7 +225,9 @@ function renderShell(
     focusCanvas,
   });
   ledger.defer(() => menu.destroy());
-  ledger.defer(tooltip.attach(menu.trigger, () => (menu.isOpen() ? null : { label: messages.menu })));
+  ledger.defer(
+    tooltip.attach(menu.trigger, () => (menu.isOpen() ? null : { label: messages.menu })),
+  );
 
   const primary =
     web && options.primary
@@ -270,7 +280,9 @@ function renderShell(
 
   const status = createStatusBox(ownerDocument);
   ledger.defer(() => status.destroy());
-  const hint = options.emptyHint ? createEmptyHint(ownerDocument, messages, options.emptyHint) : undefined;
+  const hint = options.emptyHint
+    ? createEmptyHint(ownerDocument, messages, options.emptyHint)
+    : undefined;
   if (hint) ledger.defer(() => hint.destroy());
   const emptyState =
     web && options.emptyState
@@ -278,7 +290,9 @@ function renderShell(
           ownerDocument,
           messages,
           options: options.emptyState,
-          dropHint: options.dropZone ? (options.emptyState.dropHint ?? messages.dropHint) : undefined,
+          dropHint: options.dropZone
+            ? (options.emptyState.dropHint ?? messages.dropHint)
+            : undefined,
           open: options.file?.open,
           titleId: `cd-shell-empty-state-title-${index}`,
           onLeave: () => setEmptyStateShown(false),
@@ -334,7 +348,14 @@ function renderShell(
       })
     : undefined;
   if (legal) ledger.defer(() => legal.destroy());
-  const zoomPanel = createZoomPanel({ ownerDocument, messages, lang, platform, tooltip, focusCanvas });
+  const zoomPanel = createZoomPanel({
+    ownerDocument,
+    messages,
+    lang,
+    platform,
+    tooltip,
+    focusCanvas,
+  });
   ledger.defer(() => zoomPanel.destroy());
   const toaster =
     host === "ide"
@@ -349,7 +370,8 @@ function renderShell(
         });
   if (toaster) ledger.defer(() => toaster.destroy());
 
-  const defined = (element: HTMLElement | undefined): element is HTMLElement => element !== undefined;
+  const defined = (element: HTMLElement | undefined): element is HTMLElement =>
+    element !== undefined;
   root.prepend(...[menu.trigger, primary?.element, canvas].filter(defined));
   root.append(
     ...[
@@ -386,7 +408,8 @@ function renderShell(
   if (dropZone) ledger.defer(() => dropZone.destroy());
 
   let palette:
-    { registration: PaletteRegistration; detachTooltip: () => void; detachFocus: () => void } | undefined;
+    | { registration: PaletteRegistration; detachTooltip: () => void; detachFocus: () => void }
+    | undefined;
   let paletteRow: PaletteRow = "top";
   /** Web: the zoom panel stands above the legal line (`data-zoom-row="raised"`). */
   let zoomRaised = false;
@@ -424,7 +447,9 @@ function renderShell(
     if (legend?.isOpen()) layout.legendWidth = legend.element.getBoundingClientRect().width;
     if (inspector?.isOpen()) {
       layout.inspector =
-        container.width > SHELL.narrow ? {} : { sheetTop: boxRelativeTo(inspector.element, root).y };
+        container.width > SHELL.narrow
+          ? {}
+          : { sheetTop: boxRelativeTo(inspector.element, root).y };
     }
     return fitInsets(layout);
   }
@@ -482,7 +507,11 @@ function renderShell(
         },
       );
       toaster.setBottom(
-        toastStackBottom({ containerWidth: size.width, obstacles, cardWidth: toaster.widestCard() }),
+        toastStackBottom({
+          containerWidth: size.width,
+          obstacles,
+          cardWidth: toaster.widestCard(),
+        }),
       );
     }
   }
@@ -497,7 +526,9 @@ function renderShell(
       shown &&
       active !== null &&
       root.contains(active) &&
-      ![emptyState.element, legal?.element, toaster?.element].some((kept) => kept?.contains(active));
+      ![emptyState.element, legal?.element, toaster?.element].some((kept) =>
+        kept?.contains(active),
+      );
     emptyState.setShown(shown);
     setState("data-empty-state", shown ? "shown" : null);
     // Nothing behind the card takes a click or the Tab (guide §8: nothing else competes).
@@ -514,7 +545,9 @@ function renderShell(
   }
 
   const ResizeObserverClass = globalThis.ResizeObserver;
-  const resizeObserver = ResizeObserverClass ? new ResizeObserverClass(() => updateLayout()) : undefined;
+  const resizeObserver = ResizeObserverClass
+    ? new ResizeObserverClass(() => updateLayout())
+    : undefined;
   resizeObserver?.observe(root);
   // The label widens once the web font has loaded; the top row decides again then. The legal line
   // may wrap onto a second line then, which lifts everything stacked above it.

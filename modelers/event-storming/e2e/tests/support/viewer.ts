@@ -1,6 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
-import type { ShellHandle } from '@miragon/modeler-shell';
-import type { DiagramJsConnection } from '@miragon/modeler-shell/diagram-js';
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { ShellHandle } from "@miragon/modeler-shell";
+import type { DiagramJsConnection } from "@miragon/modeler-shell/diagram-js";
 
 /**
  * Structural handle to the app's debug surface (exposed in apps/webapp/src/main.ts). We never import
@@ -70,16 +70,16 @@ export function startScreen(page: Page): Locator {
 
 /** Open the app and leave the start screen with an empty canvas and the working chrome. */
 export async function startNewBoard(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto("/");
   await waitForViewer(page);
-  await startScreen(page).getByRole('button', { name: 'New diagram' }).click();
-  await expect(page.locator('.djs-palette')).toBeVisible();
+  await startScreen(page).getByRole("button", { name: "New diagram" }).click();
+  await expect(page.locator(".djs-palette")).toBeVisible();
 }
 
 /** Load the Order Checkout example from the start screen of a page that has just opened. */
 export async function openExample(page: Page): Promise<void> {
-  await startScreen(page).getByRole('button', { name: 'Show example' }).click();
-  await expect(page.locator('.cd-shell-canvas .djs-element').first()).toBeVisible();
+  await startScreen(page).getByRole("button", { name: "Show example" }).click();
+  await expect(page.locator(".cd-shell-canvas .djs-element").first()).toBeVisible();
 }
 
 /** Opens the chrome menu and returns its dropdown. */
@@ -102,8 +102,8 @@ export function exportSvg(page: Page): Promise<string> {
 
 /** Absolute page coordinate at the given fraction of the canvas slot's bounding box. */
 async function canvasPoint(page: Page, fractionX: number, fractionY: number): Promise<Point> {
-  const box = await page.locator('.cd-shell-canvas').boundingBox();
-  if (!box) throw new Error('the canvas slot has no bounding box');
+  const box = await page.locator(".cd-shell-canvas").boundingBox();
+  if (!box) throw new Error("the canvas slot has no bounding box");
   return { x: box.x + box.width * fractionX, y: box.y + box.height * fractionY };
 }
 
@@ -121,12 +121,12 @@ export function elementGfx(page: Page, id: string): Locator {
  * click/drag target.
  */
 function shapeHit(page: Page, id: string): Locator {
-  return elementGfx(page, id).locator('.djs-hit');
+  return elementGfx(page, id).locator(".djs-hit");
 }
 
 async function centerOf(locator: Locator): Promise<Point> {
   const box = await locator.boundingBox();
-  if (!box) throw new Error('locator has no bounding box');
+  if (!box) throw new Error("locator has no bounding box");
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
@@ -165,7 +165,7 @@ export async function deselectAll(page: Page): Promise<void> {
     const viewer = window.__eventStormingViewer as unknown as {
       get(name: string): { select(element: unknown): void };
     };
-    viewer.get('selection').select(null);
+    viewer.get("selection").select(null);
   });
 }
 
@@ -178,7 +178,7 @@ export async function settleForSnapshot(page: Page): Promise<void> {
   // Park the pointer on the menu button (HTML chrome outside the canvas SVG) so the canvas root and
   // every element fire `element.out` — no `hover` class survives into the exported markup.
   await page.locator('[data-chrome="menu"]').hover();
-  await expect(page.locator('.cd-shell-canvas .hover')).toHaveCount(0);
+  await expect(page.locator(".cd-shell-canvas .hover")).toHaveCount(0);
 }
 
 /**
@@ -197,7 +197,7 @@ export async function createStickyAt(
   await dropAtPoint(page, await canvasPoint(page, fractionX, fractionY));
   await expect.poll(async () => (await exportBoard(page)).elements.length).toBe(before.size + 1);
   const created = (await exportBoard(page)).elements.find((element) => !before.has(element.id));
-  if (!created) throw new Error('no new element after create');
+  if (!created) throw new Error("no new element after create");
   return created.id;
 }
 
@@ -208,7 +208,7 @@ export async function createStickyAt(
 export async function selectShape(page: Page, id: string): Promise<void> {
   await deselectAll(page);
   await shapeHit(page, id).click();
-  await expect(page.locator('.djs-context-pad')).toBeVisible();
+  await expect(page.locator(".djs-context-pad")).toBeVisible();
 }
 
 /**
@@ -284,9 +284,9 @@ export async function resizeShapeBy(page: Page, id: string, delta: Point): Promi
  */
 export async function renameShape(page: Page, id: string, newLabel: string): Promise<void> {
   await shapeHit(page, id).dblclick();
-  const input = page.locator('.event-storming-label-input');
+  const input = page.locator(".event-storming-label-input");
   await expect(input).toBeVisible();
   await input.fill(newLabel);
-  await input.press('Control+Enter');
+  await input.press("Control+Enter");
   await expect(input).toBeHidden();
 }

@@ -2,19 +2,19 @@ import {
   DEFAULT_EVOLUTION_LABELS,
   EVOLUTION_PRESETS,
   normalizeEvolutionLabels,
-} from '@miragon/wardley-schema-model';
-import type { Modeler } from '../Modeler.js';
-import { element } from './dom.js';
-import { dialogButton } from './dialog.js';
+} from "@miragon/wardley-schema-model";
+import type { Modeler } from "../Modeler.js";
+import { element } from "./dom.js";
+import { dialogButton } from "./dialog.js";
 import {
   createPopover,
   field,
   withMapListeners,
   type PopoverChrome,
   type PopoverHandle,
-} from './popover.js';
+} from "./popover.js";
 
-const CUSTOM = 'custom';
+const CUSTOM = "custom";
 
 function presetIdFor(labels: readonly string[]): string {
   return (
@@ -30,20 +30,20 @@ function presetIdFor(labels: readonly string[]): string {
  * so does a canvas that turns read-only, after putting the previous labels back.
  */
 export function createAxisLabelsPopover(chrome: PopoverChrome, modeler: Modeler): PopoverHandle {
-  const preset = element('select', '');
+  const preset = element("select", "");
   for (const choice of EVOLUTION_PRESETS) {
-    const option = element('option', '', choice.name);
+    const option = element("option", "", choice.name);
     option.value = choice.id;
-    option.title = choice.labels.join(' · ');
+    option.title = choice.labels.join(" · ");
     preset.append(option);
   }
-  const custom = element('option', '', 'Custom');
+  const custom = element("option", "", "Custom");
   custom.value = CUSTOM;
   preset.append(custom);
   const inputs = [1, 2, 3, 4].map(() => {
-    const input = element('input', '');
-    input.type = 'text';
-    input.autocomplete = 'off';
+    const input = element("input", "");
+    input.type = "text";
+    input.autocomplete = "off";
     input.spellcheck = false;
     return input;
   });
@@ -52,7 +52,7 @@ export function createAxisLabelsPopover(chrome: PopoverChrome, modeler: Modeler)
   let previewed = false;
 
   const fill = (labels: readonly string[]) => {
-    inputs.forEach((input, index) => (input.value = labels[index] ?? ''));
+    inputs.forEach((input, index) => (input.value = labels[index] ?? ""));
     preset.value = presetIdFor(labels);
   };
   const typedLabels = () => normalizeEvolutionLabels(inputs.map((input) => input.value));
@@ -64,40 +64,40 @@ export function createAxisLabelsPopover(chrome: PopoverChrome, modeler: Modeler)
   };
 
   const popover = createPopover(chrome, {
-    className: 'wardley-axis-labels',
-    title: 'X-axis labels',
+    className: "wardley-axis-labels",
+    title: "X-axis labels",
     build(body, footer, done) {
-      const hint = element('p', 'wardley-popover-hint');
-      const source = element('a', 'wardley-popover-link', 'Learn Wardley Mapping');
-      source.href = 'https://learnwardleymapping.com/landscape/';
-      source.target = '_blank';
-      source.rel = 'noopener noreferrer';
-      hint.append('Label sets from ', source, '. Pick a set, or name each stage.');
-      body.append(field('Preset', preset).wrapper, hint);
+      const hint = element("p", "wardley-popover-hint");
+      const source = element("a", "wardley-popover-link", "Learn Wardley Mapping");
+      source.href = "https://learnwardleymapping.com/landscape/";
+      source.target = "_blank";
+      source.rel = "noopener noreferrer";
+      hint.append("Label sets from ", source, ". Pick a set, or name each stage.");
+      body.append(field("Preset", preset).wrapper, hint);
       inputs.forEach((input, index) => body.append(field(`Stage ${index + 1}`, input).wrapper));
-      const reset = dialogButton('Reset to default', 'ghost');
-      const doneButton = dialogButton('Done', 'secondary');
+      const reset = dialogButton("Reset to default", "ghost");
+      const doneButton = dialogButton("Done", "secondary");
       footer.append(reset, doneButton);
 
-      preset.addEventListener('change', () => {
+      preset.addEventListener("change", () => {
         const choice = EVOLUTION_PRESETS.find((candidate) => candidate.id === preset.value);
         if (!choice) return; // "Custom" keeps the fields as they are
         fill(choice.labels);
         preview();
       });
       for (const input of inputs) {
-        input.addEventListener('input', preview);
-        input.addEventListener('keydown', (event) => {
-          if (event.key !== 'Enter' || event.isComposing) return;
+        input.addEventListener("input", preview);
+        input.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" || event.isComposing) return;
           event.preventDefault();
           done();
         });
       }
-      reset.addEventListener('click', () => {
+      reset.addEventListener("click", () => {
         fill(DEFAULT_EVOLUTION_LABELS);
         preview();
       });
-      doneButton.addEventListener('click', done);
+      doneButton.addEventListener("click", done);
     },
     opened() {
       labelsAtOpen = modeler.exportMap().config.evolutionLabels ?? DEFAULT_EVOLUTION_LABELS;
@@ -106,11 +106,11 @@ export function createAxisLabelsPopover(chrome: PopoverChrome, modeler: Modeler)
       return inputs[0];
     },
     closed(end) {
-      if (!previewed || end === 'import') return;
+      if (!previewed || end === "import") return;
       previewed = false;
       // Committing the labels at open puts them back without an undo step.
       modeler.setEvolutionLabels(
-        end === 'done' ? typedLabels() : normalizeEvolutionLabels(labelsAtOpen),
+        end === "done" ? typedLabels() : normalizeEvolutionLabels(labelsAtOpen),
       );
     },
   });

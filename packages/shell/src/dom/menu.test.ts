@@ -80,7 +80,9 @@ function items(dropdown: HTMLElement): HTMLElement[] {
 }
 
 function labels(dropdown: HTMLElement): string[] {
-  return items(dropdown).map((item) => item.querySelector(".cd-shell-menu-item-label")?.textContent ?? "");
+  return items(dropdown).map(
+    (item) => item.querySelector(".cd-shell-menu-item-label")?.textContent ?? "",
+  );
 }
 
 describe("menu: ARIA and structure (guide §5.4)", () => {
@@ -132,7 +134,9 @@ describe("menu: ARIA and structure (guide §5.4)", () => {
     expect(group?.getAttribute("role")).toBe("group");
     expect(group?.getAttribute("aria-label")).toBe("Level");
     expect(group?.querySelector(".cd-shell-menu-heading")?.textContent).toBe("Level");
-    expect(group?.querySelector(".cd-shell-menu-heading")?.getAttribute("aria-hidden")).toBe("true");
+    expect(group?.querySelector(".cd-shell-menu-heading")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
     const [bigPicture, process, captions, png, svg, shortcuts] = items(dropdown);
     expect(bigPicture?.getAttribute("role")).toBe("menuitemradio");
     expect(bigPicture?.getAttribute("aria-checked")).toBe("true");
@@ -147,7 +151,9 @@ describe("menu: ARIA and structure (guide §5.4)", () => {
     for (const item of items(dropdown)) expect(item.getAttribute("tabindex")).toBe("-1");
     expect(group?.getAttribute("data-menu-group")).toBe("model");
     expect(
-      items(dropdown).map((item) => item.closest("[data-menu-group]")?.getAttribute("data-menu-group")),
+      items(dropdown).map((item) =>
+        item.closest("[data-menu-group]")?.getAttribute("data-menu-group"),
+      ),
     ).toEqual(["model", "model", "model", "export", "export", "help"]);
   });
 
@@ -277,7 +283,9 @@ describe("menu: keyboard", () => {
     const onSelect = vi.fn();
     const { shell } = mount({
       menu: {
-        export: [{ kind: "action", id: "png", label: "Export as PNG", disabled: () => true, onSelect }],
+        export: [
+          { kind: "action", id: "png", label: "Export as PNG", disabled: () => true, onSelect },
+        ],
       },
     });
     shell.menu.open();
@@ -291,25 +299,32 @@ describe("menu: keyboard", () => {
 });
 
 describe("menu: activation", () => {
-  it.each(["png", "shortcuts"])("%s closes the menu and focuses the trigger before onSelect", (id) => {
-    const seen: { open: boolean; focus: Element | null }[] = [];
-    const menu = groups();
-    const entry = [...(menu.export ?? []), ...(menu.help ?? [])].find((candidate) => candidate.id === id);
-    if (!entry || (entry.kind !== "action" && entry.kind !== "dialog")) throw new Error("fixture");
-    const { shell } = mount({
-      menu: {
-        [id === "png" ? "export" : "help"]: [
-          {
-            ...entry,
-            onSelect: () => seen.push({ open: shell.menu.isOpen(), focus: document.activeElement }),
-          },
-        ],
-      },
-    });
-    shell.menu.open();
-    items(shell.menu.dropdown)[0]?.click();
-    expect(seen).toEqual([{ open: false, focus: shell.menu.trigger }]);
-  });
+  it.each(["png", "shortcuts"])(
+    "%s closes the menu and focuses the trigger before onSelect",
+    (id) => {
+      const seen: { open: boolean; focus: Element | null }[] = [];
+      const menu = groups();
+      const entry = [...(menu.export ?? []), ...(menu.help ?? [])].find(
+        (candidate) => candidate.id === id,
+      );
+      if (!entry || (entry.kind !== "action" && entry.kind !== "dialog"))
+        throw new Error("fixture");
+      const { shell } = mount({
+        menu: {
+          [id === "png" ? "export" : "help"]: [
+            {
+              ...entry,
+              onSelect: () =>
+                seen.push({ open: shell.menu.isOpen(), focus: document.activeElement }),
+            },
+          ],
+        },
+      });
+      shell.menu.open();
+      items(shell.menu.dropdown)[0]?.click();
+      expect(seen).toEqual([{ open: false, focus: shell.menu.trigger }]);
+    },
+  );
 
   it("checkbox and radio toggle, stay open and keep the focus", () => {
     const log: string[] = [];
@@ -365,7 +380,9 @@ describe("menu: activation", () => {
     const { shell } = mount({ menu: groups(), legend: { render() {}, open: true } });
     shell.setReadOnly(true);
     shell.menu.open();
-    const disabled = items(shell.menu.dropdown).map((item) => item.getAttribute("aria-disabled") === "true");
+    const disabled = items(shell.menu.dropdown).map(
+      (item) => item.getAttribute("aria-disabled") === "true",
+    );
     expect(labels(shell.menu.dropdown)).toEqual([
       "Big picture",
       "Process modelling",
@@ -377,7 +394,9 @@ describe("menu: activation", () => {
     ]);
     expect(disabled).toEqual([true, true, true, false, false, false, false]);
     shell.setReadOnly(false);
-    expect(items(shell.menu.dropdown).some((item) => item.hasAttribute("aria-disabled"))).toBe(false);
+    expect(items(shell.menu.dropdown).some((item) => item.hasAttribute("aria-disabled"))).toBe(
+      false,
+    );
   });
 });
 
@@ -387,9 +406,16 @@ describe("menu: focus after a pointer click (guide §5.8)", () => {
     const { canvas, svg } = canvasWithSvg();
     const record = (id: string) => (): void => {
       const active = document.activeElement;
-      seen.push(`${id}:${active === svg ? "canvas" : active === shell.menu.trigger ? "trigger" : "other"}`);
+      seen.push(
+        `${id}:${active === svg ? "canvas" : active === shell.menu.trigger ? "trigger" : "other"}`,
+      );
     };
-    const action = (id: string): MenuEntry => ({ kind: "action", id, label: id, onSelect: record(id) });
+    const action = (id: string): MenuEntry => ({
+      kind: "action",
+      id,
+      label: id,
+      onSelect: record(id),
+    });
     const { shell } = mount({
       host: "web",
       canvas,
@@ -401,7 +427,12 @@ describe("menu: focus after a pointer click (guide §5.8)", () => {
         model: [action("tidy")],
         export: [action("png")],
         help: [
-          { kind: "dialog", id: "shortcuts", label: "Keyboard shortcuts…", onSelect: record("shortcuts") },
+          {
+            kind: "dialog",
+            id: "shortcuts",
+            label: "Keyboard shortcuts…",
+            onSelect: record("shortcuts"),
+          },
         ],
       },
     });
@@ -502,7 +533,17 @@ describe("menu: keys stay in the menu", () => {
     try {
       const { shell } = mount({ menu: groups() });
       keydown(shell.menu.trigger, { key: "ArrowDown" });
-      for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "e", "Delete", "Backspace", "Enter", " "]) {
+      for (const key of [
+        "ArrowDown",
+        "ArrowUp",
+        "Home",
+        "End",
+        "e",
+        "Delete",
+        "Backspace",
+        "Enter",
+        " ",
+      ]) {
         keydown(document.activeElement ?? document.body, { key });
       }
       expect(shell.menu.isOpen()).toBe(true);
@@ -563,7 +604,9 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     const captions = shell.menu.dropdown.querySelector('[data-menu-id="captions"]');
     expect(captions?.hasAttribute("aria-disabled")).toBe(false);
     expect(
-      shell.menu.dropdown.querySelector('[data-menu-value="process"]')?.getAttribute("aria-disabled"),
+      shell.menu.dropdown
+        .querySelector('[data-menu-value="process"]')
+        ?.getAttribute("aria-disabled"),
     ).toBe("true");
   });
 
@@ -584,17 +627,26 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     shell.menu.open();
     const of = (id: string) => shell.menu.dropdown.querySelector(`[data-menu-id="${id}"]`);
     expect(of("svg")?.getAttribute("aria-keyshortcuts")).toBe("Meta+E");
-    expect(of("svg")?.querySelector(".cd-shell-menu-shortcut")?.getAttribute("aria-hidden")).toBe("true");
+    expect(of("svg")?.querySelector(".cd-shell-menu-shortcut")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
     expect(of("json")?.getAttribute("aria-keyshortcuts")).toBe("Meta+J");
     expect(of("png")?.hasAttribute("aria-keyshortcuts")).toBe(false);
-    for (const id of ["svg", "json", "png"]) expect(of(id)?.hasAttribute("aria-describedby")).toBe(false);
+    for (const id of ["svg", "json", "png"])
+      expect(of(id)?.hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("describes an entry by its chip when aria-keyshortcuts cannot name the key", () => {
     const base = groups();
     const exportEntries = [
       ...(base.export ?? []),
-      { kind: "action" as const, id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
+      {
+        kind: "action" as const,
+        id: "goto",
+        label: "Go to diagram",
+        shortcut: "G then D",
+        onSelect() {},
+      },
       {
         kind: "action" as const,
         id: "print",

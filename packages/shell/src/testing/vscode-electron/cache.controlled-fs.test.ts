@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
-import { fakeTestElectron, readInstall, writeInstall } from "../../../test/support/test-electron.js";
+import {
+  fakeTestElectron,
+  readInstall,
+  writeInstall,
+} from "../../../test/support/test-electron.js";
 import { resolveInSharedCache } from "./cache.js";
 
 const fileSystem = vi.hoisted(() => ({

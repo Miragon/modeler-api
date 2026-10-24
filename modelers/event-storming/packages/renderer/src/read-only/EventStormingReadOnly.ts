@@ -1,25 +1,25 @@
-import RuleProvider from 'diagram-js/lib/features/rules/RuleProvider';
-import type EventBus from 'diagram-js/lib/core/EventBus';
+import RuleProvider from "diagram-js/lib/features/rules/RuleProvider";
+import type EventBus from "diagram-js/lib/core/EventBus";
 
 /** Fired with `{ readOnly }` whenever the lock changes. */
-export const READ_ONLY_CHANGED_EVENT = 'eventStorming.readOnly.changed';
+export const READ_ONLY_CHANGED_EVENT = "eventStorming.readOnly.changed";
 
 /** Above every edit rule of the renderer and diagram-js, so the lock wins. */
 const LOCK_PRIORITY = 5000;
 
 const EDIT_RULES = [
-  'elements.move',
-  'shape.move',
-  'shape.resize',
-  'shape.create',
-  'elements.create',
-  'shape.append',
-  'shape.attach',
-  'connection.start',
-  'connection.create',
-  'connection.reconnect',
-  'connection.updateWaypoints',
-  'elements.delete',
+  "elements.move",
+  "shape.move",
+  "shape.resize",
+  "shape.create",
+  "elements.create",
+  "shape.append",
+  "shape.attach",
+  "connection.start",
+  "connection.create",
+  "connection.reconnect",
+  "connection.updateWaypoints",
+  "elements.delete",
 ];
 
 /**
@@ -29,7 +29,7 @@ const EDIT_RULES = [
  * `isReadOnly()`. Selection, zoom, pan and export stay.
  */
 export default class EventStormingReadOnly extends RuleProvider {
-  static override $inject = ['eventBus'];
+  static override $inject = ["eventBus"];
 
   private readOnly = false;
 

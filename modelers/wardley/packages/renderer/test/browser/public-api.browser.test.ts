@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import type { ModuleDeclaration } from 'didi';
-import * as api from '../../src/index.js';
+import { describe, expect, it } from "vitest";
+import type { ModuleDeclaration } from "didi";
+import * as api from "../../src/index.js";
 
-describe('public API', () => {
-  it('exports every Wardley module the Modeler is built from, for custom editors', () => {
+describe("public API", () => {
+  it("exports every Wardley module the Modeler is built from, for custom editors", () => {
     const modeler = new api.Modeler();
     const modules = (modeler as unknown as { _getModules(): ModuleDeclaration[] })._getModules();
     const exported = new Set<unknown>(Object.values(api));

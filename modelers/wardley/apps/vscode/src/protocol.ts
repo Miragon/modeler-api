@@ -19,40 +19,40 @@
 
 /** Diagram actions the host can trigger in the webview, keyed to their VS Code command ids. */
 export const WEBVIEW_COMMANDS = {
-  fitView: 'wardley.fitView',
-  exportSvg: 'wardley.exportSvg',
-  exportPng: 'wardley.exportPng',
-  exportPngTransparent: 'wardley.exportPngTransparent',
+  fitView: "wardley.fitView",
+  exportSvg: "wardley.exportSvg",
+  exportPng: "wardley.exportPng",
+  exportPngTransparent: "wardley.exportPngTransparent",
 } as const;
 
 export type WebviewCommand = keyof typeof WEBVIEW_COMMANDS;
 
 export function isWebviewCommand(name: unknown): name is WebviewCommand {
-  return typeof name === 'string' && Object.prototype.hasOwnProperty.call(WEBVIEW_COMMANDS, name);
+  return typeof name === "string" && Object.prototype.hasOwnProperty.call(WEBVIEW_COMMANDS, name);
 }
 
 /** What an export carries: SVG as text, the PNGs in Base64. */
-export type ExportFormat = 'svg' | 'png' | 'png-transparent';
+export type ExportFormat = "svg" | "png" | "png-transparent";
 
 export type HostToWebview =
   /** Initial population after `ready`. */
-  | { type: 'init'; text: string }
+  | { type: "init"; text: string }
   /** External document change (text editor, Git, undo, Insert example, …) -> re-import. */
-  | { type: 'update'; text: string }
+  | { type: "update"; text: string }
   /** Run a diagram action (fit, export). */
-  | { type: 'command'; name: WebviewCommand }
+  | { type: "command"; name: WebviewCommand }
   /** The document's diagnostics, for the problems pill (0 hides it). */
-  | { type: 'problems'; count: number; errors: number };
+  | { type: "problems"; count: number; errors: number };
 
 export type WebviewToHost =
-  | { type: 'ready' }
+  | { type: "ready" }
   /** Graphical change -> apply to the document as a WorkspaceEdit. */
-  | { type: 'edit'; text: string }
+  | { type: "edit"; text: string }
   /** Trigger an image export (SVG = text, PNG = Base64). */
-  | { type: 'export'; format: ExportFormat; data: string }
+  | { type: "export"; format: ExportFormat; data: string }
   /** The problems pill was activated -> open the Problems view. */
-  | { type: 'showProblems' }
+  | { type: "showProblems" }
   /** "Insert example" of the empty-file hint -> append the example as one document edit. */
-  | { type: 'insertExample' }
-  | { type: 'info'; message: string }
-  | { type: 'error'; message: string };
+  | { type: "insertExample" }
+  | { type: "info"; message: string }
+  | { type: "error"; message: string };

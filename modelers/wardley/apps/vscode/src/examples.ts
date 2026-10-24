@@ -1,4 +1,4 @@
-export const EMPTY_MAP = 'title New map\n';
+export const EMPTY_MAP = "title New map\n";
 
 /**
  * Tea shop example. Kept in the modeler's own statement order and number format, so the first
@@ -26,7 +26,7 @@ Kettle -> Power
 `;
 
 /** The example without its title: a document keeps its own (guide §13.5). */
-const EXAMPLE_CONTENT = EXAMPLE_MAP.replace(/^title [^\n]*\n/, '');
+const EXAMPLE_CONTENT = EXAMPLE_MAP.replace(/^title [^\n]*\n/, "");
 
 /**
  * The document with the example's elements and links appended, for "Insert example" on an empty
@@ -35,9 +35,9 @@ const EXAMPLE_CONTENT = EXAMPLE_MAP.replace(/^title [^\n]*\n/, '');
  * the document.
  */
 export function withExampleInserted(documentText: string): string {
-  const lineBreak = documentText.includes('\r\n') ? '\r\n' : '\n';
+  const lineBreak = documentText.includes("\r\n") ? "\r\n" : "\n";
   const content = EXAMPLE_CONTENT.replace(/\n/g, lineBreak);
-  if (documentText.trim() === '') return `${documentText}${content}`;
+  if (documentText.trim() === "") return `${documentText}${content}`;
   const terminated = /\r?\n$/.test(documentText) ? documentText : `${documentText}${lineBreak}`;
   return `${terminated}${content}`;
 }

@@ -163,7 +163,9 @@ export function createToaster(context: ToasterContext): Toaster {
   }
 
   function supportsPopover(): boolean {
-    return web && typeof element.showPopover === "function" && typeof element.hidePopover === "function";
+    return (
+      web && typeof element.showPopover === "function" && typeof element.hidePopover === "function"
+    );
   }
 
   function popoverOpen(): boolean {
@@ -195,7 +197,8 @@ export function createToaster(context: ToasterContext): Toaster {
     } catch {
       return;
     }
-    if (keepFocus && ownerDocument.activeElement !== keepFocus) keepFocus.focus({ preventScroll: true });
+    if (keepFocus && ownerDocument.activeElement !== keepFocus)
+      keepFocus.focus({ preventScroll: true });
   }
 
   function lowerWhenEmpty(): void {
@@ -238,7 +241,8 @@ export function createToaster(context: ToasterContext): Toaster {
     toast.focused = focused;
     if (engaged(toast) === wasEngaged) return;
     if (wasEngaged) {
-      if (toast.remaining !== undefined) toast.remaining = Math.max(toast.remaining, TOAST_RESUME_MIN_MS);
+      if (toast.remaining !== undefined)
+        toast.remaining = Math.max(toast.remaining, TOAST_RESUME_MIN_MS);
       runTimer(toast);
     } else {
       pause(toast);
@@ -249,7 +253,8 @@ export function createToaster(context: ToasterContext): Toaster {
     if (ownerDocument.documentElement.classList.contains(REDUCED_MOTION_CLASS)) return true;
     const view = ownerDocument.defaultView;
     return (
-      typeof view?.matchMedia === "function" && view.matchMedia("(prefers-reduced-motion: reduce)").matches
+      typeof view?.matchMedia === "function" &&
+      view.matchMedia("(prefers-reduced-motion: reduce)").matches
     );
   }
 
@@ -343,7 +348,12 @@ export function createToaster(context: ToasterContext): Toaster {
       "div",
       { class: "cd-shell-toast", "data-status": request.status },
       createElement(ownerDocument, "span", { class: "cd-shell-toast-dot", "aria-hidden": "true" }),
-      createElement(ownerDocument, "span", { class: "cd-shell-toast-text", id: textId }, request.text),
+      createElement(
+        ownerDocument,
+        "span",
+        { class: "cd-shell-toast-text", id: textId },
+        request.text,
+      ),
       closeButton,
     );
     const toast: LiveToast = {
@@ -365,7 +375,11 @@ export function createToaster(context: ToasterContext): Toaster {
     toastElement.addEventListener("mouseleave", () => setEngagement(toast, false, toast.focused));
     toastElement.addEventListener("focusin", () => setEngagement(toast, toast.hovered, true));
     toastElement.addEventListener("focusout", (event) =>
-      setEngagement(toast, toast.hovered, toastElement.contains(event.relatedTarget as Node | null)),
+      setEngagement(
+        toast,
+        toast.hovered,
+        toastElement.contains(event.relatedTarget as Node | null),
+      ),
     );
     return toast;
   }

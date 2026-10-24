@@ -1,27 +1,27 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Injector } from 'didi';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Injector } from "didi";
 import {
   isWardleyConnection,
   isWardleyShape,
   type WardleyConnection,
   type WardleyShape,
-} from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import { FONT, NOTE_LINE_HEIGHT } from '../draw/styles.js';
-import { createFieldError } from './fieldError.js';
-import { isReadOnly } from '../read-only/index.js';
+} from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import { FONT, NOTE_LINE_HEIGHT } from "../draw/styles.js";
+import { createFieldError } from "./fieldError.js";
+import { isReadOnly } from "../read-only/index.js";
 import {
   focusCanvasWithoutRing,
   lastInteractionWasPointer,
   trackInputModality,
-} from '../a11y/index.js';
+} from "../a11y/index.js";
 
 /** How an edit ends: Enter/Cmd+Enter (can be refused) or focus leaving the field (cannot). */
-type CommitTrigger = 'enter' | 'outside';
+type CommitTrigger = "enter" | "outside";
 
 interface ActiveEdit {
   elementId: string;
@@ -79,12 +79,12 @@ export interface LabelDeduplicatedEvent {
 }
 
 /** Contract with the renderer: the element's primary name <text> carries this class. */
-const NAME_LABEL_CLASS = 'wardley-name-label';
+const NAME_LABEL_CLASS = "wardley-name-label";
 /** Canvas marker while editing — CSS hides the name label so the field replaces it. */
-const EDITING_MARKER = 'wardley-label-editing';
+const EDITING_MARKER = "wardley-label-editing";
 
 /** Regions are unlabelled like in OWM (title = kind) and drawings have no text at all. */
-const NOT_EDITABLE: ReadonlySet<string> = new Set(['attitude', 'drawing']);
+const NOT_EDITABLE: ReadonlySet<string> = new Set(["attitude", "drawing"]);
 
 /** Below diagram-js's own `shape.changed` listener, which redraws the element. */
 const AFTER_REDRAW_PRIORITY = 500;
@@ -97,7 +97,7 @@ const MIN_FONT_SIZE = 11;
 const CAPTION_GAP = 4;
 const CARET_ROOM = 2;
 
-export const NOTE_EDIT_HINT = 'Cmd/Ctrl+Enter to save · Esc to cancel';
+export const NOTE_EDIT_HINT = "Cmd/Ctrl+Enter to save · Esc to cancel";
 
 export function duplicateNameMessage(name: string): string {
   return `“${name}” already exists — names must be unique because links refer to them.`;
@@ -109,10 +109,10 @@ export function duplicateNameMessage(name: string): string {
  */
 function sanitizeLabel(raw: string): string {
   return raw
-    .replace(/->/g, '→') // -> would be the edge operator
-    .replace(/;/g, ',') // ; separates link annotations
-    .replace(/\[/g, '(') // [..] would be a coordinate tuple
-    .replace(/\]/g, ')')
+    .replace(/->/g, "→") // -> would be the edge operator
+    .replace(/;/g, ",") // ; separates link annotations
+    .replace(/\[/g, "(") // [..] would be a coordinate tuple
+    .replace(/\]/g, ")")
     .trim();
 }
 
@@ -120,7 +120,7 @@ let measureContext: CanvasRenderingContext2D | null | undefined;
 
 function measureTextWidth(text: string, font: string, fontSizePx: number): number {
   if (measureContext === undefined)
-    measureContext = document.createElement('canvas').getContext('2d');
+    measureContext = document.createElement("canvas").getContext("2d");
   if (!measureContext) return text.length * fontSizePx * 0.6;
   measureContext.font = font;
   return measureContext.measureText(text).width;
@@ -148,7 +148,7 @@ interface LabelGeometry {
  * (Enter = save). Escape always discards.
  */
 export default class WardleyLabelEditing {
-  static $inject = ['eventBus', 'canvas', 'wardleyModeling', 'wardleyElementFactory', 'injector'];
+  static $inject = ["eventBus", "canvas", "wardleyModeling", "wardleyElementFactory", "injector"];
 
   private active: ActiveEdit | null = null;
   private relayoutPending = false;
@@ -164,44 +164,44 @@ export default class WardleyLabelEditing {
     injector: Injector,
   ) {
     trackInputModality();
-    this.contextPad = injector.get<ContextPad | null>('contextPad', false) ?? null;
-    this.selection = injector.get<Selection | null>('selection', false) ?? null;
+    this.contextPad = injector.get<ContextPad | null>("contextPad", false) ?? null;
+    this.selection = injector.get<Selection | null>("selection", false) ?? null;
     this.locked = () => isReadOnly(injector);
 
-    eventBus.on('element.dblclick', (event: { element?: unknown }) => {
+    eventBus.on("element.dblclick", (event: { element?: unknown }) => {
       if (isWardleyShape(event.element)) this.activate(event.element);
       else if (isWardleyConnection(event.element)) this.activateConnection(event.element);
     });
     // Click or drag outside the field = SAVE (not discard). Only Escape discards.
-    eventBus.on(['element.mousedown', 'drag.init'], () => this.active?.commit('outside'));
+    eventBus.on(["element.mousedown", "drag.init"], () => this.active?.commit("outside"));
     // A view change is no gesture of the user's: a host restores the view after a peer's re-import
     // and refits when its chrome changes, and committing then would write the half-typed name into
     // the shared document (modeler-api L5). The field follows the element instead.
-    eventBus.on('canvas.viewbox.changing', () => this.relayoutAfterViewChange());
-    eventBus.on('canvas.viewbox.changed', () => this.active?.relayout());
+    eventBus.on("canvas.viewbox.changing", () => this.relayoutAfterViewChange());
+    eventBus.on("canvas.viewbox.changed", () => this.active?.relayout());
     // A redraw of the edited element (a host resizing the map while the field is open) moves it
     // without a view change; the priority waits for the redraw.
     eventBus.on(
-      ['shape.changed', 'connection.changed'],
+      ["shape.changed", "connection.changed"],
       AFTER_REDRAW_PRIORITY,
       (event: { element?: { id?: string } }) => {
         if (this.active && event.element?.id === this.active.elementId) this.active.relayout();
       },
     );
     // The edited element vanished (delete, re-import): nothing left to save into.
-    eventBus.on(['shape.remove', 'connection.remove'], (event: { element?: { id?: string } }) => {
+    eventBus.on(["shape.remove", "connection.remove"], (event: { element?: { id?: string } }) => {
       if (this.active && event.element?.id === this.active.elementId) this.cancel();
     });
-    eventBus.on('diagram.destroy', () => this.cancel());
+    eventBus.on("diagram.destroy", () => this.cancel());
   }
 
   /** Opens the in-place name editor for `element` (no-op for regions and drawings). */
   activate(element: WardleyShape, options: ActivateOptions = {}): void {
     if (!isWardleyShape(element) || NOT_EDITABLE.has(element.wardleyType) || this.locked()) return;
-    this.active?.commit('outside');
+    this.active?.commit("outside");
 
     const container = this.canvas.getContainer();
-    const isNote = element.wardleyType === 'note';
+    const isNote = element.wardleyType === "note";
     const openedByPointer = lastInteractionWasPointer();
     const requiresUniqueName = this.factory.isLinkable(element.wardleyType);
     const labels = this.nameLabelElements(element);
@@ -213,11 +213,11 @@ export default class WardleyLabelEditing {
     let lineHeight = lineHeightOf(geometry.fontSize);
     const field = createNameField(
       isNote,
-      options.value ?? element.wardleyLabel ?? '',
+      options.value ?? element.wardleyLabel ?? "",
       geometry,
       lineHeight,
     );
-    const hint = isNote ? createCaption('wardley-label-hint', NOTE_EDIT_HINT) : undefined;
+    const hint = isNote ? createCaption("wardley-label-hint", NOTE_EDIT_HINT) : undefined;
 
     const layout = () => {
       const { left, top, width, height } = fieldBox(field.value, geometry, lineHeight, isNote);
@@ -256,16 +256,16 @@ export default class WardleyLabelEditing {
     const cleanup = () => {
       if (done) return;
       done = true;
-      field.removeEventListener('keydown', onKey as EventListener);
-      field.removeEventListener('blur', onBlur);
-      field.removeEventListener('input', onInput);
+      field.removeEventListener("keydown", onKey as EventListener);
+      field.removeEventListener("blur", onBlur);
+      field.removeEventListener("input", onInput);
       field.remove();
       hint?.remove();
       error.clear();
       this.canvas.removeMarker(element, EDITING_MARKER);
       for (const text of classedByFallback) {
         text.classList.remove(NAME_LABEL_CLASS);
-        if (!text.classList.length) text.removeAttribute('class');
+        if (!text.classList.length) text.removeAttribute("class");
       }
       this.active = null;
     };
@@ -284,14 +284,14 @@ export default class WardleyLabelEditing {
       const applied = requiresUniqueName
         ? this.factory.uniqueLabel(requested, element.id)
         : requested;
-      if (applied !== requested && trigger === 'enter') {
+      if (applied !== requested && trigger === "enter") {
         showDuplicateError(requested);
         return;
       }
       cleanup();
       this.modeling.updateLabel(element, applied);
       if (applied !== requested) {
-        this.eventBus.fire('wardley.label.deduplicated', {
+        this.eventBus.fire("wardley.label.deduplicated", {
           element,
           requested,
           applied,
@@ -299,17 +299,17 @@ export default class WardleyLabelEditing {
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         cleanup();
         this.returnToCanvas(element, openedByPointer);
         return;
       }
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         // Note: save only with Cmd/Ctrl -> otherwise line break. Others: Enter saves.
         if (isNote && !(e.metaKey || e.ctrlKey)) return;
         e.preventDefault();
-        commit('enter');
+        commit("enter");
         if (done) this.returnToCanvas(element, openedByPointer);
       }
     };
@@ -317,10 +317,10 @@ export default class WardleyLabelEditing {
       clearError();
       layout();
     };
-    const onBlur = () => commit('outside');
-    field.addEventListener('keydown', onKey as EventListener);
-    field.addEventListener('blur', onBlur);
-    field.addEventListener('input', onInput);
+    const onBlur = () => commit("outside");
+    field.addEventListener("keydown", onKey as EventListener);
+    field.addEventListener("blur", onBlur);
+    field.addEventListener("input", onInput);
 
     const relayout = () => {
       if (done) return;
@@ -345,18 +345,18 @@ export default class WardleyLabelEditing {
    */
   activateConnection(conn: WardleyConnection, options: ActivateOptions = {}): void {
     if (this.locked()) return;
-    this.active?.commit('outside');
+    this.active?.commit("outside");
 
     const container = this.canvas.getContainer();
     if (conn.waypoints.length < 1) return;
-    const isFlow = conn.wardleyType === 'flow';
+    const isFlow = conn.wardleyType === "flow";
 
-    const field = document.createElement('input');
-    field.type = 'text';
-    field.className = 'wardley-label-input';
-    field.placeholder = isFlow ? 'flow value (e.g. $0.10)' : 'link annotation';
-    field.value = options.value ?? (isFlow ? conn.flowValue : conn.linkLabel) ?? '';
-    field.style.position = 'absolute';
+    const field = document.createElement("input");
+    field.type = "text";
+    field.className = "wardley-label-input";
+    field.placeholder = isFlow ? "flow value (e.g. $0.10)" : "link annotation";
+    field.value = options.value ?? (isFlow ? conn.flowValue : conn.linkLabel) ?? "";
+    field.style.position = "absolute";
     const place = () => {
       // Read afresh: a redraw of the connection replaces its waypoints.
       const first = conn.waypoints[0];
@@ -375,16 +375,16 @@ export default class WardleyLabelEditing {
     const cleanup = () => {
       if (done) return;
       done = true;
-      field.removeEventListener('keydown', onKey as EventListener);
-      field.removeEventListener('blur', onBlur);
+      field.removeEventListener("keydown", onKey as EventListener);
+      field.removeEventListener("blur", onBlur);
       field.remove();
       this.active = null;
     };
     const commit = () => {
       if (done) return;
       // Defuse DSL metacharacters: `'` delimits the flow value, `;` starts the annotation.
-      const value = field.value.replace(/'/g, '’').replace(/;/g, ',').trim();
-      const current = (isFlow ? conn.flowValue : conn.linkLabel) ?? '';
+      const value = field.value.replace(/'/g, "’").replace(/;/g, ",").trim();
+      const current = (isFlow ? conn.flowValue : conn.linkLabel) ?? "";
       cleanup();
       if (value === current) return;
       // Keep the businessObject in sync — the exporter prefers it for imported edges.
@@ -399,22 +399,22 @@ export default class WardleyLabelEditing {
         else delete (nextBo as { label?: string }).label;
       }
       this.modeling.updateProperties(conn, {
-        [isFlow ? 'flowValue' : 'linkLabel']: value || undefined,
+        [isFlow ? "flowValue" : "linkLabel"]: value || undefined,
         ...(nextBo ? { businessObject: nextBo } : {}),
       });
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         cleanup();
-      } else if (e.key === 'Enter') {
+      } else if (e.key === "Enter") {
         e.preventDefault();
         commit();
       }
     };
     const onBlur = () => commit();
-    field.addEventListener('keydown', onKey as EventListener);
-    field.addEventListener('blur', onBlur);
+    field.addEventListener("keydown", onKey as EventListener);
+    field.addEventListener("blur", onBlur);
 
     const relayout = () => {
       if (!done) place();
@@ -442,7 +442,7 @@ export default class WardleyLabelEditing {
    * exports the map, so the file contains the text the user sees.
    */
   commitActiveEdit(): void {
-    this.active?.commit('outside');
+    this.active?.commit("outside");
   }
 
   /** The open editor's element and current (unsaved) text, or null when nothing is edited. */
@@ -484,11 +484,11 @@ export default class WardleyLabelEditing {
     if (!gfx) return { labelElements: [], classedByFallback: [] };
     const marked = [...gfx.querySelectorAll<SVGTextElement>(`.${NAME_LABEL_CLASS}`)];
     if (marked.length) return { labelElements: marked, classedByFallback: [] };
-    const texts = [...gfx.querySelectorAll<SVGTextElement>('text')].filter(
-      (text) => !text.closest('.wardley-movement'),
+    const texts = [...gfx.querySelectorAll<SVGTextElement>("text")].filter(
+      (text) => !text.closest(".wardley-movement"),
     );
     const matched =
-      element.wardleyType === 'note'
+      element.wardleyType === "note"
         ? texts
         : texts.filter((text) => text.textContent === element.wardleyLabel).slice(-1);
     for (const text of matched) text.classList.add(NAME_LABEL_CLASS);
@@ -505,16 +505,16 @@ export default class WardleyLabelEditing {
     const referenceStyle = reference ? getComputedStyle(reference) : undefined;
     const fontSize = Math.max(
       MIN_FONT_SIZE,
-      (Number.parseFloat(referenceStyle?.fontSize ?? '') || FONT.label) * scale,
+      (Number.parseFloat(referenceStyle?.fontSize ?? "") || FONT.label) * scale,
     );
     const typography = {
       fontSize,
-      fontWeight: referenceStyle?.fontWeight || 'normal',
-      fontStyle: referenceStyle?.fontStyle || 'normal',
+      fontWeight: referenceStyle?.fontWeight || "normal",
+      fontStyle: referenceStyle?.fontStyle || "normal",
       fontFamily: referenceStyle?.fontFamily || FONT.family,
     };
 
-    if (element.wardleyType === 'note') {
+    if (element.wardleyType === "note") {
       return {
         left: (element.x - viewbox.x) * scale,
         top: (element.y - viewbox.y) * scale,
@@ -533,7 +533,7 @@ export default class WardleyLabelEditing {
         top: top - containerRect.top,
         width: Math.max(...boxes.map((box) => box.right)) - left,
         height: Math.max(...boxes.map((box) => box.bottom)) - top,
-        centered: referenceStyle?.textAnchor === 'middle',
+        centered: referenceStyle?.textAnchor === "middle",
         ...typography,
       };
     }
@@ -555,24 +555,24 @@ function createNameField(
   geometry: LabelGeometry,
   lineHeight: number,
 ): HTMLInputElement | HTMLTextAreaElement {
-  const field = isNote ? document.createElement('textarea') : document.createElement('input');
+  const field = isNote ? document.createElement("textarea") : document.createElement("input");
   field.className = isNote
-    ? 'wardley-label-input wardley-label-input--name wardley-label-textarea'
-    : 'wardley-label-input wardley-label-input--name';
+    ? "wardley-label-input wardley-label-input--name wardley-label-textarea"
+    : "wardley-label-input wardley-label-input--name";
   field.value = value;
-  field.setAttribute('aria-label', isNote ? 'Note text' : 'Name');
+  field.setAttribute("aria-label", isNote ? "Note text" : "Name");
   field.spellcheck = false;
-  if (field instanceof HTMLTextAreaElement) field.wrap = 'off';
-  else field.type = 'text';
+  if (field instanceof HTMLTextAreaElement) field.wrap = "off";
+  else field.type = "text";
   Object.assign(field.style, {
-    position: 'absolute',
+    position: "absolute",
     fontFamily: geometry.fontFamily,
     fontSize: `${geometry.fontSize}px`,
     fontWeight: geometry.fontWeight,
     fontStyle: geometry.fontStyle,
     lineHeight: `${lineHeight}px`,
     padding: `${FIELD_PADDING_Y}px ${FIELD_PADDING_X}px`,
-    textAlign: geometry.centered ? 'center' : 'left',
+    textAlign: geometry.centered ? "center" : "left",
   });
   return field;
 }
@@ -589,7 +589,7 @@ function fieldBox(
 ): { left: number; top: number; width: number; height: number } {
   const font = `${geometry.fontStyle} ${geometry.fontWeight} ${geometry.fontSize}px ${geometry.fontFamily}`;
   const chrome = 2 * (FIELD_PADDING_X + FIELD_BORDER) + CARET_ROOM;
-  const lines = (value || ' ').split('\n');
+  const lines = (value || " ").split("\n");
   const textWidth = Math.max(
     ...lines.map((line) => measureTextWidth(line, font, geometry.fontSize)),
   );
@@ -610,7 +610,7 @@ function fieldBox(
 }
 
 function createCaption(className: string, text: string): HTMLElement {
-  const caption = document.createElement('div');
+  const caption = document.createElement("div");
   caption.className = `wardley-label-caption ${className}`;
   caption.textContent = text;
   return caption;

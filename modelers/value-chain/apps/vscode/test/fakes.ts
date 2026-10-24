@@ -1,4 +1,4 @@
-import type * as vscode from 'vscode';
+import type * as vscode from "vscode";
 import {
   Disposable,
   EventEmitter,
@@ -7,9 +7,9 @@ import {
   type WorkspaceEdit,
   vscodeMock,
   workspace,
-} from './__mocks__/vscode';
-import { VcEditorProvider } from '../src/VcEditorProvider.js';
-import type { HostToWebview, WebviewToHost } from '../src/protocol.js';
+} from "./__mocks__/vscode";
+import { VcEditorProvider } from "../src/VcEditorProvider.js";
+import type { HostToWebview, WebviewToHost } from "../src/protocol.js";
 
 export interface FakeDoc {
   uri: Uri;
@@ -30,7 +30,7 @@ export function fakeDocument(path: string, text: string): FakeDoc {
 function offsetOf(text: string, line: number, character: number): number {
   let offset = 0;
   for (let index = 0; index < line; index++) {
-    const lineBreak = text.indexOf('\n', offset);
+    const lineBreak = text.indexOf("\n", offset);
     if (lineBreak < 0) return text.length;
     offset = lineBreak + 1;
   }
@@ -65,7 +65,7 @@ export interface FakePanel {
   webview: { html: string; options: unknown };
   posted: unknown[];
   updates(): string[];
-  messagesOfType<T extends HostToWebview['type']>(
+  messagesOfType<T extends HostToWebview["type"]>(
     type: T,
   ): Array<Extract<HostToWebview, { type: T }>>;
   receive(msg: WebviewToHost): Promise<unknown>;
@@ -80,8 +80,8 @@ export function fakeWebviewPanel(state: { active?: boolean; visible?: boolean } 
   const disposeEmitter = new EventEmitter<void>();
   const webview = {
     options: {} as unknown,
-    html: '',
-    cspSource: 'vscode-webview://unit',
+    html: "",
+    cspSource: "vscode-webview://unit",
     asWebviewUri: (u: Uri) => u,
     postMessage: (msg: unknown) => {
       posted.push(msg);
@@ -101,16 +101,16 @@ export function fakeWebviewPanel(state: { active?: boolean; visible?: boolean } 
     onDidChangeViewState: viewStateEmitter.event,
     onDidDispose: disposeEmitter.event,
   };
-  const messages = () => posted.filter((m): m is HostToWebview => typeof m === 'object');
+  const messages = () => posted.filter((m): m is HostToWebview => typeof m === "object");
   return {
     panel: panel as unknown as vscode.WebviewPanel,
     webview,
     posted,
     updates: () =>
       messages()
-        .filter((m): m is Extract<HostToWebview, { type: 'update' }> => m.type === 'update')
+        .filter((m): m is Extract<HostToWebview, { type: "update" }> => m.type === "update")
         .map((m) => m.text),
-    messagesOfType: <T extends HostToWebview['type']>(type: T) =>
+    messagesOfType: <T extends HostToWebview["type"]>(type: T) =>
       messages().filter((m): m is Extract<HostToWebview, { type: T }> => m.type === type),
     receive: async (msg: WebviewToHost) => onMessage?.(msg),
     setViewState: (next) => {
@@ -123,7 +123,7 @@ export function fakeWebviewPanel(state: { active?: boolean; visible?: boolean } 
 }
 
 export const context = {
-  extensionUri: Uri.parse('file:/ext'),
+  extensionUri: Uri.parse("file:/ext"),
 } as unknown as vscode.ExtensionContext;
 export const token = {} as vscode.CancellationToken;
 

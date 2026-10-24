@@ -173,7 +173,11 @@ export function keydown(target: EventTarget, init: KeyboardEventInit): KeyboardE
   return event;
 }
 
-export function pointer(target: EventTarget, type: string, init: PointerEventInit = {}): PointerEvent {
+export function pointer(
+  target: EventTarget,
+  type: string,
+  init: PointerEventInit = {},
+): PointerEvent {
   const event = new PointerEvent(type, {
     bubbles: type !== "pointerenter" && type !== "pointerleave",
     cancelable: true,

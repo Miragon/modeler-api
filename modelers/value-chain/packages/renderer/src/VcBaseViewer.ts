@@ -1,22 +1,22 @@
-import Diagram from 'diagram-js/lib/Diagram';
-import type { ModuleDeclaration } from 'didi';
-import type { CollaborativeModelerOptions } from '@miragon/modeler-api';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { EventBusEventCallback } from 'diagram-js/lib/core/EventBus';
+import Diagram from "diagram-js/lib/Diagram";
+import type { ModuleDeclaration } from "didi";
+import type { CollaborativeModelerOptions } from "@miragon/modeler-api";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { EventBusEventCallback } from "diagram-js/lib/core/EventBus";
 import {
   validateDocument,
   type Point,
   type ValueChainDocument,
-} from '@miragon/value-chain-schema-model';
-import type VcBounds from './bounds/VcBounds.js';
-import type VcImporter from './io/VcImporter.js';
-import type VcExporter from './io/VcExporter.js';
-import { saveSVG } from './io/saveSvg.js';
-import type { ImportWarning } from './io/types.js';
-import type VcLabelEditingProvider from './label-editing/VcLabelEditingProvider.js';
-import { isVcElement } from './model/di-types.js';
+} from "@miragon/value-chain-schema-model";
+import type VcBounds from "./bounds/VcBounds.js";
+import type VcImporter from "./io/VcImporter.js";
+import type VcExporter from "./io/VcExporter.js";
+import { saveSVG } from "./io/saveSvg.js";
+import type { ImportWarning } from "./io/types.js";
+import type VcLabelEditingProvider from "./label-editing/VcLabelEditingProvider.js";
+import { isVcElement } from "./model/di-types.js";
 
 /**
  * `freeArea`, `fitOnImport` and `undoRedoKeys` as `@miragon/modeler-api` 1.2 names them:
@@ -79,11 +79,11 @@ export abstract class VcBaseViewer {
   }
 
   on<T = unknown>(event: string, callback: EventBusEventCallback<T>, priority = 1000): void {
-    this.get<EventBus>('eventBus').on(event, priority, callback as EventBusEventCallback<unknown>);
+    this.get<EventBus>("eventBus").on(event, priority, callback as EventBusEventCallback<unknown>);
   }
 
   off<T = unknown>(event: string, callback: EventBusEventCallback<T>): void {
-    this.get<EventBus>('eventBus').off(event, callback as EventBusEventCallback<unknown>);
+    this.get<EventBus>("eventBus").off(event, callback as EventBusEventCallback<unknown>);
   }
 
   /**
@@ -94,10 +94,10 @@ export abstract class VcBaseViewer {
    */
   importDocument(document: ValueChainDocument): ImportWarning[] {
     const valid = validateDocument(document);
-    const labelEditing = this.getOptional<VcLabelEditingProvider>('vcLabelEditingProvider');
+    const labelEditing = this.getOptional<VcLabelEditingProvider>("vcLabelEditingProvider");
     const previous = this._currentDocument();
     labelEditing?.suspend();
-    this.getOptional<PopupMenuLike>('popupMenu')?.close();
+    this.getOptional<PopupMenuLike>("popupMenu")?.close();
     let warnings: ImportWarning[];
     try {
       warnings = this._render(valid);
@@ -112,35 +112,35 @@ export abstract class VcBaseViewer {
   }
 
   exportDocument(): ValueChainDocument {
-    return this.get<VcExporter>('vcExporter').export();
+    return this.get<VcExporter>("vcExporter").export();
   }
 
   saveSVG(): { svg: string } {
-    return saveSVG(this.get<Canvas>('canvas'), this.get<VcBounds>('vcBounds'));
+    return saveSVG(this.get<Canvas>("canvas"), this.get<VcBounds>("vcBounds"));
   }
 
   /** Zooms to fit the diagram, never above 100%. */
   fitViewport(): void {
-    const canvas = this.get<Canvas>('canvas');
-    const hasContent = this.get<ElementRegistry>('elementRegistry').getAll().some(isVcElement);
+    const canvas = this.get<Canvas>("canvas");
+    const hasContent = this.get<ElementRegistry>("elementRegistry").getAll().some(isVcElement);
     if (!hasContent) {
       return;
     }
-    canvas.zoom('fit-viewport');
+    canvas.zoom("fit-viewport");
     if (canvas.zoom() > 1) {
       canvas.zoom(1);
     }
   }
 
   clear(): void {
-    this.get<VcImporter>('vcImporter').clear();
-    this.getOptional<CommandStackLike>('commandStack')?.clear();
+    this.get<VcImporter>("vcImporter").clear();
+    this.getOptional<CommandStackLike>("commandStack")?.clear();
   }
 
   attachTo(target: HTMLElement): void {
     this.detach();
     target.appendChild(this._container);
-    this.get<Canvas>('canvas').resized();
+    this.get<Canvas>("canvas").resized();
   }
 
   detach(): void {
@@ -154,11 +154,11 @@ export abstract class VcBaseViewer {
   }
 
   private _render(document: ValueChainDocument): ImportWarning[] {
-    const importer = this.get<VcImporter>('vcImporter');
+    const importer = this.get<VcImporter>("vcImporter");
     importer.clear();
     const warnings = importer.import(document);
-    this.getOptional<CommandStackLike>('commandStack')?.clear(false);
-    this.get<EventBus>('eventBus').fire('import.done', { warnings });
+    this.getOptional<CommandStackLike>("commandStack")?.clear(false);
+    this.get<EventBus>("eventBus").fire("import.done", { warnings });
     return warnings;
   }
 
@@ -171,10 +171,10 @@ export abstract class VcBaseViewer {
   }
 
   private _createContainer(options: VcViewerOptions): HTMLElement {
-    const container = options.container ?? document.createElement('div');
-    container.classList.add('vc-container');
-    container.style.width = sizeToCss(options.width ?? '100%');
-    container.style.height = sizeToCss(options.height ?? (options.container ? '100%' : '600px'));
+    const container = options.container ?? document.createElement("div");
+    container.classList.add("vc-container");
+    container.style.width = sizeToCss(options.width ?? "100%");
+    container.style.height = sizeToCss(options.height ?? (options.container ? "100%" : "600px"));
     return container;
   }
 
@@ -197,5 +197,5 @@ export abstract class VcBaseViewer {
 }
 
 function sizeToCss(value: number | string): string {
-  return typeof value === 'number' ? `${value}px` : value;
+  return typeof value === "number" ? `${value}px` : value;
 }

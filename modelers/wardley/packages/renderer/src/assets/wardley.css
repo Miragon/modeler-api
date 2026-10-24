@@ -4,9 +4,9 @@
    .djs-parent variables onto the --cd-ui-* roles beats diagram-js's defaults. Everything below
    reads the roles (--cd-ui-*) and the mode-independent tokens (radius, shadow, motion) only, so
    the chrome follows the mode the page sets; the canvas drawing keeps its light SVG attributes. */
-@import '../theme/cd-tokens.generated.css' layer(wardley-tokens);
-@import 'diagram-js/assets/diagram-js.css';
-@import '../theme/cd-canvas.css';
+@import "../theme/cd-tokens.generated.css" layer(wardley-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
 
 /* The DSL's `style dark` directive is kept for the round-trip but never rendered (guide §10.7):
    the mode comes from the page alone, so there is no navy surround under light chrome. */
@@ -18,12 +18,12 @@
   background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
   background-size: 22px 22px;
   font-family:
-    'Geist Variable',
-    'Geist',
+    "Geist Variable",
+    "Geist",
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   overflow: hidden;
 }
@@ -97,7 +97,7 @@
    toolbar. Every rule skips a palette the shell skins (data-chrome="palette"), so the shell's look
    applies alone there; `:where` keeps the specificity hosts already override. Styling sits on the element itself, not on .wardley-container, so it
    travels along when a consumer mounts the palette elsewhere. */
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) {
   left: 50%;
   top: 12px;
   z-index: 110;
@@ -120,16 +120,16 @@
 }
 /* Safety net: the provider disables diagram-js' vertical two-column collapse, which would squeeze
    the horizontal bar to 94px. */
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])).two-column.open {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])).two-column.open {
   width: auto;
 }
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .djs-palette-entries,
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .djs-palette-entries,
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .group {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .entry {
   float: none; /* diagram-js uses float:left -> redundant in the flex row */
   flex: none;
   width: 40px;
@@ -142,18 +142,18 @@
     color var(--cd-motion-fast) var(--cd-ease),
     box-shadow var(--cd-motion-fast) var(--cd-ease);
 }
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry:hover {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .entry:hover {
   background: var(--cd-ui-hover);
   color: var(--cd-ui-interaktion);
 }
 /* Active tool (e.g. the lasso): a ring, never a full fill (guide §5.5). diagram-js colours the
    highlighted entry with !important. */
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry.highlighted-entry {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .entry.highlighted-entry {
   background: var(--cd-ui-hover);
   box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
   color: var(--cd-ui-text) !important;
 }
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry.highlighted-entry:hover {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .entry.highlighted-entry:hover {
   color: var(--cd-ui-interaktion) !important;
 }
 
@@ -166,13 +166,13 @@
 }
 
 /* Subtle vertical separator between the groups (diagram-js does not separate groups on its own). */
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group + .group {
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .group + .group {
   position: relative;
   margin-left: 9px;
   padding-left: 9px;
 }
-.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group + .group::before {
-  content: '';
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"])) .group + .group::before {
+  content: "";
   position: absolute;
   top: 6px;
   bottom: 6px;
@@ -183,7 +183,7 @@
 
 /* Palette icons (custom HTML icons) of the renderer's own palette; inside the shell's palette the
    skin lays the entry out and colours the tool icons. */
-.djs-palette:where(:not([data-chrome='palette'])) .wardley-palette-entry {
+.djs-palette:where(:not([data-chrome="palette"])) .wardley-palette-entry {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,18 +231,18 @@
   display: flex;
   gap: 2px;
 }
-.wardley-container .djs-context-pad .group[data-group='edit'] {
+.wardley-container .djs-context-pad .group[data-group="edit"] {
   grid-column: 1 / -1;
 }
-.wardley-container .djs-context-pad .group[data-group='wardley'] + .group[data-group='danger'] {
+.wardley-container .djs-context-pad .group[data-group="wardley"] + .group[data-group="danger"] {
   position: relative;
   padding-left: 7px;
 }
 .wardley-container
   .djs-context-pad
-  .group[data-group='wardley']
-  + .group[data-group='danger']::before {
-  content: '';
+  .group[data-group="wardley"]
+  + .group[data-group="danger"]::before {
+  content: "";
   position: absolute;
   top: 4px;
   bottom: 4px;
@@ -272,7 +272,7 @@
   background: var(--cd-ui-hover);
   color: var(--cd-ui-interaktion);
 }
-.wardley-container .djs-context-pad .group[data-group='danger'] .entry:hover {
+.wardley-container .djs-context-pad .group[data-group="danger"] .entry:hover {
   background: var(--cd-ui-danger-flaeche);
   color: var(--cd-ui-danger);
 }
@@ -469,9 +469,9 @@
 /* Keyboard focus ring (design system: :focus-visible ring in the focus role). Scoped to the
    modeler's own chrome — a library stylesheet must not restyle the host page's controls. */
 .wardley-container
-  :where(button, a, select, input, textarea, [role='button'], [tabindex]):focus-visible,
-.djs-palette.wardley-palette:where(:not([data-chrome='palette']))
-  :where(.entry, [role='button'], [tabindex]):focus-visible,
+  :where(button, a, select, input, textarea, [role="button"], [tabindex]):focus-visible,
+.djs-palette.wardley-palette:where(:not([data-chrome="palette"]))
+  :where(.entry, [role="button"], [tabindex]):focus-visible,
 .djs-popup.wardley-element-settings :where(.entry, [tabindex]):focus-visible {
   outline: 2px solid var(--cd-ui-fokus);
   outline-offset: 2px;
@@ -544,12 +544,12 @@
   box-shadow: var(--cd-shadow-3);
   color: var(--cd-ui-text);
   font:
-    400 13px/1.5 'Geist Variable',
-    'Geist',
+    400 13px/1.5 "Geist Variable",
+    "Geist",
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   text-align: left;
   animation: wardley-pop-in var(--cd-motion-fast) var(--cd-ease-out);
@@ -613,7 +613,7 @@
   outline: 2px solid var(--cd-ui-fokus);
   outline-offset: 2px;
 }
-.wardley-field-input[aria-invalid='true'] {
+.wardley-field-input[aria-invalid="true"] {
   border-color: var(--cd-ui-danger);
 }
 .wardley-field-error {
@@ -649,26 +649,26 @@
     color var(--cd-motion-fast) var(--cd-ease),
     transform var(--cd-motion-fast) var(--cd-ease);
 }
-.wardley-button[data-variant='secondary'] {
+.wardley-button[data-variant="secondary"] {
   border-color: var(--cd-ui-linie);
   background: var(--cd-ui-flaeche-hoch);
 }
-.wardley-button[data-variant='secondary']:hover {
+.wardley-button[data-variant="secondary"]:hover {
   border-color: var(--cd-ui-interaktion);
   background: var(--cd-ui-hover);
   color: var(--cd-ui-link);
 }
-.wardley-button[data-variant='ghost']:hover {
+.wardley-button[data-variant="ghost"]:hover {
   background: var(--cd-ui-hover);
 }
 /* The confirming action of a dialog (guide §8): the one place with fixed palette colours, blue
    with white text in both modes. */
-.wardley-button[data-variant='primary'] {
+.wardley-button[data-variant="primary"] {
   background: var(--cd-blau);
   box-shadow: var(--cd-shadow-1);
   color: var(--cd-weiss);
 }
-.wardley-button[data-variant='primary']:is(:hover, :active) {
+.wardley-button[data-variant="primary"]:is(:hover, :active) {
   background: var(--cd-blau-link);
   box-shadow: var(--cd-shadow-2);
   transform: translateY(-1px);
@@ -680,8 +680,8 @@
   color: var(--cd-ui-text-leise);
   cursor: not-allowed;
 }
-.wardley-button[data-variant='primary']:disabled,
-.wardley-button[data-variant='primary']:disabled:hover {
+.wardley-button[data-variant="primary"]:disabled,
+.wardley-button[data-variant="primary"]:disabled:hover {
   border-color: var(--cd-ui-linie);
   background: var(--cd-ui-hover);
   box-shadow: none;
@@ -706,12 +706,12 @@
   background: transparent;
   color: var(--cd-ui-text);
   font:
-    400 13px/1.5 'Geist Variable',
-    'Geist',
+    400 13px/1.5 "Geist Variable",
+    "Geist",
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   overflow: visible;
 }
@@ -821,8 +821,8 @@
   box-shadow: none;
   color: var(--cd-ui-text-leise);
   font:
-    400 13px/1.5 'Geist Mono Variable',
-    'Geist Mono',
+    400 13px/1.5 "Geist Mono Variable",
+    "Geist Mono",
     ui-monospace,
     monospace;
   vertical-align: baseline;
@@ -831,14 +831,14 @@
 
 /* High contrast (guide §6, §5.14): no shadows, contour borders, 3px focus. Forced colours: the
    system's colours, so nothing disappears. */
-[data-cd-kontrast='hoch'] :is(.wardley-popover, .wardley-dialog-panel) {
+[data-cd-kontrast="hoch"] :is(.wardley-popover, .wardley-dialog-panel) {
   border-color: var(--cd-ui-kontur);
   box-shadow: none;
 }
-[data-cd-kontrast='hoch'] .wardley-button[data-variant='primary'] {
+[data-cd-kontrast="hoch"] .wardley-button[data-variant="primary"] {
   box-shadow: none;
 }
-[data-cd-kontrast='hoch']
+[data-cd-kontrast="hoch"]
   :is(
     .wardley-field-input,
     .wardley-button,
@@ -867,7 +867,7 @@
   .wardley-popover {
     animation: none;
   }
-  .wardley-button[data-variant='primary']:is(:hover, :active) {
+  .wardley-button[data-variant="primary"]:is(:hover, :active) {
     transform: none;
   }
 }
@@ -875,6 +875,6 @@
 .cd-shell-reduce-motion .wardley-popover {
   animation: none;
 }
-.cd-shell-reduce-motion .wardley-button[data-variant='primary']:is(:hover, :active) {
+.cd-shell-reduce-motion .wardley-button[data-variant="primary"]:is(:hover, :active) {
   transform: none;
 }

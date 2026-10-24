@@ -1,8 +1,8 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type { Element } from 'diagram-js/lib/model/Types';
-import { getBBox } from 'diagram-js/lib/util/Elements';
-import type { Bounds } from '@miragon/value-chain-schema-model';
-import { isVcElement, isVcShape } from '../model/di-types.js';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type { Element } from "diagram-js/lib/model/Types";
+import { getBBox } from "diagram-js/lib/util/Elements";
+import type { Bounds } from "@miragon/value-chain-schema-model";
+import { isVcElement, isVcShape } from "../model/di-types.js";
 
 /**
  * The extent of the diagram's content: every step, org unit and connection (waypoints included).
@@ -10,7 +10,7 @@ import { isVcElement, isVcShape } from '../model/di-types.js';
  * margin.
  */
 export default class VcBounds {
-  static $inject = ['elementRegistry'];
+  static $inject = ["elementRegistry"];
 
   constructor(private readonly elementRegistry: ElementRegistry) {}
 

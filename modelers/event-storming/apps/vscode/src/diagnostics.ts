@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
-import { parseDSLWithDiagnostics } from '@miragon/event-storming-dsl';
-import { splitLines } from './textLines.js';
+import * as vscode from "vscode";
+import { parseDSLWithDiagnostics } from "@miragon/event-storming-dsl";
+import { splitLines } from "./textLines.js";
 
-export const DIAGNOSTIC_COLLECTION_NAME = 'event-storming';
+export const DIAGNOSTIC_COLLECTION_NAME = "event-storming";
 
 /**
  * The parser is lenient: a typo or a dangling arrow keeps the line (it survives the round trip)
@@ -14,7 +14,7 @@ export function boardDiagnostics(text: string): vscode.Diagnostic[] {
   const lastLine = lines.length - 1;
   return parseDSLWithDiagnostics(text).diagnostics.map((finding) => {
     const lineIndex = Math.min(Math.max(finding.line - 1, 0), lastLine);
-    const lineText = lines[lineIndex] ?? '';
+    const lineText = lines[lineIndex] ?? "";
     const firstCharacter = lineText.length - lineText.trimStart().length;
     const diagnostic = new vscode.Diagnostic(
       new vscode.Range(lineIndex, firstCharacter, lineIndex, lineText.length),

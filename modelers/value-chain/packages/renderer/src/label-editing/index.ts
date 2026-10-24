@@ -1,11 +1,11 @@
-import type { ModuleDeclaration } from 'didi';
-import DirectEditingModule from 'diagram-js-direct-editing';
-import VcLabelEditingProvider from './VcLabelEditingProvider.js';
+import type { ModuleDeclaration } from "didi";
+import DirectEditingModule from "diagram-js-direct-editing";
+import VcLabelEditingProvider from "./VcLabelEditingProvider.js";
 
 export const vcLabelEditingModule: ModuleDeclaration = {
   __depends__: [DirectEditingModule],
-  __init__: ['vcLabelEditingProvider'],
-  vcLabelEditingProvider: ['type', VcLabelEditingProvider],
+  __init__: ["vcLabelEditingProvider"],
+  vcLabelEditingProvider: ["type", VcLabelEditingProvider],
 };
 
-export { default as VcLabelEditingProvider, type OpenLabelEdit } from './VcLabelEditingProvider.js';
+export { default as VcLabelEditingProvider, type OpenLabelEdit } from "./VcLabelEditingProvider.js";

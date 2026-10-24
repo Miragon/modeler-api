@@ -49,14 +49,17 @@ export async function resolveInSharedCache({
 }: SharedCacheOptions): Promise<string> {
   await mkdir(cachePath, { recursive: true });
   await removeAbandonedDownloads(cachePath);
-  const privateCache = await mkdtemp(join(cachePath, PRIVATE_DOWNLOAD_PREFIX)).catch((error: unknown) => {
-    // A cache this run cannot write to, it cannot break for another run either.
-    if (isReadOnly(error)) return undefined;
-    throw error;
-  });
+  const privateCache = await mkdtemp(join(cachePath, PRIVATE_DOWNLOAD_PREFIX)).catch(
+    (error: unknown) => {
+      // A cache this run cannot write to, it cannot break for another run either.
+      if (isReadOnly(error)) return undefined;
+      throw error;
+    },
+  );
   if (!privateCache) return download(cachePath);
   // process.exit skips `finally`; a killed run leaves its folder to removeAbandonedDownloads.
-  const removePrivateCacheNow = () => rmSync(privateCache, { recursive: true, force: true, maxRetries: 3 });
+  const removePrivateCacheNow = () =>
+    rmSync(privateCache, { recursive: true, force: true, maxRetries: 3 });
   process.once("exit", removePrivateCacheNow);
   try {
     const linked = await linkSharedInstalls(cachePath, privateCache).catch((error: unknown) => {
@@ -102,7 +105,10 @@ async function removeAbandonedDownloads(cachePath: string): Promise<void> {
 }
 
 /** Links every install of the shared cache into the private one; returns their identities by name. */
-async function linkSharedInstalls(cachePath: string, privateCache: string): Promise<Map<string, string>> {
+async function linkSharedInstalls(
+  cachePath: string,
+  privateCache: string,
+): Promise<Map<string, string>> {
   const identities = new Map<string, string>();
   for (const name of await readdir(cachePath)) {
     if (name.startsWith(".")) continue;
@@ -147,7 +153,8 @@ async function publish(
       log(`another run installed ${shared} first, this run uses that one`);
       return;
     }
-    if (await moveAsideWhileRejected(shared, rejected, `${unpacked}.rejected-${attempt}`)) replaced = true;
+    if (await moveAsideWhileRejected(shared, rejected, `${unpacked}.rejected-${attempt}`))
+      replaced = true;
   }
 }
 
@@ -156,7 +163,11 @@ async function publish(
  * the same rejected install take turns: one that looked just before another one replaced it would
  * otherwise move out the new install, which that run may have started already.
  */
-async function moveAsideWhileRejected(shared: string, rejected: string, aside: string): Promise<boolean> {
+async function moveAsideWhileRejected(
+  shared: string,
+  rejected: string,
+  aside: string,
+): Promise<boolean> {
   const lock = join(dirname(shared), `${REPLACING_PREFIX}${basename(shared)}`);
   await takeLock(lock);
   try {

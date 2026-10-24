@@ -5,7 +5,14 @@
 //     --ext capmap --repo capability-map-modeler
 //
 // Plain Node (no dependencies), so it runs from the installed plugin as it is.
-import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,7 +60,9 @@ export function instantiate(values, templateDir = TEMPLATE_DIR) {
   for (const [placeholder, { option, pattern, hint }] of Object.entries(PLACEHOLDERS)) {
     const value = values[option];
     if (typeof value !== "string" || !pattern.test(value)) {
-      throw new Error(`--${option} (${placeholder}) must be a ${hint}; got ${JSON.stringify(value)}`);
+      throw new Error(
+        `--${option} (${placeholder}) must be a ${hint}; got ${JSON.stringify(value)}`,
+      );
     }
   }
   return filesUnder(templateDir).map((file) => {
@@ -101,7 +110,9 @@ function main() {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content);
   }
-  console.log(`Wrote ${files.length} files to ${targetDir}. Next: see "After copying" in SKILL.md.`);
+  console.log(
+    `Wrote ${files.length} files to ${targetDir}. Next: see "After copying" in SKILL.md.`,
+  );
 }
 
 // Run as a script, not when imported (a path through a symlinked directory counts as the same file).

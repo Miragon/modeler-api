@@ -1,6 +1,6 @@
-import type { WardleyMap } from '@miragon/wardley-schema-model';
-import { parseDSLWithSourceMap } from './parser.js';
-import { serializeKeyedLines } from './serializer.js';
+import type { WardleyMap } from "@miragon/wardley-schema-model";
+import { parseDSLWithSourceMap } from "./parser.js";
+import { serializeKeyedLines } from "./serializer.js";
 
 /** The statement keys of an element line: a top-level element or a pipeline block's child. */
 const ELEMENT_KEY = /^(?:element|child):(.*)$/s;
@@ -18,7 +18,7 @@ function elementIdOf(key: string): string | undefined {
  */
 export function readBackIds(map: WardleyMap): Map<string, string> {
   const lines = serializeKeyedLines(map);
-  const { sourceMap } = parseDSLWithSourceMap([...lines.map((line) => line.text), ''].join('\n'));
+  const { sourceMap } = parseDSLWithSourceMap([...lines.map((line) => line.text), ""].join("\n"));
   const readIdByLine = new Map<number, string>();
   for (const [key, line] of sourceMap.primaryLineOf) {
     const id = elementIdOf(key);

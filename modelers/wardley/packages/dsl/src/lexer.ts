@@ -3,7 +3,7 @@
  * The DSL is line-based; a full tokenizer/generator is not needed.
  */
 
-import type { Method } from '@miragon/wardley-schema-model';
+import type { Method } from "@miragon/wardley-schema-model";
 
 export interface ParsedCoords {
   readonly a: number;
@@ -150,7 +150,7 @@ export function parsePositions(line: string): PositionsOnLine | null {
  * after "+" opens one, so an apostrophe in a name (`Bob's`) does not hide the comment after it.
  */
 function flowValueEnd(line: string, at: number): number {
-  return line[at] === "'" && line[at - 1] === '+' ? line.indexOf("'", at + 1) : -1;
+  return line[at] === "'" && line[at - 1] === "+" ? line.indexOf("'", at + 1) : -1;
 }
 
 /**
@@ -158,7 +158,7 @@ function flowValueEnd(line: string, at: number): number {
  * stripper finds them, so that what the serializer escapes is what the parser would cut.
  */
 export function rewriteOutsideFlowValues(text: string, rewrite: (part: string) => string): string {
-  let rewritten = '';
+  let rewritten = "";
   let partStart = 0;
   for (let i = 0; i < text.length; i++) {
     const valueEnd = flowValueEnd(text, i);
@@ -178,23 +178,23 @@ function indexOfLineComment(line: string): number {
   for (let i = 0; i < line.length - 1; i++) {
     const valueEnd = flowValueEnd(line, i);
     if (valueEnd > 0) i = valueEnd;
-    else if (line[i] === '/' && line[i + 1] === '/' && line[i - 1] !== ':') return i;
+    else if (line[i] === "/" && line[i + 1] === "/" && line[i - 1] !== ":") return i;
   }
   return -1;
 }
 
 /** Reads `<Name> [<address>]`, the text after the `url` keyword — or null. indexOf keeps it linear. */
 export function readUrlDefinition(after: string): { name: string; address: string } | null {
-  const open = after.indexOf('[');
-  const close = after.lastIndexOf(']');
-  const name = open > 0 ? after.slice(0, open).trim() : '';
-  const address = open > 0 && close > open ? after.slice(open + 1, close).trim() : '';
-  if (!name || !address || after.slice(close + 1).trim() !== '') return null;
+  const open = after.indexOf("[");
+  const close = after.lastIndexOf("]");
+  const name = open > 0 ? after.slice(0, open).trim() : "";
+  const address = open > 0 && close > open ? after.slice(open + 1, close).trim() : "";
+  if (!name || !address || after.slice(close + 1).trim() !== "") return null;
   return { name, address };
 }
 
 function isUrlDefinition(line: string): boolean {
-  return keywordOf(line) === 'url' && readUrlDefinition(line.trim().slice('url'.length)) !== null;
+  return keywordOf(line) === "url" && readUrlDefinition(line.trim().slice("url".length)) !== null;
 }
 
 /**
@@ -212,8 +212,8 @@ export class CommentStripper {
     const comments: string[] = [];
     let working = raw;
     if (this.inBlockComment) {
-      const close = working.indexOf('*/');
-      if (close < 0) return { code: '', comments: [raw] };
+      const close = working.indexOf("*/");
+      if (close < 0) return { code: "", comments: [raw] };
       comments.push(working.slice(0, close + 2));
       working = working.slice(close + 2);
       this.inBlockComment = false;
@@ -226,17 +226,17 @@ export class CommentStripper {
 
   /** Left to right, so a `/*` inside a `//` comment opens no block comment. */
   private stripComments(line: string, comments: string[]): string {
-    let code = '';
+    let code = "";
     let rest = line;
     for (;;) {
       const lineComment = indexOfLineComment(rest);
-      const open = indexOutsideFlowValues(rest, '/*');
+      const open = indexOutsideFlowValues(rest, "/*");
       if (lineComment >= 0 && (open < 0 || lineComment < open)) {
         comments.push(rest.slice(lineComment));
         return code + rest.slice(0, lineComment);
       }
       if (open < 0) return code + rest;
-      const close = rest.indexOf('*/', open + 2);
+      const close = rest.indexOf("*/", open + 2);
       if (close < 0) {
         comments.push(rest.slice(open));
         this.inBlockComment = true;
@@ -270,7 +270,7 @@ export type MutableDecorators = {
 };
 
 const PAREN_RE = /\(([^()]*)\)/g;
-export const METHODS: ReadonlySet<string> = new Set(['build', 'buy', 'outsource']);
+export const METHODS: ReadonlySet<string> = new Set(["build", "buy", "outsource"]);
 
 /**
  * Reads the inline decorators of a component line:
@@ -287,20 +287,20 @@ export function parseDecorators(line: string): { decorators: InlineDecorators; r
   let rest = line;
 
   rest = rest.replace(PAREN_RE, (_full, group: string) => {
-    for (const rawToken of group.split(',')) {
+    for (const rawToken of group.split(",")) {
       const token = rawToken.trim().toLowerCase();
-      if (token === 'market') dec.market = true;
-      else if (token === 'ecosystem') dec.ecosystem = true;
-      else if (token === 'inertia') dec.inertia = true;
+      if (token === "market") dec.market = true;
+      else if (token === "ecosystem") dec.ecosystem = true;
+      else if (token === "inertia") dec.inertia = true;
       else if (METHODS.has(token)) dec.method = token as Method;
     }
-    return ' ';
+    return " ";
   });
 
   // trailing keyword `inertia` (unparenthesized)
   rest = rest.replace(/\binertia\b/i, () => {
     dec.inertia = true;
-    return ' ';
+    return " ";
   });
 
   return { decorators: dec, rest };
@@ -314,13 +314,13 @@ export interface TextSpan {
 /** One piece of the text after a statement's coordinates; `at` is its offset in the scanned text. */
 export type SuffixToken = TextSpan &
   (
-    | { readonly kind: 'color'; readonly color: string }
-    | { readonly kind: 'height'; readonly value: string }
-    | { readonly kind: 'label'; readonly dx: string; readonly dy: string }
-    | { readonly kind: 'url'; readonly ref: string }
-    | { readonly kind: 'group'; readonly items: readonly TextSpan[] }
-    | { readonly kind: 'inertia' }
-    | { readonly kind: 'word' }
+    | { readonly kind: "color"; readonly color: string }
+    | { readonly kind: "height"; readonly value: string }
+    | { readonly kind: "label"; readonly dx: string; readonly dy: string }
+    | { readonly kind: "url"; readonly ref: string }
+    | { readonly kind: "group"; readonly items: readonly TextSpan[] }
+    | { readonly kind: "inertia" }
+    | { readonly kind: "word" }
   );
 
 // Color as an (OWM-backwards-compatible) extension: `(color #rrggbb)` OR `(color green)`.
@@ -329,9 +329,9 @@ export type SuffixToken = TextSpan &
 const COLOR_SOURCE = String.raw`\(\s*color\s+(#[0-9a-fA-F]{3,8}|[a-zA-Z][\w-]*)\s*\)`;
 const HEIGHT_SOURCE = String.raw`\(\s{0,8}y\s{1,8}([^\s()]+)\s{0,8}\)`;
 const LABEL_OFFSET_SOURCE = String.raw`label\s*\[\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\]`;
-const COLOR_TOKEN_RE = new RegExp(COLOR_SOURCE, 'iy');
-const HEIGHT_TOKEN_RE = new RegExp(HEIGHT_SOURCE, 'y');
-const LABEL_TOKEN_RE = new RegExp(LABEL_OFFSET_SOURCE, 'iy');
+const COLOR_TOKEN_RE = new RegExp(COLOR_SOURCE, "iy");
+const HEIGHT_TOKEN_RE = new RegExp(HEIGHT_SOURCE, "y");
+const LABEL_TOKEN_RE = new RegExp(LABEL_OFFSET_SOURCE, "iy");
 const URL_TOKEN_RE = /url\s{0,8}\(([^()]*)\)/iy;
 const GROUP_TOKEN_RE = /\(([^()]*)\)/y;
 const INERTIA_TOKEN_RE = /inertia\b/iy;
@@ -345,7 +345,7 @@ function matchAt(pattern: RegExp, text: string, at: number): RegExpExecArray | n
 function groupItems(content: string, contentAt: number): TextSpan[] {
   const items: TextSpan[] = [];
   let itemStart = 0;
-  for (const raw of content.split(',')) {
+  for (const raw of content.split(",")) {
     const leading = raw.length - raw.trimStart().length;
     const text = raw.trim();
     if (text) items.push({ at: contentAt + itemStart + leading, text });
@@ -357,22 +357,22 @@ function groupItems(content: string, contentAt: number): TextSpan[] {
 function readSuffixToken(text: string, at: number): SuffixToken {
   let m: RegExpExecArray | null;
   if ((m = matchAt(COLOR_TOKEN_RE, text, at))) {
-    return { at, text: m[0], kind: 'color', color: m[1]! };
+    return { at, text: m[0], kind: "color", color: m[1]! };
   }
   if ((m = matchAt(HEIGHT_TOKEN_RE, text, at))) {
-    return { at, text: m[0], kind: 'height', value: m[1]! };
+    return { at, text: m[0], kind: "height", value: m[1]! };
   }
   if ((m = matchAt(LABEL_TOKEN_RE, text, at))) {
-    return { at, text: m[0], kind: 'label', dx: m[1]!, dy: m[2]! };
+    return { at, text: m[0], kind: "label", dx: m[1]!, dy: m[2]! };
   }
   if ((m = matchAt(URL_TOKEN_RE, text, at))) {
-    return { at, text: m[0], kind: 'url', ref: m[1]!.trim() };
+    return { at, text: m[0], kind: "url", ref: m[1]!.trim() };
   }
   if ((m = matchAt(GROUP_TOKEN_RE, text, at))) {
-    return { at, text: m[0], kind: 'group', items: groupItems(m[1]!, at + 1) };
+    return { at, text: m[0], kind: "group", items: groupItems(m[1]!, at + 1) };
   }
-  if ((m = matchAt(INERTIA_TOKEN_RE, text, at))) return { at, text: m[0], kind: 'inertia' };
-  return { at, text: matchAt(WORD_TOKEN_RE, text, at)![0], kind: 'word' };
+  if ((m = matchAt(INERTIA_TOKEN_RE, text, at))) return { at, text: m[0], kind: "inertia" };
+  return { at, text: matchAt(WORD_TOKEN_RE, text, at)![0], kind: "word" };
 }
 
 /**
@@ -394,7 +394,7 @@ export function scanSuffix(text: string): SuffixToken[] {
   return tokens;
 }
 
-const WHOLE_COLOR_GROUP_RE = new RegExp(`^${COLOR_SOURCE}$`, 'i');
+const WHOLE_COLOR_GROUP_RE = new RegExp(`^${COLOR_SOURCE}$`, "i");
 const WHOLE_HEIGHT_GROUP_RE = new RegExp(`^${HEIGHT_SOURCE}$`);
 
 /**
@@ -407,8 +407,8 @@ export function splitTrailingGroups(
 ): { rest: string; groups: string[] } {
   const groups: string[] = [];
   let end = text.trimEnd().length;
-  while (text[end - 1] === ')') {
-    const open = text.lastIndexOf('(', end - 1);
+  while (text[end - 1] === ")") {
+    const open = text.lastIndexOf("(", end - 1);
     const group = text.slice(Math.max(open, 0), end);
     const wanted =
       (kinds.color && WHOLE_COLOR_GROUP_RE.test(group)) ||
@@ -448,7 +448,7 @@ export function readUnclampedNumber(text: string): number | null {
   return isRoundTrippableNumber(value) ? value : null;
 }
 
-const LABEL_OFFSET_RE = new RegExp(String.raw`\b${LABEL_OFFSET_SOURCE}`, 'i');
+const LABEL_OFFSET_RE = new RegExp(String.raw`\b${LABEL_OFFSET_SOURCE}`, "i");
 
 /**
  * Reads an optional `label [dx, dy]` (pixel offset) and returns it plus the stripped line.
@@ -463,7 +463,7 @@ export function parseLabelOffset(line: string): {
   if (!m) return { labelOffset: null, rest: line };
   const dx = readUnclampedNumber(m[1]!);
   const dy = readUnclampedNumber(m[2]!);
-  const rest = line.replace(LABEL_OFFSET_RE, ' ');
+  const rest = line.replace(LABEL_OFFSET_RE, " ");
   if (dx === null || dy === null) return { labelOffset: null, rest, unreadable: m[0] };
   return { labelOffset: { dx, dy }, rest };
 }
@@ -475,7 +475,7 @@ const KEYWORD_RE = /^\s*([A-Za-z][\w-]*)(?![\w\p{L}\p{M}\p{N}-])/u;
 /** First word (keyword) of a line, lowercased. */
 export function keywordOf(line: string): string {
   const m = KEYWORD_RE.exec(line);
-  return m ? m[1]!.toLowerCase() : '';
+  return m ? m[1]!.toLowerCase() : "";
 }
 
 export function slug(label: string): string {
@@ -483,8 +483,8 @@ export function slug(label: string): string {
     label
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_/, '')
-      .replace(/_$/, '') || 'x'
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_/, "")
+      .replace(/_$/, "") || "x"
   );
 }

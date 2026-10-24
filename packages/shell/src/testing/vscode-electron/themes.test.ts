@@ -54,7 +54,9 @@ describe("webviewBodyClasses", () => {
 
 describe("expectedWebviewAppearance", () => {
   it("keeps a light-only modeler light and passes high contrast", () => {
-    expect([1, 2, 3, 4].map((kind) => expectedWebviewAppearance(kind as 1 | 2 | 3 | 4, ["light"]))).toEqual([
+    expect(
+      [1, 2, 3, 4].map((kind) => expectedWebviewAppearance(kind as 1 | 2 | 3 | 4, ["light"])),
+    ).toEqual([
       { theme: "light" },
       { theme: "light" },
       { theme: "light", kontrast: "hoch" },
@@ -64,7 +66,9 @@ describe("expectedWebviewAppearance", () => {
 
   it("follows the theme for a dark-capable modeler", () => {
     expect(
-      [1, 2, 3, 4].map((kind) => expectedWebviewAppearance(kind as 1 | 2 | 3 | 4, ["light", "dark"])),
+      [1, 2, 3, 4].map((kind) =>
+        expectedWebviewAppearance(kind as 1 | 2 | 3 | 4, ["light", "dark"]),
+      ),
     ).toEqual([
       { theme: "light" },
       { theme: "dark" },

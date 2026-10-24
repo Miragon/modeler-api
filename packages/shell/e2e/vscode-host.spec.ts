@@ -41,14 +41,18 @@ function htmlMode(page: Page) {
 test.describe("VS Code host stub", () => {
   test.describe.configure({ timeout: 60_000 });
 
-  test("the appearance case holds after a runtime theme switch (light-only modeler)", async ({ page }) => {
+  test("the appearance case holds after a runtime theme switch (light-only modeler)", async ({
+    page,
+  }) => {
     await appearanceCase!.run(page, {
       ...demoHarness("ide", { switchAtRuntime: true }),
       sizes: WIDE_ONLY,
     });
   });
 
-  test("the appearance case holds after a runtime theme switch (dark-capable modeler)", async ({ page }) => {
+  test("the appearance case holds after a runtime theme switch (dark-capable modeler)", async ({
+    page,
+  }) => {
     await appearanceCase!.run(page, {
       ...demoHarness("ide", { themes: ["light", "dark"], switchAtRuntime: true }),
       sizes: WIDE_ONLY,
@@ -61,7 +65,11 @@ test.describe("VS Code host stub", () => {
     await openIde(page, "light", "dark");
     expect(await htmlMode(page)).toEqual({ theme: "light", kontrast: null, body: "vscode-dark" });
     await switchTo(page, 3);
-    expect(await htmlMode(page)).toEqual({ theme: "light", kontrast: "hoch", body: "vscode-high-contrast" });
+    expect(await htmlMode(page)).toEqual({
+      theme: "light",
+      kontrast: "hoch",
+      body: "vscode-high-contrast",
+    });
     await switchTo(page, 4);
     expect(await htmlMode(page)).toEqual({
       theme: "light",
@@ -91,9 +99,14 @@ test.describe("VS Code host stub", () => {
     await switchTo(page, 3);
     await page.waitForTimeout(300);
     const record = await page.evaluate(
-      () => (window as unknown as { __switch: { batches: string[][]; transitions: number } }).__switch,
+      () =>
+        (window as unknown as { __switch: { batches: string[][]; transitions: number } }).__switch,
     );
-    expect(await htmlMode(page)).toEqual({ theme: "dark", kontrast: "hoch", body: "vscode-high-contrast" });
+    expect(await htmlMode(page)).toEqual({
+      theme: "dark",
+      kontrast: "hoch",
+      body: "vscode-high-contrast",
+    });
     expect(record.batches.filter((batch) => batch.length > 0)).toEqual([
       ["data-cd-theme", "data-cd-kontrast"],
     ]);
@@ -112,19 +125,22 @@ test.describe("VS Code host stub: setting and motion", () => {
     await page.evaluate(() => {
       const seen: Array<string | null> = [];
       (window as unknown as { __themes: typeof seen }).__themes = seen;
-      new MutationObserver(() => seen.push(document.documentElement.getAttribute("data-cd-theme"))).observe(
-        document.documentElement,
-        { attributes: true, attributeFilter: ["data-cd-theme"] },
-      );
+      new MutationObserver(() =>
+        seen.push(document.documentElement.getAttribute("data-cd-theme")),
+      ).observe(document.documentElement, { attributes: true, attributeFilter: ["data-cd-theme"] });
     });
     await switchTo(page, 2);
     await switchTo(page, 1);
     await page.waitForTimeout(100);
-    expect(await page.evaluate(() => (window as unknown as { __themes: string[] }).__themes)).toEqual([]);
+    expect(
+      await page.evaluate(() => (window as unknown as { __themes: string[] }).__themes),
+    ).toEqual([]);
     expect(await htmlMode(page)).toEqual({ theme: "dark", kontrast: null, body: "vscode-light" });
 
     await page.evaluate(() => window.__demo?.vscode?.setColorTheme("automatic"));
-    await page.waitForFunction(() => document.documentElement.getAttribute("data-cd-theme") === "light");
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute("data-cd-theme") === "light",
+    );
   });
 
   test("VS Code's reduce motion stops the chrome's animations and makes an explicit fit jump", async ({
@@ -134,7 +150,9 @@ test.describe("VS Code host stub: setting and motion", () => {
     await page.goto(`/?host=ide&reduceMotion`);
     await page.waitForFunction(() => window.__demo?.ready === true);
     expect(
-      await page.evaluate(() => document.documentElement.classList.contains("cd-shell-reduce-motion")),
+      await page.evaluate(() =>
+        document.documentElement.classList.contains("cd-shell-reduce-motion"),
+      ),
     ).toBe(true);
     await page.locator('[data-chrome="menu"]').click();
     const duration = await page.evaluate(
@@ -156,6 +174,8 @@ test.describe("VS Code host stub: setting and motion", () => {
     expect(zooms.first).toBeLessThanOrEqual(1);
 
     await page.evaluate(() => window.__demo?.vscode?.setReduceMotion(false));
-    await page.waitForFunction(() => !document.documentElement.classList.contains("cd-shell-reduce-motion"));
+    await page.waitForFunction(
+      () => !document.documentElement.classList.contains("cd-shell-reduce-motion"),
+    );
   });
 });

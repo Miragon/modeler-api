@@ -1,18 +1,18 @@
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Mouse from 'diagram-js/lib/features/mouse/Mouse';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type Create from "diagram-js/lib/features/create/Create";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Mouse from "diagram-js/lib/features/mouse/Mouse";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
 import {
   isWardleyConnection,
   isWardleyShape,
   type WardleyConnection,
   type WardleyShape,
-} from '../model/di-types.js';
-import { connectionAnchorOf } from '../layout/index.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
+} from "../model/di-types.js";
+import { connectionAnchorOf } from "../layout/index.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
 
 /** Offset (px) accumulated per paste operation. */
 const PASTE_OFFSET = 24;
@@ -35,24 +35,24 @@ interface ConnectionSnapshot {
 
 /** Wardley properties carried along when copying (geometry handled separately). */
 const SHAPE_PROPS = [
-  'wardleyType',
-  'evolution',
-  'visibility',
-  'decorators',
-  'movement',
-  'evolutionStart',
-  'evolutionEnd',
-  'annotationNumber',
-  'attitudeKind',
-  'corner2',
-  'acceleratorDirection',
-  'labelOffset',
-  'color',
-  'drawingPoints',
-  'closed',
-  'strokeStyle',
+  "wardleyType",
+  "evolution",
+  "visibility",
+  "decorators",
+  "movement",
+  "evolutionStart",
+  "evolutionEnd",
+  "annotationNumber",
+  "attitudeKind",
+  "corner2",
+  "acceleratorDirection",
+  "labelOffset",
+  "color",
+  "drawingPoints",
+  "closed",
+  "strokeStyle",
 ] as const;
-const CONNECTION_PROPS = ['wardleyType', 'bidirectional', 'flowValue', 'linkLabel'] as const;
+const CONNECTION_PROPS = ["wardleyType", "bidirectional", "flowValue", "linkLabel"] as const;
 
 function snapshotProps(
   el: Record<string, unknown>,
@@ -75,13 +75,13 @@ function snapshotProps(
  */
 export default class WardleyCopyPaste {
   static $inject = [
-    'selection',
-    'modeling',
-    'elementFactory',
-    'canvas',
-    'create',
-    'mouse',
-    'wardleyElementFactory',
+    "selection",
+    "modeling",
+    "elementFactory",
+    "canvas",
+    "create",
+    "mouse",
+    "wardleyElementFactory",
   ];
 
   private clipboard: { shapes: ShapeSnapshot[]; connections: ConnectionSnapshot[] } | null = null;
@@ -130,7 +130,7 @@ export default class WardleyCopyPaste {
         y: s.y,
         width: s.width,
         height: s.height,
-        label: s.wardleyLabel ?? '',
+        label: s.wardleyLabel ?? "",
       })),
       connections,
     };
@@ -175,7 +175,7 @@ export default class WardleyCopyPaste {
         width: snap.width,
         height: snap.height,
         wardleyLabel: labels[i]!,
-        ...(snap.props['wardleyType'] === 'pipeline' || snap.props['wardleyType'] === 'attitude'
+        ...(snap.props["wardleyType"] === "pipeline" || snap.props["wardleyType"] === "attitude"
           ? { isFrame: true }
           : {}),
       }),
@@ -210,11 +210,11 @@ export default class WardleyCopyPaste {
   private cloneLabels(snapshots: readonly ShapeSnapshot[]): string[] {
     const pipelineIndexByAnchor = new Map<number, number>();
     snapshots.forEach((pipeline, pipelineIndex) => {
-      if (pipeline.props['wardleyType'] !== 'pipeline') return;
+      if (pipeline.props["wardleyType"] !== "pipeline") return;
       const anchorIndex = snapshots.findIndex(
         (candidate, index) =>
           !pipelineIndexByAnchor.has(index) &&
-          candidate.props['wardleyType'] === 'component' &&
+          candidate.props["wardleyType"] === "component" &&
           candidate.label === pipeline.label &&
           candidate.pipelineId !== pipeline.id,
       );
@@ -225,7 +225,7 @@ export default class WardleyCopyPaste {
       .filter(({ index }) => !pipelineIndexByAnchor.has(index));
     const uniqueLabels = this.wardleyElementFactory.uniqueLabels(
       independent.map(({ snapshot }) => ({
-        type: snapshot.props['wardleyType'],
+        type: snapshot.props["wardleyType"],
         label: snapshot.label,
       })),
     );

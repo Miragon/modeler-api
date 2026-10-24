@@ -1,8 +1,8 @@
 /** Central rendering constants (geometry, colors, typography) — Miragon corporate identity. */
 
-import { MIRAGON } from '../theme/index.js';
-import type { StickyKind } from '../model/di-types.js';
-import { plainNoteText } from './note-markdown.js';
+import { MIRAGON } from "../theme/index.js";
+import type { StickyKind } from "../model/di-types.js";
+import { plainNoteText } from "./note-markdown.js";
 
 export interface StickyStyle {
   /** Default label for a freshly created sticky. */
@@ -21,24 +21,24 @@ export interface StickyStyle {
  * small corner stickies.
  */
 export const STICKY_STYLES: Record<StickyKind, StickyStyle> = {
-  event: { label: 'Domain Event', width: 130, height: 90, fill: '#FFB84D', stroke: '#E89A2E' },
-  command: { label: 'Command', width: 130, height: 90, fill: '#7EC8F0', stroke: '#4FA8D8' },
-  actor: { label: 'Actor', width: 100, height: 65, fill: '#FFF9B1', stroke: '#E6DB7A' },
-  aggregate: { label: 'Aggregate', width: 180, height: 110, fill: '#FFE066', stroke: '#E0BE3F' },
-  policy: { label: 'Policy', width: 180, height: 110, fill: '#C9A0DC', stroke: '#A97CC4' },
-  readmodel: { label: 'Read Model', width: 130, height: 90, fill: '#A8D08D', stroke: '#7FB35D' },
+  event: { label: "Domain Event", width: 130, height: 90, fill: "#FFB84D", stroke: "#E89A2E" },
+  command: { label: "Command", width: 130, height: 90, fill: "#7EC8F0", stroke: "#4FA8D8" },
+  actor: { label: "Actor", width: 100, height: 65, fill: "#FFF9B1", stroke: "#E6DB7A" },
+  aggregate: { label: "Aggregate", width: 180, height: 110, fill: "#FFE066", stroke: "#E0BE3F" },
+  policy: { label: "Policy", width: 180, height: 110, fill: "#C9A0DC", stroke: "#A97CC4" },
+  readmodel: { label: "Read Model", width: 130, height: 90, fill: "#A8D08D", stroke: "#7FB35D" },
   external: {
-    label: 'External System',
+    label: "External System",
     width: 180,
     height: 110,
-    fill: '#F4A6C0',
-    stroke: '#DE7EA2',
+    fill: "#F4A6C0",
+    stroke: "#DE7EA2",
   },
-  hotspot: { label: 'Hotspot', width: 130, height: 90, fill: '#E85D75', stroke: '#C43B55' },
+  hotspot: { label: "Hotspot", width: 130, height: 90, fill: "#E85D75", stroke: "#C43B55" },
 } as const;
 
 /** Free-text note: grows with its text (see `noteMetrics`) unless resized by hand, neutral grey. */
-export const NOTE_STYLE = { label: 'Note', fill: '#ECECEC', stroke: '#C4C4C4' } as const;
+export const NOTE_STYLE = { label: "Note", fill: "#ECECEC", stroke: "#C4C4C4" } as const;
 
 /** Smallest hand-resized note box — keeps a shrunken note grabbable and its handles apart. */
 export const NOTE_MIN_RESIZE = { width: 60, height: 40 } as const;
@@ -73,7 +73,7 @@ const NOTE_DEFAULT_SIZE = {
  */
 export function noteMetrics(label: string): { lines: string[]; width: number; height: number } {
   const plain = plainNoteText(label);
-  const lines = (plain && plain.length ? plain : 'note').split('\n');
+  const lines = (plain && plain.length ? plain : "note").split("\n");
   const maxLen = Math.max(1, ...lines.map((l) => l.length));
   return {
     lines,
@@ -108,13 +108,13 @@ export function isManualNoteBox(label: string, box: { width: number; height: num
 export const COLORS = {
   paper: MIRAGON.grau,
   ink: MIRAGON.schwarz,
-  inkSoft: '#5B5B5B',
+  inkSoft: "#5B5B5B",
   surface: MIRAGON.weiss,
   stroke: MIRAGON.schwarz,
   /** The single connection style: gray arrowed line. */
-  arrow: '#9E9E9E',
+  arrow: "#9E9E9E",
   accent: MIRAGON.blau,
-  accentSoft: 'rgba(51,93,229,0.12)',
+  accentSoft: "rgba(51,93,229,0.12)",
   /** Text inside every sticky: #1D1D1D reaches 4.5:1 on all eight fills, the hotspot included. */
   stickyText: MIRAGON.schwarz,
 } as const;

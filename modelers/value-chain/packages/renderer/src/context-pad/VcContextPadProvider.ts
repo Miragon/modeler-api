@@ -1,9 +1,9 @@
-import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
-import type ContextPadProvider from 'diagram-js/lib/features/context-pad/ContextPadProvider';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import type { Element } from 'diagram-js/lib/model/Types';
-import type { ConnectionType } from '@miragon/value-chain-schema-model';
+import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+import type ContextPadProvider from "diagram-js/lib/features/context-pad/ContextPadProvider";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import type { Element } from "diagram-js/lib/model/Types";
+import type { ConnectionType } from "@miragon/value-chain-schema-model";
 import {
   isOrgUnit,
   isStep,
@@ -11,14 +11,14 @@ import {
   isVcShape,
   type VcConnection,
   type VcShape,
-} from '../model/di-types.js';
-import { contextPadEntryHtml, ICONS } from '../draw/icons.js';
-import { COLOR_PICKER_PROVIDER_ID } from '../popup/VcColorPickerProvider.js';
-import { ALIGN_MENU_PROVIDER_ID } from '../popup/VcAlignMenuProvider.js';
-import type VcAppend from '../append/VcAppend.js';
-import type VcConnect from '../connect/VcConnect.js';
-import type VcModeling from '../modeling/VcModeling.js';
-import type VcReadOnly from '../read-only/VcReadOnly.js';
+} from "../model/di-types.js";
+import { contextPadEntryHtml, ICONS } from "../draw/icons.js";
+import { COLOR_PICKER_PROVIDER_ID } from "../popup/VcColorPickerProvider.js";
+import { ALIGN_MENU_PROVIDER_ID } from "../popup/VcAlignMenuProvider.js";
+import type VcAppend from "../append/VcAppend.js";
+import type VcConnect from "../connect/VcConnect.js";
+import type VcModeling from "../modeling/VcModeling.js";
+import type VcReadOnly from "../read-only/VcReadOnly.js";
 
 interface ContextPadEntry {
   group: string;
@@ -31,13 +31,13 @@ type Entries = Record<string, ContextPadEntry>;
 
 export default class VcContextPadProvider {
   static $inject = [
-    'contextPad',
-    'modeling',
-    'popupMenu',
-    'vcAppend',
-    'vcConnect',
-    'vcModeling',
-    'vcReadOnly',
+    "contextPad",
+    "modeling",
+    "popupMenu",
+    "vcAppend",
+    "vcConnect",
+    "vcModeling",
+    "vcReadOnly",
   ];
 
   constructor(
@@ -47,7 +47,7 @@ export default class VcContextPadProvider {
     private readonly vcAppend: VcAppend,
     private readonly vcConnect: VcConnect,
     private readonly vcModeling: VcModeling,
-    private readonly readOnly: Pick<VcReadOnly, 'isReadOnly'>,
+    private readonly readOnly: Pick<VcReadOnly, "isReadOnly">,
   ) {
     contextPad.registerProvider(this as unknown as ContextPadProvider);
   }
@@ -64,20 +64,20 @@ export default class VcContextPadProvider {
 
     if (isOrgUnit(element)) {
       const startConnect = (event: Event): void => {
-        this.vcConnect.start(event, element, 'assignment');
+        this.vcConnect.start(event, element, "assignment");
       };
-      entries['connect.assignment'] = {
-        group: 'connect',
-        title: 'Connect to step',
+      entries["connect.assignment"] = {
+        group: "connect",
+        title: "Connect to step",
         html: contextPadEntryHtml(ICONS.connectHierarchy, true),
         action: { click: startConnect, dragstart: startConnect },
       };
     }
 
     if (isVcShape(element)) {
-      entries['set-color'] = {
-        group: 'edit',
-        title: 'Set color',
+      entries["set-color"] = {
+        group: "edit",
+        title: "Set color",
         html: contextPadEntryHtml(ICONS.color),
         action: {
           click: (event: Event) => {
@@ -91,21 +91,21 @@ export default class VcContextPadProvider {
       };
     }
 
-    if (isVcConnection(element) && element.vcType !== 'assignment') {
+    if (isVcConnection(element) && element.vcType !== "assignment") {
       const connection = element as VcConnection;
-      const other: ConnectionType = connection.vcType === 'sequence' ? 'hierarchy' : 'sequence';
-      entries['toggle-type'] = {
-        group: 'edit',
-        title: `Switch to "${other === 'sequence' ? 'is predecessor of' : 'is process-oriented superior'}"`,
+      const other: ConnectionType = connection.vcType === "sequence" ? "hierarchy" : "sequence";
+      entries["toggle-type"] = {
+        group: "edit",
+        title: `Switch to "${other === "sequence" ? "is predecessor of" : "is process-oriented superior"}"`,
         html: contextPadEntryHtml(ICONS.toggleType),
         action: { click: () => this.vcModeling.setConnectionType(connection, other) },
       };
     }
 
     if (isVcShape(element) || isVcConnection(element)) {
-      entries['delete'] = {
-        group: 'edit',
-        title: 'Delete',
+      entries["delete"] = {
+        group: "edit",
+        title: "Delete",
         html: contextPadEntryHtml(ICONS.trash),
         action: { click: () => this.modeling.removeElements([element]) },
       };
@@ -121,9 +121,9 @@ export default class VcContextPadProvider {
     }
 
     if (elements.filter(isVcShape).length >= 2) {
-      entries['align'] = {
-        group: 'edit',
-        title: 'Align / distribute',
+      entries["align"] = {
+        group: "edit",
+        title: "Align / distribute",
         html: contextPadEntryHtml(ICONS.align),
         action: {
           click: (event: Event) => {
@@ -137,9 +137,9 @@ export default class VcContextPadProvider {
       };
     }
 
-    entries['delete'] = {
-      group: 'edit',
-      title: 'Delete',
+    entries["delete"] = {
+      group: "edit",
+      title: "Delete",
       html: contextPadEntryHtml(ICONS.trash),
       action: { click: () => this.modeling.removeElements([...elements]) },
     };
@@ -158,39 +158,39 @@ export default class VcContextPadProvider {
       this.vcConnect.start(event, shape, type);
     };
 
-    entries['append.step'] = {
-      group: 'model',
-      title: 'Append step (is predecessor of)',
+    entries["append.step"] = {
+      group: "model",
+      title: "Append step (is predecessor of)",
       html: contextPadEntryHtml(ICONS.appendStep, true),
-      action: { click: append('sequence'), dragstart: appendDrag('sequence') },
+      action: { click: append("sequence"), dragstart: appendDrag("sequence") },
     };
 
-    entries['append.sub-step'] = {
-      group: 'model',
-      title: 'Append sub-step (is process-oriented superior)',
+    entries["append.sub-step"] = {
+      group: "model",
+      title: "Append sub-step (is process-oriented superior)",
       html: contextPadEntryHtml(ICONS.appendSubStep, true),
-      action: { click: append('hierarchy'), dragstart: appendDrag('hierarchy') },
+      action: { click: append("hierarchy"), dragstart: appendDrag("hierarchy") },
     };
 
-    entries['append.org-unit'] = {
-      group: 'model',
-      title: 'Append organizational unit',
+    entries["append.org-unit"] = {
+      group: "model",
+      title: "Append organizational unit",
       html: contextPadEntryHtml(ICONS.appendOrgUnit, true),
-      action: { click: append('assignment'), dragstart: appendDrag('assignment') },
+      action: { click: append("assignment"), dragstart: appendDrag("assignment") },
     };
 
-    entries['connect.sequence'] = {
-      group: 'connect',
-      title: 'Connect (is predecessor of)',
+    entries["connect.sequence"] = {
+      group: "connect",
+      title: "Connect (is predecessor of)",
       html: contextPadEntryHtml(ICONS.connectSequence, true),
-      action: { click: connect('sequence'), dragstart: connect('sequence') },
+      action: { click: connect("sequence"), dragstart: connect("sequence") },
     };
 
-    entries['connect.hierarchy'] = {
-      group: 'connect',
-      title: 'Connect (is process-oriented superior)',
+    entries["connect.hierarchy"] = {
+      group: "connect",
+      title: "Connect (is process-oriented superior)",
       html: contextPadEntryHtml(ICONS.connectHierarchy, true),
-      action: { click: connect('hierarchy'), dragstart: connect('hierarchy') },
+      action: { click: connect("hierarchy"), dragstart: connect("hierarchy") },
     };
   }
 }

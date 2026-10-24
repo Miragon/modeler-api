@@ -1,32 +1,32 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Connect from 'diagram-js/lib/features/connect/Connect';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Connect from "diagram-js/lib/features/connect/Connect";
+import type Create from "diagram-js/lib/features/create/Create";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type {
   ContextPadEntries,
   default as ContextPadProvider,
-} from 'diagram-js/lib/features/context-pad/ContextPadProvider';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
-import type { Injector } from 'didi';
+} from "diagram-js/lib/features/context-pad/ContextPadProvider";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
+import type { Injector } from "didi";
 import {
   isWardleyShape,
   isWardleyConnection,
   type WardleyConnection,
   type WardleyShape,
-} from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import type WardleyLabelEditing from '../label-editing/WardleyLabelEditing.js';
-import type WardleyEvolveDragging from '../evolve/WardleyEvolveDragging.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type WardleyColorPicker from '../color-picker/WardleyColorPicker.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyLinkEditing from '../link-editing/WardleyLinkEditing.js';
-import { canHaveLink, linkOf, safeLinkUrl } from '../link-editing/index.js';
-import { POPUP_PROVIDER_ID } from '../popup/index.js';
-import { isReadOnly } from '../read-only/index.js';
+} from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import type WardleyLabelEditing from "../label-editing/WardleyLabelEditing.js";
+import type WardleyEvolveDragging from "../evolve/WardleyEvolveDragging.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type WardleyColorPicker from "../color-picker/WardleyColorPicker.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyLinkEditing from "../link-editing/WardleyLinkEditing.js";
+import { canHaveLink, linkOf, safeLinkUrl } from "../link-editing/index.js";
+import { POPUP_PROVIDER_ID } from "../popup/index.js";
+import { isReadOnly } from "../read-only/index.js";
 import {
   iconMarkup,
   struckIconMarkup,
@@ -40,21 +40,21 @@ import {
   ICON_PALETTE,
   ICON_SETTINGS,
   ICON_SWAP_HORIZ,
-} from '../draw/icons.js';
+} from "../draw/icons.js";
 
 /** Rows of the compact pad: primary actions, then properties, then the destructive action. */
-const GROUP_PRIMARY = 'edit';
-const GROUP_PROPERTIES = 'wardley';
-const GROUP_DANGER = 'danger';
+const GROUP_PRIMARY = "edit";
+const GROUP_PROPERTIES = "wardley";
+const GROUP_DANGER = "danger";
 
 /** Distance (diagram px) below the source at which a keyboard-appended component is placed. */
 const KEYBOARD_APPEND_OFFSET = 80;
 
-const PAD_PREVIOUS_KEYS = new Set(['ArrowLeft', 'ArrowUp']);
-const PAD_NEXT_KEYS = new Set(['ArrowRight', 'ArrowDown']);
+const PAD_PREVIOUS_KEYS = new Set(["ArrowLeft", "ArrowUp"]);
+const PAD_NEXT_KEYS = new Set(["ArrowRight", "ArrowDown"]);
 
 function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 /**
@@ -63,25 +63,25 @@ function escapeAttribute(value: string): string {
  */
 function cpHtml(iconSvg: string, label: string, draggable = false): string {
   const name = escapeAttribute(label);
-  return `<div class="entry wardley-cp-entry" role="button" tabindex="0" aria-label="${name}"${draggable ? ' draggable="true"' : ''} title="${name}">${iconSvg}</div>`;
+  return `<div class="entry wardley-cp-entry" role="button" tabindex="0" aria-label="${name}"${draggable ? ' draggable="true"' : ""} title="${name}">${iconSvg}</div>`;
 }
 
 /** Context actions per element (concept doc §5.5). */
 export default class WardleyContextPadProvider implements ContextPadProvider {
   static $inject = [
-    'contextPad',
-    'modeling',
-    'connect',
-    'create',
-    'popupMenu',
-    'wardleyModeling',
-    'wardleyLabelEditing',
-    'wardleyEvolveDragging',
-    'wardleyElementFactory',
-    'wardleyColorPicker',
-    'eventBus',
-    'canvas',
-    'injector',
+    "contextPad",
+    "modeling",
+    "connect",
+    "create",
+    "popupMenu",
+    "wardleyModeling",
+    "wardleyLabelEditing",
+    "wardleyEvolveDragging",
+    "wardleyElementFactory",
+    "wardleyColorPicker",
+    "eventBus",
+    "canvas",
+    "injector",
   ];
 
   /** Synthetic clicks created for Enter/Space, so actions can pick a pointer-free variant. */
@@ -103,10 +103,10 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     private readonly injector: Injector,
   ) {
     contextPad.registerProvider(this);
-    eventBus.on('contextPad.create', (event: { pad: HTMLElement }) => {
-      event.pad.setAttribute('role', 'toolbar');
-      event.pad.setAttribute('aria-label', 'Element actions');
-      event.pad.addEventListener('keydown', (keyEvent) => this.onPadKeydown(keyEvent, event.pad));
+    eventBus.on("contextPad.create", (event: { pad: HTMLElement }) => {
+      event.pad.setAttribute("role", "toolbar");
+      event.pad.setAttribute("aria-label", "Element actions");
+      event.pad.addEventListener("keydown", (keyEvent) => this.onPadKeydown(keyEvent, event.pad));
     });
   }
 
@@ -119,10 +119,10 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     const entries: ContextPadEntries = {};
     this.addPrimaryEntries(shape, entries);
     this.addPropertyEntries(shape, entries);
-    entries['delete'] = {
+    entries["delete"] = {
       group: GROUP_DANGER,
-      title: 'Delete',
-      html: cpHtml(iconMarkup(ICON_DELETE), 'Delete'),
+      title: "Delete",
+      html: cpHtml(iconMarkup(ICON_DELETE), "Delete"),
       action: { click: () => this.modeling.removeElements([shape as unknown as Element]) },
     };
     return entries;
@@ -130,10 +130,10 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
 
   /** Connections: edit the annotation (or the flow value of an imported flow link) + delete. */
   private connectionEntries(conn: WardleyConnection): ContextPadEntries {
-    const isFlow = conn.wardleyType === 'flow';
-    const editTitle = isFlow ? 'Edit flow value' : 'Edit link annotation';
+    const isFlow = conn.wardleyType === "flow";
+    const editTitle = isFlow ? "Edit flow value" : "Edit link annotation";
     return {
-      'edit-value': {
+      "edit-value": {
         group: GROUP_PRIMARY,
         title: editTitle,
         html: cpHtml(iconMarkup(ICON_EDIT), editTitle),
@@ -141,8 +141,8 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       },
       delete: {
         group: GROUP_DANGER,
-        title: 'Delete connection',
-        html: cpHtml(iconMarkup(ICON_DELETE), 'Delete connection'),
+        title: "Delete connection",
+        html: cpHtml(iconMarkup(ICON_DELETE), "Delete connection"),
         action: { click: () => this.modeling.removeElements([conn as unknown as Element]) },
       },
     };
@@ -151,20 +151,20 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
   /** Row 1: edit label, append, connect, evolve. */
   private addPrimaryEntries(shape: WardleyShape, entries: ContextPadEntries): void {
     // Drawings have no label (pure geometry); regions are unlabelled like in OWM.
-    if (shape.wardleyType !== 'drawing' && shape.wardleyType !== 'attitude') {
-      entries['edit-label'] = {
+    if (shape.wardleyType !== "drawing" && shape.wardleyType !== "attitude") {
+      entries["edit-label"] = {
         group: GROUP_PRIMARY,
-        title: 'Edit label',
-        html: cpHtml(iconMarkup(ICON_EDIT), 'Edit label'),
+        title: "Edit label",
+        html: cpHtml(iconMarkup(ICON_EDIT), "Edit label"),
         action: { click: () => this.labelEditing.activate(shape) },
       };
     }
 
     const connectable =
-      shape.wardleyType === 'component' ||
-      shape.wardleyType === 'anchor' ||
-      shape.wardleyType === 'submap' ||
-      shape.wardleyType === 'pipeline';
+      shape.wardleyType === "component" ||
+      shape.wardleyType === "anchor" ||
+      shape.wardleyType === "submap" ||
+      shape.wardleyType === "pipeline";
     if (connectable) {
       // Append component: drags out a new (blank) component and creates the arrow automatically
       // (diagram-js Create with `source` -> modeling.appendShape). Configurable via ⚙.
@@ -173,37 +173,37 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
           this.appendBelow(shape);
           return;
         }
-        const next = this.factory.createNew('component', 'Component');
+        const next = this.factory.createNew("component", "Component");
         this.create.start(event as MouseEvent, next as unknown as Element, {
           source: shape as unknown as Element,
         });
       };
-      entries['append'] = {
+      entries["append"] = {
         group: GROUP_PRIMARY,
-        title: 'Append component (auto-connect)',
-        html: cpHtml(iconMarkup(ICON_CIRCLE), 'Append component', true),
+        title: "Append component (auto-connect)",
+        html: cpHtml(iconMarkup(ICON_CIRCLE), "Append component", true),
         action: { click: startAppend, dragstart: startAppend },
       };
 
       const startConnect = (event: Event) => {
         this.connect.start(event as MouseEvent, shape as unknown as Element);
       };
-      entries['connect'] = {
+      entries["connect"] = {
         group: GROUP_PRIMARY,
-        title: 'Connect to existing element (A)',
-        html: cpHtml(iconMarkup(ICON_ARROW_FORWARD), 'Connect to existing element (A)', true),
+        title: "Connect to existing element (A)",
+        html: cpHtml(iconMarkup(ICON_ARROW_FORWARD), "Connect to existing element (A)", true),
         action: { click: startConnect, dragstart: startConnect },
       };
     }
 
-    if (shape.wardleyType === 'component') {
+    if (shape.wardleyType === "component") {
       if (shape.movement) {
         // Target is set -> drag the red target circle directly to MOVE it
         // (see WardleyEvolveDragging). Here we only offer removal.
-        entries['evolve-clear'] = {
+        entries["evolve-clear"] = {
           group: GROUP_PRIMARY,
-          title: 'Remove evolve',
-          html: cpHtml(struckIconMarkup(ICON_DOUBLE_ARROW), 'Remove evolve'),
+          title: "Remove evolve",
+          html: cpHtml(struckIconMarkup(ICON_DOUBLE_ARROW), "Remove evolve"),
           action: { click: () => this.wardleyModeling.clearMovement(shape) },
         };
       } else if (shape.evolution < 0.999) {
@@ -211,12 +211,12 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         // (no automatic +0.2 anymore) — it only starts the placement. At evolution ~ 1 there is
         // no meaningful target left — the entry is omitted (instead of creating a null movement).
         const startEvolve = (event: Event) => this.evolveDragging.start(event, shape);
-        entries['evolve'] = {
+        entries["evolve"] = {
           group: GROUP_PRIMARY,
-          title: 'Evolve: drag to set the target maturity',
+          title: "Evolve: drag to set the target maturity",
           html: cpHtml(
             iconMarkup(ICON_DOUBLE_ARROW),
-            'Evolve: drag to set the target maturity',
+            "Evolve: drag to set the target maturity",
             true,
           ),
           action: { click: startEvolve, dragstart: startEvolve },
@@ -227,11 +227,11 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
 
   /** Row 2: settings, line style, colour, link. */
   private addPropertyEntries(shape: WardleyShape, entries: ContextPadEntries): void {
-    if (shape.wardleyType === 'component') {
-      entries['settings'] = {
+    if (shape.wardleyType === "component") {
+      entries["settings"] = {
         group: GROUP_PROPERTIES,
-        title: 'Settings (type, sourcing, inertia)',
-        html: cpHtml(iconMarkup(ICON_SETTINGS), 'Settings (type, sourcing, inertia)'),
+        title: "Settings (type, sourcing, inertia)",
+        html: cpHtml(iconMarkup(ICON_SETTINGS), "Settings (type, sourcing, inertia)"),
         action: {
           click: (event: Event) => {
             const e = event as MouseEvent;
@@ -245,15 +245,15 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     }
 
     // Drawings: cycle the stroke style (solid -> dashed -> dotted).
-    if (shape.wardleyType === 'drawing') {
+    if (shape.wardleyType === "drawing") {
       const next =
-        shape.strokeStyle === 'dashed'
-          ? 'dotted'
-          : shape.strokeStyle === 'dotted'
+        shape.strokeStyle === "dashed"
+          ? "dotted"
+          : shape.strokeStyle === "dotted"
             ? undefined
-            : 'dashed';
-      const title = `Line style: ${shape.strokeStyle ?? 'solid'} (click to change)`;
-      entries['stroke-style'] = {
+            : "dashed";
+      const title = `Line style: ${shape.strokeStyle ?? "solid"} (click to change)`;
+      entries["stroke-style"] = {
         group: GROUP_PROPERTIES,
         title,
         html: cpHtml(iconMarkup(ICON_SWAP_HORIZ), title),
@@ -264,10 +264,10 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     }
 
     // Color is available on EVERY element (model-wide `color`, DSL extension `(color ...)`).
-    entries['color'] = {
+    entries["color"] = {
       group: GROUP_PROPERTIES,
-      title: 'Color',
-      html: cpHtml(iconMarkup(ICON_PALETTE), 'Color'),
+      title: "Color",
+      html: cpHtml(iconMarkup(ICON_PALETTE), "Color"),
       action: {
         click: (event: Event) => {
           const e = event as MouseEvent;
@@ -277,11 +277,11 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     };
 
     // OWM `url(...)`: set the address (submap drill-down / component link) and open it.
-    const linkEditing = this.injector.get<WardleyLinkEditing>('wardleyLinkEditing', false);
+    const linkEditing = this.injector.get<WardleyLinkEditing>("wardleyLinkEditing", false);
     const storedLink = linkOf(shape);
     if (linkEditing && canHaveLink(shape)) {
-      const title = storedLink ? 'Edit link…' : 'Set link…';
-      entries['link'] = {
+      const title = storedLink ? "Edit link…" : "Set link…";
+      entries["link"] = {
         group: GROUP_PROPERTIES,
         title,
         html: cpHtml(iconMarkup(ICON_LINK), title),
@@ -291,11 +291,11 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     // Shared maps can carry any address, so only allowlisted ones are ever opened.
     const openableLink = safeLinkUrl(storedLink);
     if (openableLink) {
-      entries['open-link'] = {
+      entries["open-link"] = {
         group: GROUP_PROPERTIES,
         title: `Open link (${openableLink})`,
         html: cpHtml(iconMarkup(ICON_OPEN_IN_NEW), `Open link (${openableLink})`),
-        action: { click: () => window.open(openableLink, '_blank', 'noopener,noreferrer') },
+        action: { click: () => window.open(openableLink, "_blank", "noopener,noreferrer") },
       };
     }
   }
@@ -303,21 +303,21 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
   /** Enter/Space on a focused entry = a click at the element's centre. */
   private onPadKeydown(event: KeyboardEvent, pad: HTMLElement): void {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
-    const entry = (event.target as Element | null)?.closest?.('.entry');
-    const action = entry?.getAttribute('data-action');
+    const entry = (event.target as Element | null)?.closest?.(".entry");
+    const action = entry?.getAttribute("data-action");
     if (!entry || !action || !pad.contains(entry)) return;
 
     // Toolbar navigation; stopped here so the document-level arrow-key nudge does not also move
     // the element (which re-renders the pad and drops focus onto <body>).
-    const entries = Array.from(pad.querySelectorAll<HTMLElement>('.entry'));
+    const entries = Array.from(pad.querySelectorAll<HTMLElement>(".entry"));
     const index = entries.indexOf(entry as HTMLElement);
     let next: HTMLElement | undefined;
     if (PAD_PREVIOUS_KEYS.has(event.key))
       next = entries[(index - 1 + entries.length) % entries.length];
     else if (PAD_NEXT_KEYS.has(event.key)) next = entries[(index + 1) % entries.length];
-    else if (event.key === 'Home') next = entries[0];
-    else if (event.key === 'End') next = entries[entries.length - 1];
-    if (next || event.key === 'Escape') {
+    else if (event.key === "Home") next = entries[0];
+    else if (event.key === "End") next = entries[entries.length - 1];
+    if (next || event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       if (next) next.focus();
@@ -325,16 +325,16 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       return;
     }
 
-    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     event.stopPropagation();
 
     const target = (this.contextPad as unknown as { _current?: { target?: unknown } })._current
       ?.target;
     const point = this.clientCenterOf(Array.isArray(target) ? target[0] : target);
-    const click = new MouseEvent('click', { bubbles: true, clientX: point.x, clientY: point.y });
+    const click = new MouseEvent("click", { bubbles: true, clientX: point.x, clientY: point.y });
     this.keyboardEvents.add(click);
-    this.contextPad.triggerEntry(action, 'click', click);
+    this.contextPad.triggerEntry(action, "click", click);
 
     // Actions that close the pad (delete, …) would otherwise drop focus onto <body>.
     const focused = document.activeElement;
@@ -363,9 +363,9 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
    * further down the value chain, connected, selected and opened for naming.
    */
   private appendBelow(source: WardleyShape): void {
-    const grid = this.injector.get<EvolutionGrid>('evolutionGrid');
+    const grid = this.injector.get<EvolutionGrid>("evolutionGrid");
     const plotBottom = grid.toCanvas({ evolution: 0, visibility: 0 }).y;
-    const next = this.factory.createNew('component', 'Component');
+    const next = this.factory.createNew("component", "Component");
     const position = {
       x: source.x + source.width / 2,
       y: Math.min(
@@ -378,10 +378,10 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       next as unknown as Shape,
       position,
       (source as unknown as Shape).parent!,
-      { connection: { wardleyType: 'dependency' } },
+      { connection: { wardleyType: "dependency" } },
     );
     this.injector
-      .get<{ select(element: unknown): void }>('selection', false)
+      .get<{ select(element: unknown): void }>("selection", false)
       ?.select(created ?? next);
     this.labelEditing.activate((created ?? next) as unknown as WardleyShape);
   }

@@ -23,25 +23,25 @@ export function createFieldError(
     },
     show(message) {
       if (!caption) {
-        caption = document.createElement('div');
-        caption.className = 'wardley-label-caption wardley-label-error';
-        caption.setAttribute('role', 'alert');
+        caption = document.createElement("div");
+        caption.className = "wardley-label-caption wardley-label-error";
+        caption.setAttribute("role", "alert");
         caption.id = id;
         container.appendChild(caption);
-        field.setAttribute('aria-describedby', id);
+        field.setAttribute("aria-describedby", id);
       }
       caption.textContent = message;
-      field.classList.add('wardley-label-input--error');
-      field.setAttribute('aria-invalid', 'true');
+      field.classList.add("wardley-label-input--error");
+      field.setAttribute("aria-invalid", "true");
       place(caption);
     },
     clear() {
       if (!caption) return;
       caption.remove();
       caption = undefined;
-      field.classList.remove('wardley-label-input--error');
-      field.removeAttribute('aria-invalid');
-      field.removeAttribute('aria-describedby');
+      field.classList.remove("wardley-label-input--error");
+      field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
     },
   };
 }

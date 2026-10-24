@@ -22,7 +22,13 @@ function parts(root: HTMLElement) {
     if (!element) throw new Error(zoom);
     return element;
   };
-  return { panel, out: button("out"), actual: button("actual"), in: button("in"), fit: button("fit") };
+  return {
+    panel,
+    out: button("out"),
+    actual: button("actual"),
+    in: button("in"),
+    fit: button("fit"),
+  };
 }
 
 describe("zoom panel (guide §5.8)", () => {
@@ -31,14 +37,12 @@ describe("zoom panel (guide §5.8)", () => {
     const { panel, out, actual, fit } = parts(root);
     expect(panel.getAttribute("role")).toBe("group");
     expect(panel.getAttribute("aria-label")).toBe("Zoom");
-    expect([...panel.children].map((child) => child.getAttribute("data-zoom") ?? child.className)).toEqual([
-      "out",
-      "actual",
-      "in",
-      "cd-shell-zoom-separator",
-      "fit",
-    ]);
-    expect(panel.querySelector(".cd-shell-zoom-separator")?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      [...panel.children].map((child) => child.getAttribute("data-zoom") ?? child.className),
+    ).toEqual(["out", "actual", "in", "cd-shell-zoom-separator", "fit"]);
+    expect(panel.querySelector(".cd-shell-zoom-separator")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
     expect(out.getAttribute("aria-label")).toBe("Zoom out");
     expect(fit.getAttribute("aria-label")).toBe("Fit to view");
     expect(actual.classList).toContain("cd-shell-zoom-readout");
@@ -52,15 +56,16 @@ describe("zoom panel (guide §5.8)", () => {
   ] as const)("carries aria-keyshortcuts for %s", (platform, expected) => {
     const { root } = mount({ platform });
     const { out, actual, in: zoomIn, fit } = parts(root);
-    expect([out, actual, zoomIn, fit].map((button) => button.getAttribute("aria-keyshortcuts"))).toEqual(
-      expected,
-    );
+    expect(
+      [out, actual, zoomIn, fit].map((button) => button.getAttribute("aria-keyshortcuts")),
+    ).toEqual(expected);
   });
 
   it("disables the three buttons without a target, never the readout (guide §5.8)", () => {
     const { root } = mount();
     const { out, actual, in: zoomIn, fit } = parts(root);
-    for (const button of [out, zoomIn, fit]) expect(button.getAttribute("aria-disabled")).toBe("true");
+    for (const button of [out, zoomIn, fit])
+      expect(button.getAttribute("aria-disabled")).toBe("true");
     expect(actual.hasAttribute("aria-disabled")).toBe(false);
     expect(actual.textContent).toBe("100%");
     expect(actual.getAttribute("aria-label")).toBe("Zoom to 100% (now 100%)");
@@ -151,7 +156,16 @@ describe("zoom panel (guide §5.8)", () => {
       click(button, 1);
       expect(document.activeElement).toBe(svg);
     }
-    expect(target.calls).toEqual(["step:1", "focus", "step:-1", "focus", "actual", "focus", "fit", "focus"]);
+    expect(target.calls).toEqual([
+      "step:1",
+      "focus",
+      "step:-1",
+      "focus",
+      "actual",
+      "focus",
+      "fit",
+      "focus",
+    ]);
     click(actual, 2);
     expect(target.calls.at(-1)).toBe("focus");
   });

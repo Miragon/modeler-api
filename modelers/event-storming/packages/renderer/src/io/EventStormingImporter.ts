@@ -1,13 +1,13 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Root } from 'diagram-js/lib/model/Types';
-import type { BoardElement, EventStormingBoard } from '@miragon/event-storming-schema-model';
-import type BoardBounds from '../board-bounds/BoardBounds.js';
-import type EventStormingElementFactory from '../model/EventStormingElementFactory.js';
-import { isHostSticky, type EventStormingShape } from '../model/di-types.js';
-import { ROOT_ID, type ImportWarning, type RootBusinessObject } from './types.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Root } from "diagram-js/lib/model/Types";
+import type { BoardElement, EventStormingBoard } from "@miragon/event-storming-schema-model";
+import type BoardBounds from "../board-bounds/BoardBounds.js";
+import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
+import { isHostSticky, type EventStormingShape } from "../model/di-types.js";
+import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./types.js";
 
 /**
  * Z-order of the shapes among themselves: smaller number = further back. Drawings encircle
@@ -39,13 +39,13 @@ export interface EventStormingImporterConfig {
  */
 export default class EventStormingImporter {
   static $inject = [
-    'canvas',
-    'elementFactory',
-    'eventStormingElementFactory',
-    'boardBounds',
-    'eventBus',
-    'elementRegistry',
-    'config.eventStormingImporter',
+    "canvas",
+    "elementFactory",
+    "eventStormingElementFactory",
+    "boardBounds",
+    "eventBus",
+    "elementRegistry",
+    "config.eventStormingImporter",
   ];
 
   constructor(
@@ -60,7 +60,7 @@ export default class EventStormingImporter {
 
   import(board: EventStormingBoard): ImportWarning[] {
     const warnings: ImportWarning[] = [];
-    this.eventBus.fire('import.render.start', { board });
+    this.eventBus.fire("import.render.start", { board });
 
     const meta: RootBusinessObject = {
       config: board.config,
@@ -78,8 +78,8 @@ export default class EventStormingImporter {
     // Z-order (back -> front): drawings -> connections -> stickies/notes. Drawings and nodes
     // must be registered before the connections; the connections are then inserted via
     // parentIndex BEHIND the nodes (but after the drawings).
-    const drawings = ordered.filter((el) => el.elementType === 'drawing');
-    const nodes = ordered.filter((el) => el.elementType !== 'drawing');
+    const drawings = ordered.filter((el) => el.elementType === "drawing");
+    const nodes = ordered.filter((el) => el.elementType !== "drawing");
 
     for (const el of drawings) {
       const shape = this.createShape(el);
@@ -96,7 +96,7 @@ export default class EventStormingImporter {
     // than its attacher. The diagram-js bi-directional refs keep `host.attachers` in sync;
     // positions stay the elements' own absolute centers (attachedTo adds behavior, not geometry).
     for (const el of nodes) {
-      const attachedTo = 'attachedTo' in el ? el.attachedTo : undefined;
+      const attachedTo = "attachedTo" in el ? el.attachedTo : undefined;
       if (!attachedTo) continue;
       const host = shapeById.get(attachedTo);
       if (!host || !isHostSticky(host)) {
@@ -125,7 +125,7 @@ export default class EventStormingImporter {
     }
 
     if (this.config?.fitOnImport !== false) this.fitToContent();
-    this.eventBus.fire('import.render.done', { warnings });
+    this.eventBus.fire("import.render.done", { warnings });
     return warnings;
   }
 
@@ -171,9 +171,9 @@ export default class EventStormingImporter {
 
   private createShape(el: BoardElement): EventStormingShape {
     switch (el.elementType) {
-      case 'note':
+      case "note":
         return this.factory.createNote(el);
-      case 'drawing':
+      case "drawing":
         return this.factory.createDrawing(el);
       default:
         return this.factory.createSticky(el);

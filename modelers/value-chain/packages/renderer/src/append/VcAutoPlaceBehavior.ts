@@ -1,10 +1,10 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Shape } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
-import { isVcShape, type VcShape } from '../model/di-types.js';
-import { hierarchyChildren, isRowArrangement, TRUNK_CLEARANCE } from '../modeling/VcLayouter.js';
-import type VcConnect from '../connect/VcConnect.js';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Shape } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import { isVcShape, type VcShape } from "../model/di-types.js";
+import { hierarchyChildren, isRowArrangement, TRUNK_CLEARANCE } from "../modeling/VcLayouter.js";
+import type VcConnect from "../connect/VcConnect.js";
 
 /** Runs before the diagram-js default (priority 100). */
 const BEFORE_DEFAULT = 200;
@@ -26,11 +26,11 @@ const DECONFLICT_MARGIN = 10;
  * All placements nudge downwards until the spot is free of other steps.
  */
 export default class VcAutoPlaceBehavior {
-  static $inject = ['eventBus', 'vcConnect', 'elementRegistry'];
+  static $inject = ["eventBus", "vcConnect", "elementRegistry"];
 
   constructor(eventBus: EventBus, vcConnect: VcConnect, elementRegistry: ElementRegistry) {
     eventBus.on(
-      'autoPlace',
+      "autoPlace",
       BEFORE_DEFAULT,
       (context: { source: Shape; shape: Shape }): Point | undefined => {
         const { source, shape } = context;
@@ -49,10 +49,10 @@ export default class VcAutoPlaceBehavior {
   private readonly elementRegistry: ElementRegistry;
 
   private desiredPosition(type: string, source: VcShape, shape: Shape): Point {
-    if (type === 'hierarchy') {
+    if (type === "hierarchy") {
       return this.hierarchyPosition(source, shape);
     }
-    if (type === 'assignment') {
+    if (type === "assignment") {
       return this.assignmentPosition(source, shape);
     }
     return this.sequencePosition(source, shape);

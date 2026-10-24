@@ -1,24 +1,24 @@
-import Diagram from 'diagram-js/lib/Diagram';
-import type { ModuleDeclaration } from 'didi';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import { assertDrawable, type EventStormingBoard } from '@miragon/event-storming-schema-model';
-import { parseDSLWithDiagnostics, serializeDSL } from '@miragon/event-storming-dsl';
-import { saveSVG } from './io/saveSvg.js';
-import type EventStormingImporter from './io/EventStormingImporter.js';
-import type EventStormingExporter from './io/EventStormingExporter.js';
-import type BoardBounds from './board-bounds/BoardBounds.js';
-import type { Bounds } from './board-bounds/BoardBounds.js';
-import type EventStormingLabelEditing from './label-editing/EventStormingLabelEditing.js';
-import { ROOT_ID, type ImportWarning } from './io/types.js';
-import { linkLabelFontLoading } from './draw/extent.js';
+import Diagram from "diagram-js/lib/Diagram";
+import type { ModuleDeclaration } from "didi";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import { assertDrawable, type EventStormingBoard } from "@miragon/event-storming-schema-model";
+import { parseDSLWithDiagnostics, serializeDSL } from "@miragon/event-storming-dsl";
+import { saveSVG } from "./io/saveSvg.js";
+import type EventStormingImporter from "./io/EventStormingImporter.js";
+import type EventStormingExporter from "./io/EventStormingExporter.js";
+import type BoardBounds from "./board-bounds/BoardBounds.js";
+import type { Bounds } from "./board-bounds/BoardBounds.js";
+import type EventStormingLabelEditing from "./label-editing/EventStormingLabelEditing.js";
+import { ROOT_ID, type ImportWarning } from "./io/types.js";
+import { linkLabelFontLoading } from "./draw/extent.js";
 import {
   resolveFreeArea,
   type FreeArea,
   type FreeRectInsets,
-} from './palette/EventStormingPaletteProvider.js';
+} from "./palette/EventStormingPaletteProvider.js";
 
 export interface EventStormingViewerOptions {
   /** Host element. If missing, a detached <div> is created (can be attached later via attachTo). */
@@ -60,7 +60,7 @@ export type EventCallback<T = unknown> = (event: T) => void;
  */
 function assertNoEngineIds(board: EventStormingBoard): void {
   for (const { id } of [...board.elements, ...board.edges]) {
-    if (id === ROOT_ID || id.startsWith('__implicitroot')) {
+    if (id === ROOT_ID || id.startsWith("__implicitroot")) {
       throw new Error(`Element id "${id}" is reserved for the board itself.`);
     }
   }
@@ -71,7 +71,7 @@ function annotationTexts(board: EventStormingBoard): string[] {
 }
 
 function sizeToCss(value: number | string): string {
-  return typeof value === 'number' ? `${value}px` : value;
+  return typeof value === "number" ? `${value}px` : value;
 }
 
 /**
@@ -96,10 +96,10 @@ export abstract class EventStormingBaseViewer {
   }
 
   private _createContainer(options: EventStormingViewerOptions): HTMLElement {
-    const container = options.container ?? document.createElement('div');
-    container.classList.add('event-storming-container');
-    container.style.width = sizeToCss(options.width ?? '100%');
-    container.style.height = sizeToCss(options.height ?? (options.container ? '100%' : '600px'));
+    const container = options.container ?? document.createElement("div");
+    container.classList.add("event-storming-container");
+    container.style.width = sizeToCss(options.width ?? "100%");
+    container.style.height = sizeToCss(options.height ?? (options.container ? "100%" : "600px"));
     return container;
   }
 
@@ -122,11 +122,11 @@ export abstract class EventStormingBaseViewer {
   }
 
   on<T = unknown>(event: string, callback: EventCallback<T>, priority = 1000): void {
-    this.get<EventBus>('eventBus').on(event, priority, callback as EventCallback);
+    this.get<EventBus>("eventBus").on(event, priority, callback as EventCallback);
   }
 
   off(event: string, callback: EventCallback): void {
-    this.get<EventBus>('eventBus').off(event, callback);
+    this.get<EventBus>("eventBus").off(event, callback);
   }
 
   /**
@@ -135,8 +135,8 @@ export abstract class EventStormingBaseViewer {
    */
   async importMap(board: EventStormingBoard): Promise<{ warnings: ImportWarning[] }> {
     const diagram = this._ensureDiagram();
-    const eventBus = diagram.get<EventBus>('eventBus');
-    const importer = diagram.get<EventStormingImporter>('eventStormingImporter');
+    const eventBus = diagram.get<EventBus>("eventBus");
+    const importer = diagram.get<EventStormingImporter>("eventStormingImporter");
     assertNoEngineIds(board);
     // A board straight from code skips loadBoard; its import would stop at the first shape the SVG
     // transforms cannot hold, after the previous board was cleared.
@@ -145,19 +145,19 @@ export abstract class EventStormingBaseViewer {
     if (turn) {
       await turn;
       if (this._waitingImport === turn) this._waitingImport = undefined;
-      if (this._diagram !== diagram) throw new Error('The viewer was destroyed during the import.');
+      if (this._diagram !== diagram) throw new Error("The viewer was destroyed during the import.");
     }
-    const labelEditing = diagram.get<EventStormingLabelEditing>('eventStormingLabelEditing', false);
+    const labelEditing = diagram.get<EventStormingLabelEditing>("eventStormingLabelEditing", false);
     labelEditing?.suspend();
-    diagram.get<PopupMenu>('popupMenu', false)?.close();
+    diagram.get<PopupMenu>("popupMenu", false)?.close();
     importer.clear();
     const warnings = importer.import(board);
     // Discard the PREVIOUS board's undo history: undo on orphaned elements would otherwise
     // crash or insert zombie elements into the new board. Silently, because an import is no
     // content change (hosts would echo it back), and only where a stack exists: the viewers
     // have none.
-    diagram.get<CommandStack>('commandStack', false)?.clear(false);
-    eventBus.fire('import.done', { warnings });
+    diagram.get<CommandStack>("commandStack", false)?.clear(false);
+    eventBus.fire("import.done", { warnings });
     labelEditing?.resumeAfterImport();
     return { warnings };
   }
@@ -180,10 +180,10 @@ export abstract class EventStormingBaseViewer {
 
   /** Load `.storm` DSL text (internally parse -> importMap). Parser findings land in the warnings. */
   async importDSL(text: string): Promise<{ warnings: ImportWarning[] }> {
-    const eventBus = this._ensureDiagram().get<EventBus>('eventBus');
-    eventBus.fire('import.parse.start', { text });
+    const eventBus = this._ensureDiagram().get<EventBus>("eventBus");
+    eventBus.fire("import.parse.start", { text });
     const { board, diagnostics } = parseDSLWithDiagnostics(text);
-    eventBus.fire('import.parse.done', { board, diagnostics });
+    eventBus.fire("import.parse.done", { board, diagnostics });
     const { warnings } = await this.importMap(board);
     return {
       warnings: [
@@ -199,7 +199,7 @@ export abstract class EventStormingBaseViewer {
 
   /** Current state as the canonical model (from the DI properties). */
   exportMap(): EventStormingBoard {
-    return this.get<EventStormingExporter>('eventStormingExporter').export();
+    return this.get<EventStormingExporter>("eventStormingExporter").export();
   }
 
   exportDSL(): string {
@@ -215,22 +215,22 @@ export abstract class EventStormingBaseViewer {
   contentBounds(): Bounds | undefined {
     // A diagram not built yet, or destroyed, holds no board: asking must not build one.
     if (!this._diagram) return undefined;
-    const boardBounds = this._diagram.get<BoardBounds>('boardBounds');
+    const boardBounds = this._diagram.get<BoardBounds>("boardBounds");
     return boardBounds.isEmpty() ? undefined : boardBounds.contentBounds(0);
   }
 
   /** Static, standalone SVG — framed by the content bounds of the free canvas. */
   async saveSVG(): Promise<{ svg: string }> {
     return saveSVG(
-      this.get<Canvas>('canvas'),
-      this.get<BoardBounds>('boardBounds').contentBounds(),
+      this.get<Canvas>("canvas"),
+      this.get<BoardBounds>("boardBounds").contentBounds(),
     );
   }
 
   /** Own implementation (not a diagram-js primitive): attach the container to `target`. */
   attachTo(target: Element): void {
     target.appendChild(this._container);
-    this.get<Canvas>('canvas').resized();
+    this.get<Canvas>("canvas").resized();
   }
 
   /** Own implementation: detach the container from the DOM, keeping state. */

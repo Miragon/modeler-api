@@ -1,7 +1,7 @@
-import ContextPad from 'diagram-js/lib/features/context-pad/ContextPad';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Element, ShapeLike } from 'diagram-js/lib/model/Types';
-import { MOVEMENT_CLASS } from '../draw/index.js';
+import ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Element, ShapeLike } from "diagram-js/lib/model/Types";
+import { MOVEMENT_CLASS } from "../draw/index.js";
 
 interface TargetBounds {
   left: number;
@@ -38,7 +38,7 @@ const FALLBACK_PAD_WIDTH = 134;
 export default class WardleyContextPad extends ContextPad {
   _getTargetBounds(target: Element | Element[]): TargetBounds {
     const elements = Array.isArray(target) ? target : [target];
-    const nodeRects = elements.flatMap((element) => this.visualRects(element, 'node'));
+    const nodeRects = elements.flatMap((element) => this.visualRects(element, "node"));
     if (!nodeRects.length) {
       const base = ContextPad.prototype as unknown as ContextPadInternals;
       return base._getTargetBounds.call(this, target);
@@ -46,7 +46,7 @@ export default class WardleyContextPad extends ContextPad {
     const nodeBounds = union(nodeRects);
     const padReach =
       nodeBounds.right + this.padWidth() + PAD_MARGIN * this.internals()._canvas.zoom();
-    const movementRects = elements.flatMap((element) => this.visualRects(element, 'movement'));
+    const movementRects = elements.flatMap((element) => this.visualRects(element, "movement"));
     // Only the target circle and texts count: the evolve line itself starts inside the node.
     const movementUnderPad = elements
       .flatMap((element) => this.movementTargetRects(element))
@@ -71,15 +71,15 @@ export default class WardleyContextPad extends ContextPad {
     return Array.from(targets ?? []).map((target) => target.getBoundingClientRect());
   }
 
-  private visualRects(element: Element, part: 'node' | 'movement'): DOMRect[] {
+  private visualRects(element: Element, part: "node" | "movement"): DOMRect[] {
     const graphics = this.internals()._canvas.getGraphics(element as unknown as ShapeLike);
     if (!graphics) return [];
     const children = Array.from(graphics.children).flatMap((child) =>
-      child.classList.contains('djs-visual')
+      child.classList.contains("djs-visual")
         ? Array.from(child.children).filter(
-            (visual) => visual.classList.contains(MOVEMENT_CLASS) === (part === 'movement'),
+            (visual) => visual.classList.contains(MOVEMENT_CLASS) === (part === "movement"),
           )
-        : part === 'node'
+        : part === "node"
           ? [child]
           : [],
     );

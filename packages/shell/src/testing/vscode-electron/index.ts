@@ -13,7 +13,12 @@ export {
   vsCodeSmokeDockerRunArgs,
   vsCodeSmokeDockerfile,
 } from "./docker.js";
-export type { ExtensionManifest, PlatformKeys, UserSettingsOptions, VsCodeSmokePaths } from "./launch.js";
+export type {
+  ExtensionManifest,
+  PlatformKeys,
+  UserSettingsOptions,
+  VsCodeSmokePaths,
+} from "./launch.js";
 export {
   DEFAULT_WINDOW_SIZE,
   customEditorViewType,

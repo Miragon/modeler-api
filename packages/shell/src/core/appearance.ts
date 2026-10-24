@@ -55,7 +55,10 @@ export type ColorThemeSetting = "automatic" | "light" | "dark";
  * The requested appearance in an IDE host: the setting's theme unless it is `automatic` (or
  * missing), the contrast always from the color theme kind.
  */
-export function requestedAppearance(kind: number, setting?: ColorThemeSetting | undefined): Appearance {
+export function requestedAppearance(
+  kind: number,
+  setting?: ColorThemeSetting | undefined,
+): Appearance {
   const fromKind = appearanceFromColorThemeKind(kind);
   const theme = setting === "light" || setting === "dark" ? setting : fromKind.theme;
   return withKontrast(theme, fromKind.kontrast);

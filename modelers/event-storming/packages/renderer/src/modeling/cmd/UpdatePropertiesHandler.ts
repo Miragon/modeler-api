@@ -1,5 +1,5 @@
-import type { ElementLike } from 'diagram-js/lib/core/Types';
-import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
+import type { ElementLike } from "diagram-js/lib/core/Types";
+import type CommandHandler from "diagram-js/lib/command/CommandHandler";
 
 export interface UpdatePropertiesContext {
   element: ElementLike & Record<string, unknown>;
@@ -13,7 +13,7 @@ function setOrDelete(obj: Record<string, unknown>, key: string, value: unknown):
   else obj[key] = value;
 }
 
-const GEOMETRY_KEYS = ['x', 'y', 'width', 'height'];
+const GEOMETRY_KEYS = ["x", "y", "width", "height"];
 
 /**
  * Geometry changes (e.g. `setStickyKind` resizing the box) move the rectangle the attached

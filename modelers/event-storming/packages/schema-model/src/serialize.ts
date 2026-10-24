@@ -1,8 +1,8 @@
-import { eventStormingBoardSchema } from './schema.js';
-import { migrate, CURRENT_SCHEMA_VERSION } from './migrations.js';
-import { HOST_STICKY_KINDS } from './attachments.js';
-import { assertElementsDrawable } from './drawable.js';
-import type { BoardConfig, EventStormingBoard } from './types.js';
+import { eventStormingBoardSchema } from "./schema.js";
+import { migrate, CURRENT_SCHEMA_VERSION } from "./migrations.js";
+import { HOST_STICKY_KINDS } from "./attachments.js";
+import { assertElementsDrawable } from "./drawable.js";
+import type { BoardConfig, EventStormingBoard } from "./types.js";
 
 /** Number of decimal places for coordinates in serialization. */
 const COORD_PRECISION = 3;
@@ -11,14 +11,14 @@ const COORD_PRECISION = 3;
 // renderer's connection rules forbid them and the DSL cannot reference them, so accepting
 // such edges here would mean silent loss on the next DSL round-trip.
 const CONNECTABLE_TYPES: ReadonlySet<string> = new Set([
-  'event',
-  'command',
-  'actor',
-  'aggregate',
-  'policy',
-  'readmodel',
-  'external',
-  'hotspot',
+  "event",
+  "command",
+  "actor",
+  "aggregate",
+  "policy",
+  "readmodel",
+  "external",
+  "hotspot",
 ]);
 
 const HOST_TYPES: ReadonlySet<string> = new Set(HOST_STICKY_KINDS);
@@ -46,7 +46,7 @@ export function validateBoard(data: unknown): EventStormingBoard {
   // Pinning: the host must exist and be of a host kind — actor/hotspot/note/drawing are never
   // hosts (no attach chains), which also rules out self-attachment.
   for (const el of parsed.elements) {
-    if (!('attachedTo' in el) || el.attachedTo === undefined) continue;
+    if (!("attachedTo" in el) || el.attachedTo === undefined) continue;
     if (!ids.has(el.attachedTo)) {
       throw new Error(`Element ${el.id}: attachedTo "${el.attachedTo}" references no element.`);
     }
@@ -93,7 +93,7 @@ export function loadBoard(data: unknown): EventStormingBoard {
   const migrated = migrate(data);
   // Ahead of the schema: a JSON number too large for a double (1e400) reads as Infinity, which the
   // schema refuses without saying that the board lies beyond the canvas.
-  assertElementsDrawable(migrated['elements']);
+  assertElementsDrawable(migrated["elements"]);
   return validateBoard(migrated);
 }
 
@@ -113,7 +113,7 @@ export function serializeBoard(board: EventStormingBoard): string {
 function canonicalize(board: EventStormingBoard): EventStormingBoard {
   const elements = [...board.elements]
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((el) => roundNumbers(el) as EventStormingBoard['elements'][number]);
+    .map((el) => roundNumbers(el) as EventStormingBoard["elements"][number]);
   const edges = [...board.edges].sort((a, b) => a.id.localeCompare(b.id));
   return {
     ...board,
@@ -124,9 +124,9 @@ function canonicalize(board: EventStormingBoard): EventStormingBoard {
 }
 
 function roundNumbers<T>(value: T): T {
-  if (typeof value === 'number') return round(value) as unknown as T;
+  if (typeof value === "number") return round(value) as unknown as T;
   if (Array.isArray(value)) return value.map((v) => roundNumbers(v)) as unknown as T;
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = roundNumbers(v);
@@ -140,8 +140,8 @@ function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
   const sortDeep = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(sortDeep);
-    if (v && typeof v === 'object') {
-      if (seen.has(v as object)) throw new Error('Cyclic reference in EventStormingBoard.');
+    if (v && typeof v === "object") {
+      if (seen.has(v as object)) throw new Error("Cyclic reference in EventStormingBoard.");
       seen.add(v as object);
       const out: Record<string, unknown> = {};
       for (const key of Object.keys(v as Record<string, unknown>).sort()) {
@@ -151,10 +151,10 @@ function stableStringify(value: unknown): string {
     }
     return v;
   };
-  return JSON.stringify(sortDeep(value), null, 2) + '\n';
+  return JSON.stringify(sortDeep(value), null, 2) + "\n";
 }
 
-export function createEmptyBoard(title = 'Untitled Board'): EventStormingBoard {
+export function createEmptyBoard(title = "Untitled Board"): EventStormingBoard {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     config: { title },

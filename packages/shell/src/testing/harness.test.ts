@@ -37,7 +37,11 @@ function register(
   onSkip?: (name: string, skips: readonly ShellSkip[]) => void,
 ) {
   const tests = new Map<string, Body>();
-  registerShellConformance(subject, (name, body) => tests.set(name, body), onSkip ? { onSkip } : undefined);
+  registerShellConformance(
+    subject,
+    (name, body) => tests.set(name, body),
+    onSkip ? { onSkip } : undefined,
+  );
   return tests;
 }
 
@@ -113,7 +117,8 @@ describe("registerShellConformance", () => {
         [
           {
             hook: "invalid",
-            reason: "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
+            reason:
+              "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
           },
         ],
       ],
@@ -124,7 +129,9 @@ describe("registerShellConformance", () => {
   it("skips the label editor case without harness.labelEditor, before opening anything", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});
-    await register(harness({ open }), onSkip).get("shell conformance: labelEditor")!({ page: emptyPage() });
+    await register(harness({ open }), onSkip).get("shell conformance: labelEditor")!({
+      page: emptyPage(),
+    });
     expect(onSkip.mock.calls).toEqual([
       [
         "labelEditor",
@@ -143,11 +150,11 @@ describe("registerShellConformance", () => {
   it("does not report a label editor the harness declares absent, and fails one it also gives", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});
-    await register(harness({ open, absent: ["labelEditor"] }), onSkip).get("shell conformance: labelEditor")!(
-      {
-        page: emptyPage(),
-      },
-    );
+    await register(harness({ open, absent: ["labelEditor"] }), onSkip).get(
+      "shell conformance: labelEditor",
+    )!({
+      page: emptyPage(),
+    });
     expect(onSkip).not.toHaveBeenCalled();
     const labelEditor = { open: async () => "Renamed", documentChanged: async () => false };
     await expect(
@@ -166,7 +173,9 @@ describe("registerShellConformance", () => {
     const open = vi.fn(async () => {});
     const labelEditor = { open: vi.fn(async () => "Renamed"), documentChanged: async () => false };
     await expect(
-      register(harness({ open, labelEditor })).get("shell conformance: labelEditor")!({ page: emptyPage() }),
+      register(harness({ open, labelEditor })).get("shell conformance: labelEditor")!({
+        page: emptyPage(),
+      }),
     ).rejects.toThrow(
       '@miragon/modeler-shell conformance: labelEditor (ide host)\n- no element matches the shell root selector ".cd-shell"',
     );
@@ -180,7 +189,9 @@ describe("registerShellConformance", () => {
   it("does not report a hook the harness declares absent", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});
-    await register(harness({ open, absent: ["invalid"] }), onSkip).get("shell conformance: readOnly")!({
+    await register(harness({ open, absent: ["invalid"] }), onSkip).get(
+      "shell conformance: readOnly",
+    )!({
       page: emptyPage(),
     });
     expect(onSkip).not.toHaveBeenCalled();
@@ -223,7 +234,9 @@ describe("registerShellConformance", () => {
 
   it("opens the harness at the requested size with a light request, as the host would", async () => {
     const open = vi.fn(async () => {});
-    const tests = register(harness({ open, root: "#modeler", sizes: [{ width: 800, height: 600 }] }));
+    const tests = register(
+      harness({ open, root: "#modeler", sizes: [{ width: 800, height: 600 }] }),
+    );
     await expect(tests.get("shell conformance: keys")!({ page: emptyPage() })).rejects.toThrow(
       /keys \(ide host\)\n- canvas: the diagram-js <svg>/,
     );
@@ -236,14 +249,23 @@ describe("registerShellConformance", () => {
   it("skips the legend's start state without show.legend and checks nothing for an absent legend", async () => {
     const onSkip = vi.fn();
     const open = vi.fn(async () => {});
-    await register(harness({ open }), onSkip).get("shell conformance: legendStart")!({ page: emptyPage() });
-    await register(harness({ open, absent: ["legend"] }), onSkip).get("shell conformance: legendStart")!({
+    await register(harness({ open }), onSkip).get("shell conformance: legendStart")!({
+      page: emptyPage(),
+    });
+    await register(harness({ open, absent: ["legend"] }), onSkip).get(
+      "shell conformance: legendStart",
+    )!({
       page: emptyPage(),
     });
     expect(onSkip.mock.calls).toEqual([
       [
         "legendStart",
-        [{ hook: "legend", reason: "show.legend is undefined: the legend's start state was not verified" }],
+        [
+          {
+            hook: "legend",
+            reason: "show.legend is undefined: the legend's start state was not verified",
+          },
+        ],
       ],
     ]);
     expect(open).not.toHaveBeenCalled();
@@ -252,8 +274,12 @@ describe("registerShellConformance", () => {
   it("opens the legend's start state at 390 × 844 with a light request, whatever the harness sizes", async () => {
     const open = vi.fn(async (_page: PageLike, _context: OpenContext) => {});
     const legend = async () => {};
-    const tests = register(harness({ open, show: { legend }, sizes: [{ width: 800, height: 600 }] }));
-    await expect(tests.get("shell conformance: legendStart")!({ page: emptyPage() })).rejects.toThrow();
+    const tests = register(
+      harness({ open, show: { legend }, sizes: [{ width: 800, height: 600 }] }),
+    );
+    await expect(
+      tests.get("shell conformance: legendStart")!({ page: emptyPage() }),
+    ).rejects.toThrow();
     expect(open.mock.calls.map(([, context]) => context)).toEqual([
       { size: { width: 390, height: 844 }, requested: { theme: "light" } },
     ]);
@@ -263,13 +289,16 @@ describe("registerShellConformance", () => {
     // an open that only changes the URL fragment: the page, and the kit's tools in it, stay
     const keptPage: PageLike = {
       ...emptyPage(),
-      evaluate: async <R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg) => pageFunction(arg),
+      evaluate: async <R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg) =>
+        pageFunction(arg),
     };
     const open = vi.fn(async () => {});
     const legend = async () => {};
     try {
       const tests = register(harness({ host: "web", open, show: { legend } }));
-      await expect(tests.get("shell conformance: legendStart")!({ page: keptPage })).rejects.toThrow(
+      await expect(
+        tests.get("shell conformance: legendStart")!({ page: keptPage }),
+      ).rejects.toThrow(
         "@miragon/modeler-shell conformance: legendStart (web host)\n- harness: open kept the page's document at 390 × 844",
       );
       expect(open).toHaveBeenCalledTimes(1);
@@ -288,14 +317,27 @@ describe("registerShellConformance", () => {
     expect(onSkip.mock.calls).toEqual([
       [
         "emptyState",
-        [{ hook: "emptyState", reason: "show.emptyState is undefined: the start screen not verified" }],
+        [
+          {
+            hook: "emptyState",
+            reason: "show.emptyState is undefined: the start screen not verified",
+          },
+        ],
       ],
       ["toasts", [{ hook: "toast", reason: "show.toast is undefined: the toasts not verified" }]],
       [
         "problemsList",
-        [{ hook: "problems", reason: "show.problems is undefined: the problems list not verified" }],
+        [
+          {
+            hook: "problems",
+            reason: "show.problems is undefined: the problems list not verified",
+          },
+        ],
       ],
-      ["dropZone", [{ hook: "drop", reason: "harness.drop is undefined: the drop zone not verified" }]],
+      [
+        "dropZone",
+        [{ hook: "drop", reason: "harness.drop is undefined: the drop zone not verified" }],
+      ],
     ]);
     expect(open).not.toHaveBeenCalled();
   });
@@ -373,7 +415,9 @@ describe("registerShellConformance", () => {
   it("opens the web host once with light when the page cannot emulate media", async () => {
     const open = vi.fn(async (_page: PageLike, _context: OpenContext) => {});
     await expect(
-      register(harness({ host: "web", open })).get("shell conformance: appearance")!({ page: emptyPage() }),
+      register(harness({ host: "web", open })).get("shell conformance: appearance")!({
+        page: emptyPage(),
+      }),
     ).rejects.toThrow(/appearance \(web host\)/);
     expect(open.mock.calls.map(([, context]) => context.requested)).toEqual([{ theme: "light" }]);
   });

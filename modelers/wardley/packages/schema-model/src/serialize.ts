@@ -1,6 +1,6 @@
-import { wardleyMapSchema } from './schema.js';
-import { migrate, CURRENT_SCHEMA_VERSION } from './migrations.js';
-import { DEFAULT_MAP_TITLE, type MapConfig, type WardleyMap } from './types.js';
+import { wardleyMapSchema } from "./schema.js";
+import { migrate, CURRENT_SCHEMA_VERSION } from "./migrations.js";
+import { DEFAULT_MAP_TITLE, type MapConfig, type WardleyMap } from "./types.js";
 
 /** Number of decimal places for coordinates in serialization (concept doc §7.1). */
 const COORD_PRECISION = 3;
@@ -61,7 +61,7 @@ export function serializeMap(map: WardleyMap): string {
 function canonicalize(map: WardleyMap): WardleyMap {
   const elements = [...map.elements]
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((el) => roundNumbers(el) as WardleyMap['elements'][number]);
+    .map((el) => roundNumbers(el) as WardleyMap["elements"][number]);
   const edges = [...map.edges].sort((a, b) => a.id.localeCompare(b.id));
   return {
     ...map,
@@ -72,9 +72,9 @@ function canonicalize(map: WardleyMap): WardleyMap {
 }
 
 function roundNumbers<T>(value: T): T {
-  if (typeof value === 'number') return round(value) as unknown as T;
+  if (typeof value === "number") return round(value) as unknown as T;
   if (Array.isArray(value)) return value.map((v) => roundNumbers(v)) as unknown as T;
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = roundNumbers(v);
@@ -88,8 +88,8 @@ function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
   const sortDeep = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(sortDeep);
-    if (v && typeof v === 'object') {
-      if (seen.has(v as object)) throw new Error('Cyclic reference in WardleyMap.');
+    if (v && typeof v === "object") {
+      if (seen.has(v as object)) throw new Error("Cyclic reference in WardleyMap.");
       seen.add(v as object);
       const out: Record<string, unknown> = {};
       for (const key of Object.keys(v as Record<string, unknown>).sort()) {
@@ -99,7 +99,7 @@ function stableStringify(value: unknown): string {
     }
     return v;
   };
-  return JSON.stringify(sortDeep(value), null, 2) + '\n';
+  return JSON.stringify(sortDeep(value), null, 2) + "\n";
 }
 
 export function createEmptyMap(title = DEFAULT_MAP_TITLE): WardleyMap {

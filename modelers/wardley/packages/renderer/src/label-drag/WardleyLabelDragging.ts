@@ -1,14 +1,14 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { LabelOffset, MapElement, Movement } from '@miragon/wardley-schema-model';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import { isWardleyShape, type WardleyShape } from '../model/di-types.js';
-import { focusCanvasWithoutRing } from '../a11y/index.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { LabelOffset, MapElement, Movement } from "@miragon/wardley-schema-model";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import { isWardleyShape, type WardleyShape } from "../model/di-types.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 import {
   LABEL_HANDLE_CLASS,
   LABEL_ROLE_ATTRIBUTE,
@@ -19,17 +19,17 @@ import {
   movementLabelSlot,
   normalizeLabelOffset,
   type LabelPlacement,
-} from '../draw/index.js';
+} from "../draw/index.js";
 
 /** Which offset a label writes: the node's own `label [dx, dy]` or its evolve line's. */
-export type LabelRole = 'name' | 'movement';
+export type LabelRole = "name" | "movement";
 
 /** Screen px the pointer must travel before a press on a label becomes a drag. */
 const DRAG_THRESHOLD = 3;
 /** A label dropped this close to its default slot snaps back and clears the offset. */
 const SNAP_HOME_DISTANCE = 4;
-const ARMED_CLASS = 'wardley-labels-draggable';
-const DRAGGING_CLASS = 'wardley-label-dragging';
+const ARMED_CLASS = "wardley-labels-draggable";
+const DRAGGING_CLASS = "wardley-label-dragging";
 
 interface LabelDrag {
   shape: WardleyShape;
@@ -54,13 +54,13 @@ interface LabelDrag {
  */
 export default class WardleyLabelDragging {
   static $inject = [
-    'eventBus',
-    'canvas',
-    'elementRegistry',
-    'wardleyModeling',
-    'selection',
-    'evolutionGrid',
-    'injector',
+    "eventBus",
+    "canvas",
+    "elementRegistry",
+    "wardleyModeling",
+    "selection",
+    "evolutionGrid",
+    "injector",
   ];
 
   private active: LabelDrag | null = null;
@@ -77,23 +77,23 @@ export default class WardleyLabelDragging {
     const container = canvas.getContainer();
     this.outerContainer().classList.add(ARMED_CLASS);
     // Capture phase: diagram-js must neither start a move/lasso/pan nor open the label editor.
-    container.addEventListener('mousedown', this.onMouseDown, true);
-    container.addEventListener('dblclick', this.onDoubleClick, true);
+    container.addEventListener("mousedown", this.onMouseDown, true);
+    container.addEventListener("dblclick", this.onDoubleClick, true);
     // Deleting the owner mid-drag (Delete/Backspace, an external import) ends the gesture, or the
     // release would put an invisible offset change on the undo stack.
-    eventBus.on('shape.remove', ({ element }: { element: unknown }) => {
+    eventBus.on("shape.remove", ({ element }: { element: unknown }) => {
       if (this.active?.shape === element) this.cancel();
     });
-    eventBus.on('diagram.destroy', () => {
+    eventBus.on("diagram.destroy", () => {
       this.cancel();
-      container.removeEventListener('mousedown', this.onMouseDown, true);
-      container.removeEventListener('dblclick', this.onDoubleClick, true);
+      container.removeEventListener("mousedown", this.onMouseDown, true);
+      container.removeEventListener("dblclick", this.onDoubleClick, true);
     });
   }
 
   /** Puts a label back into its default slot (undoable). */
-  resetLabelOffset(shape: WardleyShape, role: LabelRole = 'name'): void {
-    if (role === 'movement') {
+  resetLabelOffset(shape: WardleyShape, role: LabelRole = "name"): void {
+    if (role === "movement") {
       if (shape.movement?.labelOffset) this.commitMovementOffset(shape, undefined);
       return;
     }
@@ -101,7 +101,7 @@ export default class WardleyLabelDragging {
   }
 
   private readonly onMouseDown = (event: MouseEvent): void => {
-    if (event.button !== 0 || this.outerContainer().classList.contains('wardley-draw-mode')) return;
+    if (event.button !== 0 || this.outerContainer().classList.contains("wardley-draw-mode")) return;
     if (isReadOnly(this.injector)) return;
     const target = this.labelTarget(event);
     if (!target) return;
@@ -126,9 +126,9 @@ export default class WardleyLabelDragging {
       zoom: this.canvas.zoom(),
       dragging: false,
     };
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('mouseup', this.onMouseUp);
-    document.addEventListener('keydown', this.onKeyDown, true);
+    document.addEventListener("mousemove", this.onMouseMove);
+    document.addEventListener("mouseup", this.onMouseUp);
+    document.addEventListener("keydown", this.onKeyDown, true);
   };
 
   private readonly onMouseMove = (event: MouseEvent): void => {
@@ -157,9 +157,9 @@ export default class WardleyLabelDragging {
     if (this.elementRegistry.get(drag.shape.id) !== drag.shape) return;
     const next = this.snapHome(drag.latest, drag.homeOffset);
     const previous =
-      drag.role === 'name' ? drag.originalOffset : drag.originalMovement?.labelOffset;
+      drag.role === "name" ? drag.originalOffset : drag.originalMovement?.labelOffset;
     if (!sameOffset(next, previous)) {
-      if (drag.role === 'name') this.commitNameOffset(drag.shape, next);
+      if (drag.role === "name") this.commitNameOffset(drag.shape, next);
       else this.commitMovementOffset(drag.shape, next);
     }
     this.suppressNextClick();
@@ -170,12 +170,12 @@ export default class WardleyLabelDragging {
   private suppressNextClick(): void {
     const container = this.canvas.getContainer();
     const swallow = (event: MouseEvent) => event.stopPropagation();
-    container.addEventListener('click', swallow, { capture: true, once: true });
-    setTimeout(() => container.removeEventListener('click', swallow, true), 0);
+    container.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => container.removeEventListener("click", swallow, true), 0);
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape' || !this.active) return;
+    if (event.key !== "Escape" || !this.active) return;
     event.stopPropagation();
     this.cancel();
   };
@@ -198,24 +198,24 @@ export default class WardleyLabelDragging {
     const drag = this.active;
     if (!drag) return;
     this.active = null;
-    document.removeEventListener('mousemove', this.onMouseMove);
-    document.removeEventListener('mouseup', this.onMouseUp);
-    document.removeEventListener('keydown', this.onKeyDown, true);
+    document.removeEventListener("mousemove", this.onMouseMove);
+    document.removeEventListener("mouseup", this.onMouseUp);
+    document.removeEventListener("keydown", this.onKeyDown, true);
     this.outerContainer().classList.remove(DRAGGING_CLASS);
     if (drag.dragging) {
       if (drag.originalOffset) drag.shape.labelOffset = drag.originalOffset;
       else delete drag.shape.labelOffset;
       if (drag.originalMovement) drag.shape.movement = drag.originalMovement;
-      this.eventBus.fire('element.changed', { element: drag.shape });
+      this.eventBus.fire("element.changed", { element: drag.shape });
     }
   }
 
   private preview(drag: LabelDrag, offset: LabelOffset): void {
-    if (drag.role === 'name') drag.shape.labelOffset = offset;
+    if (drag.role === "name") drag.shape.labelOffset = offset;
     else if (drag.originalMovement) {
       drag.shape.movement = { ...drag.originalMovement, labelOffset: offset };
     }
-    this.eventBus.fire('element.changed', { element: drag.shape });
+    this.eventBus.fire("element.changed", { element: drag.shape });
   }
 
   private snapHome(offset: LabelOffset, home: LabelOffset): LabelOffset | undefined {
@@ -233,7 +233,7 @@ export default class WardleyLabelDragging {
       (MapElement & { labelOffset?: LabelOffset }) | undefined;
     if (!offset && imported?.labelOffset) {
       const { labelOffset: _clearedOffset, ...rest } = imported;
-      properties['businessObject'] = rest;
+      properties["businessObject"] = rest;
     }
     this.modeling.updateProperties(shape, properties);
   }
@@ -257,16 +257,16 @@ export default class WardleyLabelDragging {
     role: LabelRole,
     handle: SVGTextElement,
   ): LabelOffset {
-    if (role === 'movement' && shape.movement?.labelOffset) return shape.movement.labelOffset;
-    if (role === 'name' && shape.labelOffset) return shape.labelOffset;
+    if (role === "movement" && shape.movement?.labelOffset) return shape.movement.labelOffset;
+    if (role === "name" && shape.labelOffset) return shape.labelOffset;
     return this.defaultOffset(shape, role, handle);
   }
 
   /** The offset (OWM frame) of the label's automatic, offset-free position. */
   private defaultOffset(shape: WardleyShape, role: LabelRole, handle: SVGTextElement): LabelOffset {
-    if (shape.wardleyType === 'anchor') return { dx: 0, dy: 0 };
+    if (shape.wardleyType === "anchor") return { dx: 0, dy: 0 };
     const deltaX = movementDeltaX(shape, this.grid);
-    if (role === 'movement') {
+    if (role === "movement") {
       if (deltaX === undefined) return { dx: 0, dy: 0 };
       const placement = movementLabelPlacement(undefined, deltaX);
       return offsetFromPlacement(placement, movementLabelSlot(deltaX), handle, shape);
@@ -281,13 +281,13 @@ export default class WardleyLabelDragging {
   ): { shape: WardleyShape; role: LabelRole; handle: SVGTextElement } | null {
     const handle = (event.target as Element | null)?.closest?.(`.${LABEL_HANDLE_CLASS}`);
     if (!(handle instanceof SVGTextElement)) return null;
-    const id = handle.closest('[data-element-id]')?.getAttribute('data-element-id');
+    const id = handle.closest("[data-element-id]")?.getAttribute("data-element-id");
     const shape = id ? this.elementRegistry.get(id) : undefined;
     if (!isWardleyShape(shape)) return null;
     const role: LabelRole =
-      handle.getAttribute(LABEL_ROLE_ATTRIBUTE) === 'movement' ? 'movement' : 'name';
-    if (role === 'movement' && !shape.movement) return null;
-    if (role === 'name' && shape.wardleyType !== 'component' && shape.wardleyType !== 'anchor') {
+      handle.getAttribute(LABEL_ROLE_ATTRIBUTE) === "movement" ? "movement" : "name";
+    if (role === "movement" && !shape.movement) return null;
+    if (role === "name" && shape.wardleyType !== "component" && shape.wardleyType !== "anchor") {
       return null;
     }
     return { shape, role, handle };
@@ -296,7 +296,7 @@ export default class WardleyLabelDragging {
   /** The `.wardley-container` the viewer mounts into (diagram-js renders into a child of it). */
   private outerContainer(): HTMLElement {
     const container = this.canvas.getContainer();
-    return (container.closest('.wardley-container') as HTMLElement | null) ?? container;
+    return (container.closest(".wardley-container") as HTMLElement | null) ?? container;
   }
 }
 
@@ -311,7 +311,7 @@ function offsetFromPlacement(
   shape: WardleyShape,
 ): LabelOffset {
   const centerX = shape.width / 2;
-  const left = placement.anchor === 'end' ? handle.getBBox().x - centerX : placement.x;
+  const left = placement.anchor === "end" ? handle.getBBox().x - centerX : placement.x;
   return { dx: Math.round(left - slot.x), dy: Math.round(placement.y - slot.y) };
 }
 

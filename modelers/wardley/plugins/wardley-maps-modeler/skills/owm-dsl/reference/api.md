@@ -11,7 +11,7 @@ must be the same instance as the consumer's; npm 7+ installs it automatically.
 ## Text ↔ map
 
 ```ts
-import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from '@miragon/wardley-dsl';
+import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from "@miragon/wardley-dsl";
 
 const map = parseDSL(owmText); // WardleyMap
 const text = serializeDSL(map); // canonical text, trailing newline included
@@ -29,7 +29,7 @@ disappear, `0.80` becomes `0.8`. Where the text file is the source of truth (an 
 Git), write an edited map back with `patchDSL`:
 
 ```ts
-import { parseDSL, patchDSL } from '@miragon/wardley-dsl';
+import { parseDSL, patchDSL } from "@miragon/wardley-dsl";
 
 const map = parseDSL(fileText);
 // … move, rename, add or delete elements in a copy of `map` …
@@ -110,10 +110,10 @@ mkdir -p /tmp/owm-check && cd /tmp/owm-check && npm install --silent @miragon/wa
 `/tmp/owm-check/check-map.mjs`:
 
 ```js
-import { readFileSync } from 'node:fs';
-import { parseDSLWithDiagnostics, serializeDSL } from '@miragon/wardley-dsl';
+import { readFileSync } from "node:fs";
+import { parseDSLWithDiagnostics, serializeDSL } from "@miragon/wardley-dsl";
 
-const text = readFileSync(process.argv[2], 'utf8');
+const text = readFileSync(process.argv[2], "utf8");
 const { map, diagnostics } = parseDSLWithDiagnostics(text);
 for (const { line, message, text: source } of diagnostics) {
   console.log(`line ${line}: ${message}\n    ${source}`);
@@ -124,7 +124,7 @@ for (const entry of map.rawPassthrough ?? []) {
 console.log(
   `title "${map.config.title}", ${map.elements.length} elements, ${map.edges.length} links`,
 );
-console.log(serializeDSL(map) === text ? 'already canonical' : 'differs from canonical text');
+console.log(serializeDSL(map) === text ? "already canonical" : "differs from canonical text");
 ```
 
 Run it from that directory (so the bare import resolves): `node check-map.mjs /path/to/map.wmap`. A
@@ -139,7 +139,7 @@ The types live in `@miragon/wardley-schema-model` (a dependency of `@miragon/war
 does not re-export them):
 
 ```ts
-import type { WardleyMap, MapElement, MapEdge } from '@miragon/wardley-schema-model';
+import type { WardleyMap, MapElement, MapEdge } from "@miragon/wardley-schema-model";
 
 interface WardleyMap {
   readonly schemaVersion: number; // currently 1
@@ -152,7 +152,7 @@ interface WardleyMap {
 interface MapConfig {
   readonly title: string;
   readonly size?: { width: number; height: number };
-  readonly style?: 'wardley' | 'handwritten' | 'colour' | 'dark';
+  readonly style?: "wardley" | "handwritten" | "colour" | "dark";
   readonly evolutionLabels?: readonly [string, string, string, string];
   readonly stageBoundaries?: readonly [number, number, number]; // no text syntax
   readonly yAxisLabel?: string;
@@ -204,7 +204,7 @@ import {
   DEFAULT_STAGE_BOUNDARIES, // [0.17, 0.4, 0.7]
   DEFAULT_EVOLUTION_LABELS, // Genesis, Custom-Built, Product / Rental, Commodity / Utility
   EVOLUTION_PRESETS, // activities, practices, data, knowledge
-} from '@miragon/wardley-schema-model';
+} from "@miragon/wardley-schema-model";
 
 evolutionStage(0.4); // 2 — Product (boundaries belong to the stage on their right)
 ```
@@ -212,7 +212,7 @@ evolutionStage(0.4); // 2 — Product (boundaries belong to the stage on their r
 ## JSON bridge
 
 ```ts
-import { mapToJSON, mapFromJSON, loadMap } from '@miragon/wardley-dsl';
+import { mapToJSON, mapFromJSON, loadMap } from "@miragon/wardley-dsl";
 
 const json = mapToJSON(map); // deterministic: sorted keys, elements and edges sorted by id, numbers rounded to 3 decimals
 const back = mapFromJSON(json); // validated WardleyMap

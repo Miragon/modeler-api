@@ -3,15 +3,15 @@ import {
   attr as svgAttr,
   create as svgCreate,
   remove as svgRemove,
-} from 'tiny-svg';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
-import { COLORS, DRAWING_INK } from '../draw/styles.js';
-import type EventStormingElementFactory from '../model/EventStormingElementFactory.js';
-import { READ_ONLY_CHANGED_EVENT } from '../read-only/index.js';
+} from "tiny-svg";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
+import { COLORS, DRAWING_INK } from "../draw/styles.js";
+import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
+import { READ_ONLY_CHANGED_EVENT } from "../read-only/index.js";
 
 interface Point {
   x: number;
@@ -28,7 +28,7 @@ const CLOSE_RADIUS = 12;
  * two points cancels. The result is ONE undoable `drawing` shape that moves as a whole.
  */
 export default class EventStormingDrawTool {
-  static $inject = ['canvas', 'eventBus', 'modeling', 'selection', 'eventStormingElementFactory'];
+  static $inject = ["canvas", "eventBus", "modeling", "selection", "eventStormingElementFactory"];
 
   private active = false;
   private points: Point[] = [];
@@ -42,7 +42,7 @@ export default class EventStormingDrawTool {
     private readonly selection: Selection,
     private readonly factory: EventStormingElementFactory,
   ) {
-    eventBus.on('diagram.destroy', () => this.cancel());
+    eventBus.on("diagram.destroy", () => this.cancel());
     eventBus.on(READ_ONLY_CHANGED_EVENT, (event: { readOnly?: boolean }) => {
       if (event.readOnly) this.cancel();
     });
@@ -63,7 +63,7 @@ export default class EventStormingDrawTool {
    */
   private outerContainer(): HTMLElement {
     const container = this.canvas.getContainer();
-    return (container.closest('.event-storming-container') as HTMLElement | null) ?? container;
+    return (container.closest(".event-storming-container") as HTMLElement | null) ?? container;
   }
 
   activate(): void {
@@ -72,14 +72,14 @@ export default class EventStormingDrawTool {
     this.points = [];
     this.cursor = null;
     const container = this.canvas.getContainer();
-    this.outerContainer().classList.add('event-storming-draw-mode');
+    this.outerContainer().classList.add("event-storming-draw-mode");
     // Capture phase: while drawing, clicks must NOT select/move elements underneath.
-    container.addEventListener('mousedown', this.onMouseDown, true);
-    container.addEventListener('dblclick', this.onDblClick, true);
-    container.addEventListener('mousemove', this.onMouseMove, true);
-    document.addEventListener('keydown', this.onKeyDown, true);
+    container.addEventListener("mousedown", this.onMouseDown, true);
+    container.addEventListener("dblclick", this.onDblClick, true);
+    container.addEventListener("mousemove", this.onMouseMove, true);
+    document.addEventListener("keydown", this.onKeyDown, true);
     // Light up the palette entry (same channel the tool manager uses).
-    this.eventBus.fire('tool-manager.update', { tool: 'draw' });
+    this.eventBus.fire("tool-manager.update", { tool: "draw" });
   }
 
   /** Finishes the current polyline (>= 2 points) and deactivates the tool. */
@@ -118,15 +118,15 @@ export default class EventStormingDrawTool {
     if (!this.active) return;
     this.active = false;
     const container = this.canvas.getContainer();
-    this.outerContainer().classList.remove('event-storming-draw-mode');
-    container.removeEventListener('mousedown', this.onMouseDown, true);
-    container.removeEventListener('dblclick', this.onDblClick, true);
-    container.removeEventListener('mousemove', this.onMouseMove, true);
-    document.removeEventListener('keydown', this.onKeyDown, true);
+    this.outerContainer().classList.remove("event-storming-draw-mode");
+    container.removeEventListener("mousedown", this.onMouseDown, true);
+    container.removeEventListener("dblclick", this.onDblClick, true);
+    container.removeEventListener("mousemove", this.onMouseMove, true);
+    document.removeEventListener("keydown", this.onKeyDown, true);
     this.points = [];
     this.cursor = null;
     this.clearPreview();
-    this.eventBus.fire('tool-manager.update', { tool: null });
+    this.eventBus.fire("tool-manager.update", { tool: null });
   }
 
   private toCanvasPoint(e: MouseEvent): Point {
@@ -142,7 +142,7 @@ export default class EventStormingDrawTool {
   /** Palette/context-pad/menus live INSIDE the container — let their clicks through. */
   private isChromeTarget(e: MouseEvent): boolean {
     const target = e.target as HTMLElement | null;
-    return !!target?.closest('.djs-palette, .djs-context-pad, .event-storming-color-picker');
+    return !!target?.closest(".djs-palette, .djs-context-pad, .event-storming-color-picker");
   }
 
   private readonly onMouseDown = (e: MouseEvent): void => {
@@ -180,14 +180,14 @@ export default class EventStormingDrawTool {
   };
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       // Excalidraw semantics: Escape COMMITS what is there (undo removes it); it only
       // cancels while no line exists yet.
       if (this.points.length >= 2) this.finish();
       else this.cancel();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
       this.finish();
@@ -197,45 +197,45 @@ export default class EventStormingDrawTool {
   private renderPreview(): void {
     this.clearPreview();
     if (!this.points.length) return;
-    const layer = this.canvas.getLayer('event-storming-draw-preview', 1000);
-    const group = svgCreate('g');
+    const layer = this.canvas.getLayer("event-storming-draw-preview", 1000);
+    const group = svgCreate("g");
     const pts = this.cursor ? [...this.points, this.cursor] : this.points;
     svgAppend(
       group,
-      svgAttr(svgCreate('polyline'), {
-        points: pts.map((p) => `${p.x},${p.y}`).join(' '),
-        fill: 'none',
+      svgAttr(svgCreate("polyline"), {
+        points: pts.map((p) => `${p.x},${p.y}`).join(" "),
+        fill: "none",
         stroke: DRAWING_INK,
-        'stroke-width': 2,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'stroke-dasharray': '5 4',
+        "stroke-width": 2,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        "stroke-dasharray": "5 4",
       }),
     );
     // First point = "close the shape here", last point = "finish the line here".
     const first = this.points[0]!;
     svgAppend(
       group,
-      svgAttr(svgCreate('circle'), {
+      svgAttr(svgCreate("circle"), {
         cx: first.x,
         cy: first.y,
         r: this.points.length >= 3 ? 5 : 3,
         fill: COLORS.paper,
         stroke: DRAWING_INK,
-        'stroke-width': 1.5,
+        "stroke-width": 1.5,
       }),
     );
     if (this.points.length >= 2) {
       const last = this.points[this.points.length - 1]!;
       svgAppend(
         group,
-        svgAttr(svgCreate('circle'), {
+        svgAttr(svgCreate("circle"), {
           cx: last.x,
           cy: last.y,
           r: 5,
           fill: COLORS.paper,
           stroke: DRAWING_INK,
-          'stroke-width': 1.5,
+          "stroke-width": 1.5,
         }),
       );
     }

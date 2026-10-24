@@ -47,7 +47,7 @@ export function minimalLineEdit(oldLines: readonly string[], newText: string): L
     return {
       start: { line: prefix, character: 0 },
       end: { line: oldCount - suffix, character: 0 },
-      text: inserted.map((line) => `${line}\n`).join(''),
+      text: inserted.map((line) => `${line}\n`).join(""),
     };
   }
 
@@ -55,10 +55,10 @@ export function minimalLineEdit(oldLines: readonly string[], newText: string): L
   // previous line so removed or added lines take their preceding break with them.
   const lastLine = oldCount - 1;
   const end = { line: lastLine, character: oldLines[lastLine]!.length };
-  if (prefix === 0) return { start: { line: 0, character: 0 }, end, text: inserted.join('\n') };
+  if (prefix === 0) return { start: { line: 0, character: 0 }, end, text: inserted.join("\n") };
   return {
     start: { line: prefix - 1, character: oldLines[prefix - 1]!.length },
     end,
-    text: inserted.map((line) => `\n${line}`).join(''),
+    text: inserted.map((line) => `\n${line}`).join(""),
   };
 }

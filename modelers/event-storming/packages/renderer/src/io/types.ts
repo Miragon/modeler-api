@@ -1,6 +1,6 @@
-import type { BoardConfig } from '@miragon/event-storming-schema-model';
+import type { BoardConfig } from "@miragon/event-storming-schema-model";
 
-export { ROOT_ID } from '../model/di-types.js';
+export { ROOT_ID } from "../model/di-types.js";
 
 export interface ImportWarning {
   /** For the person who reads it; a parser finding starts with its line: "Line 4: …". */

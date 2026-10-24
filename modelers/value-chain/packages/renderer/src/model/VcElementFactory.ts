@@ -1,19 +1,19 @@
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type { Shape } from 'diagram-js/lib/model/Types';
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type { Shape } from "diagram-js/lib/model/Types";
 import {
   DEFAULT_ORG_UNIT_SIZE,
   DEFAULT_STEP_SIZE,
   type ChainConnection,
   type DiagramElement,
-} from '@miragon/value-chain-schema-model';
-import type { VcConnection, VcShape } from './di-types.js';
+} from "@miragon/value-chain-schema-model";
+import type { VcConnection, VcShape } from "./di-types.js";
 
 /**
  * Domain-aware factory: builds diagram-js shapes/connections from schema-model elements
  * (import) and blank ones for palette/context-pad creation.
  */
 export default class VcElementFactory {
-  static $inject = ['elementFactory'];
+  static $inject = ["elementFactory"];
 
   constructor(private readonly elementFactory: ElementFactory) {}
 
@@ -27,7 +27,7 @@ export default class VcElementFactory {
       vcType: element.elementType,
       vcLabel: element.name,
       ...(element.color !== undefined ? { color: element.color } : {}),
-      ...(element.elementType === 'step' && element.link !== undefined
+      ...(element.elementType === "step" && element.link !== undefined
         ? { link: element.link }
         : {}),
       businessObject: element,
@@ -49,21 +49,21 @@ export default class VcElementFactory {
    * A blank step for interactive creation: no id/position — diagram-js assigns the id,
    * the create/auto-place interaction assigns the position.
    */
-  createNewStep(label = ''): VcShape {
+  createNewStep(label = ""): VcShape {
     return this.elementFactory.createShape({
       width: DEFAULT_STEP_SIZE.width,
       height: DEFAULT_STEP_SIZE.height,
-      vcType: 'step',
+      vcType: "step",
       vcLabel: label,
     }) as VcShape;
   }
 
   /** A blank organizational unit for interactive creation. */
-  createNewOrgUnit(label = ''): VcShape {
+  createNewOrgUnit(label = ""): VcShape {
     return this.elementFactory.createShape({
       width: DEFAULT_ORG_UNIT_SIZE.width,
       height: DEFAULT_ORG_UNIT_SIZE.height,
-      vcType: 'orgUnit',
+      vcType: "orgUnit",
       vcLabel: label,
     }) as VcShape;
   }

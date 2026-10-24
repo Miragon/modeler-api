@@ -48,7 +48,9 @@ describe("problems pill (guide §5.10)", () => {
     const { shell, root } = mount({
       lang: "de",
       problems: { onActivate() {} },
-      messages: { problems: (count, formatted) => `${formatted} ${count === 1 ? "Problem" : "Probleme"}` },
+      messages: {
+        problems: (count, formatted) => `${formatted} ${count === 1 ? "Problem" : "Probleme"}`,
+      },
     });
     shell.setProblems({ count: 1234, errors: 0 });
     expect(chrome(root, "problems").textContent).toBe("1.234 Probleme");
@@ -78,7 +80,10 @@ describe("status box (guide §5.12)", () => {
     vi.useFakeTimers();
     const { shell, root } = mount();
     const status = chrome(root, "status");
-    const invalid = { severity: "danger", text: shell.messages.invalidFile("Event Storming board") } as const;
+    const invalid = {
+      severity: "danger",
+      text: shell.messages.invalidFile("Event Storming board"),
+    } as const;
     shell.setStatus(invalid, { delayMs: INVALID_STATUS_DELAY_MS });
     vi.advanceTimersByTime(500);
     shell.setStatus(invalid, { delayMs: INVALID_STATUS_DELAY_MS });
@@ -121,7 +126,9 @@ describe("legend (guide §5.10)", () => {
     const title = legend.querySelector(".cd-shell-legend-title");
     expect(legend.getAttribute("aria-labelledby")).toBe(title?.id);
     expect(title?.textContent).toBe("Legend");
-    expect(legend.querySelector(".cd-shell-legend-close")?.getAttribute("aria-label")).toBe("Close legend");
+    expect(legend.querySelector(".cd-shell-legend-close")?.getAttribute("aria-label")).toBe(
+      "Close legend",
+    );
     expect(legend.hidden).toBe(false);
     expect(root.getAttribute("data-legend")).toBe("open");
     expect(shell.legend?.isOpen()).toBe(true);
@@ -145,13 +152,16 @@ describe("legend (guide §5.10)", () => {
     [true, 390, 844],
     [true, 1280, 900],
     [false, 1280, 900],
-  ])("starts as the stored state says (%s at %i × %ipx), whatever the container", (open, width, height) => {
-    const onToggle = vi.fn();
-    const { shell, root } = mount({ legend: { render() {}, open, onToggle } }, { width, height });
-    expect(shell.legend?.isOpen()).toBe(open);
-    expect(chrome(root, "legend").hidden).toBe(!open);
-    expect(onToggle).not.toHaveBeenCalled();
-  });
+  ])(
+    "starts as the stored state says (%s at %i × %ipx), whatever the container",
+    (open, width, height) => {
+      const onToggle = vi.fn();
+      const { shell, root } = mount({ legend: { render() {}, open, onToggle } }, { width, height });
+      expect(shell.legend?.isOpen()).toBe(open);
+      expect(chrome(root, "legend").hidden).toBe(!open);
+      expect(onToggle).not.toHaveBeenCalled();
+    },
+  );
 
   it("stays closed when a hidden tab gets its first size, and opens from the menu checkbox", () => {
     const onToggle = vi.fn();
@@ -176,7 +186,9 @@ describe("legend (guide §5.10)", () => {
       legend: { render() {}, open: true, onToggle },
       menu: { export: [{ kind: "action", id: "png", label: "Export as PNG", onSelect() {} }] },
     });
-    const close = chrome(root, "legend").querySelector<HTMLButtonElement>(".cd-shell-legend-close")!;
+    const close = chrome(root, "legend").querySelector<HTMLButtonElement>(
+      ".cd-shell-legend-close",
+    )!;
     close.focus();
     close.click();
     expect(shell.legend?.isOpen()).toBe(false);
@@ -271,7 +283,10 @@ describe("fitInsets and the palette row (guide §5.9, §5.15)", () => {
   });
 
   it("counts the bottom sheet's top edge in narrow containers", () => {
-    const { shell, root } = mount({ inspector: { label: "Properties" } }, { width: 700, height: 800 });
+    const { shell, root } = mount(
+      { inspector: { label: "Properties" } },
+      { width: 700, height: 800 },
+    );
     shell.inspector?.open();
     setBox(chrome(root, "inspector"), { left: 12, top: 500, width: 676, height: 288 });
     expect(shell.fitInsets()).toEqual({ top: 140, right: 24, bottom: 800 - 500 + 12, left: 24 });
@@ -335,7 +350,9 @@ describe("fitInsets and the palette row (guide §5.9, §5.15)", () => {
     const { shell, root } = mount({ emptyHint: {}, inspector: { label: "Properties" } });
     shell.setEmptyHint(true);
     shell.inspector?.open();
-    expect(root.querySelector<HTMLElement>(".cd-shell-hint")?.style.inset).toBe("88px 324px 64px 24px");
+    expect(root.querySelector<HTMLElement>(".cd-shell-hint")?.style.inset).toBe(
+      "88px 324px 64px 24px",
+    );
   });
 });
 
@@ -391,9 +408,9 @@ describe("read-only (guide §13.5)", () => {
     expect(root.hasAttribute("data-readonly")).toBe(false);
     expect(palette.readOnlyCalls.at(-1)).toEqual(LOCKED);
     shell.menu.open();
-    expect(shell.menu.dropdown.querySelector('[data-menu-id="size"]')?.getAttribute("aria-disabled")).toBe(
-      "true",
-    );
+    expect(
+      shell.menu.dropdown.querySelector('[data-menu-id="size"]')?.getAttribute("aria-disabled"),
+    ).toBe("true");
     shell.menu.close();
 
     vi.advanceTimersByTime(INVALID_STATUS_DELAY_MS - 300);

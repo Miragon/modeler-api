@@ -65,9 +65,11 @@ export function connectWebAppearance(context: WebAppearanceContext): WebAppearan
   const view = ownerDocument.defaultView;
   const cleanups: (() => void)[] = [];
 
-  const contrast = typeof view?.matchMedia === "function" ? view.matchMedia(CONTRAST_QUERY) : undefined;
+  const contrast =
+    typeof view?.matchMedia === "function" ? view.matchMedia(CONTRAST_QUERY) : undefined;
   if (contrast) {
-    const mirrorContrast = (): void => toggleAttribute(html, "data-cd-kontrast", contrast.matches && "hoch");
+    const mirrorContrast = (): void =>
+      toggleAttribute(html, "data-cd-kontrast", contrast.matches && "hoch");
     mirrorContrast();
     cleanups.push(onMediaChange(contrast, mirrorContrast));
   }
@@ -137,9 +139,12 @@ export function connectWebAppearance(context: WebAppearanceContext): WebAppearan
   }
 
   function metaFor(name: string, media?: string): HTMLMetaElement {
-    const normalize = (value: string | null): string => (value ?? "").replace(/\s+/g, "").toLowerCase();
-    const existing = [...ownerDocument.querySelectorAll<HTMLMetaElement>(`meta[name="${name}"]`)].find(
-      (meta) => (media === undefined ? true : normalize(meta.getAttribute("media")) === normalize(media)),
+    const normalize = (value: string | null): string =>
+      (value ?? "").replace(/\s+/g, "").toLowerCase();
+    const existing = [
+      ...ownerDocument.querySelectorAll<HTMLMetaElement>(`meta[name="${name}"]`),
+    ].find((meta) =>
+      media === undefined ? true : normalize(meta.getAttribute("media")) === normalize(media),
     );
     if (existing) return existing;
     const created = createElement(ownerDocument, "meta", { name, media });

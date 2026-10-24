@@ -6,11 +6,11 @@
  */
 export async function copyTextWhenReady(text: Promise<string>): Promise<void> {
   const clipboard = navigator.clipboard as Clipboard | undefined;
-  if (!clipboard) throw new Error('The clipboard is not available here.');
-  if (typeof clipboard.write === 'function' && typeof ClipboardItem !== 'undefined') {
+  if (!clipboard) throw new Error("The clipboard is not available here.");
+  if (typeof clipboard.write === "function" && typeof ClipboardItem !== "undefined") {
     try {
-      const blob = text.then((value) => new Blob([value], { type: 'text/plain' }));
-      await clipboard.write([new ClipboardItem({ 'text/plain': blob })]);
+      const blob = text.then((value) => new Blob([value], { type: "text/plain" }));
+      await clipboard.write([new ClipboardItem({ "text/plain": blob })]);
       return;
     } catch {
       // Older engines reject a promise in a ClipboardItem; a plain write may still work.

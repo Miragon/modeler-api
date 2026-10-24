@@ -1,10 +1,10 @@
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import type { Element } from 'diagram-js/lib/model/Types';
-import { COLOR_OPTIONS, COLORS } from '../draw/styles.js';
-import { isVcShape } from '../model/di-types.js';
-import type VcModeling from '../modeling/VcModeling.js';
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import type { Element } from "diagram-js/lib/model/Types";
+import { COLOR_OPTIONS, COLORS } from "../draw/styles.js";
+import { isVcShape } from "../model/di-types.js";
+import type VcModeling from "../modeling/VcModeling.js";
 
-export const COLOR_PICKER_PROVIDER_ID = 'vc-color-picker';
+export const COLOR_PICKER_PROVIDER_ID = "vc-color-picker";
 
 interface PopupMenuEntry {
   label: string;
@@ -22,7 +22,7 @@ function swatch(color: string): string {
 }
 
 export default class VcColorPickerProvider {
-  static $inject = ['popupMenu', 'vcModeling'];
+  static $inject = ["popupMenu", "vcModeling"];
 
   constructor(
     popupMenu: PopupMenu,

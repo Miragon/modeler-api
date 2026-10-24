@@ -21,7 +21,11 @@
   padding: 3px;
   border: 1px solid var(--cd-ui-linie);
   border-radius: var(--cd-radius-md);
-  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  background: color-mix(
+    in srgb,
+    var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft),
+    transparent
+  );
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   box-shadow: var(--cd-shadow-1);
@@ -198,7 +202,9 @@
  */
 .cd-shell[data-palette="second-row"] .djs-palette[data-chrome="palette"] {
   --modeler-shell-palette-focus-offset: calc(-1 * var(--modeler-shell-palette-focus-width));
-  --modeler-shell-palette-focus-offset-pressed: calc(-3px - var(--modeler-shell-palette-focus-width));
+  --modeler-shell-palette-focus-offset-pressed: calc(
+    -3px - var(--modeler-shell-palette-focus-width)
+  );
 
   top: var(--cd-shell-frei);
   max-width: calc(100cqw - 2 * var(--cd-shell-rand));
@@ -215,7 +221,9 @@
 @container cd-shell (max-width: 760px) {
   .djs-palette[data-chrome="palette"] {
     --modeler-shell-palette-focus-offset: calc(-1 * var(--modeler-shell-palette-focus-width));
-    --modeler-shell-palette-focus-offset-pressed: calc(-3px - var(--modeler-shell-palette-focus-width));
+    --modeler-shell-palette-focus-offset-pressed: calc(
+      -3px - var(--modeler-shell-palette-focus-width)
+    );
 
     top: var(--cd-shell-frei);
     max-width: calc(100cqw - 2 * var(--cd-shell-rand));

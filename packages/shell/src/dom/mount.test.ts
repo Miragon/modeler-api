@@ -171,10 +171,18 @@ describe("mountShell: root and document", () => {
     vi.stubGlobal("navigator", { platform: "MacIntel" });
     const root = document.createElement("div");
     document.body.append(root);
-    const shell = mountShell(root, { host: "ide", messages: { menu: "Menü", keyNames: { ctrl: "Strg" } } });
+    const shell = mountShell(root, {
+      host: "ide",
+      messages: { menu: "Menü", keyNames: { ctrl: "Strg" } },
+    });
     expect(shell.platform).toBe("mac");
     expect(shell.messages.menu).toBe("Menü");
-    expect(shell.messages.keyNames).toEqual({ ctrl: "Strg", shift: "Shift", plus: "Plus", minus: "Minus" });
+    expect(shell.messages.keyNames).toEqual({
+      ctrl: "Strg",
+      shift: "Shift",
+      plus: "Plus",
+      minus: "Minus",
+    });
     expect(chrome(root, "menu").getAttribute("aria-label")).toBe("Menü");
     shell.destroy();
   });
@@ -210,7 +218,9 @@ describe("destroy", () => {
 
     vi.advanceTimersByTime(2000);
     expect(root.querySelector(".cd-shell-status")).toBeNull();
-    expect(keydown(document.body, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(false);
+    expect(
+      keydown(document.body, { key: "=", code: "Equal", metaKey: true }).defaultPrevented,
+    ).toBe(false);
     expect(target.calls).toEqual([]);
   });
 
@@ -324,8 +334,12 @@ describe("mountShell: robustness", () => {
     expect(root.getAttributeNames()).toEqual([]);
     expect(root.children).toHaveLength(0);
     expect(document.documentElement.classList).not.toContain("cd-shell-document");
-    expect(FakeResizeObserver.instances.every((observer) => observer.observed.size === 0)).toBe(true);
-    expect(keydown(document.body, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(false);
+    expect(FakeResizeObserver.instances.every((observer) => observer.observed.size === 0)).toBe(
+      true,
+    );
+    expect(
+      keydown(document.body, { key: "=", code: "Equal", metaKey: true }).defaultPrevented,
+    ).toBe(false);
   });
 
   it("numbers element ids page-wide, also across separate copies of the shell", () => {
@@ -372,7 +386,11 @@ describe("mountShell: focus when an island hides (guide §5.14)", () => {
 
   it("leaves the focus alone when it is elsewhere", () => {
     const { canvas } = canvasWithSvg();
-    const { shell } = mount({ canvas, emptyHint: { onInsertExample() {} }, menu: fullOptions.menu });
+    const { shell } = mount({
+      canvas,
+      emptyHint: { onInsertExample() {} },
+      menu: fullOptions.menu,
+    });
     shell.setEmptyHint(true);
     shell.menu.trigger.focus();
     shell.setEmptyHint(false);

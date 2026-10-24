@@ -1,5 +1,5 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
 
 interface ConnectionPreviewLike {
   drawPreview(context: object, canConnect: unknown, hints: object): void;
@@ -32,12 +32,12 @@ interface CreateEvent {
 
 /** Types that carry a visible name — placing one goes straight into naming it. */
 const NAMED_TYPES: ReadonlySet<unknown> = new Set([
-  'component',
-  'anchor',
-  'submap',
-  'pipeline',
-  'accelerator',
-  'note',
+  "component",
+  "anchor",
+  "submap",
+  "pipeline",
+  "accelerator",
+  "note",
 ]);
 
 // diagram-js runs listeners in descending priority order; the default create.end handler (creation)
@@ -54,18 +54,18 @@ const AFTER_CREATE = 500;
  *     Regions, drawings and pasted copies are left alone.
  */
 export default class WardleyAppendBehavior {
-  static $inject = ['injector', 'eventBus'];
+  static $inject = ["injector", "eventBus"];
 
   constructor(injector: Injector, eventBus: EventBus) {
     const connectionPreview = injector.get(
-      'connectionPreview',
+      "connectionPreview",
       false,
     ) as ConnectionPreviewLike | null;
-    const labelEditing = injector.get('wardleyLabelEditing', false) as LabelEditingLike | null;
+    const labelEditing = injector.get("wardleyLabelEditing", false) as LabelEditingLike | null;
 
     // (1) arrow preview
     if (connectionPreview) {
-      eventBus.on('create.move', (event: CreateEvent) => {
+      eventBus.on("create.move", (event: CreateEvent) => {
         const { context } = event;
         const source = context.source;
         if (!source) return;
@@ -79,7 +79,7 @@ export default class WardleyAppendBehavior {
       });
 
       eventBus.on(
-        ['create.end', 'create.cancel', 'create.cleanup'],
+        ["create.end", "create.cancel", "create.cleanup"],
         (event: { context: object }) => {
           connectionPreview.cleanUp(event.context);
         },
@@ -88,7 +88,7 @@ export default class WardleyAppendBehavior {
 
     // (2) automatically open the label editor after placing a named element
     if (labelEditing) {
-      eventBus.on('create.end', AFTER_CREATE, (event: CreateEvent) => {
+      eventBus.on("create.end", AFTER_CREATE, (event: CreateEvent) => {
         const { context } = event;
         const shape = context.shape;
         if (!context.canExecute || !shape || context.wardleyPaste) return;

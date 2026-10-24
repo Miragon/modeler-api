@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import { boardDiagnostics } from './diagnostics.js';
-import { DocumentWriter } from './documentWriter.js';
-import { exportImageToFile } from './exportImage.js';
-import { withExampleInserted } from './examples.js';
-import type { HostToWebview, WebviewToHost } from './protocol.js';
+import * as vscode from "vscode";
+import { boardDiagnostics } from "./diagnostics.js";
+import { DocumentWriter } from "./documentWriter.js";
+import { exportImageToFile } from "./exportImage.js";
+import { withExampleInserted } from "./examples.js";
+import type { HostToWebview, WebviewToHost } from "./protocol.js";
 
 /**
  * One open board editor: keeps the webview and the document in sync, fills the document's entry of
@@ -45,7 +45,7 @@ export class BoardSession implements vscode.Disposable {
     // Echoes too: an edit on the canvas can add or remove a finding (a renamed arrow target).
     this.refreshDiagnostics();
     if (this.writer.consumeEcho()) return;
-    void this.post({ type: 'update', text: this.document.getText() });
+    void this.post({ type: "update", text: this.document.getText() });
   }
 
   private refreshDiagnostics(): void {
@@ -58,28 +58,28 @@ export class BoardSession implements vscode.Disposable {
 
   private postProblems(count: number): void {
     this.postedProblemCount = count;
-    void this.post({ type: 'problems', count, errors: 0 });
+    void this.post({ type: "problems", count, errors: 0 });
   }
 
   private async onMessage(message: WebviewToHost): Promise<void> {
     switch (message.type) {
-      case 'ready':
-        await this.post({ type: 'init', text: this.document.getText() });
+      case "ready":
+        await this.post({ type: "init", text: this.document.getText() });
         this.postProblems(this.diagnostics.get(this.document.uri)?.length ?? 0);
         break;
-      case 'edit':
+      case "edit":
         await this.writer.write(() => message.text, { suppressEcho: true });
         break;
-      case 'insertExample':
+      case "insertExample":
         await this.writer.write(withExampleInserted, { suppressEcho: false });
         break;
-      case 'export':
+      case "export":
         await exportImageToFile(this.document.uri, message.format, message.data);
         break;
-      case 'showProblems':
-        void vscode.commands.executeCommand('workbench.actions.view.problems');
+      case "showProblems":
+        void vscode.commands.executeCommand("workbench.actions.view.problems");
         break;
-      case 'error':
+      case "error":
         void vscode.window.showErrorMessage(message.message);
         break;
     }

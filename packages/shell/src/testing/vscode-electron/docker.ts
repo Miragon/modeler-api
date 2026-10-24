@@ -75,7 +75,10 @@ export function vsCodeSmokeDockerfile(nodeVersion: string): string {
  * the native and the emulated image need one each.
  */
 export function vsCodeSmokeDockerImage(nodeVersion: string, platform?: string): string {
-  const hash = createHash("sha256").update(vsCodeSmokeDockerfile(nodeVersion)).digest("hex").slice(0, 12);
+  const hash = createHash("sha256")
+    .update(vsCodeSmokeDockerfile(nodeVersion))
+    .digest("hex")
+    .slice(0, 12);
   const suffix = platform ? `-${platform.replace(/[^A-Za-z0-9_.-]+/g, "-")}` : "";
   return `modeler-shell-vscode-smoke:node${nodeVersion}-${hash}${suffix}`;
 }
@@ -309,18 +312,32 @@ export async function runVsCodeSmokeInDocker(
   const cwd = resolve(options.cwd ?? process.cwd());
   const found = findRepositoryRoot(cwd);
   if (!found)
-    throw new Error(`no package-lock.json in ${cwd} or above: run it inside the modeler's repository`);
+    throw new Error(
+      `no package-lock.json in ${cwd} or above: run it inside the modeler's repository`,
+    );
   const root = realpathSync(found);
   const workdir = pathInside(root, realpathSync(cwd)) ?? "";
-  const results = pathInside(root, realPathOf(resolve(root, options.results ?? DEFAULT_DOCKER_RESULTS)));
-  if (!results) throw new Error(`the results directory has to be a directory inside ${root}, not the root`);
+  const results = pathInside(
+    root,
+    realPathOf(resolve(root, options.results ?? DEFAULT_DOCKER_RESULTS)),
+  );
+  if (!results)
+    throw new Error(`the results directory has to be a directory inside ${root}, not the root`);
 
-  const server = spawnSync(docker, ["version", "--format", "{{.Server.Version}} {{.Server.Arch}}"], {
-    encoding: "utf8",
-  });
+  const server = spawnSync(
+    docker,
+    ["version", "--format", "{{.Server.Version}} {{.Server.Arch}}"],
+    {
+      encoding: "utf8",
+    },
+  );
   if (server.status !== 0) {
-    const reason = server.error ? server.error.message : (server.stderr ?? "").trim().split("\n")[0];
-    throw new Error(`Docker is not available (${reason}): install and start Docker Desktop or Docker Engine`);
+    const reason = server.error
+      ? server.error.message
+      : (server.stderr ?? "").trim().split("\n")[0];
+    throw new Error(
+      `Docker is not available (${reason}): install and start Docker Desktop or Docker Engine`,
+    );
   }
   log(`[vscode-docker] Docker ${server.stdout.trim()}`);
 
@@ -330,7 +347,9 @@ export async function runVsCodeSmokeInDocker(
   if (!options.image) {
     const exists = spawnSync(docker, ["image", "inspect", image], { stdio: "ignore" }).status === 0;
     if (!exists || options.rebuild) {
-      log(`[vscode-docker] building ${image} (node:${nodeVersion}-bookworm-slim with VS Code's libraries)`);
+      log(
+        `[vscode-docker] building ${image} (node:${nodeVersion}-bookworm-slim with VS Code's libraries)`,
+      );
       const platform = options.platform ? ["--platform", options.platform] : [];
       const code = await run(
         docker,
@@ -351,7 +370,8 @@ export async function runVsCodeSmokeInDocker(
   if (!prepareResultsDirectory(hostResults, results === DEFAULT_DOCKER_RESULTS)) {
     log(`[vscode-docker] ${hostResults} has files of its own; the run's files land next to them`);
   }
-  const command = options.command && options.command.length > 0 ? options.command : DEFAULT_DOCKER_COMMAND;
+  const command =
+    options.command && options.command.length > 0 ? options.command : DEFAULT_DOCKER_COMMAND;
   const uid = process.getuid?.();
   const gid = process.getgid?.();
   const args = vsCodeSmokeDockerRunArgs({
@@ -393,7 +413,8 @@ Options:
 
 After -- the command replaces npm run <script>, e.g. -- npm run test:vscode-smoke.`;
 
-export type VsCodeSmokeDockerArguments = { help: true } | { help: false; options: VsCodeSmokeDockerOptions };
+export type VsCodeSmokeDockerArguments =
+  { help: true } | { help: false; options: VsCodeSmokeDockerOptions };
 
 /** The command line of `modeler-shell-vscode-docker`; throws for an unknown option or a missing value. */
 export function parseVsCodeSmokeDockerArguments(
@@ -417,7 +438,8 @@ export function parseVsCodeSmokeDockerArguments(
     const [name, inline] =
       argument.startsWith("--") && argument.includes("=") ? splitOnce(argument) : [argument];
     const valued = ["--script", "--results", "--env", "--node", "--image", "--platform"];
-    if (!valued.includes(name)) throw new Error(`unknown option ${argument}\n\n${VSCODE_SMOKE_DOCKER_USAGE}`);
+    if (!valued.includes(name))
+      throw new Error(`unknown option ${argument}\n\n${VSCODE_SMOKE_DOCKER_USAGE}`);
     const value = inline ?? argv[++index];
     if (value === undefined || value === "") throw new Error(`${name} needs a value`);
     if (name === "--script") script = value;
@@ -427,7 +449,8 @@ export function parseVsCodeSmokeDockerArguments(
     else if (name === "--platform") options.platform = value;
     else {
       const [variable, assigned] = splitOnce(value);
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(variable)) throw new Error(`--env ${value}: not a variable name`);
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(variable))
+        throw new Error(`--env ${value}: not a variable name`);
       const fromHere = assigned ?? environment[variable];
       if (fromHere !== undefined) env[variable] = fromHere;
     }

@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page } from "@playwright/test";
 
 /**
  * The shell kit's default sizes (wide, narrow, very narrow), led by one where the example board
@@ -20,15 +20,15 @@ async function reachableDomainEvent(page: Page): Promise<{ x: number; y: number 
       '.djs-container .djs-shape[data-element-id^="event_"]',
     );
     for (const sticky of events) {
-      const box = sticky.querySelector('.djs-hit')?.getBoundingClientRect();
+      const box = sticky.querySelector(".djs-hit")?.getBoundingClientRect();
       if (!box) continue;
       const x = box.left + box.width / 2;
       const y = box.top + box.height / 2;
-      if (document.elementFromPoint(x, y)?.closest('[data-element-id]') === sticky) return { x, y };
+      if (document.elementFromPoint(x, y)?.closest("[data-element-id]") === sticky) return { x, y };
     }
     return null;
   });
-  if (!point) throw new Error('the canvas shows no domain event a pointer reaches');
+  if (!point) throw new Error("the canvas shows no domain event a pointer reaches");
   return point;
 }
 
@@ -42,7 +42,7 @@ let typedLabels = 0;
 export async function typeIntoStickyLabel(page: Page): Promise<string> {
   const { x, y } = await reachableDomainEvent(page);
   await page.mouse.dblclick(x, y);
-  const field = page.locator('textarea.event-storming-label-textarea');
+  const field = page.locator("textarea.event-storming-label-textarea");
   await expect(field).toBeFocused();
   typedLabels += 1;
   const typed = `Typed label ${typedLabels}`;
@@ -56,14 +56,14 @@ export async function typeIntoStickyLabel(page: Page): Promise<string> {
  * right edge, where the slant of the italic is the last thing drawn.
  */
 export const ANNOTATED_BOARD = [
-  'title Annotated',
-  'command Place Order [100, 100]',
-  'event Order Placed [100, 400]',
-  'command Ship Order [1500, 100]',
-  'event Order Shipped [1500, 400]',
-  'Place Order -> Order Placed; a very long arrow annotation that runs far wider than either sticky',
-  'Ship Order -> Order Shipped; another long annotation that is the right edge of the whole board',
-].join('\n');
+  "title Annotated",
+  "command Place Order [100, 100]",
+  "event Order Placed [100, 400]",
+  "command Ship Order [1500, 100]",
+  "event Order Shipped [1500, 400]",
+  "Place Order -> Order Placed; a very long arrow annotation that runs far wider than either sticky",
+  "Ship Order -> Order Shipped; another long annotation that is the right edge of the whole board",
+].join("\n");
 
 /**
  * Holds every Geist file the page asks for back by a second, as a slow network would, so that a
@@ -81,7 +81,7 @@ export async function delayGeist(page: Page): Promise<() => number> {
 
 /** Whether the annotations are drawn in Geist by now, not in the fallback. */
 export function geistDrawsAnnotations(page: Page): Promise<boolean> {
-  return page.evaluate(() => document.fonts.check('italic 11px "Geist Variable"', 'annotation'));
+  return page.evaluate(() => document.fonts.check('italic 11px "Geist Variable"', "annotation"));
 }
 
 interface ScreenBox {
@@ -106,7 +106,7 @@ interface FitPage {
   __eventStormingApp?: { shell: FitShell };
 }
 interface FitDiagram {
-  get(name: 'canvas'): {
+  get(name: "canvas"): {
     viewbox(): { scale: number };
     getSize(): { width: number; height: number };
     getContainer(): HTMLElement;
@@ -126,14 +126,14 @@ async function fitFacts(page: Page): Promise<FitFacts> {
     const host = window as unknown as FitPage;
     const diagram = host.modeler?.diagram ?? host.__eventStormingViewer;
     const shell = host.shell ?? host.__eventStormingApp?.shell;
-    if (!diagram || !shell) throw new Error('no board and no shell on the page');
-    const canvas = diagram.get('canvas');
+    if (!diagram || !shell) throw new Error("no board and no shell on the page");
+    const canvas = diagram.get("canvas");
     const container = canvas.getContainer();
     const origin = container.getBoundingClientRect();
     const drawn = [
-      ...container.querySelectorAll('.djs-shape > .djs-visual, .djs-connection > .djs-visual'),
+      ...container.querySelectorAll(".djs-shape > .djs-visual, .djs-connection > .djs-visual"),
     ].map((visual) => visual.getBoundingClientRect());
-    if (drawn.length === 0) throw new Error('the board draws nothing');
+    if (drawn.length === 0) throw new Error("the board draws nothing");
     const size = canvas.getSize();
     const insets = shell.fitInsets();
     return {

@@ -38,7 +38,10 @@ describe("extensionActivationFailures", () => {
       "Activating extension a.b failed due to an error:",
     ]);
     expect(
-      extensionActivationFailures(`${cut}\r\n2026-10-21 19:33:09.226 [error] TypeError: x\r\n`, "a.b"),
+      extensionActivationFailures(
+        `${cut}\r\n2026-10-21 19:33:09.226 [error] TypeError: x\r\n`,
+        "a.b",
+      ),
     ).toEqual(["Activating extension a.b failed due to an error: TypeError: x"]);
   });
 });

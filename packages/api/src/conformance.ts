@@ -393,9 +393,11 @@ async function changeEvents(
 
 /** an id or a name reduced to its letters and digits, lower case — `component_new_component` and
  *  `New Component` share `newcomponent` */
-const lettersAndDigits = (value: string): string => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+const lettersAndDigits = (value: string): string =>
+  value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 
-const secondText = (h: ConformanceHarness): string => h.canonicalTexts[1] ?? h.canonicalTexts[0] ?? "";
+const secondText = (h: ConformanceHarness): string =>
+  h.canonicalTexts[1] ?? h.canonicalTexts[0] ?? "";
 
 /** the harness's user mutations: the element command first, then every config edit */
 const mutationsOf = (h: ConformanceHarness): UserMutation[] => [
@@ -445,7 +447,9 @@ function probesOf(h: ConformanceHarness): Probe[] {
       { label: `${source} followed by a NUL character`, text: `${text}\u0000` },
     );
   });
-  (h.probeTexts ?? []).forEach((text, index) => probes.push({ label: `probeTexts[${index}]`, text }));
+  (h.probeTexts ?? []).forEach((text, index) =>
+    probes.push({ label: `probeTexts[${index}]`, text }),
+  );
   const seen = new Set<string>();
   return probes.filter((probe) => {
     if (seen.has(probe.text)) return false;
@@ -464,7 +468,9 @@ async function importContentText(h: ConformanceHarness, m: CollaborativeModeler)
     await m.importText(text);
     if (!m.elements || m.elements.list().length > 0) return text;
   }
-  fail("L5 needs a canonical text that renders at least one element — an empty document has no fitted view");
+  fail(
+    "L5 needs a canonical text that renders at least one element — an empty document has no fitted view",
+  );
 }
 
 export function conformanceCases(): ConformanceCase[] {
@@ -509,13 +515,19 @@ export function conformanceCases(): ConformanceCase[] {
             // case isolates the pre-import calls — a non-canonical serializer
             // fails L2, not here
             await control.importText(text);
-            const expected = exportOrFail(control, `after importing ${source} into a fresh instance`);
+            const expected = exportOrFail(
+              control,
+              `after importing ${source} into a fresh instance`,
+            );
             await importOrFail(
               m,
               text,
               `importText(${source}) rejected on an instance that ran exportText() and a user command before its first import (wedged)`,
             );
-            last = exportOrFail(m, `after importing ${source} into an instance used before its first import`);
+            last = exportOrFail(
+              m,
+              `after importing ${source} into an instance used before its first import`,
+            );
             if (last !== expected) {
               fail(
                 `importText(${source}) on an instance that ran exportText() and a user command before its first import did not render that document:\n--- expected (a fresh instance's export)\n${expected}\n--- got\n${last}`,
@@ -528,8 +540,13 @@ export function conformanceCases(): ConformanceCase[] {
               "a user mutation fired no onContentChanged on an instance used before its first import (wedged)",
             );
           }
-          if (exportOrFail(m, "after a user mutation on an instance used before its first import") === last) {
-            fail("a user mutation did not apply on an instance used before its first import (wedged)");
+          if (
+            exportOrFail(m, "after a user mutation on an instance used before its first import") ===
+            last
+          ) {
+            fail(
+              "a user mutation did not apply on an instance used before its first import (wedged)",
+            );
           }
         } finally {
           m.destroy();
@@ -548,7 +565,9 @@ export function conformanceCases(): ConformanceCase[] {
             ...(h.foreignTexts ?? []).map((f) => f.text),
           ];
           for (const text of texts) {
-            const { calls } = await changeEvents(h, m, () => m.importText(text).then(() => undefined));
+            const { calls } = await changeEvents(h, m, () =>
+              m.importText(text).then(() => undefined),
+            );
             if (calls > 0) fail(`importText fired onContentChanged ${calls}x`);
           }
         } finally {
@@ -567,8 +586,11 @@ export function conformanceCases(): ConformanceCase[] {
           await m.importText(h.canonicalTexts[0] ?? "");
           await h.mutate(m);
           await (h.settle ?? defaultSettle)();
-          const { calls } = await changeEvents(h, m, () => m.importText(secondText(h)).then(() => undefined));
-          if (calls > 0) fail(`importText over a non-empty undo history fired onContentChanged ${calls}x`);
+          const { calls } = await changeEvents(h, m, () =>
+            m.importText(secondText(h)).then(() => undefined),
+          );
+          if (calls > 0)
+            fail(`importText over a non-empty undo history fired onContentChanged ${calls}x`);
         } finally {
           m.destroy();
         }
@@ -612,16 +634,23 @@ export function conformanceCases(): ConformanceCase[] {
             await (h.settle ?? defaultSettle)();
             const opened = h.interactionState?.(m);
             if (h.interactionState && opened === undefined) {
-              fail("interactionState reports no interaction after openInteraction — the case proves nothing");
+              fail(
+                "interactionState reports no interaction after openInteraction — the case proves nothing",
+              );
             }
-            const { calls } = await changeEvents(h, m, () => m.importText(leg.text).then(() => undefined));
+            const { calls } = await changeEvents(h, m, () =>
+              m.importText(leg.text).then(() => undefined),
+            );
             if (calls > 0) {
               fail(
                 `importing ${leg.what} over an open interaction fired onContentChanged ${calls}x — the interaction committed during or because of the import (if every import emits, see the L1 cases first)`,
               );
             }
             const reopened = h.interactionState?.(m);
-            if (exportOrFail(m, `after importing ${leg.what} over an open interaction`) !== leg.expected) {
+            if (
+              exportOrFail(m, `after importing ${leg.what} over an open interaction`) !==
+              leg.expected
+            ) {
               fail(
                 `importing ${leg.what} over an open interaction did not leave that document — the interaction's input was applied to it`,
               );
@@ -629,17 +658,23 @@ export function conformanceCases(): ConformanceCase[] {
             if (h.undo) {
               await h.undo(m);
               await (h.settle ?? defaultSettle)();
-              if (exportOrFail(m, `after an undo that followed importing ${leg.what}`) !== leg.expected) {
+              if (
+                exportOrFail(m, `after an undo that followed importing ${leg.what}`) !==
+                leg.expected
+              ) {
                 fail(
                   `undo after importing ${leg.what} over an open interaction changed the document — the interaction was committed onto the fresh undo history (L4)`,
                 );
               }
             }
             const sameDocument = index === legs.length - 1;
-            const kept = reopened?.elementId === opened?.elementId && reopened?.text === opened?.text;
+            const kept =
+              reopened?.elementId === opened?.elementId && reopened?.text === opened?.text;
             if (sameDocument && opened !== undefined && !kept) {
-              const input = opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
-              const after = reopened === undefined ? "closed it" : `left ${JSON.stringify(reopened)} open`;
+              const input =
+                opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
+              const after =
+                reopened === undefined ? "closed it" : `left ${JSON.stringify(reopened)} open`;
               advice = `an interaction on '${opened.elementId}'${input} did not survive a re-import of the same document (the import ${after}) — RECOMMENDED: keep the typed input and reopen the interaction on the element with the same id, so a remote re-import does not cost the user what they were typing`;
             }
           }
@@ -674,7 +709,9 @@ export function conformanceCases(): ConformanceCase[] {
             await m.importText(text);
             const out = m.exportText();
             if (out !== text)
-              fail(`export after import differs from the canonical input:\n--- in\n${text}\n--- out\n${out}`);
+              fail(
+                `export after import differs from the canonical input:\n--- in\n${text}\n--- out\n${out}`,
+              );
             if (m.exportText() !== out)
               fail("exportText is not deterministic — two exports of one document differ");
           }
@@ -742,7 +779,9 @@ export function conformanceCases(): ConformanceCase[] {
             if (calls === 0) fail(`config mutation "${mutation.name}" fired no onContentChanged`);
             const after = m.exportText();
             if (after === before) {
-              fail(`config mutation "${mutation.name}" did not change the export — the case proves nothing`);
+              fail(
+                `config mutation "${mutation.name}" did not change the export — the case proves nothing`,
+              );
             }
             if (exportAtEmit !== after) {
               fail(
@@ -815,7 +854,9 @@ export function conformanceCases(): ConformanceCase[] {
         const first = h.canonicalTexts[0];
         const second = h.canonicalTexts[1];
         if (first === undefined || second === undefined || first === second) {
-          fail("the L4 case needs TWO DISTINCT canonicalTexts — with one, stale undo is undetectable");
+          fail(
+            "the L4 case needs TWO DISTINCT canonicalTexts — with one, stale undo is undetectable",
+          );
         }
         const m = await h.create();
         try {
@@ -850,7 +891,9 @@ export function conformanceCases(): ConformanceCase[] {
           await h.undo(m);
           await h.undo(m); // drain a stale multi-entry history too
           if (m.exportText() !== baseline) {
-            fail("undo after importText mutated the freshly imported document (stale history applied)");
+            fail(
+              "undo after importText mutated the freshly imported document (stale history applied)",
+            );
           }
         } finally {
           m.destroy();
@@ -896,7 +939,9 @@ export function conformanceCases(): ConformanceCase[] {
           const applied = m.getViewState();
           assertFinite(applied, "after setViewState");
           if (same(applied, fitted)) {
-            fail("setViewState(viewState) had no effect — supply a state that differs from the fitted view");
+            fail(
+              "setViewState(viewState) had no effect — supply a state that differs from the fitted view",
+            );
           }
           await m.importText(text);
           if (!same(m.getViewState(), fitted)) {
@@ -907,7 +952,8 @@ export function conformanceCases(): ConformanceCase[] {
           // the host restores with what IT read back before the re-import —
           // the readback must be settable and yield itself again
           const { calls } = await changeEvents(h, m, () => m.setViewState(applied));
-          if (calls > 0) fail("setViewState fired onContentChanged — view state is not document content");
+          if (calls > 0)
+            fail("setViewState fired onContentChanged — view state is not document content");
           if (m.exportText() !== doc)
             fail("setViewState changed the export — view state leaked into the document");
           if (!same(m.getViewState(), applied)) {
@@ -947,7 +993,9 @@ export function conformanceCases(): ConformanceCase[] {
             await settle();
             const opened = h.interactionState?.(m);
             if (h.interactionState && opened === undefined) {
-              fail("interactionState reports no interaction after openInteraction — the case proves nothing");
+              fail(
+                "interactionState reports no interaction after openInteraction — the case proves nothing",
+              );
             }
             return opened;
           };
@@ -964,7 +1012,11 @@ export function conformanceCases(): ConformanceCase[] {
                 "committing the interaction openInteraction opened did not write its typed input into the export — the case proves nothing (commitInteraction must commit the way a user does, openInteraction type input the serializer writes verbatim)",
               );
             }
-            await importOrFail(m, first, "re-importing canonicalTexts[0] after the commit rejected");
+            await importOrFail(
+              m,
+              first,
+              "re-importing canonicalTexts[0] after the commit rejected",
+            );
           }
           const opened = await open();
           const view = m.getViewState();
@@ -990,7 +1042,8 @@ export function conformanceCases(): ConformanceCase[] {
             opened !== undefined &&
             (after?.elementId !== opened.elementId || after?.text !== opened.text)
           ) {
-            const input = opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
+            const input =
+              opened.text === undefined ? "" : ` with the input ${JSON.stringify(opened.text)}`;
             const what = after === undefined ? "closed it" : `left ${JSON.stringify(after)} open`;
             advice = `an interaction on '${opened.elementId}'${input} did not survive a host's view change (setViewState ${what}) — RECOMMENDED: keep it open with its typed input, so the user's commit afterwards writes what it would have written without the view change`;
           } else if (commitInteraction && committed !== undefined) {
@@ -1040,7 +1093,8 @@ export function conformanceCases(): ConformanceCase[] {
             const { calls } = await changeEvents(h, m, () => {
               if (elements.reveal(firstId) !== true) fail("reveal(known id) must return true");
             });
-            if (calls > 0) fail("reveal fired onContentChanged — revealing is view behavior, not an edit");
+            if (calls > 0)
+              fail("reveal fired onContentChanged — revealing is view behavior, not an edit");
             if (!deliveries.some((d) => d.includes(firstId))) {
               fail(
                 `reveal('${firstId}') delivered no selection containing the id — is it a selectable element (not a root or a label)?`,
@@ -1055,7 +1109,8 @@ export function conformanceCases(): ConformanceCase[] {
                 }
               }
             }
-            if (!elements.selection().includes(firstId)) fail("selection() does not contain the revealed id");
+            if (!elements.selection().includes(firstId))
+              fail("selection() does not contain the revealed id");
             const seen = deliveries.length;
             off();
             // a DIFFERENT selection after the unsubscribe — re-revealing the
@@ -1252,7 +1307,9 @@ export function conformanceCases(): ConformanceCase[] {
             await settle();
             const was = before.get(movedId);
             if (was === undefined)
-              fail(`moveElement returned '${movedId}', an id elements.list() did not report before the move`);
+              fail(
+                `moveElement returned '${movedId}', an id elements.list() did not report before the move`,
+              );
             const box = boxesOf(elements, "after a move").get(movedId);
             if (box === undefined)
               fail(`'${movedId}' is gone from elements.list() after moveElement moved it`);
@@ -1262,7 +1319,9 @@ export function conformanceCases(): ConformanceCase[] {
               );
             }
           } else {
-            unverified.push("moveElement is undefined — that a box follows a move was not verified");
+            unverified.push(
+              "moveElement is undefined — that a box follows a move was not verified",
+            );
           }
           if (h.viewState !== undefined) {
             const atRest = boxesOf(elements, "before a view change");
@@ -1311,7 +1370,11 @@ export function conformanceCases(): ConformanceCase[] {
           }
           // a box cached at the last import gives itself away here: the
           // element the session created lies outside it, or it has none
-          await importOrFail(m, h.canonicalTexts[0] ?? "", "importText(canonicalTexts[0]) rejected");
+          await importOrFail(
+            m,
+            h.canonicalTexts[0] ?? "",
+            "importText(canonicalTexts[0]) rejected",
+          );
           await h.mutate(m);
           await settle();
           const atRest = expectContentAroundElements(m, "after a user mutation added an element");
@@ -1338,7 +1401,11 @@ export function conformanceCases(): ConformanceCase[] {
             viewer = await h.createReadonly();
             if (hasContentBounds(viewer)) {
               contentBoxOf(viewer, "on the viewer before the first import");
-              await importOrFail(viewer, h.canonicalTexts[0] ?? "", "the viewer rejected canonicalTexts[0]");
+              await importOrFail(
+                viewer,
+                h.canonicalTexts[0] ?? "",
+                "the viewer rejected canonicalTexts[0]",
+              );
               expectContentAroundElements(viewer, "on the viewer after an import");
             }
           }
@@ -1387,7 +1454,9 @@ export function conformanceCases(): ConformanceCase[] {
       name: "L7: a rejected import leaves no trace",
       async run(h) {
         if (h.invalidTexts === undefined) {
-          return skip("invalidTexts is undefined — pass [] if the notation has no non-importable text");
+          return skip(
+            "invalidTexts is undefined — pass [] if the notation has no non-importable text",
+          );
         }
         if (h.invalidTexts.length === 0) return;
         const m = await h.create();
@@ -1440,7 +1509,9 @@ export function conformanceCases(): ConformanceCase[] {
       name: "L7: the modeler stays usable after a rejected import",
       async run(h) {
         if (h.invalidTexts === undefined) {
-          return skip("invalidTexts is undefined — pass [] if the notation has no non-importable text");
+          return skip(
+            "invalidTexts is undefined — pass [] if the notation has no non-importable text",
+          );
         }
         const bad = h.invalidTexts[0];
         if (bad === undefined) return;
@@ -1454,12 +1525,15 @@ export function conformanceCases(): ConformanceCase[] {
           const next = secondText(h);
           await m
             .importText(next)
-            .catch((e) => fail(`the next VALID import after a rejection did not render: ${String(e)}`));
+            .catch((e) =>
+              fail(`the next VALID import after a rejection did not render: ${String(e)}`),
+            );
           if (m.exportText() !== next)
             fail("the next valid import after a rejection did not replace the document");
           const before = m.exportText();
           const { calls } = await changeEvents(h, m, () => h.mutate(m));
-          if (calls === 0) fail("a user mutation after a rejected import fired no onContentChanged (wedged)");
+          if (calls === 0)
+            fail("a user mutation after a rejected import fired no onContentChanged (wedged)");
           if (exportOrFail(m, "after a mutation that followed a rejected import") === before) {
             fail("a user mutation after a rejected import did not apply (wedged)");
           }
@@ -1524,7 +1598,9 @@ export function conformanceCases(): ConformanceCase[] {
             if (rejected) {
               if (calls > 0) fail(`a rejected ${what} fired onContentChanged ${calls}x (L7)`);
               if (exportOrFail(m, `after a rejected ${what}`) !== doc) {
-                fail(`a rejected ${what} changed the document — the previous state must stay intact (L7)`);
+                fail(
+                  `a rejected ${what} changed the document — the previous state must stay intact (L7)`,
+                );
               }
               if (ids && !same(ids, sortedIds(m))) {
                 fail(
@@ -1533,7 +1609,9 @@ export function conformanceCases(): ConformanceCase[] {
               }
               if (h.undo) {
                 await h.undo(m);
-                if (exportOrFail(m, `after an undo that followed a rejected ${what}`) !== baseline) {
+                if (
+                  exportOrFail(m, `after an undo that followed a rejected ${what}`) !== baseline
+                ) {
                   fail(
                     `a rejected ${what} erased the undo history — the previous document's history must stay intact (L7)`,
                   );
@@ -1541,7 +1619,9 @@ export function conformanceCases(): ConformanceCase[] {
               }
             } else {
               if (calls > 0)
-                fail(`${what} resolved and fired onContentChanged ${calls}x — an import is silent (L1)`);
+                fail(
+                  `${what} resolved and fired onContentChanged ${calls}x — an import is silent (L1)`,
+                );
               exportOrFail(m, `after ${what} resolved (L6)`);
             }
             previous = probe;
@@ -1556,7 +1636,8 @@ export function conformanceCases(): ConformanceCase[] {
     {
       name: "viewer (when shipped): read-only, silent, canonical, fits, reveals, keeps foreign content, unshaken by a rejected import",
       async run(h) {
-        if (!h.createReadonly) return skip("createReadonly is undefined — the package ships no viewer mount");
+        if (!h.createReadonly)
+          return skip("createReadonly is undefined — the package ships no viewer mount");
         const v = await h.createReadonly();
         try {
           if (v.meta.editable !== false)
@@ -1646,9 +1727,14 @@ export function conformanceCases(): ConformanceCase[] {
 }
 
 /** the L6 foreign-content round-trips, on an editor or a viewer */
-async function foreignRoundTrips(h: ConformanceHarness, m: CollaborativeModeler, who: string): Promise<void> {
+async function foreignRoundTrips(
+  h: ConformanceHarness,
+  m: CollaborativeModeler,
+  who: string,
+): Promise<void> {
   for (const { text, mustSurvive } of h.foreignTexts ?? []) {
-    if (mustSurvive.length === 0) fail("a foreignTexts entry must name at least one fragment in mustSurvive");
+    if (mustSurvive.length === 0)
+      fail("a foreignTexts entry must name at least one fragment in mustSurvive");
     await m.importText(text); // warnings allowed — a throw is the violation
     const first = exportOrFail(m, `${who}after importing a document with foreign content`);
     for (const fragment of mustSurvive) {
@@ -1657,7 +1743,8 @@ async function foreignRoundTrips(h: ConformanceHarness, m: CollaborativeModeler,
     }
     await m.importText(first);
     const second = exportOrFail(m, `${who}after re-importing its own export of foreign content`);
-    if (second !== first) fail(`${who}foreign content did not survive a second import → export round-trip`);
+    if (second !== first)
+      fail(`${who}foreign content did not survive a second import → export round-trip`);
   }
 }
 

@@ -1,13 +1,13 @@
-import type { ModuleDeclaration } from 'didi';
-import EventStormingLabelEditing from './EventStormingLabelEditing.js';
+import type { ModuleDeclaration } from "didi";
+import EventStormingLabelEditing from "./EventStormingLabelEditing.js";
 
 /** Custom inline label editing (HTML overlay). */
 export const labelEditingModule: ModuleDeclaration = {
-  __init__: ['eventStormingLabelEditing'],
-  eventStormingLabelEditing: ['type', EventStormingLabelEditing],
+  __init__: ["eventStormingLabelEditing"],
+  eventStormingLabelEditing: ["type", EventStormingLabelEditing],
 };
 
-export { default as EventStormingLabelEditing } from './EventStormingLabelEditing.js';
+export { default as EventStormingLabelEditing } from "./EventStormingLabelEditing.js";
 export {
   noteMarkdownToDom,
   domToNoteMarkdown,
@@ -17,5 +17,5 @@ export {
   toggleBulletLines,
   insertPlainText,
   NOTE_BULLET_CLASS,
-} from './note-editor-dom.js';
-export type { NoteToolbarAction, NoteAlignState } from './note-editor-dom.js';
+} from "./note-editor-dom.js";
+export type { NoteToolbarAction, NoteAlignState } from "./note-editor-dom.js";

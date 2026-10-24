@@ -1,7 +1,7 @@
-import type { LabelOffset } from '@miragon/wardley-schema-model';
-import { ANCHOR_ICON_SIZE, COMPONENT_RADIUS } from './styles.js';
-import type { WardleyShape } from '../model/di-types.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
+import type { LabelOffset } from "@miragon/wardley-schema-model";
+import { ANCHOR_ICON_SIZE, COMPONENT_RADIUS } from "./styles.js";
+import type { WardleyShape } from "../model/di-types.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
 
 /**
  * Where the renderer puts component, anchor and evolve-target labels. Shared by the renderer and the
@@ -22,7 +22,7 @@ export const LABEL_BASELINE_SHIFT = -4;
 export const LABEL_METHOD_LINE_SHIFT = 15;
 export const LABEL_OFFSET_LIMIT = 200;
 
-export type TextAnchor = 'start' | 'middle' | 'end';
+export type TextAnchor = "start" | "middle" | "end";
 
 export interface LabelPlacement {
   x: number;
@@ -33,7 +33,7 @@ export interface LabelPlacement {
 /** px from a component to its evolve target along the evolution axis (undefined without evolve). */
 export function movementDeltaX(
   shape: WardleyShape,
-  grid: Pick<EvolutionGrid, 'toCanvas'>,
+  grid: Pick<EvolutionGrid, "toCanvas">,
 ): number | undefined {
   const movement = shape.movement;
   if (!movement) return undefined;
@@ -46,7 +46,7 @@ export function movementDeltaX(
 }
 
 export function estimatedLabelWidth(text: string): number {
-  return (text ?? '').length * LABEL_CHAR_WIDTH;
+  return (text ?? "").length * LABEL_CHAR_WIDTH;
 }
 
 /** The canonical OWM slot of a component name — the origin of its `label [dx, dy]`. */
@@ -77,14 +77,14 @@ export function componentLabelPlacement(
     return {
       x: slot.x + shape.labelOffset.dx,
       y: slot.y + shape.labelOffset.dy,
-      anchor: 'start',
+      anchor: "start",
     };
   }
   if (movementDeltaX !== undefined && isShortRightwardMovement(shape, movementDeltaX)) {
-    return { x: -slot.x, y: slot.y, anchor: 'end' };
+    return { x: -slot.x, y: slot.y, anchor: "end" };
   }
   const inertiaShift = shape.decorators?.inertia ? INERTIA_LABEL_SHIFT : 0;
-  return { x: slot.x + inertiaShift, y: slot.y, anchor: 'start' };
+  return { x: slot.x + inertiaShift, y: slot.y, anchor: "start" };
 }
 
 /** The canonical OWM slot of the evolve target name — the origin of the evolve's `label [dx, dy]`. */
@@ -99,12 +99,12 @@ export function movementLabelPlacement(
 ): LabelPlacement {
   const slot = movementLabelSlot(movementDeltaX);
   if (labelOffset) {
-    return { x: slot.x + labelOffset.dx, y: slot.y + labelOffset.dy, anchor: 'start' };
+    return { x: slot.x + labelOffset.dx, y: slot.y + labelOffset.dy, anchor: "start" };
   }
   if (movementDeltaX < 0) {
-    return { x: movementDeltaX - COMPONENT_RADIUS - LABEL_GAP, y: slot.y, anchor: 'end' };
+    return { x: movementDeltaX - COMPONENT_RADIUS - LABEL_GAP, y: slot.y, anchor: "end" };
   }
-  return { x: slot.x, y: slot.y, anchor: 'start' };
+  return { x: slot.x, y: slot.y, anchor: "start" };
 }
 
 /** The canonical slot of an anchor name: centred above the person icon. */
@@ -117,7 +117,7 @@ export function anchorLabelPlacement(shape: WardleyShape): LabelPlacement {
   return {
     x: slot.x + (shape.labelOffset?.dx ?? 0),
     y: slot.y + (shape.labelOffset?.dy ?? 0),
-    anchor: 'middle',
+    anchor: "middle",
   };
 }
 

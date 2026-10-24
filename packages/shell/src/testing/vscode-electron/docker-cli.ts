@@ -15,6 +15,8 @@ try {
     process.exitCode = result.exitCode;
   }
 } catch (error) {
-  console.error(`modeler-shell-vscode-docker: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `modeler-shell-vscode-docker: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exitCode = 2;
 }

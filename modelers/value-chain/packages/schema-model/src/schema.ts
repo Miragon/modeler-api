@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Coordinates and sizes stay within ±1e9: the serializer rounds to 3 decimals by scaling with
@@ -35,23 +35,23 @@ const elementBaseFields = {
 // fields of a newer tool): the editor writes them back unchanged instead of dropping them.
 export const stepElementSchema = z.looseObject({
   ...elementBaseFields,
-  elementType: z.literal('step'),
+  elementType: z.literal("step"),
   link: z.string().min(1).optional(),
 });
 
 export const orgUnitElementSchema = z.looseObject({
   ...elementBaseFields,
-  elementType: z.literal('orgUnit'),
+  elementType: z.literal("orgUnit"),
 });
 
-export const diagramElementSchema = z.discriminatedUnion('elementType', [
+export const diagramElementSchema = z.discriminatedUnion("elementType", [
   stepElementSchema,
   orgUnitElementSchema,
 ]);
 
 export const chainConnectionSchema = z.looseObject({
   id: z.string().min(1),
-  connectionType: z.union([z.literal('sequence'), z.literal('hierarchy'), z.literal('assignment')]),
+  connectionType: z.union([z.literal("sequence"), z.literal("hierarchy"), z.literal("assignment")]),
   source: z.string().min(1),
   target: z.string().min(1),
   waypoints: z.array(pointSchema).min(2),

@@ -285,8 +285,12 @@ describe("the canvas name, the tab sequence, palette shortcuts and menu keys", (
   it("accepts trigger → palette → canvas, with the web app's primary action first", () => {
     const palette = { description: "div.entry", kind: "palette" } as const;
     const canvas = { description: "svg", kind: "canvas" } as const;
-    expect(tabSequenceProblems([palette, canvas, { description: "button", kind: "other" }])).toEqual([]);
-    expect(tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas])).toEqual([]);
+    expect(
+      tabSequenceProblems([palette, canvas, { description: "button", kind: "other" }]),
+    ).toEqual([]);
+    expect(
+      tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas]),
+    ).toEqual([]);
   });
 
   it("names an extra tab stop between palette and canvas, and a palette Tab skips", () => {
@@ -457,7 +461,15 @@ describe("menu checks", () => {
           group: null,
           ...noChip,
         },
-        { role: "menuitem", name: "", checked: null, disabled: null, haspopup: null, group: null, ...noChip },
+        {
+          role: "menuitem",
+          name: "",
+          checked: null,
+          disabled: null,
+          haspopup: null,
+          group: null,
+          ...noChip,
+        },
       ],
     });
     expect(menuOpenProblems(facts, "first")).toEqual([
@@ -485,9 +497,19 @@ describe("menu checks", () => {
       items: [
         action({ shortcut: "⌘E", keyShortcuts: "Meta+E" }),
         action({ name: "Go to diagram", shortcut: "G then D", description: "G then D" }),
-        action({ name: "Keyboard shortcuts…", haspopup: "dialog", shortcut: "?", keyShortcuts: "?" }),
+        action({
+          name: "Keyboard shortcuts…",
+          haspopup: "dialog",
+          shortcut: "?",
+          keyShortcuts: "?",
+        }),
         action({ name: "Print", shortcut: "⌘P" }),
-        action({ name: "About", shortcut: "F1", keyShortcuts: "", description: "Version and licences" }),
+        action({
+          name: "About",
+          shortcut: "F1",
+          keyShortcuts: "",
+          description: "Version and licences",
+        }),
       ],
     });
     expect(menuOpenProblems(facts, "first")).toEqual([
@@ -497,7 +519,13 @@ describe("menu checks", () => {
   });
 
   it("requires the closed menu to hand the focus back to the trigger", () => {
-    const closed = openMenu({ expanded: "false", menu: null, items: [], active: -1, activeIsTrigger: true });
+    const closed = openMenu({
+      expanded: "false",
+      menu: null,
+      items: [],
+      active: -1,
+      activeIsTrigger: true,
+    });
     expect(menuClosedProblems(closed, true)).toEqual([]);
     expect(menuClosedProblems({ ...closed, activeIsTrigger: false }, true)).toEqual([
       "menu: Escape did not return the focus to the trigger",
@@ -531,14 +559,19 @@ describe("keyReachProblem", () => {
     ["canvas", "web", [key(true)], true],
     ["free", "web", [key(true)], false],
     ["free", "web", [key(false), key(false)], false],
-  ] as const)("%s key in the %s host, window saw %j: conforming %s", (reach, host, recorded, conforming) => {
-    const problem = keyReachProblem("Control+Equal", reach as KeyReach, host, { keys: recorded });
-    if (conforming) expect(problem).toBeUndefined();
-    else expect(problem).toEqual(expect.any(String));
-  });
+  ] as const)(
+    "%s key in the %s host, window saw %j: conforming %s",
+    (reach, host, recorded, conforming) => {
+      const problem = keyReachProblem("Control+Equal", reach as KeyReach, host, { keys: recorded });
+      if (conforming) expect(problem).toBeUndefined();
+      else expect(problem).toEqual(expect.any(String));
+    },
+  );
 
   it("names VS Code for a key that reaches window in the IDE host", () => {
-    expect(keyReachProblem("Control+Equal on the canvas", "handled", "ide", { keys: [key(true)] })).toBe(
+    expect(
+      keyReachProblem("Control+Equal on the canvas", "handled", "ide", { keys: [key(true)] }),
+    ).toBe(
       "Control+Equal on the canvas reached a keydown listener on window; in the IDE host the shell stops it on document, or VS Code runs it again (guide §13.5)",
     );
   });
@@ -549,7 +582,9 @@ describe("keyReachProblem", () => {
     expect(keyReachProblem("Control+Equal", "handled", "ide", stopped(false))).toBe(
       "Control+Equal was stopped but not prevented; a handled key also calls preventDefault",
     );
-    expect(keyReachProblem("Control+KeyZ in a text field", "blocked", "ide", stopped(false))).toBeUndefined();
+    expect(
+      keyReachProblem("Control+KeyZ in a text field", "blocked", "ide", stopped(false)),
+    ).toBeUndefined();
     expect(keyReachProblem("Control+KeyZ in a text field", "blocked", "ide", stopped(true))).toBe(
       "Control+KeyZ in a text field was prevented; the shell only stops it, so the field, dialog or browser still acts (guide §13.5)",
     );
@@ -575,7 +610,11 @@ const LIGHT_ROLES = {
   "--cd-ui-linie": "#E0E0E0",
 };
 
-function part(name: string, colorScheme = "light", roles: Record<string, string> = LIGHT_ROLES): ModeFacts {
+function part(
+  name: string,
+  colorScheme = "light",
+  roles: Record<string, string> = LIGHT_ROLES,
+): ModeFacts {
   return { name, description: name, colorScheme, roles: { ...roles } };
 }
 
@@ -583,9 +622,17 @@ function appearance(overrides: Partial<AppearanceFacts> = {}): AppearanceFacts {
   return {
     documentClasses: ["cd-shell-document"],
     themed: [
-      { description: "html", isDocument: true, relation: "ancestor", theme: "light", kontrast: "hoch" },
+      {
+        description: "html",
+        isDocument: true,
+        relation: "ancestor",
+        theme: "light",
+        kontrast: "hoch",
+      },
     ],
-    parts: ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map((name) => part(name)),
+    parts: ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map((name) =>
+      part(name),
+    ),
     ...overrides,
   };
 }
@@ -638,7 +685,13 @@ describe("appearanceProblems", () => {
     ]);
     const wrong = appearance({
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: null },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "dark",
+          kontrast: null,
+        },
       ],
     });
     expect(appearanceProblems(wrong, "web", darkHigh, ["light"]).problems).toEqual([
@@ -650,10 +703,18 @@ describe("appearanceProblems", () => {
   it("reports the own-document class in the wrong host", () => {
     expect(
       appearanceProblems(appearance({ documentClasses: [] }), "ide", darkHigh, ["light"]).problems,
-    ).toEqual(["<html> lacks cd-shell-document in an own document (the reset of the webview's host styles)"]);
+    ).toEqual([
+      "<html> lacks cd-shell-document in an own document (the reset of the webview's host styles)",
+    ]);
     const embedded = appearance({
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: "hoch" },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "dark",
+          kontrast: "hoch",
+        },
         {
           description: "div.cd-shell",
           isDocument: false,
@@ -672,7 +733,13 @@ describe("appearanceProblems", () => {
     const facts = appearance({
       documentClasses: [],
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: null },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "dark",
+          kontrast: null,
+        },
       ],
       parts: appearance().parts.map((entry) => ({ ...entry, colorScheme: "dark" })),
     });
@@ -703,27 +770,38 @@ describe("appearanceProblems", () => {
       theme: "dark",
       kontrast,
     });
-    const embedded = (themed: AppearanceFacts["themed"]) => appearance({ documentClasses: [], themed });
+    const embedded = (themed: AppearanceFacts["themed"]) =>
+      appearance({ documentClasses: [], themed });
     expect(
       appearanceProblems(embedded([page("hoch"), root("hoch")]), "embedded", darkHigh, ["light"]),
     ).toEqual({
       problems: [],
     });
     expect(
-      appearanceProblems(embedded([page("hoch"), root("hoch")]), "embedded", darkHigh, ["light", "dark"]),
+      appearanceProblems(embedded([page("hoch"), root("hoch")]), "embedded", darkHigh, [
+        "light",
+        "dark",
+      ]),
     ).toEqual({ problems: [] });
     expect(
-      appearanceProblems(embedded([page("hoch"), root(null)]), "embedded", darkHigh, ["light"]).problems,
-    ).toEqual(["div.cd-shell has no data-cd-kontrast (host page dark + hoch, expected light + hoch)"]);
-    expect(
-      appearanceProblems(embedded([page(null), root("hoch")]), "embedded", { theme: "dark" }, ["light"])
+      appearanceProblems(embedded([page("hoch"), root(null)]), "embedded", darkHigh, ["light"])
         .problems,
+    ).toEqual([
+      "div.cd-shell has no data-cd-kontrast (host page dark + hoch, expected light + hoch)",
+    ]);
+    expect(
+      appearanceProblems(embedded([page(null), root("hoch")]), "embedded", { theme: "dark" }, [
+        "light",
+      ]).problems,
     ).toEqual(['div.cd-shell has data-cd-kontrast="hoch" (host page dark, expected light)']);
   });
 
   it("requires the dropdown and tooltip to have been checked and the tokens to be loaded", () => {
     const facts = appearance({
-      parts: [part("root", "light", { "--cd-ui-text": "" }), part("zoom", "light", { "--cd-ui-text": "" })],
+      parts: [
+        part("root", "light", { "--cd-ui-text": "" }),
+        part("zoom", "light", { "--cd-ui-text": "" }),
+      ],
     });
     expect(appearanceProblems(facts, "ide", darkHigh, ["light"]).problems).toEqual([
       "--cd-ui-text is empty at the shell root: the vendored cd-tokens.generated.css is not loaded",
@@ -735,11 +813,19 @@ describe("appearanceProblems", () => {
   it("expects dark everywhere from a modeler that can show it", () => {
     const facts = appearance({
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "dark", kontrast: null },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "dark",
+          kontrast: null,
+        },
       ],
       parts: appearance().parts.map((entry) => ({ ...entry, colorScheme: "dark" })),
     });
-    expect(appearanceProblems(facts, "ide", { theme: "dark" }, ["light", "dark"])).toEqual({ problems: [] });
+    expect(appearanceProblems(facts, "ide", { theme: "dark" }, ["light", "dark"])).toEqual({
+      problems: [],
+    });
   });
 });
 
@@ -767,7 +853,10 @@ describe("leftoverProblems", () => {
       chromeElements: ['div.cd-shell-zoom[data-chrome="zoom"]'],
       rootClasses: ["cd-shell"],
       rootAttributes: ["id", "data-palette", "data-cd-shell-host"],
-      errors: ["ResizeObserver loop completed with undelivered notifications.", "TypeError: x is null"],
+      errors: [
+        "ResizeObserver loop completed with undelivered notifications.",
+        "TypeError: x is null",
+      ],
     });
     expect(leftoverProblems(facts, "embedded")).toEqual([
       "div.cd-shell-tooltip is left after destroy",
@@ -819,9 +908,9 @@ describe("absent islands and the harness's own consistency", () => {
   });
 
   it("reports an absent island that shows anyway", () => {
-    expect(absentIslandProblems(new Set(["menu", "palette", "legend"]), ["legend", "inspector"])).toEqual([
-      "legend: visible, but harness.absent says the modeler has no legend",
-    ]);
+    expect(
+      absentIslandProblems(new Set(["menu", "palette", "legend"]), ["legend", "inspector"]),
+    ).toEqual(["legend: visible, but harness.absent says the modeler has no legend"]);
     expect(absentIslandProblems(new Set(["legend"]), undefined)).toEqual([]);
   });
 
@@ -840,8 +929,13 @@ describe("absent islands and the harness's own consistency", () => {
     expect(harnessHookProblems(harness, ["invalid"])).toEqual([
       'harness: absent lists "invalid", but show.invalid is given',
     ]);
-    const withoutMenuAction = { ...harness, absent: ["canvasMenuAction", "problemSelection"] as const };
-    expect(harnessHookProblems(withoutMenuAction, ["canvasMenuAction", "problemSelection"])).toEqual([]);
+    const withoutMenuAction = {
+      ...harness,
+      absent: ["canvasMenuAction", "problemSelection"] as const,
+    };
+    expect(
+      harnessHookProblems(withoutMenuAction, ["canvasMenuAction", "problemSelection"]),
+    ).toEqual([]);
   });
 
   it("reports a label editor the harness both gives and declares absent", () => {
@@ -855,7 +949,9 @@ describe("absent islands and the harness's own consistency", () => {
     expect(harnessHookProblems(harness, ["labelEditor"])).toEqual([
       'harness: absent lists "labelEditor", but harness.labelEditor is given',
     ]);
-    expect(harnessHookProblems({ ...harness, labelEditor: undefined }, ["labelEditor"])).toEqual([]);
+    expect(harnessHookProblems({ ...harness, labelEditor: undefined }, ["labelEditor"])).toEqual(
+      [],
+    );
   });
 });
 
@@ -886,7 +982,9 @@ describe("surroundProblems", () => {
 
   it("wants something to paint the surround, and a canvas to check", () => {
     expect(surroundProblems({ container: true, painted: null, grund })).toEqual([
-      expect.stringMatching(/nothing from \.djs-container out to the root paints a background colour/),
+      expect.stringMatching(
+        /nothing from \.djs-container out to the root paints a background colour/,
+      ),
     ]);
     expect(surroundProblems({ container: false, painted: null, grund })).toEqual([
       "canvas surround: no .djs-container in the root to check",
@@ -894,7 +992,11 @@ describe("surroundProblems", () => {
   });
 });
 
-const ROLES = { text: "rgb(29, 29, 29)", interaktion: "rgb(51, 93, 229)", textLeise: "rgb(107, 102, 102)" };
+const ROLES = {
+  text: "rgb(29, 29, 29)",
+  interaktion: "rgb(51, 93, 229)",
+  textLeise: "rgb(107, 102, 102)",
+};
 
 function colorEntry(overrides: Partial<PaletteColorEntry> = {}): PaletteColorEntry {
   return {
@@ -955,7 +1057,14 @@ describe("paletteColorProblems", () => {
   it("exempts notation previews, which keep their colours", () => {
     expect(
       paletteColorProblems(
-        colors([colorEntry({ action: "create.box", group: "shapes", color: "rgb(255, 0, 0)", icon: null })]),
+        colors([
+          colorEntry({
+            action: "create.box",
+            group: "shapes",
+            color: "rgb(255, 0, 0)",
+            icon: null,
+          }),
+        ]),
       ),
     ).toEqual([]);
   });
@@ -1077,7 +1186,11 @@ describe("focusHandBackProblems", () => {
           focus: { ...onControl, focused: "div.entry", control: false },
         },
         { control: "zoom in", by: "Enter", focus: onCanvas },
-        { control: "zoom in", by: "Space", focus: { focused: "<body>", canvas: false, control: false } },
+        {
+          control: "zoom in",
+          by: "Space",
+          focus: { focused: "<body>", canvas: false, control: false },
+        },
       ]),
     ).toEqual([
       "focus: after a click on fit the focus is on button.cd-shell-target, expected the canvas <svg>, so its keys act at once (guide §5.8)",
@@ -1204,7 +1317,9 @@ describe("label editor checks (contract L5, and the keep-open it recommends)", (
 
   it("reports an editor the view change closed or emptied without a commit", () => {
     expect(
-      labelEditorStepProblems(step({ after: { ...EDITING, editing: false, focused: "<body>", text: "" } })),
+      labelEditorStepProblems(
+        step({ after: { ...EDITING, editing: false, focused: "<body>", text: "" } }),
+      ),
     ).toEqual([
       'label editor: after a click on Fit the focus is on <body>, not in the label editor; it stays open with the typed "Renamed box 1" (L5 recommends it, the shell kit requires it)',
     ]);
@@ -1249,7 +1364,11 @@ describe("createProblems", () => {
       createProblems(
         created({
           after: [shape("a"), shape("b", { box: { left: 0, top: 0, width: 40, height: 40 } })],
-          canvas: { ...CANVAS, focusInCanvas: false, focused: 'div.entry[data-action="create.box"]' },
+          canvas: {
+            ...CANVAS,
+            focusInCanvas: false,
+            focused: 'div.entry[data-action="create.box"]',
+          },
         }),
       ),
     ).toEqual([
@@ -1387,7 +1506,10 @@ describe("read-only checks", () => {
           contextPadEntries: ["delete"],
           dragged: {
             before: shape("a"),
-            after: shape("a", { transform: "matrix(1 0 0 1 140 100)", size: { width: 160, height: 80 } }),
+            after: shape("a", {
+              transform: "matrix(1 0 0 1 140 100)",
+              size: { width: 160, height: 80 },
+            }),
           },
           textFields: ["div.djs-direct-editing-content"],
           kept: { Delete: false, Backspace: true },
@@ -1399,9 +1521,9 @@ describe("read-only checks", () => {
       'read-only: a double-click on "a" opens a text field (div.djs-direct-editing-content) (guide §13.5)',
       'read-only: Delete on the canvas deleted "a" (guide §13.5)',
     ]);
-    expect(lockedShapeProblems(locked({ dragged: { before: shape("a"), after: undefined } }))).toEqual([
-      'read-only: a 40px drag removed "a" from the canvas (guide §13.5)',
-    ]);
+    expect(
+      lockedShapeProblems(locked({ dragged: { before: shape("a"), after: undefined } })),
+    ).toEqual(['read-only: a 40px drag removed "a" from the canvas (guide §13.5)']);
   });
 });
 
@@ -1416,7 +1538,13 @@ describe("ARIA of the web column", () => {
       target: "_blank",
       rel: "noopener noreferrer",
     },
-    { text: "Impressum", href: MIRAGON_IMPRESSUM, lang: "de", target: "_blank", rel: "noopener noreferrer" },
+    {
+      text: "Impressum",
+      href: MIRAGON_IMPRESSUM,
+      lang: "de",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
     {
       text: "Datenschutz",
       href: MIRAGON_DATENSCHUTZ,
@@ -1493,7 +1621,9 @@ describe("ARIA of the web column", () => {
     facts.legalLinks = legalLinks().map((link) =>
       link.text === "Datenschutz" ? { ...link, lang: "en" } : link,
     );
-    expect(legalAriaProblems({ ...facts, legal: element("nav", { "aria-label": "Legal" }) }, "web")).toEqual([
+    expect(
+      legalAriaProblems({ ...facts, legal: element("nav", { "aria-label": "Legal" }) }, "web"),
+    ).toEqual([
       'legal: "Datenschutz" has lang="en", expected lang="de" (guide §2: Impressum and Datenschutz stay German)',
     ]);
     expect(legalAriaProblems({ ...webAria(), legal: null }, "web")).toEqual([
@@ -1516,7 +1646,9 @@ describe("ARIA of the web column", () => {
       problemsControlled: list,
     };
     expect(pillPopupAriaProblems(ok, "web")).toEqual([]);
-    expect(pillPopupAriaProblems({ ...ok, problems: pill({}), problemsControlled: null }, "web")).toEqual([
+    expect(
+      pillPopupAriaProblems({ ...ok, problems: pill({}), problemsControlled: null }, "web"),
+    ).toEqual([
       'problems: the pill has aria-haspopup "", expected "dialog" (it opens the problems list)',
       'problems: the pill has aria-expanded "" while the list is closed, expected "false"',
       "problems: the pill has no aria-controls",
@@ -1541,10 +1673,12 @@ describe("ARIA of the web column", () => {
   it("puts Tab from the menu trigger on the primary action first", () => {
     const palette = { description: "div.entry", kind: "palette" } as const;
     const canvas = { description: "svg", kind: "canvas" } as const;
-    expect(tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas], true)).toEqual(
-      [],
-    );
-    expect(tabSequenceProblems([palette, canvas, { description: "button", kind: "primary" }], true)).toEqual([
+    expect(
+      tabSequenceProblems([{ description: "button", kind: "primary" }, palette, canvas], true),
+    ).toEqual([]);
+    expect(
+      tabSequenceProblems([palette, canvas, { description: "button", kind: "primary" }], true),
+    ).toEqual([
       "tab order: Tab from the menu trigger lands on div.entry, expected the primary action (top left, top right, top centre, guide §5.14)",
     ]);
   });
@@ -1572,7 +1706,11 @@ describe("menu groups of the web app", () => {
     ...extra,
   });
   const radio = (value: string, checked: boolean) =>
-    entry("appearance", "appearance", value, { role: "menuitemradio", value, checked: String(checked) });
+    entry("appearance", "appearance", value, {
+      role: "menuitemradio",
+      value,
+      checked: String(checked),
+    });
   const file = [
     entry("file", "new-diagram", "New diagram", { icon: true }),
     entry("file", "open", "Open…", { icon: true }),
@@ -1616,9 +1754,11 @@ describe("menu groups of the web app", () => {
       "menu: the File group reads open, new-diagram; expected the order new-diagram, open (guide §5.4)",
     ]);
     expect(
-      menuGroupProblems([entry("file", "open", "Open…", { icon: true, role: "menuitemradio" })], "web", [
-        "light",
-      ]),
+      menuGroupProblems(
+        [entry("file", "open", "Open…", { icon: true, role: "menuitemradio" })],
+        "web",
+        ["light"],
+      ),
     ).toEqual(['menu: File entry "Open…" is a menuitemradio, expected a menuitem']);
   });
 
@@ -1644,7 +1784,9 @@ describe("menu groups of the web app", () => {
     expect(appearanceChoiceProblems(appearance, "dark")).toEqual([
       'menu: the Appearance group checks system; expected "dark" (aria-checked, guide §12)',
     ]);
-    expect(appearanceChoiceProblems([radio("system", false), radio("dark", false)], "system")).toEqual([
+    expect(
+      appearanceChoiceProblems([radio("system", false), radio("dark", false)], "system"),
+    ).toEqual([
       'menu: the Appearance group checks nothing; expected "system" (aria-checked, guide §12)',
     ]);
   });
@@ -1725,7 +1867,9 @@ describe("the web app's top row (guide §5.15)", () => {
   });
 
   it("reports a palette that moved before the label collapsed, or stayed when even the icon is too close", () => {
-    expect(topRowProblems([sample(856, { collapsed: true, row: "second-row" })], 94, "Share")).toEqual([
+    expect(
+      topRowProblems([sample(856, { collapsed: true, row: "second-row" })], 94, "Share"),
+    ).toEqual([
       "[856px wide] palette: in the second row although it fits the top row beside the collapsed primary action; the label collapses first (guide §5.15)",
     ]);
     expect(topRowProblems([sample(776, { row: "top", collapsed: true })], 94, "Share")).toEqual([
@@ -1736,7 +1880,9 @@ describe("the web app's top row (guide §5.15)", () => {
 
   it("leaves a width alone where 1px flips the decision", () => {
     // 892px: the labelled action keeps exactly 16px to the palette
-    expect(topRowProblems([sample(892, { collapsed: true }), sample(892)], 94, "Share")).toEqual([]);
+    expect(topRowProblems([sample(892, { collapsed: true }), sample(892)], 94, "Share")).toEqual(
+      [],
+    );
   });
 
   it("wants a collapsed action 40 wide, without its label, with its name and no description", () => {
@@ -1786,7 +1932,13 @@ describe("legal line content and the zoom row", () => {
       target: "_blank",
       rel: "noopener noreferrer",
     },
-    { text: "Impressum", href: MIRAGON_IMPRESSUM, lang: "de", target: "_blank", rel: "noopener noreferrer" },
+    {
+      text: "Impressum",
+      href: MIRAGON_IMPRESSUM,
+      lang: "de",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    },
     {
       text: "Datenschutz",
       href: MIRAGON_DATENSCHUTZ,
@@ -1821,7 +1973,10 @@ describe("legal line content and the zoom row", () => {
     expect(zoomRowBottomProblems(undefined, true, container)).toEqual([]);
   });
 
-  const bottomRow = (islands: ChromeMeasurement["islands"], toastCardWidth?: number): ChromeMeasurement => ({
+  const bottomRow = (
+    islands: ChromeMeasurement["islands"],
+    toastCardWidth?: number,
+  ): ChromeMeasurement => ({
     container: { width: 1280, height: 900 },
     paletteRow: "top",
     islands,
@@ -1909,13 +2064,18 @@ describe("the start screen (guide §8)", () => {
 
   it("wants the hint to end in a link to the File group's Open…, with its keys", () => {
     expect(startScreenOpenProblems(conforming(), fileOpen, "en")).toEqual([]);
-    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, undefined, "en")).toEqual([]);
+    expect(startScreenOpenProblems({ ...conforming(), openLink: null }, undefined, "en")).toEqual(
+      [],
+    );
     expect(startScreenOpenProblems({ ...conforming(), openLink: null }, fileOpen, "en")).toEqual([
       "empty-state: the File group has Open…, but the hint does not end in a text link to it; on the start screen it is the keyboard's way to a file (guide §8)",
     ]);
     expect(
       startScreenOpenProblems(
-        { ...conforming(), openLink: { name: "Browse", keyShortcuts: null, chip: null, underlined: true } },
+        {
+          ...conforming(),
+          openLink: { name: "Browse", keyShortcuts: null, chip: null, underlined: true },
+        },
         fileOpen,
         "en",
       ),
@@ -1944,7 +2104,11 @@ describe("the start screen (guide §8)", () => {
   it("reports the card's attribute, centre, label, Komet, title, buttons and the work chrome", () => {
     const facts = conforming();
     facts.shown = false;
-    facts.card = { ...facts.card!, box: { left: 430, top: 300, width: 400, height: 300 }, labelledBy: null };
+    facts.card = {
+      ...facts.card!,
+      box: { left: 430, top: 300, width: 400, height: 300 },
+      labelledBy: null,
+    };
     facts.komet = { tag: "img", alt: "Miragon", width: 48, height: 48 };
     facts.heading = { tag: "h3", text: "Demo Modeler" };
     facts.buttons = [
@@ -1982,7 +2146,11 @@ describe("the start screen (guide §8)", () => {
       "empty-state: the card is not visible after show.emptyState",
     ]);
     expect(
-      emptyStateProblems({ ...conforming(), komet: null, heading: null, buttons: [] }, container, "en"),
+      emptyStateProblems(
+        { ...conforming(), komet: null, heading: null, buttons: [] },
+        container,
+        "en",
+      ),
     ).toEqual([
       "empty-state: no Komet <img> on the card (guide §2, §8)",
       "empty-state: the title is missing, expected an <h1>",
@@ -1993,7 +2161,12 @@ describe("the start screen (guide §8)", () => {
   it("lets Tab reach only the card and the legal links", () => {
     const stop = (owner: string, description = owner) => ({ owner, description });
     expect(
-      emptyStateTabProblems([stop("empty-state"), stop("empty-state"), stop("legal"), stop("body")]),
+      emptyStateTabProblems([
+        stop("empty-state"),
+        stop("empty-state"),
+        stop("legal"),
+        stop("body"),
+      ]),
     ).toEqual([]);
     expect(
       emptyStateTabProblems([stop("menu", "button.cd-shell-menu-trigger"), stop("canvas", "svg")]),
@@ -2070,10 +2243,14 @@ describe("toasts (guide §8)", () => {
   it("wants each card as wide as its content, at most the stack", () => {
     const short = { box: { left: 520, top: 800, width: 240, height: 42 }, contentWidth: 240 };
     expect(toastWidthProblems(toast("Link copied", short), "success", 480)).toEqual([]);
-    expect(toastWidthProblems(toast("A long sentence", { contentWidth: 900 }), "warning", 480)).toEqual([]);
-    expect(toastWidthProblems(toast("Link copied", { contentWidth: 146 }), "success", 480)).toEqual([
-      "toasts: the success toast's card is 480px wide for 146px of content; a card is as wide as its content, at most the stack's 480px (guide §8)",
-    ]);
+    expect(
+      toastWidthProblems(toast("A long sentence", { contentWidth: 900 }), "warning", 480),
+    ).toEqual([]);
+    expect(toastWidthProblems(toast("Link copied", { contentWidth: 146 }), "success", 480)).toEqual(
+      [
+        "toasts: the success toast's card is 480px wide for 146px of content; a card is as wide as its content, at most the stack's 480px (guide §8)",
+      ],
+    );
   });
 
   it("wants the text in a persistent alert region for errors and status otherwise, and a Close icon button", () => {
@@ -2207,7 +2384,13 @@ describe("the problems list (guide §5.10)", () => {
       title: "Problems",
     },
     rows: [
-      { button: true, height: 56, icon: true, text: "The box has no name. Box 1", client: { x: 0, y: 0 } },
+      {
+        button: true,
+        height: 56,
+        icon: true,
+        text: "The box has no name. Box 1",
+        client: { x: 0, y: 0 },
+      },
       { button: false, height: 36, icon: true, text: "Two boxes overlap.", client: { x: 0, y: 0 } },
     ],
     focus: "popover",
@@ -2249,7 +2432,11 @@ describe("the problems list (guide §5.10)", () => {
       container: { width: 320, height: 700 },
       legal: { left: 12, top: 648, width: 296, height: 40 },
       links: [
-        { text: "© 2026 Miragon GmbH", box: { left: 20, top: 648, width: 130, height: 20 }, lines: [658] },
+        {
+          text: "© 2026 Miragon GmbH",
+          box: { left: 20, top: 648, width: 130, height: 20 },
+          lines: [658],
+        },
         { text: "Impressum", box: { left: 168, top: 648, width: 66, height: 20 }, lines: [658] },
         { text: "Datenschutz", box: { left: 32, top: 668, width: 80, height: 20 }, lines: [678] },
       ],
@@ -2330,7 +2517,11 @@ describe("the problems list (guide §5.10)", () => {
       "problems-popover: height is 400px, at most 320px expected",
     ]);
     expect(
-      openPopoverProblems({ ...open(), popover: { ...open().popover!, title: null } }, container, "de"),
+      openPopoverProblems(
+        { ...open(), popover: { ...open().popover!, title: null } },
+        container,
+        "de",
+      ),
     ).toEqual(["problems-popover: not labelled by its title (aria-labelledby)"]);
     expect(openPopoverProblems({ ...open(), rows: [] }, container, "en")).toEqual([
       "problems-popover: the list has no rows; show.problems passes items in the web host",
@@ -2374,7 +2565,10 @@ describe("the drop zone (guide §9)", () => {
     danger: "rgb(205, 24, 57)",
     flaecheHoch: "rgb(255, 255, 255)",
   };
-  const facts = (state: "over" | "forbidden", extra: Partial<DropZoneFacts> = {}): DropZoneFacts => ({
+  const facts = (
+    state: "over" | "forbidden",
+    extra: Partial<DropZoneFacts> = {},
+  ): DropZoneFacts => ({
     state,
     events: [
       { type: "dragenter", defaultPrevented: true, dropEffect: state === "over" ? "copy" : "none" },
@@ -2406,7 +2600,11 @@ describe("the drop zone (guide §9)", () => {
       events: [{ type: "dragover", defaultPrevented: false, dropEffect: "copy" }],
       chip: { text: "", background: roles.hover },
     });
-    broken.zone = { ...broken.zone!, box: { left: 0, top: 12, width: 1268, height: 876 }, ariaHidden: null };
+    broken.zone = {
+      ...broken.zone!,
+      box: { left: 0, top: 12, width: 1268, height: 876 },
+      ariaHidden: null,
+    };
     expect(dropStateProblems(broken, "forbidden", "two files", container)).toEqual([
       'drop-zone: two files sets data-drop="over", expected "forbidden" (guide §9)',
       "drop-zone: two files is not prevented, so the browser would open the file",
@@ -2522,7 +2720,11 @@ describe("the web app's mode (guide §13.3)", () => {
   });
 
   it("switches everything in one frame with transitions off", () => {
-    const change = (part: ModeChange["part"], frame: number, value: string | null = "x"): ModeChange => ({
+    const change = (
+      part: ModeChange["part"],
+      frame: number,
+      value: string | null = "x",
+    ): ModeChange => ({
       part,
       value,
       frame,
@@ -2551,20 +2753,36 @@ describe("the web app's mode (guide §13.3)", () => {
   it("judges the carrier of a dark-capable app on system by the page's effective mode", () => {
     const facts = appearance({
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "system", kontrast: null },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "system",
+          kontrast: null,
+        },
       ],
       parts: ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map((name) =>
         part(name, "dark"),
       ),
     });
     const web = expectedWebMode({ theme: "dark" }, ["light", "dark"], "system");
-    expect(appearanceProblems(facts, "web", { theme: "dark" }, ["light", "dark"], web).problems).toEqual([]);
+    expect(
+      appearanceProblems(facts, "web", { theme: "dark" }, ["light", "dark"], web).problems,
+    ).toEqual([]);
     const light = appearance({
       themed: [
-        { description: "html", isDocument: true, relation: "ancestor", theme: "system", kontrast: null },
+        {
+          description: "html",
+          isDocument: true,
+          relation: "ancestor",
+          theme: "system",
+          kontrast: null,
+        },
       ],
     });
-    expect(appearanceProblems(light, "web", { theme: "dark" }, ["light", "dark"], web).problems).toEqual(
+    expect(
+      appearanceProblems(light, "web", { theme: "dark" }, ["light", "dark"], web).problems,
+    ).toEqual(
       ["root", "canvas", "menu", "palette", "zoom", "dropdown", "tooltip"].map(
         (name) => `${name}: color-scheme is "light" (requested dark, expected system showing dark)`,
       ),
@@ -2572,12 +2790,12 @@ describe("the web app's mode (guide §13.3)", () => {
   });
 
   it("speaks English for en and its regions only", () => {
-    expect([speaksEnglish("en"), speaksEnglish("en-GB"), speaksEnglish("de"), speaksEnglish("")]).toEqual([
-      true,
-      true,
-      false,
-      false,
-    ]);
+    expect([
+      speaksEnglish("en"),
+      speaksEnglish("en-GB"),
+      speaksEnglish("de"),
+      speaksEnglish(""),
+    ]).toEqual([true, true, false, false]);
   });
 });
 

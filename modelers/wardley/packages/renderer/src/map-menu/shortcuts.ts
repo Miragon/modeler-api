@@ -1,4 +1,4 @@
-import { EXPORT_LABELS } from './menu.js';
+import { EXPORT_LABELS } from "./menu.js";
 
 /*
  * Every shortcut and gesture of a map for the "Keyboard shortcuts…" dialog (guide §5.4): one
@@ -7,7 +7,7 @@ import { EXPORT_LABELS } from './menu.js';
  * say what the zoom panel's tooltips say.
  */
 
-export type ShortcutPlatform = 'mac' | 'other';
+export type ShortcutPlatform = "mac" | "other";
 
 export interface ShortcutKeyNames {
   readonly ctrl: string;
@@ -54,30 +54,30 @@ export interface ShortcutGroup {
   readonly rows: readonly ShortcutRow[];
 }
 
-const ARROWS = '←↑→↓';
+const ARROWS = "←↑→↓";
 
 function percentOfActualSize(lang: string): string {
   try {
-    return new Intl.NumberFormat(lang, { style: 'percent' }).format(1);
+    return new Intl.NumberFormat(lang, { style: "percent" }).format(1);
   } catch {
-    return new Intl.NumberFormat('en', { style: 'percent' }).format(1);
+    return new Intl.NumberFormat("en", { style: "percent" }).format(1);
   }
 }
 
 /** The chips of one platform: modifier symbols on macOS, names elsewhere. */
 function keysOf(platform: ShortcutPlatform, names: ShortcutKeyNames) {
-  if (platform === 'mac') {
+  if (platform === "mac") {
     return {
       command: (key: string) => `⌘${key}`,
       shiftCommand: (key: string) => `⌘⇧${key}`,
       shift: (what: string) => `⇧ ${what}`,
       alt: (what: string) => `⌥ ${what}`,
-      zoomIn: '⌘+',
-      zoomOut: '⌘−',
-      zoomToActual: '⌘0',
-      fit: '⇧1',
-      remove: ['⌫'],
-      enter: '↵',
+      zoomIn: "⌘+",
+      zoomOut: "⌘−",
+      zoomToActual: "⌘0",
+      fit: "⇧1",
+      remove: ["⌫"],
+      enter: "↵",
     };
   }
   const { ctrl, shift, plus, minus } = names;
@@ -90,18 +90,18 @@ function keysOf(platform: ShortcutPlatform, names: ShortcutKeyNames) {
     zoomOut: `${ctrl}+${minus}`,
     zoomToActual: `${ctrl}+0`,
     fit: `${shift}+1`,
-    remove: ['Del', 'Backspace'],
-    enter: 'Enter',
+    remove: ["Del", "Backspace"],
+    enter: "Enter",
   };
 }
 
 function fileGroup(chrome: ShortcutsChrome, command: (key: string) => string): ShortcutGroup {
   return {
-    title: 'File',
+    title: "File",
     rows: [
-      { action: chrome.messages.openFile ?? 'Open…', keys: [command('O')] },
-      { action: EXPORT_LABELS.wmap, keys: [command('S')] },
-      { action: 'Paste OWM text or a share link', keys: [command('V')] },
+      { action: chrome.messages.openFile ?? "Open…", keys: [command("O")] },
+      { action: EXPORT_LABELS.wmap, keys: [command("S")] },
+      { action: "Paste OWM text or a share link", keys: [command("V")] },
     ],
   };
 }
@@ -120,7 +120,7 @@ export function mapShortcuts(
   return [
     ...(options.fileKeys ? [fileGroup(chrome, keys.command)] : []),
     {
-      title: 'View',
+      title: "View",
       rows: [
         { action: messages.zoomIn, keys: [keys.zoomIn] },
         { action: messages.zoomOut, keys: [keys.zoomOut] },
@@ -130,58 +130,58 @@ export function mapShortcuts(
         },
         { action: messages.fit, keys: [keys.fit] },
         ...(options.shortcutsKey
-          ? [{ action: 'Keyboard shortcuts', keys: [options.shortcutsKey] }]
+          ? [{ action: "Keyboard shortcuts", keys: [options.shortcutsKey] }]
           : []),
       ],
     },
     {
-      title: 'Edit',
+      title: "Edit",
       rows: [
-        { action: 'Undo', keys: [keys.command('Z')] },
+        { action: "Undo", keys: [keys.command("Z")] },
         {
-          action: 'Redo',
+          action: "Redo",
           keys:
-            platform === 'mac'
-              ? [keys.shiftCommand('Z')]
-              : [keys.shiftCommand('Z'), keys.command('Y')],
+            platform === "mac"
+              ? [keys.shiftCommand("Z")]
+              : [keys.shiftCommand("Z"), keys.command("Y")],
         },
-        { action: 'Rename', keys: ['Double-click'] },
-        { action: 'Save a note while editing', keys: [keys.command(keys.enter)] },
-        { action: 'Copy', keys: [keys.command('C')] },
-        { action: 'Paste (a click places it, Esc cancels)', keys: [keys.command('V')] },
-        { action: 'Duplicate', keys: [keys.command('D')] },
-        { action: 'Delete', keys: keys.remove },
-        { action: 'Move the selection', keys: [ARROWS] },
-        { action: 'Move the selection further', keys: [keys.shift(ARROWS)] },
-        { action: 'Select all', keys: [keys.command('A')] },
-        { action: 'Add to the selection', keys: [keys.shift('Click')] },
-        { action: 'Deselect, cancel', keys: ['Esc'] },
+        { action: "Rename", keys: ["Double-click"] },
+        { action: "Save a note while editing", keys: [keys.command(keys.enter)] },
+        { action: "Copy", keys: [keys.command("C")] },
+        { action: "Paste (a click places it, Esc cancels)", keys: [keys.command("V")] },
+        { action: "Duplicate", keys: [keys.command("D")] },
+        { action: "Delete", keys: keys.remove },
+        { action: "Move the selection", keys: [ARROWS] },
+        { action: "Move the selection further", keys: [keys.shift(ARROWS)] },
+        { action: "Select all", keys: [keys.command("A")] },
+        { action: "Add to the selection", keys: [keys.shift("Click")] },
+        { action: "Deselect, cancel", keys: ["Esc"] },
       ],
     },
     {
-      title: 'Tools',
+      title: "Tools",
       rows: [
-        { action: 'Component', keys: ['C'] },
-        { action: 'User (anchor)', keys: ['U'] },
-        { action: 'Note', keys: ['N'] },
-        { action: 'Pipeline', keys: ['P'] },
-        { action: 'Connect from the selected node', keys: ['A'] },
-        { action: 'Lasso', keys: ['L'] },
-        { action: 'Lasso by dragging', keys: [keys.shift('Drag')] },
-        { action: 'Draw: place a point', keys: ['Click'] },
-        { action: 'Finish a drawing', keys: [keys.enter, 'Double-click'] },
-        { action: 'Close a drawing', keys: ['Click the first point'] },
+        { action: "Component", keys: ["C"] },
+        { action: "User (anchor)", keys: ["U"] },
+        { action: "Note", keys: ["N"] },
+        { action: "Pipeline", keys: ["P"] },
+        { action: "Connect from the selected node", keys: ["A"] },
+        { action: "Lasso", keys: ["L"] },
+        { action: "Lasso by dragging", keys: [keys.shift("Drag")] },
+        { action: "Draw: place a point", keys: ["Click"] },
+        { action: "Finish a drawing", keys: [keys.enter, "Double-click"] },
+        { action: "Close a drawing", keys: ["Click the first point"] },
       ],
     },
     {
-      title: 'Map',
+      title: "Map",
       rows: [
-        { action: 'Move a label', keys: ['Drag the label'] },
-        { action: 'Reset a label’s position', keys: [keys.alt('Double-click')] },
-        { action: 'Resize the map', keys: ['Drag the right or bottom edge'] },
-        { action: 'Resize, keeping the ratio', keys: [keys.shift('Drag')] },
-        { action: 'Resize without snapping', keys: [keys.alt('Drag')] },
-        { action: 'Reset the map size', keys: ['Double-click the corner'] },
+        { action: "Move a label", keys: ["Drag the label"] },
+        { action: "Reset a label’s position", keys: [keys.alt("Double-click")] },
+        { action: "Resize the map", keys: ["Drag the right or bottom edge"] },
+        { action: "Resize, keeping the ratio", keys: [keys.shift("Drag")] },
+        { action: "Resize without snapping", keys: [keys.alt("Drag")] },
+        { action: "Reset the map size", keys: ["Double-click the corner"] },
       ],
     },
   ];

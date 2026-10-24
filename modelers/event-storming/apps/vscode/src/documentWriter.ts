@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import { minimalLineEdit } from './textLines.js';
+import * as vscode from "vscode";
+import { minimalLineEdit } from "./textLines.js";
 
 /** Echo keys ignore the line break style: VS Code writes inserted '\n' as the document's EOL. */
 function echoKey(text: string): string {
-  return text.replace(/\r\n/g, '\n');
+  return text.replace(/\r\n/g, "\n");
 }
 
 export interface WriteOptions {

@@ -26,14 +26,14 @@ diagram-js or Zod breaks the dependency injection and `instanceof` checks.
 ## Quick start
 
 ```ts
-import { Modeler } from '@miragon/value-chain-renderer';
-import '@miragon/value-chain-renderer/assets/value-chain.css';
-import { createEmptyDocument } from '@miragon/value-chain-schema-model';
+import { Modeler } from "@miragon/value-chain-renderer";
+import "@miragon/value-chain-renderer/assets/value-chain.css";
+import { createEmptyDocument } from "@miragon/value-chain-schema-model";
 
-const modeler = new Modeler({ container: document.querySelector('#canvas')! });
-modeler.importDocument(createEmptyDocument('My value chain'));
+const modeler = new Modeler({ container: document.querySelector("#canvas")! });
+modeler.importDocument(createEmptyDocument("My value chain"));
 
-modeler.on('commandStack.changed', () => {
+modeler.on("commandStack.changed", () => {
   const doc = modeler.exportDocument(); // ValueChainDocument
 });
 
@@ -112,7 +112,7 @@ lasso, hand, zoom, copy and export keep working.
 import {
   createCollaborativeModeler,
   createCollaborativeViewer,
-} from '@miragon/value-chain-renderer';
+} from "@miragon/value-chain-renderer";
 
 const modeler = createCollaborativeModeler({ additionalModules: [] });
 modeler.attachTo(host); // in the document, with a size

@@ -1,27 +1,27 @@
-import RuleProvider from 'diagram-js/lib/features/rules/RuleProvider';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
+import RuleProvider from "diagram-js/lib/features/rules/RuleProvider";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
 
 /** Fired with `{ readOnly }` whenever the lock changes. */
-export const READ_ONLY_CHANGED_EVENT = 'valueChain.readOnly.changed';
+export const READ_ONLY_CHANGED_EVENT = "valueChain.readOnly.changed";
 
 /** Above every edit rule of the renderer and diagram-js, so the lock wins. */
 const LOCK_PRIORITY = 5000;
 
 const EDIT_RULES = [
-  'elements.move',
-  'shape.move',
-  'shape.resize',
-  'shape.create',
-  'elements.create',
-  'shape.append',
-  'connection.start',
-  'connection.create',
-  'connection.reconnect',
-  'connection.updateWaypoints',
-  'elements.delete',
-  'elements.align',
-  'elements.distribute',
+  "elements.move",
+  "shape.move",
+  "shape.resize",
+  "shape.create",
+  "elements.create",
+  "shape.append",
+  "connection.start",
+  "connection.create",
+  "connection.reconnect",
+  "connection.updateWaypoints",
+  "elements.delete",
+  "elements.align",
+  "elements.distribute",
 ];
 
 interface Closable {
@@ -40,7 +40,7 @@ interface Cancellable {
  * copy and export keep working.
  */
 export default class VcReadOnly extends RuleProvider {
-  static override $inject = ['eventBus', 'injector'];
+  static override $inject = ["eventBus", "injector"];
 
   private readOnly = false;
 
@@ -49,8 +49,8 @@ export default class VcReadOnly extends RuleProvider {
     private readonly injector: Injector,
   ) {
     super(bus);
-    bus.on('copyPaste.pasteElements', LOCK_PRIORITY, () => (this.readOnly ? false : undefined));
-    bus.on('directEditing.activate.allowed', LOCK_PRIORITY, () =>
+    bus.on("copyPaste.pasteElements", LOCK_PRIORITY, () => (this.readOnly ? false : undefined));
+    bus.on("directEditing.activate.allowed", LOCK_PRIORITY, () =>
       this.readOnly ? false : undefined,
     );
   }
@@ -77,9 +77,9 @@ export default class VcReadOnly extends RuleProvider {
   /** What was already under way when the lock arrived must not land on the locked canvas. */
   private interruptEdits(): void {
     const optional = <T>(name: string): T | undefined => this.injector.get<T>(name, false);
-    optional<Cancellable>('directEditing')?.cancel();
-    optional<Cancellable>('dragging')?.cancel();
-    optional<Closable>('popupMenu')?.close();
-    optional<Closable>('contextPad')?.close();
+    optional<Cancellable>("directEditing")?.cancel();
+    optional<Cancellable>("dragging")?.cancel();
+    optional<Closable>("popupMenu")?.close();
+    optional<Closable>("contextPad")?.close();
   }
 }

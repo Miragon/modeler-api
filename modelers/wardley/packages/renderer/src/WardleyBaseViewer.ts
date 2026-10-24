@@ -1,10 +1,10 @@
-import Diagram from 'diagram-js/lib/Diagram';
-import type { ModuleDeclaration } from 'didi';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Dragging from 'diagram-js/lib/features/dragging/Dragging';
-import type { Root } from 'diagram-js/lib/model/Types';
+import Diagram from "diagram-js/lib/Diagram";
+import type { ModuleDeclaration } from "didi";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
+import type { Root } from "diagram-js/lib/model/Types";
 import {
   DEFAULT_MAP_TITLE,
   normalizeEvolutionLabels,
@@ -16,26 +16,26 @@ import {
   type MapSize,
   type MapSizePresetId,
   type WardleyMap,
-} from '@miragon/wardley-schema-model';
-import { parseDSLWithDiagnostics, serializeDSL } from '@miragon/wardley-dsl';
-import { saveSVG } from './io/saveSvg.js';
-import { exportBounds } from './io/exportBounds.js';
-import type WardleyImporter from './io/WardleyImporter.js';
-import type WardleyExporter from './io/WardleyExporter.js';
-import type EvolutionGrid from './evolution-grid/EvolutionGrid.js';
-import { ROOT_ID, type ImportWarning, type RootBusinessObject } from './io/types.js';
+} from "@miragon/wardley-schema-model";
+import { parseDSLWithDiagnostics, serializeDSL } from "@miragon/wardley-dsl";
+import { saveSVG } from "./io/saveSvg.js";
+import { exportBounds } from "./io/exportBounds.js";
+import type WardleyImporter from "./io/WardleyImporter.js";
+import type WardleyExporter from "./io/WardleyExporter.js";
+import type EvolutionGrid from "./evolution-grid/EvolutionGrid.js";
+import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./io/types.js";
 import {
   configWithSize,
   wardleyRootOf,
   withoutRawSizeStatements,
   type default as MapProjection,
   type ProjectionSnapshot,
-} from './map-resize/MapProjection.js';
-import type WardleyModeling from './modeling/WardleyModeling.js';
-import type { FreeArea } from '@miragon/modeler-api';
-import type { FreeRectConfig, FreeRectInsets } from './free-rect/index.js';
-import { COMMAND_START_EVENTS, PUT_BACK_PRIORITY, type LivePreview } from './live-preview/index.js';
-import { applyConfigUpdate, type MapConfigUpdate } from './modeling/cmd/UpdateConfigHandler.js';
+} from "./map-resize/MapProjection.js";
+import type WardleyModeling from "./modeling/WardleyModeling.js";
+import type { FreeArea } from "@miragon/modeler-api";
+import type { FreeRectConfig, FreeRectInsets } from "./free-rect/index.js";
+import { COMMAND_START_EVENTS, PUT_BACK_PRIORITY, type LivePreview } from "./live-preview/index.js";
+import { applyConfigUpdate, type MapConfigUpdate } from "./modeling/cmd/UpdateConfigHandler.js";
 
 export interface WardleyViewerOptions {
   /** Host element. If missing, a detached <div> is created (can be attached later via attachTo). */
@@ -116,7 +116,7 @@ export interface SetMapSizeOptions {
 type EvolutionLabels = readonly [string, string, string, string];
 
 /** diagram-js names its implicit roots so; an element of that id would replace the plane. */
-const IMPLICIT_ROOT_PREFIX = '__implicitroot';
+const IMPLICIT_ROOT_PREFIX = "__implicitroot";
 
 /** `map`, validated, or a throw when the canvas cannot hold it. */
 function importableMap(map: WardleyMap): WardleyMap {
@@ -129,7 +129,7 @@ function importableMap(map: WardleyMap): WardleyMap {
 }
 
 function sizeToCss(value: number | string): string {
-  return typeof value === 'number' ? `${value}px` : value;
+  return typeof value === "number" ? `${value}px` : value;
 }
 
 /**
@@ -155,10 +155,10 @@ export abstract class WardleyBaseViewer {
   }
 
   private _createContainer(options: WardleyViewerOptions): HTMLElement {
-    const container = options.container ?? document.createElement('div');
-    container.classList.add('wardley-container');
-    container.style.width = sizeToCss(options.width ?? '100%');
-    container.style.height = sizeToCss(options.height ?? (options.container ? '100%' : '600px'));
+    const container = options.container ?? document.createElement("div");
+    container.classList.add("wardley-container");
+    container.style.width = sizeToCss(options.width ?? "100%");
+    container.style.height = sizeToCss(options.height ?? (options.container ? "100%" : "600px"));
     return container;
   }
 
@@ -174,7 +174,7 @@ export abstract class WardleyBaseViewer {
       // which would overwrite a command in between (a title a host sets mid-preview) and leave
       // the history out of step with the document: the preview goes first.
       this._diagram
-        .get<EventBus>('eventBus')
+        .get<EventBus>("eventBus")
         .on(COMMAND_START_EVENTS, PUT_BACK_PRIORITY, () => this._putBackSizePreview());
     }
     return this._diagram;
@@ -185,11 +185,11 @@ export abstract class WardleyBaseViewer {
   }
 
   on<T = unknown>(event: string, callback: EventCallback<T>, priority = 1000): void {
-    this.get<EventBus>('eventBus').on(event, priority, callback as EventCallback);
+    this.get<EventBus>("eventBus").on(event, priority, callback as EventCallback);
   }
 
   off(event: string, callback: EventCallback): void {
-    this.get<EventBus>('eventBus').off(event, callback);
+    this.get<EventBus>("eventBus").off(event, callback);
   }
 
   /**
@@ -200,9 +200,9 @@ export abstract class WardleyBaseViewer {
   async importMap(map: WardleyMap): Promise<{ warnings: ImportWarning[] }> {
     const checked = importableMap(map);
     const diagram = this._ensureDiagram();
-    const eventBus = diagram.get<EventBus>('eventBus');
-    const importer = diagram.get<WardleyImporter>('wardleyImporter');
-    const commandStack = diagram.get<CommandStack>('commandStack', false);
+    const eventBus = diagram.get<EventBus>("eventBus");
+    const importer = diagram.get<WardleyImporter>("wardleyImporter");
+    const commandStack = diagram.get<CommandStack>("commandStack", false);
     // Kept to put back if rendering fails half-way: a blank canvas is no way to fail an import.
     const previous = this._rootBusinessObject() ? this.exportMap() : undefined;
     this._labelsBeforePreview = undefined;
@@ -210,7 +210,7 @@ export abstract class WardleyBaseViewer {
     // A running drag (move, connect, create, resize) holds the previous map's shapes. Released after
     // the import, its command would fail half-way and leave the command stack stuck, so no later
     // edit would fire commandStack.changed again (VS Code: external edit during a drag).
-    diagram.get<Dragging>('dragging', false)?.cancel(false);
+    diagram.get<Dragging>("dragging", false)?.cancel(false);
     importer.clear();
     let warnings: ImportWarning[];
     try {
@@ -220,23 +220,23 @@ export abstract class WardleyBaseViewer {
       if (previous) importer.import(previous);
       // The history pointed at the shapes the failed render removed.
       commandStack?.clear();
-      eventBus.fire('import.done', { warnings: [] });
+      eventBus.fire("import.done", { warnings: [] });
       throw error;
     }
     // Discard the PREVIOUS map's undo history (concept doc §5.6): undo on orphaned
     // elements would otherwise crash or insert zombie elements into the new map.
     // The read-only Viewer has no command stack.
     commandStack?.clear();
-    eventBus.fire('import.done', { warnings });
+    eventBus.fire("import.done", { warnings });
     return { warnings };
   }
 
   /** Load OWM DSL text (internally parse -> importMap). Parser findings land in the warnings. */
   async importDSL(text: string): Promise<{ warnings: ImportWarning[] }> {
-    const eventBus = this._ensureDiagram().get<EventBus>('eventBus');
-    eventBus.fire('import.parse.start', { text });
+    const eventBus = this._ensureDiagram().get<EventBus>("eventBus");
+    eventBus.fire("import.parse.start", { text });
     const { map, diagnostics } = parseDSLWithDiagnostics(text);
-    eventBus.fire('import.parse.done', { map, diagnostics });
+    eventBus.fire("import.parse.done", { map, diagnostics });
     const { warnings } = await this.importMap(map);
     return {
       warnings: [
@@ -252,7 +252,7 @@ export abstract class WardleyBaseViewer {
 
   /** Current state as the canonical model (from the DI properties). */
   exportMap(): WardleyMap {
-    return this.get<WardleyExporter>('wardleyExporter').export();
+    return this.get<WardleyExporter>("wardleyExporter").export();
   }
 
   /**
@@ -284,7 +284,7 @@ export abstract class WardleyBaseViewer {
   ): Promise<{ warnings: ImportWarning[] }> {
     const modeling = this._wardleyModeling();
     if (!modeling) return this._reimportWithSize(size);
-    const projection = this.get<MapProjection>('wardleyMapProjection');
+    const projection = this.get<MapProjection>("wardleyMapProjection");
     if (options.transient) {
       if (!this._sizePreview) {
         const snapshot = projection.snapshot();
@@ -307,14 +307,14 @@ export abstract class WardleyBaseViewer {
   /** Shows the map without the size preview again, if one is open. */
   private _putBackSizePreview(): void {
     if (!this._sizePreview) return;
-    const projection = this.get<MapProjection>('wardleyMapProjection');
+    const projection = this.get<MapProjection>("wardleyMapProjection");
     const { snapshot } = this._sizePreview;
     this._sizePreview = undefined;
     projection.redraw(projection.restore(snapshot, { transient: true }));
   }
 
   getMapSize(): MapSizeInfo {
-    const { width, height } = this.get<EvolutionGrid>('evolutionGrid').getPlotSize();
+    const { width, height } = this.get<EvolutionGrid>("evolutionGrid").getPlotSize();
     const presetId = presetIdForSize({ width, height });
     return {
       width,
@@ -348,7 +348,7 @@ export abstract class WardleyBaseViewer {
    * `title` line stays one line; an empty title falls back to the default.
    */
   setTitle(title: string): void {
-    const cleaned = title.replace(/\s*[\r\n]+\s*/g, ' ').trim() || DEFAULT_MAP_TITLE;
+    const cleaned = title.replace(/\s*[\r\n]+\s*/g, " ").trim() || DEFAULT_MAP_TITLE;
     const modeling = this._wardleyModeling();
     if (modeling) modeling.updateConfig({ title: cleaned });
     else this._applyConfigDirectly({ title: cleaned });
@@ -379,7 +379,7 @@ export abstract class WardleyBaseViewer {
         if (!businessObject) return;
         this._labelsBeforePreview = { labels: businessObject.config.evolutionLabels };
       }
-      this._livePreview()?.begin('evolutionLabels');
+      this._livePreview()?.begin("evolutionLabels");
       this._applyConfigDirectly({ evolutionLabels: labels }, { transient: true });
       return;
     }
@@ -387,7 +387,7 @@ export abstract class WardleyBaseViewer {
       if (this._labelsBeforePreview) {
         const before = this._labelsBeforePreview.labels;
         this._applyConfigDirectly({ evolutionLabels: before });
-        this._livePreview()?.end('evolutionLabels');
+        this._livePreview()?.end("evolutionLabels");
         this._labelsBeforePreview = undefined;
         // A preview that ends where it started (typed, then reverted) is no edit: no undo step.
         if (sameEvolutionLabels(before, labels)) return;
@@ -407,9 +407,9 @@ export abstract class WardleyBaseViewer {
     options: { transient?: boolean } = {},
   ): void {
     applyConfigUpdate(
-      this.get<Canvas>('canvas'),
-      this.get<EvolutionGrid>('evolutionGrid'),
-      this.get<EventBus>('eventBus'),
+      this.get<Canvas>("canvas"),
+      this.get<EvolutionGrid>("evolutionGrid"),
+      this.get<EventBus>("eventBus"),
       update,
       options,
     );
@@ -417,15 +417,15 @@ export abstract class WardleyBaseViewer {
 
   /** The Modeler's command API, or null in the read-only viewers. */
   private _wardleyModeling(): WardleyModeling | null {
-    return this._ensureDiagram().get<WardleyModeling>('wardleyModeling', false);
+    return this._ensureDiagram().get<WardleyModeling>("wardleyModeling", false);
   }
 
   private _livePreview(): LivePreview | null {
-    return this._ensureDiagram().get<LivePreview>('wardleyLivePreview', false);
+    return this._ensureDiagram().get<LivePreview>("wardleyLivePreview", false);
   }
 
   private _root(): (Root & { businessObject?: RootBusinessObject }) | undefined {
-    return wardleyRootOf(this.get<Canvas>('canvas'));
+    return wardleyRootOf(this.get<Canvas>("canvas"));
   }
 
   private _rootBusinessObject(): RootBusinessObject | undefined {
@@ -441,14 +441,14 @@ export abstract class WardleyBaseViewer {
    * drawn beyond it, such as long labels of commodity components.
    */
   async saveSVG(): Promise<{ svg: string }> {
-    const canvas = this.get<Canvas>('canvas');
-    return saveSVG(canvas, exportBounds(canvas, this.get<EvolutionGrid>('evolutionGrid')));
+    const canvas = this.get<Canvas>("canvas");
+    return saveSVG(canvas, exportBounds(canvas, this.get<EvolutionGrid>("evolutionGrid")));
   }
 
   /** Own implementation (not a diagram-js primitive): attach the container to `target`. */
   attachTo(target: HTMLElement): void {
     target.appendChild(this._container);
-    this.get<Canvas>('canvas').resized();
+    this.get<Canvas>("canvas").resized();
   }
 
   /** Own implementation: detach the container from the DOM, keeping state. */

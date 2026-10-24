@@ -7,4 +7,4 @@ export {
   serializeMap as mapToJSON,
   parseMapJSON as mapFromJSON,
   loadMap,
-} from '@miragon/wardley-schema-model';
+} from "@miragon/wardley-schema-model";

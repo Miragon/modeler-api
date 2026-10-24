@@ -1,5 +1,5 @@
-import type { Method, Movement, WardleyMap } from '@miragon/wardley-schema-model';
-import { updateElement, compact } from './util.js';
+import type { Method, Movement, WardleyMap } from "@miragon/wardley-schema-model";
+import { updateElement, compact } from "./util.js";
 
 export interface EvolveOptions {
   readonly newLabel?: string;
@@ -17,7 +17,7 @@ export function evolveComponent(
     throw new Error(`targetEvolution must be in [0,1], was ${targetEvolution}.`);
   }
   return updateElement(map, componentId, (el) => {
-    if (el.elementType !== 'component') {
+    if (el.elementType !== "component") {
       throw new Error(`evolve only applies to components; "${componentId}" is ${el.elementType}.`);
     }
     // Evolution bewegt sich nur vorwaerts (Kanon): Ziel muss rechts der aktuellen Position liegen.
@@ -38,7 +38,7 @@ export function evolveComponent(
 
 export function clearMovement(map: WardleyMap, componentId: string): WardleyMap {
   return updateElement(map, componentId, (el) => {
-    if (el.elementType !== 'component') return el;
+    if (el.elementType !== "component") return el;
     const { movement: _drop, ...rest } = el;
     return rest;
   });

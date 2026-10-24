@@ -1,4 +1,4 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import {
   CURRENT_SCHEMA_VERSION,
   connectionExtensions,
@@ -7,9 +7,9 @@ import {
   type ChainConnection,
   type DiagramElement,
   type ValueChainDocument,
-} from '@miragon/value-chain-schema-model';
-import { isVcConnection, isVcShape } from '../model/di-types.js';
-import { ROOT_ID, type RootBusinessObject } from './types.js';
+} from "@miragon/value-chain-schema-model";
+import { isVcConnection, isVcShape } from "../model/di-types.js";
+import { ROOT_ID, type RootBusinessObject } from "./types.js";
 
 /**
  * Rebuilds a schema-model document from the live diagram. The diagram-js element
@@ -18,7 +18,7 @@ import { ROOT_ID, type RootBusinessObject } from './types.js';
  * export writes back unchanged.
  */
 export default class VcExporter {
-  static $inject = ['elementRegistry'];
+  static $inject = ["elementRegistry"];
 
   constructor(private readonly elementRegistry: ElementRegistry) {}
 
@@ -53,22 +53,22 @@ export default class VcExporter {
           height: element.height,
         };
         const color = element.color !== undefined ? { color: element.color } : {};
-        if (element.vcType === 'orgUnit') {
+        if (element.vcType === "orgUnit") {
           elements.push({
             ...extensions,
             id: element.id,
-            elementType: 'orgUnit',
+            elementType: "orgUnit",
             name: element.vcLabel,
             bounds,
             ...color,
           });
         } else {
           const link =
-            element.link ?? (imported?.elementType === 'step' ? imported.link : undefined);
+            element.link ?? (imported?.elementType === "step" ? imported.link : undefined);
           elements.push({
             ...extensions,
             id: element.id,
-            elementType: 'step',
+            elementType: "step",
             name: element.vcLabel,
             bounds,
             ...color,
@@ -83,7 +83,7 @@ export default class VcExporter {
     return validateDocument({
       ...root?.extensions,
       schemaVersion: CURRENT_SCHEMA_VERSION,
-      meta: { ...root?.metaExtensions, name: root?.name ?? 'Untitled value chain' },
+      meta: { ...root?.metaExtensions, name: root?.name ?? "Untitled value chain" },
       elements,
       connections,
     });

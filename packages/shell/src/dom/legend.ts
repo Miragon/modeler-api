@@ -33,12 +33,21 @@ export function createLegend(context: LegendContext): LegendController {
   const element = createElement(
     ownerDocument,
     "section",
-    { class: "cd-shell-legend cd-shell-island", "data-chrome": "legend", "aria-labelledby": titleId },
+    {
+      class: "cd-shell-legend cd-shell-island",
+      "data-chrome": "legend",
+      "aria-labelledby": titleId,
+    },
     createElement(
       ownerDocument,
       "div",
       { class: "cd-shell-legend-header" },
-      createElement(ownerDocument, "div", { class: "cd-shell-legend-title", id: titleId }, messages.legend),
+      createElement(
+        ownerDocument,
+        "div",
+        { class: "cd-shell-legend-title", id: titleId },
+        messages.legend,
+      ),
       close,
     ),
     body,

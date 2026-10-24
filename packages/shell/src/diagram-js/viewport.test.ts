@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { FIT_ANIMATION_MS, fitViewbox, sameView, type Bounds, type Insets } from "../core/index.js";
-import { FakeCanvas, FakeEventBus, FakeResizeObserver, FrameQueue } from "../../test/support/diagram-js.js";
+import {
+  FakeCanvas,
+  FakeEventBus,
+  FakeResizeObserver,
+  FrameQueue,
+} from "../../test/support/diagram-js.js";
 import { createViewport, type Viewport, type ViewportOptions } from "./viewport.js";
 
 const INSETS: Insets = { top: 88, right: 24, bottom: 64, left: 24 };
@@ -77,7 +82,11 @@ function setup(
   };
 }
 
-function expectedFit(canvas: FakeCanvas, bounds: Bounds = CONTENT, insets: Insets = INSETS): Bounds {
+function expectedFit(
+  canvas: FakeCanvas,
+  bounds: Bounds = CONTENT,
+  insets: Insets = INSETS,
+): Bounds {
   const box = fitViewbox(bounds, canvas.getSize(), insets);
   if (!box) throw new Error("nothing to fit");
   return { x: box.x, y: box.y, width: box.width, height: box.height };
@@ -238,16 +247,20 @@ describe("fit", () => {
   it.each([
     [
       "wheel",
-      (container: HTMLElement) => container.dispatchEvent(new WheelEvent("wheel", { bubbles: true })),
+      (container: HTMLElement) =>
+        container.dispatchEvent(new WheelEvent("wheel", { bubbles: true })),
     ],
     [
       "pointerdown",
-      (container: HTMLElement) => container.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })),
+      (container: HTMLElement) =>
+        container.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })),
     ],
     [
       "a zoom key",
       (container: HTMLElement) =>
-        container.dispatchEvent(new KeyboardEvent("keydown", { key: "=", code: "Equal", metaKey: true })),
+        container.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "=", code: "Equal", metaKey: true }),
+        ),
     ],
   ])("cancels the animation on %s", (_name, interrupt) => {
     const { viewport, canvas } = setup();
@@ -333,7 +346,9 @@ describe("afterImport", () => {
     viewport.restore(keep);
     viewport.afterImport();
     expect(canvas.viewboxWrites).toHaveLength(2);
-    expect(sameView(canvas.viewbox(), { ...keep, scale: canvas.size.width / keep.width })).toBe(true);
+    expect(sameView(canvas.viewbox(), { ...keep, scale: canvas.size.width / keep.width })).toBe(
+      true,
+    );
   });
 
   it("still fits the first content of an empty file after the re-import restored its view", () => {

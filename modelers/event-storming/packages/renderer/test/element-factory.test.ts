@@ -1,8 +1,8 @@
-import { afterEach, describe, it, expect, vi } from 'vitest';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import EventStormingElementFactory from '../src/model/EventStormingElementFactory.js';
-import { STICKY_STYLES, noteMetrics } from '../src/draw/styles.js';
+import { afterEach, describe, it, expect, vi } from "vitest";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import EventStormingElementFactory from "../src/model/EventStormingElementFactory.js";
+import { STICKY_STYLES, noteMetrics } from "../src/draw/styles.js";
 
 /** Factory with mocked ElementFactory/Registry (createShape returns the attributes). */
 function factory(existing: Array<{ id?: string; eventStormingLabel?: string }>) {
@@ -19,12 +19,12 @@ function factory(existing: Array<{ id?: string; eventStormingLabel?: string }>) 
 
 /** Makes the next allocations draw exactly these suffixes (8 alphabet characters each). */
 function drawSuffixes(...suffixes: string[]): void {
-  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
-  vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(
+  const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
+  vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation(
     <T extends ArrayBufferView>(array: T) => {
-      const suffix = suffixes.shift() ?? '00000000';
+      const suffix = suffixes.shift() ?? "00000000";
       const target = array as unknown as Uint8Array;
-      for (let i = 0; i < target.length; i++) target[i] = alphabet.indexOf(suffix[i] ?? '0');
+      for (let i = 0; i < target.length; i++) target[i] = alphabet.indexOf(suffix[i] ?? "0");
       return array;
     },
   );
@@ -34,95 +34,95 @@ function labels(existingLabels: string[]): Array<{ eventStormingLabel: string }>
   return existingLabels.map((eventStormingLabel) => ({ eventStormingLabel }));
 }
 
-describe('EventStormingElementFactory.createNew: numbered default labels (UX)', () => {
+describe("EventStormingElementFactory.createNew: numbered default labels (UX)", () => {
   // Duplicate labels are legal (the DSL disambiguates via ids) — the numbering only keeps
   // consecutive palette creates tellable apart ("Domain Event 2" instead of identical defaults).
-  it('assigns the base label when free', () => {
-    expect(factory([]).createNew('event', 'Domain Event').eventStormingLabel).toBe('Domain Event');
+  it("assigns the base label when free", () => {
+    expect(factory([]).createNew("event", "Domain Event").eventStormingLabel).toBe("Domain Event");
   });
 
-  it('appends a counter when the label is taken', () => {
+  it("appends a counter when the label is taken", () => {
     expect(
-      factory(labels(['Domain Event'])).createNew('event', 'Domain Event').eventStormingLabel,
-    ).toBe('Domain Event 2');
+      factory(labels(["Domain Event"])).createNew("event", "Domain Event").eventStormingLabel,
+    ).toBe("Domain Event 2");
     expect(
-      factory(labels(['Domain Event', 'Domain Event 2'])).createNew('event', 'Domain Event')
+      factory(labels(["Domain Event", "Domain Event 2"])).createNew("event", "Domain Event")
         .eventStormingLabel,
-    ).toBe('Domain Event 3');
+    ).toBe("Domain Event 3");
   });
 
-  it('applies to other kinds as well (e.g. note)', () => {
-    expect(factory(labels(['Note'])).createNew('note', 'Note').eventStormingLabel).toBe('Note 2');
+  it("applies to other kinds as well (e.g. note)", () => {
+    expect(factory(labels(["Note"])).createNew("note", "Note").eventStormingLabel).toBe("Note 2");
   });
 });
 
-describe('EventStormingElementFactory: random ids for interactive creates', () => {
+describe("EventStormingElementFactory: random ids for interactive creates", () => {
   afterEach(() => vi.restoreAllMocks());
 
   // Ids surface in the `.storm` text as `(id …)` — they read like the DSL allocator's prefixes,
   // not like diagram-js `shape_N`, and carry a random part so two peers never pick the same one.
-  it('assigns `<kind-prefix>_<8 random characters>` per kind on createNew', () => {
-    const expected: Array<[Parameters<ReturnType<typeof factory>['createNew']>[0], string]> = [
-      ['event', 'event'],
-      ['command', 'cmd'],
-      ['actor', 'actor'],
-      ['aggregate', 'agg'],
-      ['policy', 'policy'],
-      ['readmodel', 'read'],
-      ['external', 'ext'],
-      ['hotspot', 'hot'],
-      ['note', 'note'],
+  it("assigns `<kind-prefix>_<8 random characters>` per kind on createNew", () => {
+    const expected: Array<[Parameters<ReturnType<typeof factory>["createNew"]>[0], string]> = [
+      ["event", "event"],
+      ["command", "cmd"],
+      ["actor", "actor"],
+      ["aggregate", "agg"],
+      ["policy", "policy"],
+      ["readmodel", "read"],
+      ["external", "ext"],
+      ["hotspot", "hot"],
+      ["note", "note"],
     ];
     for (const [kind, prefix] of expected) {
-      expect(factory([]).createNew(kind, 'Label').id, kind).toMatch(
+      expect(factory([]).createNew(kind, "Label").id, kind).toMatch(
         new RegExp(`^${prefix}_[0-9a-z]{8}$`),
       );
     }
   });
 
-  it('gives two instances over the same board different ids (peers creating at once)', () => {
+  it("gives two instances over the same board different ids (peers creating at once)", () => {
     const ids = new Set(
-      Array.from({ length: 200 }, () => factory([]).createNew('event', 'Domain Event').id),
+      Array.from({ length: 200 }, () => factory([]).createNew("event", "Domain Event").id),
     );
     expect(ids.size).toBe(200);
   });
 
-  it('skips ids already present in the registry', () => {
-    drawSuffixes('aaaaaaaa', 'bbbbbbbb');
-    const f = factory([{ id: 'agg_aaaaaaaa' }]);
-    expect(f.createNew('aggregate', 'Aggregate').id).toBe('agg_bbbbbbbb');
+  it("skips ids already present in the registry", () => {
+    drawSuffixes("aaaaaaaa", "bbbbbbbb");
+    const f = factory([{ id: "agg_aaaaaaaa" }]);
+    expect(f.createNew("aggregate", "Aggregate").id).toBe("agg_bbbbbbbb");
   });
 
-  it('allocateId honors batch-reserved ids (multi-shape paste before placement)', () => {
-    drawSuffixes('aaaaaaaa', 'bbbbbbbb', 'cccccccc');
-    const f = factory([{ id: 'event_aaaaaaaa' }]);
-    expect(f.allocateId('event', new Set(['event_bbbbbbbb']))).toBe('event_cccccccc');
+  it("allocateId honors batch-reserved ids (multi-shape paste before placement)", () => {
+    drawSuffixes("aaaaaaaa", "bbbbbbbb", "cccccccc");
+    const f = factory([{ id: "event_aaaaaaaa" }]);
+    expect(f.allocateId("event", new Set(["event_bbbbbbbb"]))).toBe("event_cccccccc");
   });
 
-  it('draws again for bytes that would favour the first characters of the alphabet', () => {
+  it("draws again for bytes that would favour the first characters of the alphabet", () => {
     const bytes = [252, 255, 10, 11, 12, 13, 14, 15, 16, 17];
-    vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(
+    vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation(
       <T extends ArrayBufferView>(array: T) => {
         const target = array as unknown as Uint8Array;
         for (let i = 0; i < target.length; i++) target[i] = bytes.shift() ?? 0;
         return array;
       },
     );
-    expect(factory([]).allocateId('event')).toBe('event_abcdefgh');
+    expect(factory([]).allocateId("event")).toBe("event_abcdefgh");
   });
 
-  it('assigns a draw_ id to tool-drawn drawings, keeps explicit ids on import', () => {
+  it("assigns a draw_ id to tool-drawn drawings, keeps explicit ids on import", () => {
     const pts = [
       { x: 10, y: 10 },
       { x: 50, y: 40 },
     ];
     expect(factory([]).drawingFromCanvasPoints(pts).id).toMatch(/^draw_[0-9a-z]{8}$/);
-    expect(factory([]).drawingFromCanvasPoints(pts, { id: 'draw_sketch' }).id).toBe('draw_sketch');
+    expect(factory([]).drawingFromCanvasPoints(pts, { id: "draw_sketch" }).id).toBe("draw_sketch");
   });
 });
 
-describe('EventStormingElementFactory.createNew: per-kind defaults', () => {
-  it('sizes every sticky kind per STICKY_STYLES', () => {
+describe("EventStormingElementFactory.createNew: per-kind defaults", () => {
+  it("sizes every sticky kind per STICKY_STYLES", () => {
     for (const [kind, style] of Object.entries(STICKY_STYLES)) {
       const shape = factory([]).createNew(kind as keyof typeof STICKY_STYLES, style.label);
       expect(shape.eventStormingType, kind).toBe(kind);
@@ -131,49 +131,49 @@ describe('EventStormingElementFactory.createNew: per-kind defaults', () => {
     }
   });
 
-  it('sizes a note from its text (noteMetrics)', () => {
-    const shape = factory([]).createNew('note', 'Big-picture session\nsecond line');
-    const { width, height } = noteMetrics('Big-picture session\nsecond line');
+  it("sizes a note from its text (noteMetrics)", () => {
+    const shape = factory([]).createNew("note", "Big-picture session\nsecond line");
+    const { width, height } = noteMetrics("Big-picture session\nsecond line");
     expect(shape.width).toBe(width);
     expect(shape.height).toBe(height);
   });
 });
 
-describe('EventStormingElementFactory.createProvisional: blank append sticky', () => {
+describe("EventStormingElementFactory.createProvisional: blank append sticky", () => {
   // The kind is chosen AFTER placing (change-type popup): the placeholder kind keeps the model
   // valid, the empty label and the renderer-only `provisional` prop make it render blank.
-  it('creates an event-sized placeholder with empty label and the provisional marker', () => {
+  it("creates an event-sized placeholder with empty label and the provisional marker", () => {
     const shape = factory([]).createProvisional();
     expect(shape.provisional).toBe(true);
-    expect(shape.eventStormingType).toBe('event');
-    expect(shape.eventStormingLabel).toBe('');
+    expect(shape.eventStormingType).toBe("event");
+    expect(shape.eventStormingLabel).toBe("");
     expect(shape.width).toBe(STICKY_STYLES.event.width);
     expect(shape.height).toBe(STICKY_STYLES.event.height);
   });
 
-  it('allocates a random id like any interactive create', () => {
+  it("allocates a random id like any interactive create", () => {
     expect(factory([]).createProvisional().id).toMatch(/^event_[0-9a-z]{8}$/);
   });
 });
 
-describe('EventStormingElementFactory.createNote: auto vs manual size', () => {
-  it('uses the text metrics when no size is stored', () => {
+describe("EventStormingElementFactory.createNote: auto vs manual size", () => {
+  it("uses the text metrics when no size is stored", () => {
     const shape = factory([]).createNote({
-      id: 'note_hint',
-      elementType: 'note',
-      label: 'Hint',
+      id: "note_hint",
+      elementType: "note",
+      label: "Hint",
       position: { x: 100, y: 100 },
     });
-    const { width, height } = noteMetrics('Hint');
+    const { width, height } = noteMetrics("Hint");
     expect(shape.width).toBe(width);
     expect(shape.height).toBe(height);
   });
 
-  it('honors a manual size (user resized by hand), centered on the position', () => {
+  it("honors a manual size (user resized by hand), centered on the position", () => {
     const shape = factory([]).createNote({
-      id: 'note_kickoff',
-      elementType: 'note',
-      label: 'Kickoff',
+      id: "note_kickoff",
+      elementType: "note",
+      label: "Kickoff",
       position: { x: 300, y: 200 },
       size: { width: 240, height: 160 },
     });
@@ -184,47 +184,47 @@ describe('EventStormingElementFactory.createNote: auto vs manual size', () => {
   });
 });
 
-describe('EventStormingElementFactory.createNote: alignment pass-through', () => {
-  it('mirrors deviating align axes into the DI props', () => {
+describe("EventStormingElementFactory.createNote: alignment pass-through", () => {
+  it("mirrors deviating align axes into the DI props", () => {
     const shape = factory([]).createNote({
-      id: 'note_kickoff',
-      elementType: 'note',
-      label: 'Kickoff',
+      id: "note_kickoff",
+      elementType: "note",
+      label: "Kickoff",
       position: { x: 300, y: 200 },
-      align: { horizontal: 'right', vertical: 'middle' },
+      align: { horizontal: "right", vertical: "middle" },
     });
-    expect(shape.alignHorizontal).toBe('right');
-    expect(shape.alignVertical).toBe('middle');
+    expect(shape.alignHorizontal).toBe("right");
+    expect(shape.alignVertical).toBe("middle");
   });
 
-  it('keeps default axes absent — canonical DI form even for explicit left/top', () => {
+  it("keeps default axes absent — canonical DI form even for explicit left/top", () => {
     const bare = factory([]).createNote({
-      id: 'note_hint',
-      elementType: 'note',
-      label: 'Hint',
+      id: "note_hint",
+      elementType: "note",
+      label: "Hint",
       position: { x: 100, y: 100 },
     });
     expect(bare.alignHorizontal).toBeUndefined();
     expect(bare.alignVertical).toBeUndefined();
 
     const explicit = factory([]).createNote({
-      id: 'note_hint2',
-      elementType: 'note',
-      label: 'Hint',
+      id: "note_hint2",
+      elementType: "note",
+      label: "Hint",
       position: { x: 100, y: 100 },
-      align: { horizontal: 'left', vertical: 'top' },
+      align: { horizontal: "left", vertical: "top" },
     });
     expect(explicit.alignHorizontal).toBeUndefined();
     expect(explicit.alignVertical).toBeUndefined();
   });
 });
 
-describe('EventStormingElementFactory.createSticky: center -> top-left', () => {
-  it('places the shape so the schema position is its center', () => {
+describe("EventStormingElementFactory.createSticky: center -> top-left", () => {
+  it("places the shape so the schema position is its center", () => {
     const shape = factory([]).createSticky({
-      id: 'event_order_placed',
-      elementType: 'event',
-      label: 'Order Placed',
+      id: "event_order_placed",
+      elementType: "event",
+      label: "Order Placed",
       position: { x: 620, y: 300 },
     });
     expect(shape.x).toBe(620 - STICKY_STYLES.event.width / 2);
@@ -233,12 +233,12 @@ describe('EventStormingElementFactory.createSticky: center -> top-left', () => {
     expect(shape.height).toBe(STICKY_STYLES.event.height);
   });
 
-  it('rejects non-sticky kinds (note/drawing have their own constructors)', () => {
+  it("rejects non-sticky kinds (note/drawing have their own constructors)", () => {
     expect(() =>
       factory([]).createSticky({
-        id: 'note_hint',
-        elementType: 'note',
-        label: 'Hint',
+        id: "note_hint",
+        elementType: "note",
+        label: "Hint",
         position: { x: 0, y: 0 },
       }),
     ).toThrow(/not a sticky kind/);

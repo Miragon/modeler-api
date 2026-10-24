@@ -80,7 +80,11 @@
   font-weight: 400;
   line-height: 20px;
   white-space: nowrap;
-  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  background: color-mix(
+    in srgb,
+    var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft),
+    transparent
+  );
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border: 0;
@@ -151,7 +155,11 @@
   font-size: 13px;
   line-height: 1.5;
   text-align: center;
-  background: color-mix(in srgb, var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft), transparent);
+  background: color-mix(
+    in srgb,
+    var(--cd-ui-flaeche-hoch) var(--cd-ui-chrome-deckkraft),
+    transparent
+  );
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border: 1px solid var(--cd-ui-linie);
@@ -266,7 +274,9 @@
 /* ---- Bottom row: the zoom panel above the legal line where they meet (shell rule) ----------- */
 
 .cd-shell[data-cd-shell-host="web"][data-zoom-row="raised"] .cd-shell-zoom {
-  bottom: calc(var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke));
+  bottom: calc(
+    var(--cd-shell-rand) + var(--modeler-shell-legal-height, 20px) + var(--cd-shell-luecke)
+  );
 }
 
 /* Up to 440px the legend stands above the raised zoom panel too: 40 + 40 + 8 = 88. */

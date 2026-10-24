@@ -30,7 +30,9 @@ describe("isAppearanceMessage", () => {
     expect(isAppearanceMessage(appearanceMessage({ theme: "light" }))).toBe(true);
     expect(isAppearanceMessage(appearanceMessage({ theme: "dark" }))).toBe(true);
     expect(isAppearanceMessage(appearanceMessage({ theme: "light", kontrast: "hoch" }))).toBe(true);
-    expect(isAppearanceMessage(JSON.parse(JSON.stringify(appearanceMessage({ theme: "dark" }))))).toBe(true);
+    expect(
+      isAppearanceMessage(JSON.parse(JSON.stringify(appearanceMessage({ theme: "dark" })))),
+    ).toBe(true);
   });
 
   it.each([

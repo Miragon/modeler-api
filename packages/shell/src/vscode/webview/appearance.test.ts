@@ -248,7 +248,10 @@ describe("connectAppearance", () => {
     connect(lightAndDark, { theme: "dark" });
     const batches: Array<string | null> = [];
     const observer = new MutationObserver(() => batches.push(shown().theme));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-cd-theme"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-cd-theme"],
+    });
 
     // VS Code switches to Dark+: the body classes change before the bridge's message arrives
     setBodyClasses("vscode-dark");

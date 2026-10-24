@@ -106,16 +106,24 @@ export function decideKey(event: KeyLike, context: KeyContext): KeyDecision {
   const stop = context.host === "ide";
   const composing = event.isComposing === true;
 
-  if (event.key === "Escape" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+  if (
+    event.key === "Escape" &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.shiftKey
+  ) {
     if (context.menuOpen && !composing) {
       return { action: "closeMenu", preventDefault: true, stopPropagation: stop };
     }
-    if (context.menuOpen || context.dialogOpen) return { preventDefault: false, stopPropagation: stop };
+    if (context.menuOpen || context.dialogOpen)
+      return { preventDefault: false, stopPropagation: stop };
   }
 
   const chromeKey = matchChromeKey(event);
   if (chromeKey !== undefined) {
-    if (context.startScreen === true && !stop) return { preventDefault: false, stopPropagation: false };
+    if (context.startScreen === true && !stop)
+      return { preventDefault: false, stopPropagation: false };
     const blocked = composing || context.inTextField || context.modalOpen;
     if (!blocked) return { action: chromeKey, preventDefault: true, stopPropagation: stop };
     // Blocked zoom keys are still kept from VS Code (it would zoom the window); a blocked Shift+1
@@ -123,7 +131,8 @@ export function decideKey(event: KeyLike, context: KeyContext): KeyDecision {
     return { preventDefault: false, stopPropagation: chromeKey === "fit" ? false : stop };
   }
 
-  if (context.inTextField && isUndoRedoKey(event)) return { preventDefault: false, stopPropagation: stop };
+  if (context.inTextField && isUndoRedoKey(event))
+    return { preventDefault: false, stopPropagation: stop };
   if (context.defaultPrevented) return { preventDefault: false, stopPropagation: stop };
   return { preventDefault: false, stopPropagation: false };
 }

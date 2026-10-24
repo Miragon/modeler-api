@@ -1,20 +1,20 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Palette from 'diagram-js/lib/features/palette/Palette';
-import type PaletteProvider from 'diagram-js/lib/features/palette/PaletteProvider';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type HandTool from 'diagram-js/lib/features/hand-tool/HandTool';
-import type LassoTool from 'diagram-js/lib/features/lasso-tool/LassoTool';
-import type SpaceTool from 'diagram-js/lib/features/space-tool/SpaceTool';
-import type GlobalConnect from 'diagram-js/lib/features/global-connect/GlobalConnect';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
-import type { FreeArea, FreeAreaInsets } from '@miragon/modeler-api';
-import type { Point } from '@miragon/value-chain-schema-model';
-import type VcElementFactory from '../model/VcElementFactory.js';
-import { isVcShape, type VcShape } from '../model/di-types.js';
-import { ICONS, paletteEntryHtml } from '../draw/icons.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Palette from "diagram-js/lib/features/palette/Palette";
+import type PaletteProvider from "diagram-js/lib/features/palette/PaletteProvider";
+import type Create from "diagram-js/lib/features/create/Create";
+import type HandTool from "diagram-js/lib/features/hand-tool/HandTool";
+import type LassoTool from "diagram-js/lib/features/lasso-tool/LassoTool";
+import type SpaceTool from "diagram-js/lib/features/space-tool/SpaceTool";
+import type GlobalConnect from "diagram-js/lib/features/global-connect/GlobalConnect";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
+import type { FreeArea, FreeAreaInsets } from "@miragon/modeler-api";
+import type { Point } from "@miragon/value-chain-schema-model";
+import type VcElementFactory from "../model/VcElementFactory.js";
+import { isVcShape, type VcShape } from "../model/di-types.js";
+import { ICONS, paletteEntryHtml } from "../draw/icons.js";
 
 interface PaletteEntry {
   group: string;
@@ -53,19 +53,19 @@ const KEYBOARD_CREATE_OFFSET = 24;
  */
 export default class VcPaletteProvider {
   static $inject = [
-    'palette',
-    'create',
-    'vcElementFactory',
-    'handTool',
-    'lassoTool',
-    'spaceTool',
-    'globalConnect',
-    'canvas',
-    'modeling',
-    'selection',
-    'elementRegistry',
-    'injector',
-    'config.vcPalette',
+    "palette",
+    "create",
+    "vcElementFactory",
+    "handTool",
+    "lassoTool",
+    "spaceTool",
+    "globalConnect",
+    "canvas",
+    "modeling",
+    "selection",
+    "elementRegistry",
+    "injector",
+    "config.vcPalette",
   ];
 
   constructor(
@@ -102,45 +102,45 @@ export default class VcPaletteProvider {
     const createOrgUnit = creator(() => this.factory.createNewOrgUnit());
 
     return {
-      'lasso-tool': {
-        group: 'tools',
-        title: 'Lasso',
-        shortcut: 'L',
+      "lasso-tool": {
+        group: "tools",
+        title: "Lasso",
+        shortcut: "L",
         html: paletteEntryHtml(ICONS.lassoTool),
         action: { click: (event) => this.lassoTool.activateSelection(event as MouseEvent, false) },
       },
-      'hand-tool': {
-        group: 'tools',
-        title: 'Hand',
-        shortcut: 'H',
+      "hand-tool": {
+        group: "tools",
+        title: "Hand",
+        shortcut: "H",
         html: paletteEntryHtml(ICONS.handTool),
         action: { click: (event) => this.handTool.activateHand(event as MouseEvent, false, false) },
       },
-      'space-tool': {
-        group: 'tools',
-        title: 'Create or remove space',
-        shortcut: 'S',
+      "space-tool": {
+        group: "tools",
+        title: "Create or remove space",
+        shortcut: "S",
         html: paletteEntryHtml(ICONS.spaceTool),
         action: {
           click: (event) => this.spaceTool.activateSelection(event as MouseEvent, false, false),
         },
       },
-      'global-connect-tool': {
-        group: 'tools',
-        title: 'Connect',
-        shortcut: 'C',
+      "global-connect-tool": {
+        group: "tools",
+        title: "Connect",
+        shortcut: "C",
         html: paletteEntryHtml(ICONS.globalConnect),
         action: { click: (event) => this.globalConnect.start(event as MouseEvent, false) },
       },
-      'create.step': {
-        group: 'value-chain',
-        title: 'Step',
+      "create.step": {
+        group: "value-chain",
+        title: "Step",
         html: paletteEntryHtml(ICONS.createStep, true),
         action: { click: createStep, dragstart: createStep },
       },
-      'create.org-unit': {
-        group: 'value-chain',
-        title: 'Organizational unit',
+      "create.org-unit": {
+        group: "value-chain",
+        title: "Organizational unit",
         html: paletteEntryHtml(ICONS.createOrgUnit, true),
         action: { click: createOrgUnit, dragstart: createOrgUnit },
       },
@@ -166,7 +166,7 @@ export default class VcPaletteProvider {
     );
     this.selection.select(created);
     this.canvas.focus();
-    this.injector.get<DirectEditingLike>('directEditing', false)?.activate(created);
+    this.injector.get<DirectEditingLike>("directEditing", false)?.activate(created);
   }
 
   private freeAreaCentre(): Point | undefined {
@@ -206,11 +206,11 @@ export default class VcPaletteProvider {
   }
 
   private editLock(): EditLock | null {
-    return this.injector.get<EditLock>('vcReadOnly', false);
+    return this.injector.get<EditLock>("vcReadOnly", false);
   }
 }
 
 /** The click a host's chrome synthesises for Enter or Space on an entry: no pointer, detail 0. */
 function isKeyboardClick(event: Event): boolean {
-  return event.type === 'click' && (event as MouseEvent).detail === 0;
+  return event.type === "click" && (event as MouseEvent).detail === 0;
 }

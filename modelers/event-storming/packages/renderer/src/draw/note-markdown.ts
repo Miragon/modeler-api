@@ -22,15 +22,15 @@ export interface NoteLine {
 
 // Longest marker first: `***` must win over `**`/`*` so the combined form parses as one run.
 const MARKERS = [
-  { marker: '***', bold: true, italic: true },
-  { marker: '**', bold: true, italic: false },
-  { marker: '*', bold: false, italic: true },
+  { marker: "***", bold: true, italic: true },
+  { marker: "**", bold: true, italic: false },
+  { marker: "*", bold: false, italic: true },
 ] as const;
 
 /** One entry per '\n' line; bullet lines have the `- ` marker stripped. */
 export function parseNoteMarkdown(label: string): NoteLine[] {
-  return label.split('\n').map((raw) => {
-    const bullet = raw.startsWith('- ');
+  return label.split("\n").map((raw) => {
+    const bullet = raw.startsWith("- ");
     return { bullet, runs: parseInline(bullet ? raw.slice(2) : raw) };
   });
 }
@@ -41,32 +41,32 @@ export function serializeNoteMarkdown(lines: NoteLine[]): string {
     .map((line) => {
       const text = mergeRuns(line.runs)
         .map((run) => {
-          const marker = run.bold && run.italic ? '***' : run.bold ? '**' : run.italic ? '*' : '';
+          const marker = run.bold && run.italic ? "***" : run.bold ? "**" : run.italic ? "*" : "";
           return marker + run.text + marker;
         })
-        .join('');
-      return (line.bullet ? '- ' : '') + text;
+        .join("");
+      return (line.bullet ? "- " : "") + text;
     })
-    .join('\n');
+    .join("\n");
 }
 
 /** Markers stripped, bullets as '• ' prefix — the string the text measurement sees. */
 export function plainNoteText(label: string): string {
   return parseNoteMarkdown(label)
-    .map((line) => (line.bullet ? '• ' : '') + line.runs.map((run) => run.text).join(''))
-    .join('\n');
+    .map((line) => (line.bullet ? "• " : "") + line.runs.map((run) => run.text).join(""))
+    .join("\n");
 }
 
 function parseInline(text: string): NoteRun[] {
   const runs: NoteRun[] = [];
-  let literal = '';
+  let literal = "";
   const flushLiteral = () => {
     if (literal) runs.push({ text: literal, bold: false, italic: false });
-    literal = '';
+    literal = "";
   };
   let i = 0;
   while (i < text.length) {
-    const span = text[i] === '*' ? matchSpan(text, i) : undefined;
+    const span = text[i] === "*" ? matchSpan(text, i) : undefined;
     if (!span) {
       literal += text[i];
       i++;

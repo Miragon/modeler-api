@@ -1,4 +1,4 @@
-declare module '*.storm?raw' {
+declare module "*.storm?raw" {
   const text: string;
   export default text;
 }

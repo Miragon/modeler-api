@@ -66,7 +66,9 @@ or `node:test`), not in the e2e suite, since the check is pure data:
 import { SHELL, SHELL_TOKENS, shellSizesFromTokens } from "@miragon/modeler-shell/core";
 
 expect(SHELL).toEqual(shellSizesFromTokens(vendoredTokens.shell));
-expect(Object.keys(vendoredTokens.shell)).toEqual(expect.arrayContaining(Object.values(SHELL_TOKENS)));
+expect(Object.keys(vendoredTokens.shell)).toEqual(
+  expect.arrayContaining(Object.values(SHELL_TOKENS)),
+);
 ```
 
 | Entry                                            | For                                                         |
@@ -283,7 +285,10 @@ const shell = mountShell(document.getElementById("app")!, {
   file: {
     newDiagram: { onSelect: newDiagram },
     // ⌘O or Ctrl+O; also the start screen's "Open a file…" link
-    open: { onSelect: pickFile, shortcut: commandKeyLabel("O", platform, defaultMessages.keyNames) },
+    open: {
+      onSelect: pickFile,
+      shortcut: commandKeyLabel("O", platform, defaultMessages.keyNames),
+    },
     showExample: { onSelect: example },
   },
   menu: { model: [/* … */], export: [/* … */], help: [/* Keyboard shortcuts… */] },
@@ -296,7 +301,10 @@ const shell = mountShell(document.getElementById("app")!, {
     onNewDiagram: newDiagram,
     onShowExample: example,
   },
-  dropZone: { accept: [".bpmn", "application/xml", "text/xml"], onDrop: ([file]) => openFile(file) },
+  dropZone: {
+    accept: [".bpmn", "application/xml", "text/xml"],
+    onDrop: ([file]) => openFile(file),
+  },
 });
 const { viewport } = connectDiagramJs(shell, modeler, { contentBounds: () => elementBounds() });
 
@@ -361,7 +369,10 @@ the host page's theme classes, `acquireVsCodeApi()` and the real theme bridge. S
 
 ```ts
 // e2e/webview/webview-test.ts, the entry of e2e/webview/webview-test.html
-import { installVsCodeWebviewStub, stubOptionsFromSearch } from "@miragon/modeler-shell/testing/vscode-stub";
+import {
+  installVsCodeWebviewStub,
+  stubOptionsFromSearch,
+} from "@miragon/modeler-shell/testing/vscode-stub";
 
 // before the webview runs, which calls acquireVsCodeApi() and mounts the shell
 installVsCodeWebviewStub({ ...stubOptionsFromSearch(location.search), themes: ["light"] });
@@ -426,16 +437,24 @@ test.describe("shell conformance", () => {
           await page.evaluate(() => window.shell.legend?.setOpen(true));
         },
         async problems(page) {
-          await page.evaluate(() => window.postMessage({ type: "problems", count: 2, errors: 1 }, "*"));
+          await page.evaluate(() =>
+            window.postMessage({ type: "problems", count: 2, errors: 1 }, "*"),
+          );
         },
         async status(page) {
           await page.evaluate(() =>
-            window.shell.setStatus({ severity: "danger", text: window.shell.messages.invalidFile("board") }),
+            window.shell.setStatus({
+              severity: "danger",
+              text: window.shell.messages.invalidFile("board"),
+            }),
           );
         },
         async invalid(page) {
           // the way the host makes the file invalid: a document update the parser rejects
-          await page.evaluate((text) => window.postMessage({ type: "update", text }, "*"), INVALID_BOARD);
+          await page.evaluate(
+            (text) => window.postMessage({ type: "update", text }, "*"),
+            INVALID_BOARD,
+          );
         },
       },
     },
@@ -443,7 +462,9 @@ test.describe("shell conformance", () => {
     {
       onSkip(caseName, skips) {
         // with `absent` listing what the modeler lacks, every remaining skip is a gap of this suite
-        throw new Error(`${caseName}: ${skips.map(({ hook, reason }) => `${hook}: ${reason}`).join("; ")}`);
+        throw new Error(
+          `${caseName}: ${skips.map(({ hook, reason }) => `${hook}: ${reason}`).join("; ")}`,
+        );
       },
     },
   );

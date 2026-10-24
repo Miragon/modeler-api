@@ -22,16 +22,16 @@ export type {
   BoardLevel,
   BoardConfig,
   EventStormingBoard,
-} from './types.js';
+} from "./types.js";
 
 // Layout helpers — empty-board framing constant and deterministic timeline order
-export { DEFAULT_BOARD_SIZE, sortByTimeline } from './layout.js';
+export { DEFAULT_BOARD_SIZE, sortByTimeline } from "./layout.js";
 
 // Workshop levels — default level and the sticky kinds each level offers
-export { DEFAULT_BOARD_LEVEL, LEVEL_STICKY_KINDS } from './levels.js';
+export { DEFAULT_BOARD_LEVEL, LEVEL_STICKY_KINDS } from "./levels.js";
 
 // Pinning — which sticky kinds can be attached and which can host them
-export { ATTACHABLE_STICKY_KINDS, HOST_STICKY_KINDS } from './attachments.js';
+export { ATTACHABLE_STICKY_KINDS, HOST_STICKY_KINDS } from "./attachments.js";
 
 export {
   validateBoard,
@@ -39,12 +39,12 @@ export {
   parseBoardJSON,
   serializeBoard,
   createEmptyBoard,
-} from './serialize.js';
+} from "./serialize.js";
 
 // The drawable range — what loadBoard and the canvas refuse rather than import half-way
-export { LARGEST_DRAWABLE_NUMBER, UndrawableBoardError, assertDrawable } from './drawable.js';
+export { LARGEST_DRAWABLE_NUMBER, UndrawableBoardError, assertDrawable } from "./drawable.js";
 
-export { eventStormingBoardSchema, boardElementSchema, boardEdgeSchema } from './schema.js';
-export type { EventStormingBoardInput } from './schema.js';
+export { eventStormingBoardSchema, boardElementSchema, boardEdgeSchema } from "./schema.js";
+export type { EventStormingBoardInput } from "./schema.js";
 
-export { migrate, CURRENT_SCHEMA_VERSION } from './migrations.js';
+export { migrate, CURRENT_SCHEMA_VERSION } from "./migrations.js";

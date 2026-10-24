@@ -7,22 +7,22 @@ import {
   type ElementsSurface,
   type ImportResult,
   type ModelerMeta,
-} from '@miragon/modeler-api';
-import type { ModuleDeclaration } from 'didi';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import { Modeler } from '../Modeler.js';
-import { NavigatedViewer } from '../NavigatedViewer.js';
-import { importWarningText } from '../io/index.js';
-import type { EventStormingViewerOptions } from '../EventStormingBaseViewer.js';
-import { isSticky, type EventStormingShape } from '../model/di-types.js';
-import type { FreeRectInsets } from '../palette/EventStormingPaletteProvider.js';
-import { resolveFreeArea } from '../palette/index.js';
+} from "@miragon/modeler-api";
+import type { ModuleDeclaration } from "didi";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import { Modeler } from "../Modeler.js";
+import { NavigatedViewer } from "../NavigatedViewer.js";
+import { importWarningText } from "../io/index.js";
+import type { EventStormingViewerOptions } from "../EventStormingBaseViewer.js";
+import { isSticky, type EventStormingShape } from "../model/di-types.js";
+import type { FreeRectInsets } from "../palette/EventStormingPaletteProvider.js";
+import { resolveFreeArea } from "../palette/index.js";
 
 /** Stable notation id in `meta.notation` of the collaborative-modeler contract. */
-export const EVENT_STORMING_NOTATION = 'event-storming';
+export const EVENT_STORMING_NOTATION = "event-storming";
 
 /**
  * The modeler-api factory options (`freeArea`, `fitOnImport`, `undoRedoKeys`) plus the renderer's
@@ -41,7 +41,7 @@ export interface CollaborativeEventStormingOptions extends CollaborativeModelerO
 
 /** The elements surface with `bounds`, which every Event Storming mount answers. */
 export type EventStormingElementsSurface = ElementsSurface &
-  Required<Pick<ElementsSurface, 'bounds'>>;
+  Required<Pick<ElementsSurface, "bounds">>;
 
 /** The contract surface plus the wrapped diagram for host-specific wiring. */
 export interface CollaborativeEventStormingModeler extends CollaborativeModeler {
@@ -90,11 +90,11 @@ export function createCollaborativeViewer(
 }
 
 function diagramOptions(
-  options: Pick<CollaborativeEventStormingOptions, 'additionalModules' | 'fitOnImport'>,
+  options: Pick<CollaborativeEventStormingOptions, "additionalModules" | "fitOnImport">,
 ): EventStormingViewerOptions {
   return {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     additionalModules: options.additionalModules ?? [],
     fitOnImport: options.fitOnImport ?? true,
   };
@@ -104,14 +104,14 @@ function collaborative(
   diagram: Modeler | NavigatedViewer,
   editable: boolean,
 ): CollaborativeEventStormingModeler {
-  const eventBus = diagram.get<EventBus>('eventBus');
-  const canvas = diagram.get<Canvas>('canvas');
-  const elementRegistry = diagram.get<ElementRegistry>('elementRegistry');
-  const selection = diagram.get<Selection>('selection');
+  const eventBus = diagram.get<EventBus>("eventBus");
+  const canvas = diagram.get<Canvas>("canvas");
+  const elementRegistry = diagram.get<ElementRegistry>("elementRegistry");
+  const selection = diagram.get<Selection>("selection");
   const contentListeners = new Set<() => void>();
   let importsRunning = 0;
   let destroyed = false;
-  let lastExport = '';
+  let lastExport = "";
 
   const meta: ModelerMeta = {
     notation: EVENT_STORMING_NOTATION,
@@ -120,7 +120,7 @@ function collaborative(
   };
 
   if (editable) {
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       if (importsRunning > 0) return;
       for (const listener of [...contentListeners]) listener();
     });
@@ -145,8 +145,8 @@ function collaborative(
     onSelection(callback) {
       const listener = (event: unknown) =>
         callback(addressableIds((event as { newSelection?: unknown[] }).newSelection ?? []));
-      eventBus.on('selection.changed', listener);
-      return () => eventBus.off('selection.changed', listener);
+      eventBus.on("selection.changed", listener);
+      return () => eventBus.off("selection.changed", listener);
     },
     bounds(id) {
       if (destroyed) return undefined;
@@ -163,7 +163,7 @@ function collaborative(
       diagram.attachTo(host);
     },
     async importText(text): Promise<ImportResult> {
-      if (destroyed) throw new Error('The modeler was destroyed.');
+      if (destroyed) throw new Error("The modeler was destroyed.");
       importsRunning += 1;
       try {
         const { warnings } = await diagram.importDSL(text);
@@ -204,7 +204,7 @@ function collaborative(
       try {
         lastExport = diagram.exportDSL();
       } catch {
-        lastExport = '';
+        lastExport = "";
       }
       destroyed = true;
       contentListeners.clear();
@@ -232,7 +232,7 @@ function elementInfo(element: AddressableElement): ElementInfo {
 }
 
 function isViewState(state: unknown): state is ViewState {
-  if (typeof state !== 'object' || state === null) return false;
+  if (typeof state !== "object" || state === null) return false;
   const { x, y, width, height } = state as Record<string, unknown>;
   return (
     isFiniteNumber(x) &&
@@ -245,5 +245,5 @@ function isViewState(state: unknown): state is ViewState {
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+  return typeof value === "number" && Number.isFinite(value);
 }

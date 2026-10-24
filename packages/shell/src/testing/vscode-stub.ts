@@ -105,7 +105,8 @@ export function stubOptionsFromSearch(
   const setting = params.get("colorTheme");
   return {
     requested: params.get("kontrast") === "hoch" ? { theme, kontrast: "hoch" } : { theme },
-    colorTheme: setting === "automatic" || setting === "light" || setting === "dark" ? setting : undefined,
+    colorTheme:
+      setting === "automatic" || setting === "light" || setting === "dark" ? setting : undefined,
     reduceMotion: params.has("reduceMotion"),
   };
 }
@@ -139,7 +140,9 @@ export function installVsCodeWebviewStub(options: VsCodeWebviewStubOptions): VsC
     workspace: {
       getConfiguration: (section?: string) => ({
         get: <T>(key: string): T | undefined =>
-          (section ? `${section}.${key}` : key) === settingKey ? (setting as T | undefined) : undefined,
+          (section ? `${section}.${key}` : key) === settingKey
+            ? (setting as T | undefined)
+            : undefined,
       }),
       onDidChangeConfiguration(listener) {
         configurationListeners.add(listener);

@@ -1,6 +1,6 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import { isNote } from '../model/di-types.js';
-import { NOTE_MIN_RESIZE } from '../draw/styles.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import { isNote } from "../model/di-types.js";
+import { NOTE_MIN_RESIZE } from "../draw/styles.js";
 
 interface ResizeStartEvent {
   context: {
@@ -16,10 +16,10 @@ interface ResizeStartEvent {
  * at the minimum instead of entering a not-allowed state (the bpmn-js ResizeBehavior pattern).
  */
 export default class EventStormingResizeBehavior {
-  static $inject = ['eventBus'];
+  static $inject = ["eventBus"];
 
   constructor(eventBus: EventBus) {
-    eventBus.on('resize.start', 1500, (event: ResizeStartEvent) => {
+    eventBus.on("resize.start", 1500, (event: ResizeStartEvent) => {
       const context = event.context;
       if (isNote(context.shape)) {
         context.minDimensions = NOTE_MIN_RESIZE;

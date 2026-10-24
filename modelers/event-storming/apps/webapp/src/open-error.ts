@@ -1,4 +1,4 @@
-import { UndrawableBoardError } from '@miragon/event-storming-schema-model';
+import { UndrawableBoardError } from "@miragon/event-storming-schema-model";
 
 /**
  * The toast for a file that did not open. A board beyond the canvas is a valid board, so the

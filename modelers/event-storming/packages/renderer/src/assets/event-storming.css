@@ -4,9 +4,9 @@
    .djs-parent variables onto the --cd-ui-* roles beats diagram-js's defaults. Everything below
    reads the roles (--cd-ui-*) and the mode-independent tokens (radius, shadow, motion) only, so
    the chrome follows the mode the page sets; the canvas drawing keeps its light SVG attributes. */
-@import '../theme/cd-tokens.generated.css' layer(event-storming-tokens);
-@import 'diagram-js/assets/diagram-js.css';
-@import '../theme/cd-canvas.css';
+@import "../theme/cd-tokens.generated.css" layer(event-storming-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
 
 /* The DSL's `style dark` directive is kept for the round-trip but never rendered (guide §10.7):
    the mode comes from the page alone, so there is no navy board under light chrome. */
@@ -18,12 +18,12 @@
   background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
   background-size: 22px 22px;
   font-family:
-    'Geist Variable',
-    'Geist',
+    "Geist Variable",
+    "Geist",
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   overflow: hidden;
 }
@@ -62,7 +62,7 @@
    It lies above the context pad and the label editor (guide §5.13). A palette the modeler shell
    skins (`data-chrome="palette"`) takes only the shell's look, so every palette rule here skips
    it. */
-.djs-palette:not([data-chrome='palette']) {
+.djs-palette:not([data-chrome="palette"]) {
   left: 50%;
   top: 12px;
   z-index: 110;
@@ -76,13 +76,13 @@
   border-radius: var(--cd-radius-md);
   box-shadow: var(--cd-shadow-1);
 }
-.djs-palette:not([data-chrome='palette']) .djs-palette-entries,
-.djs-palette:not([data-chrome='palette']) .group {
+.djs-palette:not([data-chrome="palette"]) .djs-palette-entries,
+.djs-palette:not([data-chrome="palette"]) .group {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.djs-palette:not([data-chrome='palette']) .entry {
+.djs-palette:not([data-chrome="palette"]) .entry {
   float: none; /* diagram-js uses float:left -> redundant in the flex row */
   width: 40px;
   height: 40px;
@@ -93,24 +93,24 @@
     background-color 150ms var(--cd-ease),
     color 150ms var(--cd-ease);
 }
-.djs-palette:not([data-chrome='palette']) .entry:hover {
+.djs-palette:not([data-chrome="palette"]) .entry:hover {
   background: var(--cd-ui-hover);
   color: var(--cd-ui-interaktion);
 }
 /* The armed tool (e.g. the lasso): hover fill plus a 2px ring, never a full fill (guide §5.5). */
-.djs-palette:not([data-chrome='palette']) .entry.highlighted-entry {
+.djs-palette:not([data-chrome="palette"]) .entry.highlighted-entry {
   background: var(--cd-ui-hover);
   box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
 }
 
 /* Subtle vertical separator between the groups (diagram-js does not separate groups on its own). */
-.djs-palette:not([data-chrome='palette']) .group + .group {
+.djs-palette:not([data-chrome="palette"]) .group + .group {
   position: relative;
   margin-left: 9px;
   padding-left: 9px;
 }
-.djs-palette:not([data-chrome='palette']) .group + .group::before {
-  content: '';
+.djs-palette:not([data-chrome="palette"]) .group + .group::before {
+  content: "";
   position: absolute;
   top: 6px;
   bottom: 6px;
@@ -145,7 +145,7 @@
   border-radius: var(--cd-radius-sm);
   background: var(--cd-ui-grund);
   color: var(--cd-ui-text-leise);
-  font-family: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;
+  font-family: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
   font-size: 13px;
   box-shadow: none;
   vertical-align: baseline;
@@ -268,7 +268,7 @@
   text-indent: -12px;
 }
 .event-storming-container .event-storming-note-editor .bullet::before {
-  content: '• ';
+  content: "• ";
 }
 
 /* Floating note toolbar (B / I / • + the two alignment cycle buttons): an island like the context
@@ -363,12 +363,12 @@
 }
 
 /* High contrast drops every shadow (guide §5.3); forced colours keep the island edges visible. */
-:root[data-cd-kontrast='hoch'] .djs-palette:not([data-chrome='palette']),
-:root[data-cd-kontrast='hoch'] .djs-hover-tooltip,
-:root[data-cd-kontrast='hoch'] .event-storming-container .djs-context-pad.open,
-:root[data-cd-kontrast='hoch'] .event-storming-container .event-storming-label-input,
-:root[data-cd-kontrast='hoch'] .event-storming-container .event-storming-note-toolbar,
-:root[data-cd-kontrast='hoch'] .event-storming-container .event-storming-color-picker {
+:root[data-cd-kontrast="hoch"] .djs-palette:not([data-chrome="palette"]),
+:root[data-cd-kontrast="hoch"] .djs-hover-tooltip,
+:root[data-cd-kontrast="hoch"] .event-storming-container .djs-context-pad.open,
+:root[data-cd-kontrast="hoch"] .event-storming-container .event-storming-label-input,
+:root[data-cd-kontrast="hoch"] .event-storming-container .event-storming-note-toolbar,
+:root[data-cd-kontrast="hoch"] .event-storming-container .event-storming-color-picker {
   box-shadow: none;
 }
 @media (forced-colors: active) {
@@ -507,12 +507,12 @@
    colours draw the edge in CanvasText and the ring in Highlight. The chrome applies these rules
    only to its own classes, so the board's dialog repeats them (modeler-shell API.md, "Modeler
    dialogs"). */
-:root[data-cd-kontrast='hoch'] .event-storming-shortcuts {
+:root[data-cd-kontrast="hoch"] .event-storming-shortcuts {
   border-color: var(--cd-ui-kontur);
   box-shadow: none;
 }
 
-:root[data-cd-kontrast='hoch'] .event-storming-shortcuts-close:focus-visible {
+:root[data-cd-kontrast="hoch"] .event-storming-shortcuts-close:focus-visible {
   outline-width: 3px;
 }
 

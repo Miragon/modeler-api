@@ -5,4 +5,4 @@ export {
   type CollaborativeWardleyModeler,
   type CollaborativeWardleyOptions,
   type WardleyElementsSurface,
-} from './CollaborativeWardley.js';
+} from "./CollaborativeWardley.js";

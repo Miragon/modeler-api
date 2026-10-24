@@ -1,18 +1,18 @@
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Mouse from 'diagram-js/lib/features/mouse/Mouse';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type Create from "diagram-js/lib/features/create/Create";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Mouse from "diagram-js/lib/features/mouse/Mouse";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
 import {
   isEventStormingConnection,
   isEventStormingShape,
   type EventStormingConnection,
   type EventStormingShape,
   type EventStormingShapeType,
-} from '../model/di-types.js';
-import type EventStormingElementFactory from '../model/EventStormingElementFactory.js';
+} from "../model/di-types.js";
+import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
 
 /** Offset (px) accumulated per paste operation. */
 const PASTE_OFFSET = 24;
@@ -35,15 +35,15 @@ interface ConnectionSnapshot {
 
 /** Event Storming properties carried along when copying (geometry handled separately). */
 const SHAPE_PROPS = [
-  'eventStormingType',
-  'color',
-  'drawingPoints',
-  'closed',
-  'strokeStyle',
-  'alignHorizontal',
-  'alignVertical',
+  "eventStormingType",
+  "color",
+  "drawingPoints",
+  "closed",
+  "strokeStyle",
+  "alignHorizontal",
+  "alignVertical",
 ] as const;
-const CONNECTION_PROPS = ['eventStormingType', 'linkLabel'] as const;
+const CONNECTION_PROPS = ["eventStormingType", "linkLabel"] as const;
 
 function snapshotProps(
   el: Record<string, unknown>,
@@ -67,13 +67,13 @@ function snapshotProps(
  */
 export default class EventStormingCopyPaste {
   static $inject = [
-    'selection',
-    'modeling',
-    'elementFactory',
-    'eventStormingElementFactory',
-    'canvas',
-    'create',
-    'mouse',
+    "selection",
+    "modeling",
+    "elementFactory",
+    "eventStormingElementFactory",
+    "canvas",
+    "create",
+    "mouse",
   ];
 
   private clipboard: { shapes: ShapeSnapshot[]; connections: ConnectionSnapshot[] } | null = null;
@@ -124,7 +124,7 @@ export default class EventStormingCopyPaste {
           y: s.y,
           width: s.width,
           height: s.height,
-          label: s.eventStormingLabel ?? '',
+          label: s.eventStormingLabel ?? "",
           ...(hostIdx !== undefined ? { hostIdx } : {}),
         };
       }),
@@ -166,7 +166,7 @@ export default class EventStormingCopyPaste {
     const reserved = new Set<string>();
     const shapes = clipboard.shapes.map((snap) => {
       const id = this.esFactory.allocateId(
-        snap.props['eventStormingType'] as EventStormingShapeType,
+        snap.props["eventStormingType"] as EventStormingShapeType,
         reserved,
       );
       reserved.add(id);

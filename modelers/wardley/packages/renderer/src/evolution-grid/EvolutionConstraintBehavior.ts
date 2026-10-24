@@ -1,25 +1,25 @@
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type { Shape } from 'diagram-js/lib/model/Types';
-import { isComponent, isPipeline, isWardleyShape, type WardleyShape } from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import { MIN_EVOLVE_DELTA } from '../evolve/index.js';
+import CommandInterceptor from "diagram-js/lib/command/CommandInterceptor";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type { Shape } from "diagram-js/lib/model/Types";
+import { isComponent, isPipeline, isWardleyShape, type WardleyShape } from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import { MIN_EVOLVE_DELTA } from "../evolve/index.js";
 import {
   centerOf,
   membersOf,
   pipelineAnchoredBy,
   pipelineAt,
   pipelineFollowers,
-} from '../pipeline/index.js';
-import type EvolutionGrid from './EvolutionGrid.js';
+} from "../pipeline/index.js";
+import type EvolutionGrid from "./EvolutionGrid.js";
 
 /** Commands whose handler changes the geometry of exactly one shape (`context.shape`). */
-const SHAPE_GEOMETRY_COMMANDS = ['shape.move', 'shape.create', 'shape.resize'];
-const GEOMETRY_COMMANDS = [...SHAPE_GEOMETRY_COMMANDS, 'elements.move', 'elements.create'];
-const COMPONENT_LABEL_COMMANDS = ['shape.create', 'shape.delete', 'element.updateProperties'];
+const SHAPE_GEOMETRY_COMMANDS = ["shape.move", "shape.create", "shape.resize"];
+const GEOMETRY_COMMANDS = [...SHAPE_GEOMETRY_COMMANDS, "elements.move", "elements.create"];
+const COMPONENT_LABEL_COMMANDS = ["shape.create", "shape.delete", "element.updateProperties"];
 
 /** Runs before every other pre-execute listener, so nesting is known before anyone acts on it. */
 const TOP_LEVEL_PRIORITY = 2000;
@@ -81,12 +81,12 @@ interface CommandEvent {
  */
 export default class EvolutionConstraintBehavior extends CommandInterceptor {
   static override $inject = [
-    'eventBus',
-    'evolutionGrid',
-    'elementRegistry',
-    'canvas',
-    'modeling',
-    'wardleyModeling',
+    "eventBus",
+    "evolutionGrid",
+    "elementRegistry",
+    "canvas",
+    "modeling",
+    "wardleyModeling",
   ];
 
   private topLevelContext: GeometryContext | null = null;
@@ -113,18 +113,18 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
     this.preExecute(GEOMETRY_COMMANDS, TOP_LEVEL_PRIORITY, (event: CommandEvent) => {
       if (!this.topLevelContext) this.topLevelContext = event.context;
     });
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       this.topLevelContext = null;
     });
 
-    this.preExecute('shape.move', (event: CommandEvent) => {
+    this.preExecute("shape.move", (event: CommandEvent) => {
       const { context } = event;
       if (!this.isTopLevel(context) || !isWardleyShape(context.shape) || !context.delta) return;
       const moved = [context.shape, ...this.followersOf(context.shape)];
       this.rememberEvolutions(context, moved);
       context.delta = this.clampDelta(context.delta, moved);
     });
-    this.preExecuted('elements.move', DELTA_CLAMP_PRIORITY, (event: CommandEvent) => {
+    this.preExecuted("elements.move", DELTA_CLAMP_PRIORITY, (event: CommandEvent) => {
       const { context } = event;
       if (!this.isTopLevel(context) || !context.delta) return;
       const moved = closureShapes(context);
@@ -132,19 +132,19 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
       // A fresh object: the same delta is later handed to every nested shape.move of the closure.
       context.delta = this.clampDelta(context.delta, moved);
     });
-    this.preExecute(['shape.create', 'elements.create'], (event: CommandEvent) => {
+    this.preExecute(["shape.create", "elements.create"], (event: CommandEvent) => {
       const { context } = event;
       // Wardley shapes never nest: a drop onto another element must not make it the parent.
       if (context.parent?.parent) context.parent = this.canvas.getRootElement();
       if (this.isTopLevel(context)) this.rememberEvolutions(context, directShapes(context));
     });
-    this.preExecute('shape.resize', (event: CommandEvent) => {
+    this.preExecute("shape.resize", (event: CommandEvent) => {
       const { context } = event;
       const shape = context.shape;
       if (!isWardleyShape(shape) || !context.newBounds) return;
-      if (shape.wardleyType === 'pipeline') {
+      if (shape.wardleyType === "pipeline") {
         context.newBounds = this.horizontalPipelineBounds(shape, context.newBounds);
-      } else if (shape.wardleyType === 'attitude') {
+      } else if (shape.wardleyType === "attitude") {
         context.newBounds = this.boundsInsidePlot(context.newBounds);
       }
     });
@@ -171,7 +171,7 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
       ];
       if (!candidates.some((element) => isComponent(element))) return;
       for (const pipeline of this.elementRegistry.filter((element) => isPipeline(element))) {
-        this.eventBus.fire('element.changed', { element: pipeline });
+        this.eventBus.fire("element.changed", { element: pipeline });
       }
     };
     this.executed(COMPONENT_LABEL_COMMANDS, refreshPipelineLabels);
@@ -194,10 +194,10 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
 
   private deriveFromGeometry(shape: WardleyShape): void {
     switch (shape.wardleyType) {
-      case 'pipeline':
+      case "pipeline":
         this.derivePipeline(shape);
         return;
-      case 'attitude': {
+      case "attitude": {
         // Attitude position = anchor point (top left), corner2 = bottom-right corner (OWM semantics).
         const topLeft = this.grid.fromCanvas({ x: shape.x, y: shape.y });
         shape.evolution = topLeft.evolution;
@@ -208,7 +208,7 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
         });
         return;
       }
-      case 'drawing': {
+      case "drawing": {
         const first = shape.drawingPoints?.[0] ?? { x: 0, y: 0 };
         const coordinate = this.grid.fromCanvas({ x: shape.x + first.x, y: shape.y + first.y });
         shape.evolution = coordinate.evolution;
@@ -253,7 +253,7 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
 
   private applyCorrections(command: string, context: GeometryContext): void {
     switch (command) {
-      case 'shape.move': {
+      case "shape.move": {
         const shape = context.shape;
         if (!isWardleyShape(shape)) return;
         const delta = context.delta ?? { x: 0, y: 0 };
@@ -262,11 +262,11 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
         this.completeMove([shape, ...followers], delta, context);
         return;
       }
-      case 'elements.move':
+      case "elements.move":
         this.completeMove(closureShapes(context), context.delta ?? { x: 0, y: 0 }, context);
         return;
-      case 'shape.create':
-      case 'elements.create': {
+      case "shape.create":
+      case "elements.create": {
         const created = directShapes(context);
         const correction = this.clampDelta({ x: 0, y: 0 }, created);
         for (const shape of created) this.moveBy(shape, correction);
@@ -274,7 +274,7 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
         this.shiftPassedEvolveTargets(context);
         return;
       }
-      case 'shape.resize':
+      case "shape.resize":
         if (isPipeline(context.shape)) this.releaseMembersOutside(context.shape);
         return;
     }
@@ -389,11 +389,11 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
    */
   private extentInsidePlot(shape: WardleyShape): Bounds {
     switch (shape.wardleyType) {
-      case 'pipeline':
+      case "pipeline":
         return { x: shape.x, y: shape.y, width: shape.width, height: 0 };
-      case 'attitude':
+      case "attitude":
         return { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
-      case 'drawing': {
+      case "drawing": {
         const points = shape.drawingPoints ?? [];
         if (!points.length) return { ...centerOf(shape), width: 0, height: 0 };
         const xs = points.map((point) => shape.x + point.x);
@@ -424,20 +424,20 @@ export default class EvolutionConstraintBehavior extends CommandInterceptor {
 
   /** Pipelines only stretch along the evolution axis, and only within the plot. */
   private horizontalPipelineBounds(pipeline: WardleyShape, bounds: Bounds): Bounds {
-    const [x, width] = this.spanInside(bounds.x, bounds.width, 'x');
+    const [x, width] = this.spanInside(bounds.x, bounds.width, "x");
     return { x, y: pipeline.y, width, height: pipeline.height };
   }
 
   private boundsInsidePlot(bounds: Bounds): Bounds {
-    const [x, width] = this.spanInside(bounds.x, bounds.width, 'x');
-    const [y, height] = this.spanInside(bounds.y, bounds.height, 'y');
+    const [x, width] = this.spanInside(bounds.x, bounds.width, "x");
+    const [y, height] = this.spanInside(bounds.y, bounds.height, "y");
     return { x, y, width, height };
   }
 
-  private spanInside(start: number, length: number, axis: 'x' | 'y'): [number, number] {
+  private spanInside(start: number, length: number, axis: "x" | "y"): [number, number] {
     const plot = this.plotBounds();
-    const plotStart = axis === 'x' ? plot.x : plot.y;
-    const plotEnd = plotStart + (axis === 'x' ? plot.width : plot.height);
+    const plotStart = axis === "x" ? plot.x : plot.y;
+    const plotEnd = plotStart + (axis === "x" ? plot.width : plot.height);
     const clampedStart = Math.max(start, plotStart);
     const clampedLength = Math.max(
       Math.min(start + length, plotEnd) - clampedStart,

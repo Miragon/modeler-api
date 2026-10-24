@@ -37,7 +37,10 @@ export const canvasFactsProbe = (): CanvasFacts => {
   };
 };
 
-export const chromeProbe = (_html: Element, islands: readonly string[]): Record<string, boolean> => {
+export const chromeProbe = (
+  _html: Element,
+  islands: readonly string[],
+): Record<string, boolean> => {
   const presence: Record<string, boolean> = {};
   for (const island of islands) {
     const element = document.querySelector(`[data-chrome="${island}"]`);
@@ -53,7 +56,10 @@ export const chromeProbe = (_html: Element, islands: readonly string[]): Record<
   return presence;
 };
 
-export const webviewThemeProbe = (_html: Element, themeClasses: readonly string[]): WebviewThemeFacts => {
+export const webviewThemeProbe = (
+  _html: Element,
+  themeClasses: readonly string[],
+): WebviewThemeFacts => {
   const html = document.documentElement;
   return {
     theme: html.getAttribute("data-cd-theme"),
@@ -108,12 +114,18 @@ export const settleProbe = async (): Promise<void> => {
  */
 export const focusCreatingEntryProbe = (): string | undefined => {
   const entries = [
-    ...document.querySelectorAll<HTMLElement>('.djs-palette[data-chrome="palette"] .entry[data-action]'),
+    ...document.querySelectorAll<HTMLElement>(
+      '.djs-palette[data-chrome="palette"] .entry[data-action]',
+    ),
   ];
   const creating = entries.find((entry) => {
     const action = entry.getAttribute("data-action") ?? "";
     const group = entry.closest(".group")?.getAttribute("data-group");
-    return group !== "tools" && !action.endsWith("-tool") && entry.getAttribute("aria-disabled") !== "true";
+    return (
+      group !== "tools" &&
+      !action.endsWith("-tool") &&
+      entry.getAttribute("aria-disabled") !== "true"
+    );
   });
   if (!creating) return undefined;
   creating.focus();

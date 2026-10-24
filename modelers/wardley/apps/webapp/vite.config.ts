@@ -1,14 +1,14 @@
-import { resolve } from 'node:path';
-import { webHeadMarkup } from '@miragon/modeler-shell/core';
-import { defineConfig, type Plugin } from 'vite';
-import tokens from '../../packages/renderer/src/theme/cd-tokens.generated.json' with { type: 'json' };
-import { THEMES } from './src/themes.ts';
+import { resolve } from "node:path";
+import { webHeadMarkup } from "@miragon/modeler-shell/core";
+import { defineConfig, type Plugin } from "vite";
+import tokens from "../../packages/renderer/src/theme/cd-tokens.generated.json" with { type: "json" };
+import { THEMES } from "./src/themes.ts";
 
 const r = (p: string): string => resolve(import.meta.dirname, p);
 const portlessUrl = process.env.PORTLESS_URL || undefined;
 
 const portlessBanner = (url: string): Plugin => ({
-  name: 'portless-url-banner',
+  name: "portless-url-banner",
   configureServer(server) {
     const printUrls = server.printUrls.bind(server);
     server.printUrls = () => {
@@ -27,13 +27,13 @@ const portlessBanner = (url: string): Plugin => ({
  * the whole script with both theme-colors (index.html then says `data-cd-theme="system"`).
  */
 const modeMarkup = (): Plugin => ({
-  name: 'miragon-mode',
+  name: "miragon-mode",
   transformIndexHtml: (html) =>
     html.replace(
-      '<!-- miragon-mode -->',
+      "<!-- miragon-mode -->",
       webHeadMarkup({
         themes: THEMES,
-        themeColors: { light: tokens.fest['--cd-blau'], dark: tokens.dunkel['--cd-ui-grund'] },
+        themeColors: { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] },
       }),
     ),
 });
@@ -42,18 +42,18 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@miragon/wardley-renderer/assets/wardley.css',
-        replacement: r('../../packages/renderer/src/assets/wardley.css'),
+        find: "@miragon/wardley-renderer/assets/wardley.css",
+        replacement: r("../../packages/renderer/src/assets/wardley.css"),
       },
-      { find: '@miragon/wardley-renderer', replacement: r('../../packages/renderer/src/index.ts') },
+      { find: "@miragon/wardley-renderer", replacement: r("../../packages/renderer/src/index.ts") },
       {
-        find: '@miragon/wardley-schema-model',
-        replacement: r('../../packages/schema-model/src/index.ts'),
+        find: "@miragon/wardley-schema-model",
+        replacement: r("../../packages/schema-model/src/index.ts"),
       },
-      { find: '@miragon/wardley-dsl', replacement: r('../../packages/dsl/src/index.ts') },
+      { find: "@miragon/wardley-dsl", replacement: r("../../packages/dsl/src/index.ts") },
       {
-        find: '@miragon/wardley-transforms',
-        replacement: r('../../packages/transforms/src/index.ts'),
+        find: "@miragon/wardley-transforms",
+        replacement: r("../../packages/transforms/src/index.ts"),
       },
     ],
   },
@@ -62,10 +62,10 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     open: portlessUrl ?? false,
-    allowedHosts: ['.localhost'],
+    allowedHosts: [".localhost"],
   },
   build: {
-    target: 'es2022',
+    target: "es2022",
     sourcemap: true,
     // The shell inlines Lucide's icon geometry (ISC, partly Feather, MIT) and names both licences
     // in a legal comment; the bundle carries it, as the shell's notices ask.

@@ -14,17 +14,17 @@ const MIGRATIONS: ReadonlyArray<(json: Json) => Json> = [
 ];
 
 export function migrate(input: unknown): Json {
-  if (typeof input !== 'object' || input === null) {
-    throw new Error('WardleyMap must be an object.');
+  if (typeof input !== "object" || input === null) {
+    throw new Error("WardleyMap must be an object.");
   }
   const obj = { ...(input as Json) };
-  const rawVersion = obj['schemaVersion'];
-  const version = typeof rawVersion === 'number' ? rawVersion : 1;
+  const rawVersion = obj["schemaVersion"];
+  const version = typeof rawVersion === "number" ? rawVersion : 1;
 
   if (version > CURRENT_SCHEMA_VERSION) {
     throw new Error(
       `Unknown schemaVersion ${version} (supported up to ${CURRENT_SCHEMA_VERSION}). ` +
-        'Please update the tool.',
+        "Please update the tool.",
     );
   }
   if (version < 1) {

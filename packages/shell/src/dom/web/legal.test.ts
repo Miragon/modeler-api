@@ -9,7 +9,12 @@ afterEach(() => {
 });
 
 function legalLine(options: LegalLineOptions = {}, messages = defaultMessages) {
-  const line = createLegalLine({ ownerDocument: document, messages, options, idPrefix: "cd-shell-legal-1" });
+  const line = createLegalLine({
+    ownerDocument: document,
+    messages,
+    options,
+    idPrefix: "cd-shell-legal-1",
+  });
   document.body.append(line.element);
   return line;
 }
@@ -55,7 +60,9 @@ describe("legal line (guide §5.10, §2)", () => {
   });
 
   it("opens every link in a new tab without opener or referrer", () => {
-    const { element } = legalLine({ links: [{ label: "GitHub", href: "https://github.com/Miragon" }] });
+    const { element } = legalLine({
+      links: [{ label: "GitHub", href: "https://github.com/Miragon" }],
+    });
     for (const anchor of element.querySelectorAll("a")) {
       expect(anchor.getAttribute("target")).toBe("_blank");
       expect(anchor.getAttribute("rel")).toBe("noopener noreferrer");
@@ -63,7 +70,9 @@ describe("legal line (guide §5.10, §2)", () => {
   });
 
   it("puts each link after the first behind a hidden middle dot, the two kept together when it wraps", () => {
-    const { element } = legalLine({ links: [{ label: "GitHub", href: "https://github.com/Miragon" }] });
+    const { element } = legalLine({
+      links: [{ label: "GitHub", href: "https://github.com/Miragon" }],
+    });
     const items = [...element.querySelectorAll(":scope > .cd-shell-legal-item")];
     expect(element.firstElementChild?.tagName).toBe("A");
     expect(items).toHaveLength(3);
@@ -87,7 +96,9 @@ describe("legal line (guide §5.10, §2)", () => {
 
   it("defaults the year to the current one", () => {
     const { element } = legalLine();
-    expect(element.querySelector("a")?.textContent).toBe(`© ${new Date().getFullYear()} Miragon GmbH`);
+    expect(element.querySelector("a")?.textContent).toBe(
+      `© ${new Date().getFullYear()} Miragon GmbH`,
+    );
   });
 
   it("translates copyright and name, never Impressum and Datenschutz", () => {

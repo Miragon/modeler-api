@@ -68,12 +68,20 @@ function serializingPage(): PageLike & { evaluated: number } {
     evaluated: 0,
     async evaluate<R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg): Promise<R> {
       page.evaluated += 1;
-      const rebuilt = new Function(`return (${pageFunction.toString()});`)() as (arg: Arg) => R | Promise<R>;
+      const rebuilt = new Function(`return (${pageFunction.toString()});`)() as (
+        arg: Arg,
+      ) => R | Promise<R>;
       return structuredClone(await rebuilt(structuredClone(arg)));
     },
     async setViewportSize() {},
     keyboard: { async press() {} },
-    mouse: { async click() {}, async dblclick() {}, async move() {}, async down() {}, async up() {} },
+    mouse: {
+      async click() {},
+      async dblclick() {},
+      async move() {},
+      async down() {},
+      async up() {},
+    },
     async waitForTimeout() {},
   };
   return page;
@@ -167,7 +175,10 @@ describe("probes in a page", () => {
   beforeEach(() => {
     delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
     // happy-dom has no layout, so its checkVisibility ignores `hidden`; the probes fall back to the DOM walk
-    Object.defineProperty(Element.prototype, "checkVisibility", { value: undefined, configurable: true });
+    Object.defineProperty(Element.prototype, "checkVisibility", {
+      value: undefined,
+      configurable: true,
+    });
     page = serializingPage();
   });
 
@@ -283,12 +294,16 @@ describe("probes in a page", () => {
 
   it("injects stand-ins and canvas bindings and removes them again", async () => {
     const root = buildShell();
-    await expect(inPage(page, injectProbe, { root: ".cd-shell", kind: "modal" })).resolves.toBe(true);
+    await expect(inPage(page, injectProbe, { root: ".cd-shell", kind: "modal" })).resolves.toBe(
+      true,
+    );
     const modal = root.querySelector('[data-modeler-shell-conformance="modal"]')!;
     expect(modal.getAttribute("role")).toBe("dialog");
     expect(modal.getAttribute("aria-modal")).toBe("true");
     expect(document.activeElement).toBe(modal);
-    await expect(inPage(page, canvasHandlesProbe, { root: ".cd-shell", key: "F9" })).resolves.toBe(true);
+    await expect(inPage(page, canvasHandlesProbe, { root: ".cd-shell", key: "F9" })).resolves.toBe(
+      true,
+    );
     const event = new KeyboardEvent("keydown", { key: "F9", cancelable: true });
     root.querySelector("svg")!.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
@@ -335,10 +350,16 @@ describe("probes in a page", () => {
       inPage(page, scriptedClickProbe, { root: ".cd-shell", selector: '[data-zoom="fit"]' }),
     ).resolves.toBe(true);
     await expect(
-      inPage(page, canvasKeyProbe, { root: ".cd-shell", key: { key: "0", code: "Digit0", ctrlKey: true } }),
+      inPage(page, canvasKeyProbe, {
+        root: ".cd-shell",
+        key: { key: "0", code: "Digit0", ctrlKey: true },
+      }),
     ).resolves.toBe(true);
     await expect(
-      inPage(page, canvasKeyProbe, { root: ".cd-shell", key: { key: "!", code: "Digit1", shiftKey: true } }),
+      inPage(page, canvasKeyProbe, {
+        root: ".cd-shell",
+        key: { key: "!", code: "Digit1", shiftKey: true },
+      }),
     ).resolves.toBe(true);
     expect(clicks).toEqual([0]);
     expect(keys).toEqual(["Control+Digit0", "Shift+Digit1"]);
@@ -375,7 +396,15 @@ describe("probes in a page", () => {
   it("snapshots ARIA, menu and appearance facts", async () => {
     buildShell();
     const aria = await inPage(page, ariaProbe, { root: ".cd-shell" });
-    expect(aria?.order).toEqual(["menu", "palette", "canvas", "status", "problems", "legend", "zoom"]);
+    expect(aria?.order).toEqual([
+      "menu",
+      "palette",
+      "canvas",
+      "status",
+      "problems",
+      "legend",
+      "zoom",
+    ]);
     expect(aria?.controlled?.attributes.role).toBe("menu");
     expect(aria?.entries.map((entry) => entry.group)).toEqual(["tools", "tools"]);
     expect(aria?.legendTitle).toBe("Legend");
@@ -447,7 +476,8 @@ describe("probes in a page", () => {
     const root = buildShell();
     root.style.setProperty("--cd-ui-grund", "rgb(249, 247, 247)");
     root.style.setProperty("--cd-ui-text", "rgb(29, 29, 29)");
-    root.querySelector<HTMLElement>(".cd-shell-canvas")!.style.backgroundColor = "rgb(249, 247, 247)";
+    root.querySelector<HTMLElement>(".cd-shell-canvas")!.style.backgroundColor =
+      "rgb(249, 247, 247)";
     const lasso = root.querySelector<HTMLElement>('[data-action="lasso-tool"]')!;
     lasso.setAttribute("aria-pressed", "true");
     lasso.innerHTML = '<svg viewBox="0 0 20 20"></svg>';
@@ -469,11 +499,25 @@ describe("probes in a page", () => {
     expect(root.querySelector("[data-modeler-shell-conformance]")).toBeNull();
 
     await expect(inPage(page, paletteEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
-      { action: "lasso-tool", group: "tools", pressed: true, disabled: false, client: { x: 341, y: 125 } },
-      { action: "hand-tool", group: "tools", pressed: false, disabled: false, client: { x: 375, y: 125 } },
+      {
+        action: "lasso-tool",
+        group: "tools",
+        pressed: true,
+        disabled: false,
+        client: { x: 341, y: 125 },
+      },
+      {
+        action: "hand-tool",
+        group: "tools",
+        pressed: false,
+        disabled: false,
+        client: { x: 375, y: 125 },
+      },
     ]);
     const colors = await inPage(page, paletteColorProbe, { root: ".cd-shell" });
-    expect(colors?.entries.map((entry) => [entry.action, entry.pressed, entry.icon?.kind ?? null])).toEqual([
+    expect(
+      colors?.entries.map((entry) => [entry.action, entry.pressed, entry.icon?.kind ?? null]),
+    ).toEqual([
       ["lasso-tool", true, "svg"],
       ["hand-tool", false, null],
     ]);
@@ -580,7 +624,10 @@ describe("probes in a page", () => {
 
   it("names menu items as assistive technology does, leaving out what it skips", async () => {
     const root = buildShell();
-    root.insertAdjacentHTML("beforeend", '<span id="n1">Map</span><span id="n2" aria-label="size…">x</span>');
+    root.insertAdjacentHTML(
+      "beforeend",
+      '<span id="n1">Map</span><span id="n2" aria-label="size…">x</span>',
+    );
     const menu = root.querySelector('[role="menu"]')!;
     menu.innerHTML = `
       <button role="menuitem" aria-haspopup="dialog"><span>Keyboard shortcuts…</span><span><span class="cd-shell-menu-shortcut" aria-hidden="true">?</span></span></button>
@@ -662,7 +709,10 @@ describe("the shell's own menu through the kit", () => {
 
   beforeEach(() => {
     delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
-    Object.defineProperty(Element.prototype, "checkVisibility", { value: undefined, configurable: true });
+    Object.defineProperty(Element.prototype, "checkVisibility", {
+      value: undefined,
+      configurable: true,
+    });
     installFakes();
     page = serializingPage();
   });
@@ -713,7 +763,14 @@ describe("the shell's own menu through the kit", () => {
     const { dropdown, facts } = await openMenu({
       export: [
         { kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
-        { kind: "action", id: "print", label: "Print", shortcut: "⌘P", ariaKeyShortcuts: "", onSelect() {} },
+        {
+          kind: "action",
+          id: "print",
+          label: "Print",
+          shortcut: "⌘P",
+          ariaKeyShortcuts: "",
+          onSelect() {},
+        },
       ],
     });
     const described = await facts();
@@ -738,7 +795,10 @@ describe("probes of the web column (0.2)", () => {
 
   beforeEach(() => {
     delete (window as { __modelerShellConformance?: unknown }).__modelerShellConformance;
-    Object.defineProperty(Element.prototype, "checkVisibility", { value: undefined, configurable: true });
+    Object.defineProperty(Element.prototype, "checkVisibility", {
+      value: undefined,
+      configurable: true,
+    });
     page = serializingPage();
   });
 
@@ -928,7 +988,9 @@ describe("probes of the web column (0.2)", () => {
       },
     });
     try {
-      await expect(inPage(page, webModeProbe, { key: "miragon.darstellung" })).resolves.toMatchObject({
+      await expect(
+        inPage(page, webModeProbe, { key: "miragon.darstellung" }),
+      ).resolves.toMatchObject({
         stored: null,
         storageBlocked: true,
       });
@@ -1006,9 +1068,9 @@ describe("probes of the web column (0.2)", () => {
     await inPage(page, removeInjectedProbe, null);
     primary.click();
     await expect(inPage(page, clicksProbe, null)).resolves.toBe(2);
-    await expect(inPage(page, countClicksProbe, { root: ".cd-shell", selector: ".nothing" })).resolves.toBe(
-      false,
-    );
+    await expect(
+      inPage(page, countClicksProbe, { root: ".cd-shell", selector: ".nothing" }),
+    ).resolves.toBe(false);
   });
 
   it("reads the start screen, the work chrome it hides and the inert canvas", async () => {
@@ -1125,7 +1187,11 @@ describe("probes of the web column (0.2)", () => {
     expect(facts?.toasts[0]?.buttons[0]?.text).toBe("Undo");
     expect(facts?.strays).toEqual(["div.cd-shell-toast"]);
     await expect(
-      inPage(page, focusToastButtonProbe, { root: ".cd-shell", text: "Link copied", name: "Close" }),
+      inPage(page, focusToastButtonProbe, {
+        root: ".cd-shell",
+        text: "Link copied",
+        name: "Close",
+      }),
     ).resolves.toBe(true);
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Close");
     await expect(
@@ -1181,11 +1247,19 @@ describe("probes of the web column (0.2)", () => {
         text: "The box has no name. Box 1",
         client: { x: 172, y: 728 },
       },
-      { button: false, height: 36, icon: true, text: "Two boxes overlap.", client: { x: 172, y: 778 } },
+      {
+        button: false,
+        height: 36,
+        icon: true,
+        text: "Two boxes overlap.",
+        client: { x: 172, y: 778 },
+      },
     ]);
     expect(facts?.focus).toBe("popover");
     root.querySelector<HTMLElement>('[data-chrome="problems"]')!.focus();
-    await expect(inPage(page, popoverProbe, { root: ".cd-shell" })).resolves.toMatchObject({ focus: "pill" });
+    await expect(inPage(page, popoverProbe, { root: ".cd-shell" })).resolves.toMatchObject({
+      focus: "pill",
+    });
   });
 
   it("dispatches synthetic file drags and records the drop effect the page sets", async () => {
@@ -1237,9 +1311,12 @@ describe("probes of the web column (0.2)", () => {
       ]);
       expect(root.querySelector('[data-modeler-shell-conformance="role-probe"]')).toBeNull();
     } finally {
-      for (const type of ["dragenter", "dragover", "drop"]) window.removeEventListener(type, listener);
+      for (const type of ["dragenter", "dragover", "drop"])
+        window.removeEventListener(type, listener);
       delete (document as { elementFromPoint?: unknown }).elementFromPoint;
     }
-    await expect(inPage(page, dragProbe, { root: ".nothing", files: [], steps: [] })).resolves.toBeNull();
+    await expect(
+      inPage(page, dragProbe, { root: ".nothing", files: [], steps: [] }),
+    ).resolves.toBeNull();
   });
 });

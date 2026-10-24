@@ -1,6 +1,6 @@
-import type { ModuleDeclaration } from 'didi';
-import ConnectionPreviewModule from 'diagram-js/lib/features/connection-preview';
-import WardleyAppendBehavior from './WardleyAppendBehavior.js';
+import type { ModuleDeclaration } from "didi";
+import ConnectionPreviewModule from "diagram-js/lib/features/connection-preview";
+import WardleyAppendBehavior from "./WardleyAppendBehavior.js";
 
 /**
  * "Append component": pulls in the `connectionPreview` service (thereby also enabling the connect
@@ -9,8 +9,8 @@ import WardleyAppendBehavior from './WardleyAppendBehavior.js';
  */
 export const wardleyAppendModule: ModuleDeclaration = {
   __depends__: [ConnectionPreviewModule],
-  __init__: ['wardleyAppendBehavior'],
-  wardleyAppendBehavior: ['type', WardleyAppendBehavior],
+  __init__: ["wardleyAppendBehavior"],
+  wardleyAppendBehavior: ["type", WardleyAppendBehavior],
 };
 
-export { default as WardleyAppendBehavior } from './WardleyAppendBehavior.js';
+export { default as WardleyAppendBehavior } from "./WardleyAppendBehavior.js";

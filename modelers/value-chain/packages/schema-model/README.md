@@ -24,17 +24,17 @@ package validates with your app's copy of Zod instead of bringing a second one.
 ## Usage
 
 ```ts
-import { readFile } from 'node:fs/promises';
+import { readFile } from "node:fs/promises";
 import {
   createEmptyDocument,
   parseDocumentJSON,
   serializeDocument,
-} from '@miragon/value-chain-schema-model';
+} from "@miragon/value-chain-schema-model";
 
-const doc = parseDocumentJSON(await readFile('landscape.vc.json', 'utf8')); // migrate + validate
+const doc = parseDocumentJSON(await readFile("landscape.vc.json", "utf8")); // migrate + validate
 const json = serializeDocument(doc); // stable output for clean Git diffs
 
-const empty = createEmptyDocument('My value chain');
+const empty = createEmptyDocument("My value chain");
 ```
 
 | Export                                        | Purpose                                                                                                       |

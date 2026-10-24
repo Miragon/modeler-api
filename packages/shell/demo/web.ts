@@ -76,7 +76,9 @@ const elementRegistry = diagram.get<ElementRegistry>("elementRegistry");
 const selection = diagram.get<Selection>("selection");
 
 function shapes(): Element[] {
-  return elementRegistry.filter((element) => "parent" in element && Boolean(element.parent)) as Element[];
+  return elementRegistry.filter(
+    (element) => "parent" in element && Boolean(element.parent),
+  ) as Element[];
 }
 
 /** Every new document opens like the first (guide §5.9); the start screen goes with it. */
@@ -230,7 +232,12 @@ function showProblems(): void {
   const [first] = shapes();
   shell.setProblems(
     problemSummary([
-      { severity: "error", message: "The box has no name.", location: "Box 1", elementId: first?.id },
+      {
+        severity: "error",
+        message: "The box has no name.",
+        location: "Box 1",
+        elementId: first?.id,
+      },
       { severity: "warning", message: "Two boxes overlap.", location: "Boxes 2 and 3" },
     ]),
   );

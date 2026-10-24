@@ -2,7 +2,7 @@
  * Map size policy (plot area in px, OWM `size [w, h]` semantics). DOM-free so the parser, the
  * renderer and the apps all clamp, round and name sizes the same way.
  */
-import { DEFAULT_PLOT_SIZE } from './types.js';
+import { DEFAULT_PLOT_SIZE } from "./types.js";
 
 export interface MapSize {
   readonly width: number;
@@ -15,7 +15,7 @@ export const PLOT_MIN = { width: 480, height: 320 } as const;
 /** Largest plot (OWM's own limit); larger written sizes are drawn at this size. */
 export const PLOT_MAX = { width: 5000, height: 5000 } as const;
 
-export type MapSizePresetId = 'compact' | 'standard' | 'large' | 'wide';
+export type MapSizePresetId = "compact" | "standard" | "large" | "wide";
 
 export interface MapSizePreset {
   readonly id: MapSizePresetId;
@@ -25,15 +25,15 @@ export interface MapSizePreset {
 }
 
 export const MAP_SIZE_PRESETS: readonly MapSizePreset[] = [
-  { id: 'compact', name: 'Compact', width: 720, height: 460 },
+  { id: "compact", name: "Compact", width: 720, height: 460 },
   {
-    id: 'standard',
-    name: 'Standard',
+    id: "standard",
+    name: "Standard",
     width: DEFAULT_PLOT_SIZE.width,
     height: DEFAULT_PLOT_SIZE.height,
   },
-  { id: 'large', name: 'Large', width: 1440, height: 900 },
-  { id: 'wide', name: 'Wide', width: 1760, height: 720 },
+  { id: "large", name: "Large", width: 1440, height: 900 },
+  { id: "wide", name: "Wide", width: 1760, height: 720 },
 ];
 
 function clamp(value: number, min: number, max: number): number {
@@ -69,7 +69,7 @@ export function presetIdForSize(size?: MapSize): MapSizePresetId | undefined {
  * not rounded (the written value stays in the config as is); a missing or non-finite value draws
  * the default plot.
  */
-export function drawnPlotLength(written: number | undefined, axis: 'width' | 'height'): number {
+export function drawnPlotLength(written: number | undefined, axis: "width" | "height"): number {
   if (written === undefined || !Number.isFinite(written)) return DEFAULT_PLOT_SIZE[axis];
   return clamp(written, PLOT_MIN[axis], PLOT_MAX[axis]);
 }
@@ -79,7 +79,7 @@ export function drawnPlotLength(written: number | undefined, axis: 'width' | 'he
  * undefined. Unlike `normalizeMapSize` nothing is rounded or clamped, so a typo is refused instead
  * of silently changing the map.
  */
-export function parsePlotLength(value: string, axis: 'width' | 'height'): number | undefined {
+export function parsePlotLength(value: string, axis: "width" | "height"): number | undefined {
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) return undefined;
   const length = Number(trimmed);
@@ -87,7 +87,7 @@ export function parsePlotLength(value: string, axis: 'width' | 'height'): number
 }
 
 /** The message for a length `parsePlotLength` refused. */
-export function plotLengthMessage(axis: 'width' | 'height'): string {
-  const name = axis === 'width' ? 'Width' : 'Height';
+export function plotLengthMessage(axis: "width" | "height"): string {
+  const name = axis === "width" ? "Width" : "Height";
   return `${name} must be a whole number from ${PLOT_MIN[axis]} to ${PLOT_MAX[axis]}.`;
 }

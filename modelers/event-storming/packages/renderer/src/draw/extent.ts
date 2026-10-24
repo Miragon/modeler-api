@@ -1,6 +1,6 @@
-import type { Point } from 'diagram-js/lib/util/Types';
-import { FONT, STICKY_CHAR_WIDTH } from './styles.js';
-import type { EventStormingConnection, EventStormingShape } from '../model/di-types.js';
+import type { Point } from "diagram-js/lib/util/Types";
+import { FONT, STICKY_CHAR_WIDTH } from "./styles.js";
+import type { EventStormingConnection, EventStormingShape } from "../model/di-types.js";
 
 /** Hotspots stand out with a slight tilt (rotated around the sticky center). */
 export const HOTSPOT_ROTATION_DEG = -3;
@@ -14,7 +14,7 @@ export const LINK_LABEL_RISE = 5;
  * precision it lays the text out at its own size and scales the glyphs, so the canvas measure,
  * taken with the same setting, holds at every zoom.
  */
-export const LINK_LABEL_TEXT_RENDERING = 'geometricPrecision';
+export const LINK_LABEL_TEXT_RENDERING = "geometricPrecision";
 const LINK_LABEL_FONT = `italic ${LINK_LABEL_FONT_SIZE}px ${FONT.family}`;
 
 export interface DrawnBox {
@@ -84,7 +84,7 @@ export function linkLabelAnchor(connection: EventStormingConnection): Point {
 
 /** The box a shape covers on the canvas: a hotspot's tilt reaches past its own box. */
 export function drawnShapeBox(shape: PositionedShape): DrawnBox {
-  if (shape.eventStormingType !== 'hotspot') {
+  if (shape.eventStormingType !== "hotspot") {
     return { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
   }
   const angle = Math.abs((HOTSPOT_ROTATION_DEG * Math.PI) / 180);
@@ -117,8 +117,8 @@ let measuringContext: CanvasRenderingContext2D | null | undefined;
 function canvasContext(): CanvasRenderingContext2D | null {
   // jsdom has no canvas and logs an error for every getContext call: ask only a real browser.
   measuringContext ??=
-    typeof document !== 'undefined' && typeof CanvasRenderingContext2D !== 'undefined'
-      ? document.createElement('canvas').getContext('2d')
+    typeof document !== "undefined" && typeof CanvasRenderingContext2D !== "undefined"
+      ? document.createElement("canvas").getContext("2d")
       : null;
   return measuringContext;
 }
@@ -129,10 +129,10 @@ function canvasContext(): CanvasRenderingContext2D | null {
  * fallback's widths, several px off, would be what a fit frames.
  */
 export function linkLabelFontLoading(texts: readonly string[]): Promise<void> | undefined {
-  if (texts.length === 0 || typeof document === 'undefined' || !('fonts' in document)) {
+  if (texts.length === 0 || typeof document === "undefined" || !("fonts" in document)) {
     return undefined;
   }
-  const sample = texts.join(' ');
+  const sample = texts.join(" ");
   if (document.fonts.check(LINK_LABEL_FONT, sample)) return undefined;
   return document.fonts.load(LINK_LABEL_FONT, sample).then(
     () => undefined,
@@ -145,7 +145,7 @@ export function linkLabelFontLoading(texts: readonly string[]): Promise<void> | 
  * would merge it away.
  */
 function collapseWhiteSpace(text: string): string {
-  return text.replace(/[ \t\n\r]+/g, ' ').replace(/^ | $/g, '');
+  return text.replace(/[ \t\n\r]+/g, " ").replace(/^ | $/g, "");
 }
 
 /**

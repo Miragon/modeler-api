@@ -1,17 +1,17 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Root, Shape } from 'diagram-js/lib/model/Types';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Root, Shape } from "diagram-js/lib/model/Types";
 import {
   documentExtensions,
   metaExtensions,
   type ValueChainDocument,
-} from '@miragon/value-chain-schema-model';
-import type VcBounds from '../bounds/VcBounds.js';
-import type VcElementFactory from '../model/VcElementFactory.js';
-import { isVcConnection, isVcShape } from '../model/di-types.js';
-import { ROOT_ID, type ImportWarning, type RootBusinessObject } from './types.js';
+} from "@miragon/value-chain-schema-model";
+import type VcBounds from "../bounds/VcBounds.js";
+import type VcElementFactory from "../model/VcElementFactory.js";
+import { isVcConnection, isVcShape } from "../model/di-types.js";
+import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./types.js";
 
 /** The margin around the content when an import fits the view, in diagram units. */
 const FIT_PADDING = 20;
@@ -35,13 +35,13 @@ export interface VcImportConfig {
  */
 export default class VcImporter {
   static $inject = [
-    'canvas',
-    'elementFactory',
-    'vcElementFactory',
-    'elementRegistry',
-    'eventBus',
-    'vcBounds',
-    'config.vcImport',
+    "canvas",
+    "elementFactory",
+    "vcElementFactory",
+    "elementRegistry",
+    "eventBus",
+    "vcBounds",
+    "config.vcImport",
   ];
 
   constructor(
@@ -56,7 +56,7 @@ export default class VcImporter {
 
   import(document: ValueChainDocument): ImportWarning[] {
     const warnings: ImportWarning[] = [];
-    this.eventBus.fire('import.render.start', { document });
+    this.eventBus.fire("import.render.start", { document });
 
     const root = this.diagramRoot();
     root.businessObject = {
@@ -92,7 +92,7 @@ export default class VcImporter {
     if (this.config?.fitOnImport !== false) {
       this.fitToContent();
     }
-    this.eventBus.fire('import.render.done', { document, warnings });
+    this.eventBus.fire("import.render.done", { document, warnings });
     return warnings;
   }
 

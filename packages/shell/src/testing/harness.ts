@@ -1,4 +1,11 @@
-import type { Appearance, ColorThemeSetting, ShellHost, Size, Theme, ToastStatus } from "../core/index.js";
+import type {
+  Appearance,
+  ColorThemeSetting,
+  ShellHost,
+  Size,
+  Theme,
+  ToastStatus,
+} from "../core/index.js";
 import { createCases } from "./cases.js";
 import type { PageLike } from "./page.js";
 
@@ -97,7 +104,8 @@ export interface LabelEditorHooks<P extends PageLike = PageLike> {
  * that acts on the canvas (`canvasMenuAction`: no File or Model action without a dialog, as in an
  * IDE host whose Model group holds only toggles and dialogs).
  */
-export type AbsentFeature = ShowHook | "drop" | "problemSelection" | "labelEditor" | "canvasMenuAction";
+export type AbsentFeature =
+  ShowHook | "drop" | "problemSelection" | "labelEditor" | "canvasMenuAction";
 
 export interface ShellConformanceHarness<P extends PageLike = PageLike> {
   host: ShellHost;
@@ -151,7 +159,10 @@ export interface ShellCaseOutcome {
 
 export interface ShellConformanceCase {
   name: string;
-  run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>): Promise<ShellCaseOutcome | void>;
+  run<P extends PageLike>(
+    page: P,
+    harness: ShellConformanceHarness<P>,
+  ): Promise<ShellCaseOutcome | void>;
 }
 
 /**
@@ -220,7 +231,8 @@ export function registerShellConformance<P extends PageLike>(
   for (const conformanceCase of shellConformanceCases()) {
     test(`shell conformance: ${conformanceCase.name}`, async ({ page }) => {
       const outcome = await conformanceCase.run(page, harness);
-      if (outcome?.skipped && outcome.skipped.length > 0) onSkip(conformanceCase.name, outcome.skipped);
+      if (outcome?.skipped && outcome.skipped.length > 0)
+        onSkip(conformanceCase.name, outcome.skipped);
     });
   }
 }

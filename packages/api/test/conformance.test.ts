@@ -27,7 +27,10 @@ import {
 } from "../src/index.js";
 import { createReferenceModeler, type Flaws, type ReferenceModeler } from "./reference-modeler.js";
 
-function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {}): ConformanceHarness {
+function harness(
+  flaws: Flaws = {},
+  overrides: Partial<ConformanceHarness> = {},
+): ConformanceHarness {
   let counter = 0;
   return {
     create: async () => createReferenceModeler(flaws),
@@ -38,7 +41,9 @@ function harness(flaws: Flaws = {}, overrides: Partial<ConformanceHarness> = {})
     foreignTexts: [{ text: "% vendor: keep-me\nalpha\n", mustSurvive: ["% vendor: keep-me"] }],
     viewState: { zoom: 2, scrollX: 40 },
     mutate: (m) => (m as ReferenceModeler).addLine(`zz-${counter++}`),
-    configMutations: [{ name: "title", run: (m) => (m as ReferenceModeler).setTitle(`T${counter++}`) }],
+    configMutations: [
+      { name: "title", run: (m) => (m as ReferenceModeler).setTitle(`T${counter++}`) },
+    ],
     undo: (m) => (m as ReferenceModeler).undoCommand(),
     redo: (m) => (m as ReferenceModeler).redoCommand(),
     moveElement: (m) => {
@@ -129,7 +134,9 @@ async function advisories(h: ConformanceHarness): Promise<Array<[string, string]
 async function skippedCases(h: ConformanceHarness): Promise<{ ran: number; skipped: string[] }> {
   const skipped: string[] = [];
   const pending: Promise<void>[] = [];
-  registerConformance(h, (_name, fn) => pending.push(fn()), { onSkip: (name) => skipped.push(name) });
+  registerConformance(h, (_name, fn) => pending.push(fn()), {
+    onSkip: (name) => skipped.push(name),
+  });
   await Promise.all(pending);
   return { ran: pending.length, skipped: skipped.sort() };
 }
@@ -140,7 +147,9 @@ describe("the conforming reference modeler", () => {
       throw new Error(`the full harness must skip nothing — "${name}" skipped: ${reason}`);
     },
     onAdvisory: (name, advice) => {
-      throw new Error(`the conforming reference follows every recommendation — "${name}" advised: ${advice}`);
+      throw new Error(
+        `the conforming reference follows every recommendation — "${name}" advised: ${advice}`,
+      );
     },
   });
 
@@ -174,7 +183,9 @@ describe("the conforming reference modeler", () => {
       });
     expect(await failingCases(harness({}, { mutate: waitsForItsEvent }))).toEqual([]);
     expect(
-      await failingCases(harness({ ignoresCommandsBeforeImport: true }, { mutate: waitsForItsEvent })),
+      await failingCases(
+        harness({ ignoresCommandsBeforeImport: true }, { mutate: waitsForItsEvent }),
+      ),
     ).toEqual([]);
   });
 
@@ -190,14 +201,18 @@ describe("the conforming reference modeler", () => {
 
   test("an id spelled from identical content is not blamed: the collision check reports a skip instead", async () => {
     const collision = conformanceCases().find((c) => c.name === CASE.elementsCollision);
-    const sameElement = { mutate: (m: CollaborativeModeler) => (m as ReferenceModeler).addLine("zz") };
+    const sameElement = {
+      mutate: (m: CollaborativeModeler) => (m as ReferenceModeler).addLine("zz"),
+    };
     const derived = await collision?.run(harness({}, sameElement));
     expect(derived?.advisories).toBeUndefined();
     expect(derived?.skipped).toMatch(/derived from that name .* inconclusive/);
     // a counter id names nothing of the content: the same advisory as for different elements
     const counter = await collision?.run(harness({ counterIds: true }, sameElement));
     expect(counter?.skipped).toBeUndefined();
-    expect(counter?.advisories).toEqual([expect.stringContaining("allocated the same id ('line_1')")]);
+    expect(counter?.advisories).toEqual([
+      expect.stringContaining("allocated the same id ('line_1')"),
+    ]);
   });
 
   test("a modeler without elements.bounds (optional) skips the bounds case and the covering half of the content-bounds case", async () => {
@@ -342,7 +357,9 @@ describe("the conforming reference modeler", () => {
     expect((await skippedCases(harness({}, { redo: undefined }))).skipped).toEqual([CASE.l3Undo]);
     // bounds without a move: the listing, the new element and the view are verified, the move reports a skip;
     // the content box needs no move
-    expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([CASE.bounds]);
+    expect((await skippedCases(harness({}, { moveElement: undefined }))).skipped).toEqual([
+      CASE.bounds,
+    ]);
     // an interaction without its state: the L1 half is verified, the keep-and-reopen half reports a
     // skip; the L5 case checks the keep-open through the commit instead
     expect((await skippedCases(harness({}, { interactionState: undefined }))).skipped).toEqual([
@@ -359,7 +376,9 @@ describe("the conforming reference modeler", () => {
     );
     // one canonical text (L4 fails it anyway): the interaction case says which leg it could not run
     const interaction = conformanceCases().find((c) => c.name === CASE.l1Interaction);
-    const single = await interaction?.run(harness({}, { canonicalTexts: ["alpha\nbeta\ngamma\n"] }));
+    const single = await interaction?.run(
+      harness({}, { canonicalTexts: ["alpha\nbeta\ngamma\n"] }),
+    );
     expect(single?.skipped).toMatch(/one text — importing a DIFFERENT document/);
     // an EXPLICIT empty array is a statement, not an omission — no skip
     const explicit = await skippedCases(
@@ -374,7 +393,11 @@ describe("the conforming reference modeler", () => {
   test("advisories reach onAdvisory once per advice, and console.warn by default", async () => {
     const run = async (options: Parameters<typeof registerConformance>[2]) => {
       const pending: Promise<void>[] = [];
-      registerConformance(harness({ counterIds: true }), (_name, fn) => pending.push(fn()), options);
+      registerConformance(
+        harness({ counterIds: true }),
+        (_name, fn) => pending.push(fn()),
+        options,
+      );
       await Promise.all(pending);
     };
     const routed: string[] = [];
@@ -440,7 +463,12 @@ describe("broken variants fail exactly their law's case set", () => {
   test("dropping foreign content (a stripping schema) → L6 foreign and the viewer", () =>
     expectFailures({ dropForeign: true }, [CASE.l6Foreign, CASE.viewer]));
   test("blank + wedged after a rejected import → every L7 case and the viewer", () =>
-    expectFailures({ wedgeAfterReject: true }, [CASE.l7NoTrace, CASE.l7Usable, CASE.l7Probes, CASE.viewer]));
+    expectFailures({ wedgeAfterReject: true }, [
+      CASE.l7NoTrace,
+      CASE.l7Usable,
+      CASE.l7Probes,
+      CASE.viewer,
+    ]));
   test("a rejected import that erases the undo history → L7 no-trace and the L7 probes (a rejecting probe)", () =>
     expectFailures({ rejectClearsUndo: true }, [CASE.l7NoTrace, CASE.l7Probes]));
   test("silent undo → exactly the L3 undo/redo case", () =>
@@ -613,7 +641,8 @@ describe("broken variants fail exactly their law's case set", () => {
   });
   test("a viewer whose content box misses the elements' sizes → exactly the content-bounds case", () =>
     expectFailures({}, [CASE.contentBounds], {
-      createReadonly: async () => createReferenceModeler({ contentBoundsOfPositionsOnly: true }, false),
+      createReadonly: async () =>
+        createReferenceModeler({ contentBoundsOfPositionsOnly: true }, false),
     }));
 
   test("a host's view change that commits the open label editor (the drift of every renderer built against 1.1) → exactly the L5 interaction case", () =>
@@ -681,15 +710,23 @@ describe("variants that miss a RECOMMENDATION fail nothing and advise exactly on
   test("a host's view change that drops the open label editor → an advisory from the L5 interaction case", () =>
     expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction));
   test("the dropped label editor, seen through interactionState alone (no commitInteraction) → the same advisory", async () => {
-    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
-      commitInteraction: undefined,
-    });
+    const advice = await expectAdvisoryOnly(
+      { dropInteractionOnViewChange: true },
+      CASE.l5Interaction,
+      {
+        commitInteraction: undefined,
+      },
+    );
     expect(advice).toMatch(/did not survive a host's view change \(setViewState closed it\)/);
   });
   test("the dropped label editor, seen through the commit alone (no interactionState) → an advisory naming both documents", async () => {
-    const advice = await expectAdvisoryOnly({ dropInteractionOnViewChange: true }, CASE.l5Interaction, {
-      interactionState: undefined,
-    });
+    const advice = await expectAdvisoryOnly(
+      { dropInteractionOnViewChange: true },
+      CASE.l5Interaction,
+      {
+        interactionState: undefined,
+      },
+    );
     expect(advice).toMatch(/wrote another document than committing it without one/);
   });
 });
@@ -705,7 +742,9 @@ describe("the aligned factory options (a type the renderers implement — tsc ch
       // @ts-expect-error — one form only: a renderer given both could not tell which one the host means
       { freeArea: { insets, center } },
     ];
-    const forms = options.map((o) => (o.freeArea ? ("insets" in o.freeArea ? "insets" : "center") : "none"));
+    const forms = options.map((o) =>
+      o.freeArea ? ("insets" in o.freeArea ? "insets" : "center") : "none",
+    );
     expect(forms).toEqual(["none", "insets", "center", "insets"]);
   });
 });

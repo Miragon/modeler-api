@@ -28,9 +28,12 @@ export const DEFAULT_SIZES: readonly Size[] = [
 export const LIGHT: Appearance = { theme: "light" };
 
 /** Shown in this order, so the legend is measured without and then with the pill. */
-export const SHOWN_ISLANDS = ["legend", "problems", "status", "inspector"] as const satisfies ReadonlyArray<
-  keyof ShowHooks
->;
+export const SHOWN_ISLANDS = [
+  "legend",
+  "problems",
+  "status",
+  "inspector",
+] as const satisfies ReadonlyArray<keyof ShowHooks>;
 
 export const POLL_MS = 50;
 
@@ -74,7 +77,10 @@ export function assertHooksConsistent<P extends PageLike>(
 }
 
 /** A hook that is neither given nor declared absent. */
-export function unfed<P extends PageLike>(harness: ShellConformanceHarness<P>, hook: ShowHook): boolean {
+export function unfed<P extends PageLike>(
+  harness: ShellConformanceHarness<P>,
+  hook: ShowHook,
+): boolean {
   return !harness.show?.[hook] && !harness.absent?.includes(hook);
 }
 
@@ -127,7 +133,11 @@ export async function pollUntil<T>(
 }
 
 /** Hovers `target` long enough for its chrome tooltip; the hovered control, `null` when there is none. */
-export async function hover(page: PageLike, root: string, target: ChromeTarget): Promise<TargetFacts | null> {
+export async function hover(
+  page: PageLike,
+  root: string,
+  target: ChromeTarget,
+): Promise<TargetFacts | null> {
   const anchor = await findTarget(page, root, target);
   if (!anchor) return null;
   await page.mouse.move(PARK.x, PARK.y);

@@ -71,7 +71,10 @@ describe("mountVsCodeShell", () => {
     const shell = mountVsCodeShell(root, options);
 
     expect(dom.mountShell).toHaveBeenCalledTimes(1);
-    const [mountedRoot, mountedOptions] = dom.mountShell.mock.calls[0] as [HTMLElement, ShellOptions];
+    const [mountedRoot, mountedOptions] = dom.mountShell.mock.calls[0] as [
+      HTMLElement,
+      ShellOptions,
+    ];
     expect(mountedRoot).toBe(root);
     expect(mountedOptions).toEqual({
       themes: ["light"],
@@ -85,7 +88,11 @@ describe("mountVsCodeShell", () => {
   });
 
   it("wins over a host or keyScope smuggled in at runtime", () => {
-    const smuggled = { themes: ["light"], host: "web", keyScope: "root" } as unknown as VsCodeShellOptions;
+    const smuggled = {
+      themes: ["light"],
+      host: "web",
+      keyScope: "root",
+    } as unknown as VsCodeShellOptions;
     mountVsCodeShell(root, smuggled).destroy();
 
     expect(dom.mountShell.mock.calls[0]?.[1]).toMatchObject({ host: "ide", keyScope: "document" });

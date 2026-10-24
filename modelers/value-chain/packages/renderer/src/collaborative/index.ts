@@ -5,4 +5,4 @@ export {
   createCollaborativeViewer,
   type CollaborativeValueChainModeler,
   type CollaborativeValueChainOptions,
-} from './CollaborativeValueChain.js';
+} from "./CollaborativeValueChain.js";

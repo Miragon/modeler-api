@@ -4,7 +4,7 @@ name: VS Code smoke weekly
 # last editor of the cron line about a failed scheduled run, so a failure opens a tracking issue.
 on:
   schedule:
-    - cron: '41 4 * * 1'
+    - cron: "41 4 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          TITLE: 'VS Code smoke: the weekly run failed'
+          TITLE: "VS Code smoke: the weekly run failed"
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail

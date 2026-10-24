@@ -34,27 +34,42 @@ describe("dragVerdict (guide §9)", () => {
   });
 
   it("forbids more than one file without multiple", () => {
-    expect(dragVerdict([file(), file()], context())).toEqual({ state: "forbidden", reason: "multiple" });
+    expect(dragVerdict([file(), file()], context())).toEqual({
+      state: "forbidden",
+      reason: "multiple",
+    });
     expect(dragVerdict([file(), file()], context({ multiple: true }))).toEqual({ state: "over" });
     // the string items of a file drag do not count as files
     expect(dragVerdict([file(), text, text], context())).toEqual({ state: "over" });
   });
 
   it("forbids a type that none of the MIME entries matches", () => {
-    expect(dragVerdict([file("image/png")], context())).toEqual({ state: "forbidden", reason: "type" });
-    expect(dragVerdict([file("IMAGE/PNG")], context())).toEqual({ state: "forbidden", reason: "type" });
-    expect(dragVerdict([file("image/png"), file("application/pdf")], context({ multiple: true }))).toEqual({
+    expect(dragVerdict([file("image/png")], context())).toEqual({
+      state: "forbidden",
+      reason: "type",
+    });
+    expect(dragVerdict([file("IMAGE/PNG")], context())).toEqual({
+      state: "forbidden",
+      reason: "type",
+    });
+    expect(
+      dragVerdict([file("image/png"), file("application/pdf")], context({ multiple: true })),
+    ).toEqual({
       state: "forbidden",
       reason: "type",
     });
   });
 
   it("never forbids an empty type, nor a drag with one matching file", () => {
-    expect(dragVerdict([file("")], context({ accept: ["application/json"] }))).toEqual({ state: "over" });
+    expect(dragVerdict([file("")], context({ accept: ["application/json"] }))).toEqual({
+      state: "over",
+    });
     expect(dragVerdict([file("image/png"), file("")], context({ multiple: true }))).toEqual({
       state: "over",
     });
-    expect(dragVerdict([file("image/png"), file("application/json")], context({ multiple: true }))).toEqual({
+    expect(
+      dragVerdict([file("image/png"), file("application/json")], context({ multiple: true })),
+    ).toEqual({
       state: "over",
     });
   });

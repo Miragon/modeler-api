@@ -21,15 +21,21 @@ describe("resolveAppearance (guide §13.5)", () => {
       theme: "light",
       kontrast: "hoch",
     });
-    expect(resolveAppearance({ theme: "dark", kontrast: "hoch" }, ["light", "dark"])).toStrictEqual({
-      theme: "dark",
-      kontrast: "hoch",
-    });
+    expect(resolveAppearance({ theme: "dark", kontrast: "hoch" }, ["light", "dark"])).toStrictEqual(
+      {
+        theme: "dark",
+        kontrast: "hoch",
+      },
+    );
   });
 
   it("shows the requested theme when the modeler can", () => {
-    expect(resolveAppearance({ theme: "dark" }, ["light", "dark"])).toStrictEqual({ theme: "dark" });
-    expect(resolveAppearance({ theme: "light" }, ["dark", "light"])).toStrictEqual({ theme: "light" });
+    expect(resolveAppearance({ theme: "dark" }, ["light", "dark"])).toStrictEqual({
+      theme: "dark",
+    });
+    expect(resolveAppearance({ theme: "light" }, ["dark", "light"])).toStrictEqual({
+      theme: "light",
+    });
   });
 
   it("falls back to the first theme the modeler names", () => {
@@ -82,11 +88,15 @@ describe("requestedAppearance", () => {
 
 describe("appearanceFromBodyClasses", () => {
   it("reads High Contrast Light before High Contrast (VS Code sets both)", () => {
-    expect(appearanceFromBodyClasses(["vscode-high-contrast", "vscode-high-contrast-light"])).toStrictEqual({
+    expect(
+      appearanceFromBodyClasses(["vscode-high-contrast", "vscode-high-contrast-light"]),
+    ).toStrictEqual({
       theme: "light",
       kontrast: "hoch",
     });
-    expect(appearanceFromBodyClasses(["vscode-high-contrast-light", "vscode-high-contrast"])).toStrictEqual({
+    expect(
+      appearanceFromBodyClasses(["vscode-high-contrast-light", "vscode-high-contrast"]),
+    ).toStrictEqual({
       theme: "light",
       kontrast: "hoch",
     });
@@ -107,7 +117,9 @@ describe("appearanceFromBodyClasses", () => {
   });
 
   it("takes any iterable, such as a DOMTokenList", () => {
-    expect(appearanceFromBodyClasses(new Set(["vscode-dark"]).values())).toStrictEqual({ theme: "dark" });
+    expect(appearanceFromBodyClasses(new Set(["vscode-dark"]).values())).toStrictEqual({
+      theme: "dark",
+    });
   });
 });
 

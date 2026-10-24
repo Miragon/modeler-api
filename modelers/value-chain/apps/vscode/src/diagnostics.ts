@@ -1,14 +1,14 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 import {
   findNodeAtLocation,
   parseTree,
   printParseErrorCode,
   type Node,
   type ParseError,
-} from 'jsonc-parser';
-import { documentIssues, MAX_NESTING_DEPTH } from '@miragon/value-chain-schema-model';
+} from "jsonc-parser";
+import { documentIssues, MAX_NESTING_DEPTH } from "@miragon/value-chain-schema-model";
 
-export const DIAGNOSTIC_COLLECTION_NAME = 'value-chain';
+export const DIAGNOSTIC_COLLECTION_NAME = "value-chain";
 
 /** A finding of the document text, located by character offset (unit-testable without VS Code). */
 export interface DocumentProblem {
@@ -20,7 +20,7 @@ export interface DocumentProblem {
 /** "PropertyNameExpected" -> "Property name expected". */
 function syntaxMessage(error: ParseError): string {
   const words = printParseErrorCode(error.error)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .toLowerCase();
   return `Invalid JSON: ${words.charAt(0).toUpperCase()}${words.slice(1)}.`;
 }
@@ -33,8 +33,8 @@ function locate(tree: Node, path: readonly (string | number)[]): Node {
   for (let length = path.length; length > 0; length--) {
     const node = findNodeAtLocation(tree, [...path.slice(0, length)]);
     if (!node) continue;
-    const key = node.parent?.type === 'property' ? node.parent.children?.[0] : undefined;
-    return key && (node.type === 'object' || node.type === 'array') ? key : node;
+    const key = node.parent?.type === "property" ? node.parent.children?.[0] : undefined;
+    return key && (node.type === "object" || node.type === "array") ? key : node;
   }
   return tree;
 }
@@ -46,13 +46,13 @@ function offsetBeyondNesting(text: string, limit: number): number | undefined {
   for (let offset = 0; offset < text.length; offset++) {
     const char = text[offset];
     if (inString) {
-      if (char === '\\') offset++;
+      if (char === "\\") offset++;
       else if (char === '"') inString = false;
     } else if (char === '"') {
       inString = true;
-    } else if (char === '{' || char === '[') {
+    } else if (char === "{" || char === "[") {
       if (++depth > limit) return offset;
-    } else if (char === '}' || char === ']') {
+    } else if (char === "}" || char === "]") {
       depth = Math.max(0, depth - 1);
     }
   }
@@ -76,7 +76,7 @@ function jsonParseErrorOffset(reason: string, text: string): number {
  * the schema's findings, at the spot they refer to. A blank file is an empty diagram and has none.
  */
 export function documentProblems(text: string): DocumentProblem[] {
-  if (text.trim() === '') return [];
+  if (text.trim() === "") return [];
   let tree: Node | undefined;
   if (offsetBeyondNesting(text, TREE_PARSER_NESTING_LIMIT) === undefined) {
     const errors: ParseError[] = [];
@@ -114,8 +114,8 @@ export function documentProblems(text: string): DocumentProblem[] {
 
 function positionAt(text: string, offset: number): vscode.Position {
   const before = text.slice(0, offset);
-  const line = before.split('\n').length - 1;
-  return new vscode.Position(line, offset - (before.lastIndexOf('\n') + 1));
+  const line = before.split("\n").length - 1;
+  return new vscode.Position(line, offset - (before.lastIndexOf("\n") + 1));
 }
 
 /**

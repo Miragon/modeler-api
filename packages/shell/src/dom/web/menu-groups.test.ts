@@ -41,9 +41,10 @@ describe("File group (guide §5.4, §2)", () => {
   it("has only the entries the modeler gives", () => {
     expect(fileMenuEntries({}, defaultMessages)).toEqual([]);
     expect(
-      fileMenuEntries({ open: { onSelect() {} }, showExample: { onSelect() {} } }, defaultMessages).map(
-        (entry) => entry.id,
-      ),
+      fileMenuEntries(
+        { open: { onSelect() {} }, showExample: { onSelect() {} } },
+        defaultMessages,
+      ).map((entry) => entry.id),
     ).toEqual(["open", "show-example"]);
   });
 
@@ -59,7 +60,9 @@ describe("File group (guide §5.4, §2)", () => {
     );
     expect(open).toMatchObject({ kind: "action", shortcut: "⌘O", disabled });
     expect(importEntry).toMatchObject({ kind: "dialog", id: "import", shortcut: "⌘I" });
-    expect(importEntry && "disabled" in importEntry ? importEntry.disabled : undefined).toBeUndefined();
+    expect(
+      importEntry && "disabled" in importEntry ? importEntry.disabled : undefined,
+    ).toBeUndefined();
     if (importEntry?.kind !== "dialog") throw new Error("expected a dialog entry");
     importEntry.onSelect();
     expect(onImport).toHaveBeenCalledTimes(1);

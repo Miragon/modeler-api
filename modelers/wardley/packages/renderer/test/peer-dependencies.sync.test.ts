@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { satisfies, valid } from 'semver';
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { satisfies, valid } from "semver";
 
 /**
  * Inside the monorepo npm resolves a workspace's peers from the workspace's own folder, where its
@@ -16,22 +16,22 @@ interface Manifest {
   peerDependencies?: Record<string, string>;
 }
 
-const repositoryRoot = new URL('../../../', import.meta.url);
-const suiteRoot = new URL('../../', repositoryRoot);
+const repositoryRoot = new URL("../../../", import.meta.url);
+const suiteRoot = new URL("../../", repositoryRoot);
 
 /** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
 function modelerWorkspaces(): string[] {
   const modeler = repositoryRoot.href.slice(suiteRoot.href.length);
-  const lockfile = new URL('package-lock.json', suiteRoot);
-  const { packages } = JSON.parse(readFileSync(lockfile, 'utf8')) as { packages: object };
+  const lockfile = new URL("package-lock.json", suiteRoot);
+  const { packages } = JSON.parse(readFileSync(lockfile, "utf8")) as { packages: object };
   return Object.keys(packages)
-    .filter((path) => path.startsWith(modeler) && !path.includes('node_modules/'))
+    .filter((path) => path.startsWith(modeler) && !path.includes("node_modules/"))
     .map((path) => path.slice(modeler.length));
 }
 
 function readManifest(directory: string): Manifest {
   const path = new URL(`${directory}/package.json`, repositoryRoot);
-  return JSON.parse(readFileSync(path, 'utf8')) as Manifest;
+  return JSON.parse(readFileSync(path, "utf8")) as Manifest;
 }
 
 const workspaces = modelerWorkspaces().map(readManifest);
@@ -75,16 +75,16 @@ const hostsOfPeers = workspaces.filter((manifest) =>
   workspaceDependenciesOf(manifest).some((dependency) => peersOf(dependency).length > 0),
 );
 
-describe('peer dependency ranges', () => {
+describe("peer dependency ranges", () => {
   it.each(packagesWithPeers)(
-    '$name accepts the exact devDependency it builds and tests each peer with',
+    "$name accepts the exact devDependency it builds and tests each peer with",
     (manifest) => {
       expect(mirrorViolations(manifest)).toEqual([]);
     },
   );
 
   it.each(hostsOfPeers)(
-    '$name installs a version of each peer that its workspace dependencies accept',
+    "$name installs a version of each peer that its workspace dependencies accept",
     (manifest) => {
       expect(hostViolations(manifest)).toEqual([]);
     },

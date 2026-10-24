@@ -73,7 +73,8 @@ const workspacePackages: WorkspacePackage[] = ["packages/api", "packages/shell"]
   for (const [subpath, target] of Object.entries(manifest.exports)) {
     const built = (target as { import?: { default?: string } }).import?.default;
     const source = built && /^\.\/dist\/(.+)\.js$/.exec(built)?.[1];
-    if (source) entries.set(posix.join(manifest.name, subpath), join(ROOT, dir, "src", `${source}.ts`));
+    if (source)
+      entries.set(posix.join(manifest.name, subpath), join(ROOT, dir, "src", `${source}.ts`));
   }
   return { name: manifest.name, dir, version: manifest.version, entries };
 });
@@ -134,7 +135,9 @@ function templateProgram(): ts.Program {
     },
     TEMPLATE,
   );
-  expect(errors.map((error) => ts.flattenDiagnosticMessageText(error.messageText, "\n"))).toEqual([]);
+  expect(errors.map((error) => ts.flattenDiagnosticMessageText(error.messageText, "\n"))).toEqual(
+    [],
+  );
   const host = ts.createCompilerHost(options);
   const original = { fileExists: host.fileExists, readFile: host.readFile };
   host.fileExists = (file) => file === TEMPLATE_TOKENS || original.fileExists(file);
@@ -181,7 +184,8 @@ function apiIndex(): ApiIndex {
         collect(signature.getReturnType(), depth + 1);
         for (const parameter of signature.getParameters()) {
           const declaration = parameter.valueDeclaration ?? parameter.declarations?.[0];
-          if (declaration) collect(checker.getTypeOfSymbolAtLocation(parameter, declaration), depth + 1);
+          if (declaration)
+            collect(checker.getTypeOfSymbolAtLocation(parameter, declaration), depth + 1);
         }
       }
       // element types of arrays, promises and other generics (`foreignTexts: Array<{ mustSurvive }>`)
@@ -215,11 +219,13 @@ function apiIndex(): ApiIndex {
       const names = new Set<string>();
       for (const symbol of checker.getExportsOfModule(moduleSymbol)) {
         names.add(symbol.getName());
-        const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+        const resolved =
+          symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
         const declaration = resolved.valueDeclaration ?? resolved.declarations?.[0];
         if (!declaration) continue;
         collect(checker.getDeclaredTypeOfSymbol(resolved), 0);
-        if (resolved.valueDeclaration) collect(checker.getTypeOfSymbolAtLocation(resolved, declaration), 0);
+        if (resolved.valueDeclaration)
+          collect(checker.getTypeOfSymbolAtLocation(resolved, declaration), 0);
       }
       exports.set(specifier, names);
     }
@@ -260,13 +266,20 @@ function headingAnchors(markdown: string): Set<string> {
 function linkTargets(markdown: string): string[] {
   const prose = markdown.replace(FENCE, "").replace(/`[^`\n]*`/g, "");
   return [
-    ...[...prose.matchAll(/!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)].map((match) => match[1]!),
-    ...[...prose.matchAll(/^\s{0,3}\[[^\]]+\]:\s*<?(\S+?)>?(?:\s+"[^"]*")?\s*$/gm)].map((match) => match[1]!),
+    ...[...prose.matchAll(/!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)].map(
+      (match) => match[1]!,
+    ),
+    ...[...prose.matchAll(/^\s{0,3}\[[^\]]+\]:\s*<?(\S+?)>?(?:\s+"[^"]*")?\s*$/gm)].map(
+      (match) => match[1]!,
+    ),
   ];
 }
 
 /** Where a link points in this checkout, or undefined for a link to elsewhere. */
-function localTarget(from: string, target: string): { path: string; anchor: string | undefined } | undefined {
+function localTarget(
+  from: string,
+  target: string,
+): { path: string; anchor: string | undefined } | undefined {
   const own = OWN_GITHUB_URL.exec(target);
   if (own) return { path: join(ROOT, decodeURIComponent(own[1]!)), anchor: own[2] };
   if (/^[a-z][a-z+.-]*:/i.test(target)) return undefined;
@@ -402,7 +415,8 @@ describe("the template's package.json files and workflows", () => {
       [...readText(file).matchAll(/^\s*-?\s*uses:\s*(\S+)(.*)$/gm)]
         .filter(
           ([, action, rest]) =>
-            !action!.startsWith("./") && (!/@[0-9a-f]{40}$/.test(action!) || !/^ # v\d/.test(rest!)),
+            !action!.startsWith("./") &&
+            (!/@[0-9a-f]{40}$/.test(action!) || !/^ # v\d/.test(rest!)),
         )
         .map(([line]) => `${fromTemplate(file)}: ${line!.trim()}`),
     );
@@ -467,7 +481,9 @@ describe("the template's placeholders", () => {
 
   it("are exactly the ones SKILL.md documents and the script fills", () => {
     const documented = new Set(
-      [...readText(join(SKILL, "SKILL.md")).matchAll(/^\| `(__[A-Z][A-Z_]*__)`/gm)].map((match) => match[1]!),
+      [...readText(join(SKILL, "SKILL.md")).matchAll(/^\| `(__[A-Z][A-Z_]*__)`/gm)].map(
+        (match) => match[1]!,
+      ),
     );
     const filled = new Set(
       [...readText(SCRIPT).matchAll(/^\s*(__[A-Z][A-Z_]*__): \{/gm)].map((match) => match[1]!),
@@ -478,7 +494,9 @@ describe("the template's placeholders", () => {
 
   it("survive formatting: none was rewritten into Markdown emphasis", () => {
     const mangled = [...used].map((placeholder) => `**${placeholder.slice(2, -2)}**`);
-    const hits = templateFiles.filter((file) => mangled.some((form) => readText(file).includes(form)));
+    const hits = templateFiles.filter((file) =>
+      mangled.some((form) => readText(file).includes(form)),
+    );
     expect(hits.map(fromRoot)).toEqual([]);
   });
 
@@ -496,11 +514,13 @@ describe("the template's placeholders", () => {
       );
       const written = filesUnder(join(target, "out"));
       expect(written).toHaveLength(templateFiles.length);
-      const leftovers = written.filter((file) => HAS_PLACEHOLDER.test(`${file}\n${readText(file)}`));
-      expect(leftovers).toEqual([]);
-      expect(readJson<{ name: string }>(join(target, "out/packages/renderer/package.json")).name).toBe(
-        "@miragon/capability-map-renderer",
+      const leftovers = written.filter((file) =>
+        HAS_PLACEHOLDER.test(`${file}\n${readText(file)}`),
       );
+      expect(leftovers).toEqual([]);
+      expect(
+        readJson<{ name: string }>(join(target, "out/packages/renderer/package.json")).name,
+      ).toBe("@miragon/capability-map-renderer");
     } finally {
       rmSync(target, { recursive: true, force: true });
     }
@@ -547,7 +567,9 @@ const PLUGIN_KEYS = new Set(
 const ENTRY_KEYS = new Set(
   [...PLUGIN_KEYS, "source", "category", "tags", "strict"].filter(
     (key) =>
-      !["icon", "documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"].includes(key),
+      !["icon", "documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"].includes(
+        key,
+      ),
   ),
 );
 const MARKETPLACE_KEYS = new Set(
@@ -568,9 +590,9 @@ interface MarketplaceEntry extends Json {
   source: string;
   version?: string;
 }
-const marketplace = readJson<{ name: string; owner?: { name?: string }; plugins: MarketplaceEntry[] } & Json>(
-  join(ROOT, ".claude-plugin/marketplace.json"),
-);
+const marketplace = readJson<
+  { name: string; owner?: { name?: string }; plugins: MarketplaceEntry[] } & Json
+>(join(ROOT, ".claude-plugin/marketplace.json"));
 
 describe("the plugin manifests", () => {
   it("make a valid marketplace", () => {
@@ -619,7 +641,10 @@ describe("the plugin manifests", () => {
           const frontmatter = /^---\n([\s\S]*?)\n---\n/.exec(text)?.[1];
           expect(frontmatter, `${skill}: frontmatter`).toBeDefined();
           const fields = new Map(
-            [...frontmatter!.matchAll(/^([\w-]+):\s*(.*)$/gm)].map((match) => [match[1]!, match[2]!.trim()]),
+            [...frontmatter!.matchAll(/^([\w-]+):\s*(.*)$/gm)].map((match) => [
+              match[1]!,
+              match[2]!.trim(),
+            ]),
           );
           expect([...fields.keys()].filter((key) => !SKILL_KEYS.has(key))).toEqual([]);
           expect(fields.get("name")).toBe(skill);
@@ -670,7 +695,9 @@ describe("the skill's links", () => {
     const escaping = skillDocuments.flatMap((file) =>
       linkTargets(readText(file))
         .filter((target) => !/^[a-z][a-z+.-]*:/i.test(target) && !target.startsWith("#"))
-        .filter((target) => relative(PLUGIN, resolve(dirname(file), target.split("#")[0]!)).startsWith(".."))
+        .filter((target) =>
+          relative(PLUGIN, resolve(dirname(file), target.split("#")[0]!)).startsWith(".."),
+        )
         .map((target) => `${fromRoot(file)} → ${target}`),
     );
     expect(escaping).toEqual([]);
@@ -762,7 +789,9 @@ function namesIn(span: string): string[] {
   }
   const names = new Set<string>();
   const code = span.replace(/(["'])(?:(?!\1).)*\1/g, " ");
-  for (const [path] of code.matchAll(/(?<![\w$.-])[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*)+(?![\w$/.])/g)) {
+  for (const [path] of code.matchAll(
+    /(?<![\w$.-])[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*)+(?![\w$/.])/g,
+  )) {
     if (!FILE_NAME.test(path)) names.add(path.replace(/\?\./g, "."));
   }
   for (const [name] of code.matchAll(/(?<![\w$.:-])[A-Za-z_$][\w$]*(?=\()/g)) names.add(name);
@@ -852,7 +881,9 @@ describe("the API names the skill mentions", () => {
     for (const file of skillDocuments) {
       const prose = readText(file).replace(FENCE, "");
       for (const [, raw] of prose.matchAll(/`([^`\n]+)`/g)) {
-        for (const [shape, owner, body] of raw!.matchAll(/([A-Za-z_$][\w$]*)\s*:\s*\{([^{}]*)\}/g)) {
+        for (const [shape, owner, body] of raw!.matchAll(
+          /([A-Za-z_$][\w$]*)\s*:\s*\{([^{}]*)\}/g,
+        )) {
           const known = shapes.get(owner!);
           for (const key of objectLiteralKeys(body!)) {
             if (!known?.has(key)) misplaced.push(`${fromRoot(file)}: ${key} in \`${shape}\``);
@@ -877,7 +908,9 @@ describe("the template's VS Code smoke step", () => {
       `${SMOKE_STEP}vitest.config.ts`,
       `${SMOKE_STEP}vscode-smoke.test.ts`,
     ]);
-    expect(readText(join(TEMPLATE, "apps/vscode/.vscodeignore")).split("\n")).toContain("test-smoke/**");
+    expect(readText(join(TEMPLATE, "apps/vscode/.vscodeignore")).split("\n")).toContain(
+      "test-smoke/**",
+    );
     expect(readText(join(TEMPLATE, "vitest.config.ts"))).not.toContain("test-smoke");
     const root = readJson<Manifest>(join(TEMPLATE, "package.json"));
     expect(root.scripts).toMatchObject({
@@ -887,11 +920,17 @@ describe("the template's VS Code smoke step", () => {
   });
 
   it("runs in Docker through the shell's command, after building what it opens", () => {
-    const { scripts = {} } = readJson<{ scripts?: Record<string, string> }>(join(TEMPLATE, "package.json"));
-    const shell = readJson<{ bin?: Record<string, string> }>(join(ROOT, "packages/shell/package.json"));
+    const { scripts = {} } = readJson<{ scripts?: Record<string, string> }>(
+      join(TEMPLATE, "package.json"),
+    );
+    const shell = readJson<{ bin?: Record<string, string> }>(
+      join(ROOT, "packages/shell/package.json"),
+    );
     const [command] = (scripts["test:vscode:docker"] ?? "").split(" ");
     expect(Object.keys(shell.bin ?? {})).toContain(command);
-    expect(scripts["test:vscode"]).toBe("npm run build && npm run build:vscode && npm run test:vscode-smoke");
+    expect(scripts["test:vscode"]).toBe(
+      "npm run build && npm run build:vscode && npm run test:vscode-smoke",
+    );
   });
 
   it("imports the driver from the entry of the shell apps/vscode pins, and is type-checked against it", () => {
@@ -909,7 +948,8 @@ describe("the template's VS Code smoke step", () => {
   });
 
   it("pins the driver's optional peers in apps/vscode, exactly and inside the shell's ranges", () => {
-    const shellPeers = readJson<Manifest>(join(ROOT, "packages/shell/package.json")).peerDependencies ?? {};
+    const shellPeers =
+      readJson<Manifest>(join(ROOT, "packages/shell/package.json")).peerDependencies ?? {};
     for (const name of SMOKE_DRIVER_PEERS) {
       const range = shellPeers[name];
       const pin = vscodeApp.devDependencies?.[name];
@@ -961,13 +1001,21 @@ const MISSING_STEP = "echo 'the step is missing'; exit 1";
 
 /** A step's script as `shell: bash` runs it (bash -eo pipefail), with only `env` set. */
 function runScript(script: string, env: Record<string, string>, cwd = ROOT) {
-  const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", script], {
-    cwd,
-    env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    "bash",
+    ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", script],
+    {
+      cwd,
+      env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
+      encoding: "utf8",
+    },
+  );
   const lines = `${result.stdout}${result.stderr}`.split("\n").filter(Boolean);
-  return { code: result.status, errors: lines.filter((line) => line.startsWith("::error::")), lines };
+  return {
+    code: result.status,
+    errors: lines.filter((line) => line.startsWith("::error::")),
+    lines,
+  };
 }
 
 /** Runs a step that writes `name=value` lines to GITHUB_OUTPUT and returns those outputs. */
@@ -1043,7 +1091,10 @@ describe("the template's CI gate", () => {
       });
     });
     it("fails on a failed job", () => {
-      expect(verdict({ test: "failure" })).toMatchObject({ code: 1, errors: ["::error::test: failure"] });
+      expect(verdict({ test: "failure" })).toMatchObject({
+        code: 1,
+        errors: ["::error::test: failure"],
+      });
     });
     it("fails on a cancelled job", () => {
       expect(verdict({ "vscode-smoke": "cancelled" })).toMatchObject({
@@ -1052,13 +1103,22 @@ describe("the template's CI gate", () => {
       });
     });
     it("fails on a failed lint and the jobs it skipped", () => {
-      expect(verdict({ lint: "failure", "test-browser": "skipped", e2e: "skipped" })).toMatchObject({
-        code: 1,
-        errors: ["::error::lint: failure", "::error::test-browser: skipped", "::error::e2e: skipped"],
-      });
+      expect(verdict({ lint: "failure", "test-browser": "skipped", e2e: "skipped" })).toMatchObject(
+        {
+          code: 1,
+          errors: [
+            "::error::lint: failure",
+            "::error::test-browser: skipped",
+            "::error::e2e: skipped",
+          ],
+        },
+      );
     });
     it("fails when it needs no job at all", () => {
-      expect(verdict({}, "", [])).toMatchObject({ code: 1, errors: ["::error::ci-ok needs no job"] });
+      expect(verdict({}, "", [])).toMatchObject({
+        code: 1,
+        errors: ["::error::ci-ok needs no job"],
+      });
     });
   });
 });
@@ -1083,7 +1143,10 @@ describe("the template's VS Code smoke workflows", () => {
   it("end in a job that succeeds when the smoke test is skipped, so CI never sees the skip", () => {
     expect(Object.keys(smoke.jobs)).toEqual(["changes", "vscode-smoke", "skipped"]);
     expect(smokeJob).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run == 'true'" });
-    expect(smoke.jobs.skipped).toMatchObject({ needs: "changes", if: "needs.changes.outputs.run != 'true'" });
+    expect(smoke.jobs.skipped).toMatchObject({
+      needs: "changes",
+      if: "needs.changes.outputs.run != 'true'",
+    });
     expect(smoke.jobs.skipped!.steps?.map((candidate) => candidate.run)).toEqual([
       expect.stringMatching(/^echo "::notice title=VS Code smoke skipped::/),
     ]);
@@ -1100,9 +1163,13 @@ describe("the template's VS Code smoke workflows", () => {
   });
 
   it("run stable and the engines floor, read from apps/vscode at run time", () => {
-    const engines = readJson<{ engines: { vscode: string } }>(join(TEMPLATE, "apps/vscode/package.json"))
-      .engines.vscode;
-    expect(smokeJob.strategy).toEqual({ "fail-fast": false, matrix: { vscode: ["stable", "minimum"] } });
+    const engines = readJson<{ engines: { vscode: string } }>(
+      join(TEMPLATE, "apps/vscode/package.json"),
+    ).engines.vscode;
+    expect(smokeJob.strategy).toEqual({
+      "fail-fast": false,
+      matrix: { vscode: ["stable", "minimum"] },
+    });
     expect(
       stepOutputs(
         step(smokeJob, "vscode").run ?? MISSING_STEP,
@@ -1130,14 +1197,22 @@ describe("the template's VS Code smoke workflows", () => {
     );
     const logs = "${{ runner.temp }}/modeler-shell-vscode-*/user-data/logs/";
     expect(
-      smokeJob.steps?.filter((candidate) => candidate.with?.path === logs).map((candidate) => candidate.if),
+      smokeJob.steps
+        ?.filter((candidate) => candidate.with?.path === logs)
+        .map((candidate) => candidate.if),
     ).toEqual(["failure()"]);
     const smoking = Object.entries(release.jobs).filter(([, job]) =>
       job.steps?.some((candidate) => candidate.run?.includes("npm run test:vscode-smoke")),
     );
-    expect(smoking.map(([id]) => id).sort()).toEqual(["dry-run", "publish-open-vsx", "publish-vscode"]);
+    expect(smoking.map(([id]) => id).sort()).toEqual([
+      "dry-run",
+      "publish-open-vsx",
+      "publish-vscode",
+    ]);
     for (const [id, job] of smoking) {
-      const smoked = job.steps!.find((candidate) => candidate.run?.includes("npm run test:vscode-smoke"));
+      const smoked = job.steps!.find((candidate) =>
+        candidate.run?.includes("npm run test:vscode-smoke"),
+      );
       expect([id, smoked?.env?.VSCODE_SMOKE_KEEP, smoked?.env?.TMPDIR]).toEqual([
         id,
         "1",
@@ -1205,7 +1280,11 @@ describe("the template's VS Code smoke workflows", () => {
       git(work, "push", "-q", "origin", "main");
       return git(work, "rev-parse", "HEAD");
     };
-    const base = commit({ "README.md": "a", "docs/guide.md": "a", "apps/vscode/src/extension.ts": "a" });
+    const base = commit({
+      "README.md": "a",
+      "docs/guide.md": "a",
+      "apps/vscode/src/extension.ts": "a",
+    });
     afterAll(() => rmSync(sandbox, { recursive: true, force: true }));
 
     const baseOf: Record<string, string> = {
@@ -1250,7 +1329,9 @@ describe("the template's VS Code smoke workflows", () => {
       expect(afterChanging({ [path]: "b" })).toBe("true");
     });
     it("runs when a file moved out of apps/vscode", () => {
-      expect(afterChanging({ "docs/extension.ts": "a" }, ["apps/vscode/src/extension.ts"])).toBe("true");
+      expect(afterChanging({ "docs/extension.ts": "a" }, ["apps/vscode/src/extension.ts"])).toBe(
+        "true",
+      );
     });
     it("runs when only a file with a non-ASCII name changed in apps/vscode", () => {
       expect(afterChanging({ "apps/vscode/test/Übersicht.example": "b" })).toBe("true");
@@ -1283,7 +1364,9 @@ describe("the template's VS Code smoke workflows", () => {
 describe("the template's TypeScript", () => {
   it("type-checks against the current @miragon/modeler-api and @miragon/modeler-shell sources", () => {
     expect(
-      [...NOT_TYPE_CHECKED_HERE.keys()].filter((file) => !templateFiles.includes(join(TEMPLATE, file))),
+      [...NOT_TYPE_CHECKED_HERE.keys()].filter(
+        (file) => !templateFiles.includes(join(TEMPLATE, file)),
+      ),
     ).toEqual([]);
     const checked = program();
     const files = typeCheckedTemplateFiles.map((file) => checked.getSourceFile(file)!);

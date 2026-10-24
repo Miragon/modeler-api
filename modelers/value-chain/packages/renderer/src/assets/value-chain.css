@@ -4,9 +4,9 @@
    .djs-parent variables onto the --cd-ui-* roles beats diagram-js's defaults. Everything below
    reads the roles and the mode-independent tokens (radius, shadow, motion) only; the diagram
    itself keeps its light SVG attributes, so exports stay light. */
-@import '../theme/cd-tokens.generated.css' layer(value-chain-tokens);
-@import 'diagram-js/assets/diagram-js.css';
-@import '../theme/cd-canvas.css';
+@import "../theme/cd-tokens.generated.css" layer(value-chain-tokens);
+@import "diagram-js/assets/diagram-js.css";
+@import "../theme/cd-canvas.css";
 
 /* Guide §10.1: the surround in --cd-ui-grund with the 1px dot grid in --cd-ui-linie, a container
    background that never reaches an export. */
@@ -17,12 +17,12 @@
   background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
   background-size: 20px 20px;
   font-family:
-    'Geist Variable',
-    'Geist',
+    "Geist Variable",
+    "Geist",
     ui-sans-serif,
     system-ui,
     -apple-system,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 }
 
@@ -61,10 +61,10 @@
 }
 
 /* The renderer's own palette, where no host chrome skins it (data-chrome="palette"). */
-.djs-palette:not([data-chrome='palette']) .entry:hover {
+.djs-palette:not([data-chrome="palette"]) .entry:hover {
   color: var(--cd-ui-interaktion);
 }
-.djs-palette:not([data-chrome='palette']) .entry.highlighted-entry {
+.djs-palette:not([data-chrome="palette"]) .entry.highlighted-entry {
   background: var(--cd-ui-hover);
   box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
 }
@@ -129,8 +129,8 @@
   display: block;
 }
 
-:root[data-cd-kontrast='hoch'] .vc-container .djs-context-pad.open,
-:root[data-cd-kontrast='hoch'] .vc-container .djs-direct-editing-parent {
+:root[data-cd-kontrast="hoch"] .vc-container .djs-context-pad.open,
+:root[data-cd-kontrast="hoch"] .vc-container .djs-direct-editing-parent {
   border-color: var(--cd-ui-kontur);
   box-shadow: none;
 }
@@ -265,12 +265,12 @@
 /* High contrast (guide §6, §8): no shadow but a --cd-ui-kontur edge, and a 3px focus ring; forced
    colours draw the edge in CanvasText and the ring in Highlight. The chrome applies these rules
    only to its own classes, so the modeler's dialog carries them itself. */
-:root[data-cd-kontrast='hoch'] .vc-shortcuts {
+:root[data-cd-kontrast="hoch"] .vc-shortcuts {
   border-color: var(--cd-ui-kontur);
   box-shadow: none;
 }
 
-:root[data-cd-kontrast='hoch'] .vc-shortcuts-close:focus-visible {
+:root[data-cd-kontrast="hoch"] .vc-shortcuts-close:focus-visible {
   outline-width: 3px;
 }
 

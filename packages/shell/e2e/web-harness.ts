@@ -83,7 +83,9 @@ export function webDemoHarness(options: WebDemoHarnessOptions = {}): ShellConfor
     },
     show,
     drop: WEB_DROP,
-    labelEditor: demoLabelEditor((page) => page.evaluate(() => window.__webDemo?.documentChanges() ?? 0)),
+    labelEditor: demoLabelEditor((page) =>
+      page.evaluate(() => window.__webDemo?.documentChanges() ?? 0),
+    ),
     absent: without,
   };
 }

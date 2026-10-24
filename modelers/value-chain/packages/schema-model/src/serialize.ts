@@ -4,8 +4,8 @@ import {
   orgUnitElementSchema,
   stepElementSchema,
   valueChainDocumentSchema,
-} from './schema.js';
-import { migrate, CURRENT_SCHEMA_VERSION } from './migrations.js';
+} from "./schema.js";
+import { migrate, CURRENT_SCHEMA_VERSION } from "./migrations.js";
 import type {
   Bounds,
   ChainConnection,
@@ -14,7 +14,7 @@ import type {
   ElementType,
   Point,
   ValueChainDocument,
-} from './types.js';
+} from "./types.js";
 
 const COORD_PRECISION = 3;
 
@@ -22,19 +22,19 @@ const COORD_PRECISION = 3;
  * Ids the editor uses for the diagram itself. An element or connection carrying one would
  * collide with the canvas root, so such a document is invalid.
  */
-export const RESERVED_IDS: readonly string[] = ['vc-root'];
+export const RESERVED_IDS: readonly string[] = ["vc-root"];
 
 /**
  * diagram-js names the roots it creates on its own `__implicitroot_…`; an element with such an id
  * would collide with one once the previous diagram was cleared.
  */
-const ENGINE_ROOT_ID_PREFIX = '__implicitroot';
+const ENGINE_ROOT_ID_PREFIX = "__implicitroot";
 
 /**
  * JSON.parse keeps `__proto__` as an ordinary key, but object validation drops it without a
  * trace, so a document carrying one is rejected instead of losing it on the first save.
  */
-const FORBIDDEN_KEY = '__proto__';
+const FORBIDDEN_KEY = "__proto__";
 
 /**
  * Objects and arrays nested deeper than this make a document invalid. The serializer, structured
@@ -82,13 +82,13 @@ export function documentIssues(data: unknown): DocumentIssue[] {
   try {
     migrated = migrate(data);
   } catch (error) {
-    return [{ message: messageOf(error), path: ['schemaVersion'] }];
+    return [{ message: messageOf(error), path: ["schemaVersion"] }];
   }
   const parsed = valueChainDocumentSchema.safeParse(migrated);
   if (!parsed.success) {
     return parsed.error.issues.map((issue) => ({
       message: issue.message,
-      path: issue.path.filter((key): key is string | number => typeof key !== 'symbol'),
+      path: issue.path.filter((key): key is string | number => typeof key !== "symbol"),
     }));
   }
   return invariantIssues(parsed.data as ValueChainDocument);
@@ -111,17 +111,17 @@ function invariantIssues(document: ValueChainDocument): DocumentIssue[] {
     }
     ids.add(id);
   };
-  document.elements.forEach((element, index) => checkId(element.id, ['elements', index, 'id']));
+  document.elements.forEach((element, index) => checkId(element.id, ["elements", index, "id"]));
   document.connections.forEach((connection, index) =>
-    checkId(connection.id, ['connections', index, 'id']),
+    checkId(connection.id, ["connections", index, "id"]),
   );
 
   const typeById = new Map<string, ElementType>(
     document.elements.map((element) => [element.id, element.elementType]),
   );
   document.connections.forEach((connection, index) => {
-    const path = ['connections', index];
-    const unresolved = (['source', 'target'] as const).filter(
+    const path = ["connections", index];
+    const unresolved = (["source", "target"] as const).filter(
       (end) => !typeById.has(connection[end]),
     );
     for (const end of unresolved) {
@@ -136,7 +136,7 @@ function invariantIssues(document: ValueChainDocument): DocumentIssue[] {
     if (connection.source === connection.target) {
       issues.push({
         message: `Connection "${connection.id}" must not connect an element to itself.`,
-        path: [...path, 'target'],
+        path: [...path, "target"],
       });
       return;
     }
@@ -147,7 +147,7 @@ function invariantIssues(document: ValueChainDocument): DocumentIssue[] {
         message:
           `Connection "${connection.id}" (${connection.connectionType}) must not connect ` +
           `${sourceType} to ${targetType}.`,
-        path: [...path, 'connectionType'],
+        path: [...path, "connectionType"],
       });
     }
   });
@@ -165,7 +165,7 @@ function structureIssues(data: unknown): DocumentIssue[] {
     const { value, path } = pending.pop()!;
     if (path.at(-1) === FORBIDDEN_KEY) {
       issues.push({ message: `The key "${FORBIDDEN_KEY}" is not allowed.`, path });
-    } else if (typeof value === 'object' && value !== null) {
+    } else if (typeof value === "object" && value !== null) {
       if (path.length >= MAX_NESTING_DEPTH) {
         issues.push({
           message: `Objects and arrays may nest at most ${MAX_NESTING_DEPTH} levels deep.`,
@@ -195,13 +195,13 @@ export function connectionAllowed(
   sourceType: ElementType,
   targetType: ElementType,
 ): boolean {
-  if (type === 'assignment') {
+  if (type === "assignment") {
     return (
-      (sourceType === 'orgUnit' && targetType === 'step') ||
-      (sourceType === 'step' && targetType === 'orgUnit')
+      (sourceType === "orgUnit" && targetType === "step") ||
+      (sourceType === "step" && targetType === "orgUnit")
     );
   }
-  return sourceType === 'step' && targetType === 'step';
+  return sourceType === "step" && targetType === "step";
 }
 
 /** Migrates (if needed) and validates. Use this for any external input. */
@@ -213,7 +213,7 @@ export function parseDocumentJSON(json: string): ValueChainDocument {
   return loadDocument(JSON.parse(json) as unknown);
 }
 
-export function createEmptyDocument(name = 'Untitled value chain'): ValueChainDocument {
+export function createEmptyDocument(name = "Untitled value chain"): ValueChainDocument {
   return { schemaVersion: CURRENT_SCHEMA_VERSION, meta: { name }, elements: [], connections: [] };
 }
 
@@ -242,7 +242,7 @@ export function metaExtensions(meta: object): Fields {
 
 /** The element fields its type does not define (an org unit's `link` included), as a new object. */
 export function elementExtensions(element: DiagramElement): Fields {
-  return unknownFields(element, element.elementType === 'step' ? STEP_KEYS : ORG_UNIT_KEYS);
+  return unknownFields(element, element.elementType === "step" ? STEP_KEYS : ORG_UNIT_KEYS);
 }
 
 /** The connection fields the schema does not define, as a new object. */
@@ -302,9 +302,9 @@ function stableStringify(value: unknown): string {
     if (Array.isArray(input)) {
       return input.map(sortKeys);
     }
-    if (typeof input === 'object' && input !== null) {
+    if (typeof input === "object" && input !== null) {
       if (seen.has(input)) {
-        throw new Error('Cannot serialize a cyclic document.');
+        throw new Error("Cannot serialize a cyclic document.");
       }
       seen.add(input);
       return Object.fromEntries(

@@ -16,7 +16,8 @@ import type { ShellOptions } from "./types.js";
 beforeEach(installFakes);
 afterEach(cleanup);
 
-const komet = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E";
+const komet =
+  "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E";
 
 /** Every web-column option, as a web app passes them. */
 function webOptions(): Partial<ShellOptions> {
@@ -101,7 +102,9 @@ describe("web-column wiring (0.2)", () => {
     // No diagram to zoom: the browser zooms the page.
     const event = keydown(document.body, { key: "=", code: "Equal", metaKey: true });
     expect(event.defaultPrevented).toBe(false);
-    expect(keydown(document.body, { key: "!", code: "Digit1", shiftKey: true }).defaultPrevented).toBe(false);
+    expect(
+      keydown(document.body, { key: "!", code: "Digit1", shiftKey: true }).defaultPrevented,
+    ).toBe(false);
     expect(zoom.stepZoom).not.toHaveBeenCalled();
     expect(zoom.fit).not.toHaveBeenCalled();
 
@@ -119,7 +122,9 @@ describe("web-column wiring (0.2)", () => {
     const close = chrome(root, "toasts").querySelector<HTMLButtonElement>(".cd-shell-toast-close");
     close?.focus();
     close?.click();
-    const newDiagram = chrome(root, "empty-state").querySelector('.cd-shell-button[data-variant="primary"]');
+    const newDiagram = chrome(root, "empty-state").querySelector(
+      '.cd-shell-button[data-variant="primary"]',
+    );
     expect(document.activeElement).toBe(newDiagram);
   });
 
@@ -215,7 +220,11 @@ describe("web-column wiring (0.2)", () => {
   it("decides the top row again when the primary action resizes (a late web font)", () => {
     const { shell, root } = mount({ host: "web", ...webOptions() }, { width: 900, height: 700 });
     const palette = fakePalette();
-    for (const [name, value] of Object.entries({ offsetWidth: 648, clientWidth: 646, scrollWidth: 646 })) {
+    for (const [name, value] of Object.entries({
+      offsetWidth: 648,
+      clientWidth: 646,
+      scrollWidth: 646,
+    })) {
       Object.defineProperty(palette.element, name, { configurable: true, value });
     }
     shell.registerPalette(palette);
@@ -232,7 +241,9 @@ describe("web-column wiring (0.2)", () => {
 
   it("offers shell.appearance to a dark-capable web modeler only", () => {
     expect(mount({ host: "web", ...webOptions() }).shell.appearance).toBeUndefined();
-    expect(mount({ host: "web", ...webOptions(), themes: ["light", "dark"] }).shell.appearance).toBeDefined();
+    expect(
+      mount({ host: "web", ...webOptions(), themes: ["light", "dark"] }).shell.appearance,
+    ).toBeDefined();
   });
 
   it("removes the web column and the canvas's inert again on destroy", () => {

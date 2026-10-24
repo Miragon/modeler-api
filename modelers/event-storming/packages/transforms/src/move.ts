@@ -1,5 +1,5 @@
-import type { Coordinate, EventStormingBoard } from '@miragon/event-storming-schema-model';
-import { updateElement, findElement } from './util.js';
+import type { Coordinate, EventStormingBoard } from "@miragon/event-storming-schema-model";
+import { updateElement, findElement } from "./util.js";
 
 export interface MoveDelta {
   readonly dx: number;
@@ -28,7 +28,7 @@ export function moveBy(
 ): EventStormingBoard {
   return updateElement(board, elementId, (el) => {
     const position = { x: el.position.x + dx, y: el.position.y + dy };
-    if (el.elementType === 'drawing') {
+    if (el.elementType === "drawing") {
       // Drawing points are absolute board pixels and `position` mirrors the first point,
       // so the polyline must translate together with the position.
       return {

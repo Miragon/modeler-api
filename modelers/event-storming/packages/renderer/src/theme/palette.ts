@@ -23,30 +23,30 @@
 /** Raw Miragon brand ramp — exact `cd-tokens.generated.json` values (`fest`). */
 export const MIRAGON = {
   /** Primary: surfaces, buttons, links, backgrounds. */
-  blau: '#335DE5',
+  blau: "#335DE5",
   /** Deeper blue for links / accent text on white (WCAG AA, ~5.5:1). */
-  blauLink: '#2B50D4',
+  blauLink: "#2B50D4",
   /** Lightened blue for links / accents on dark surfaces. */
-  blauHell: '#6B8AFF',
+  blauHell: "#6B8AFF",
   /** Accent: key visual, highlights, one emphasised word. Bright — a fill, never text on white. */
-  gruen: '#00E676',
+  gruen: "#00E676",
   /** Calm neutral surface (warm off-white). */
-  grau: '#F9F7F7',
+  grau: "#F9F7F7",
   /** Text on light, monochrome logo. Not pure black. */
-  schwarz: '#1D1D1D',
-  weiss: '#FFFFFF',
+  schwarz: "#1D1D1D",
+  weiss: "#FFFFFF",
   /** Fixed light neutral for lines and borders on a light stage. */
-  linie: '#E6E2E2',
+  linie: "#E6E2E2",
   /**
    * Status layer (guide §3.3): the brand colours plus amber and red. Fills, borders, icons and
    * dots; as text on white only `danger` and `info` reach AA.
    */
-  success: '#00E676',
-  warning: '#FFB000',
-  danger: '#CD1839',
-  info: '#335DE5',
+  success: "#00E676",
+  warning: "#FFB000",
+  danger: "#CD1839",
+  info: "#335DE5",
   /** Dark base — the CI hero / nav-glass colour (rgb 8,10,32). The canvas never draws it. */
-  navy: '#080A20',
+  navy: "#080A20",
   /** Signature brand gradient — hero, large surfaces, brand moments. Use verbatim. */
-  gradientBrand: 'linear-gradient(120deg, #335DE5 30%, #00E676)',
+  gradientBrand: "linear-gradient(120deg, #335DE5 30%, #00E676)",
 } as const;

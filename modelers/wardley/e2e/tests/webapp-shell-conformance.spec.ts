@@ -1,10 +1,10 @@
-import { test, type Page } from '@playwright/test';
-import { registerShellConformance, type ShellSkip } from '@miragon/modeler-shell/testing';
-import { EXAMPLE_MAP } from '../../apps/webapp/src/example.js';
-import { encodeMapCompressed } from '../../apps/webapp/src/share.js';
-import { THEMES } from '../../apps/webapp/src/themes.js';
-import { kettleLabelEditor } from './support/label-editor.js';
-import { waitForViewer } from './support/viewer.js';
+import { test, type Page } from "@playwright/test";
+import { registerShellConformance, type ShellSkip } from "@miragon/modeler-shell/testing";
+import { EXAMPLE_MAP } from "../../apps/webapp/src/example.js";
+import { encodeMapCompressed } from "../../apps/webapp/src/share.js";
+import { THEMES } from "../../apps/webapp/src/themes.js";
+import { kettleLabelEditor } from "./support/label-editor.js";
+import { waitForViewer } from "./support/viewer.js";
 
 /**
  * The shell's conformance kit against the real web app (the web host of guide §5.2): geometry at
@@ -16,17 +16,17 @@ import { waitForViewer } from './support/viewer.js';
  * was), so the harness declares them absent; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
-  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
+  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
 
 /** The example with two lines the parser cannot take: two text rows in the problems list. */
 const MAP_WITH_FINDINGS = `${EXAMPLE_MAP}compnent Typo [0.2, 0.2]\nCup -> Nowhere\n`;
 
-test.describe('web app: shell conformance', () => {
+test.describe("web app: shell conformance", () => {
   test.describe.configure({ timeout: 90_000 });
 
   registerShellConformance<Page>(
     {
-      host: 'web',
+      host: "web",
       themes: THEMES,
       // The kit emulates the system's colour scheme and contrast before every open.
       async open(page, { size }) {
@@ -38,7 +38,7 @@ test.describe('web app: shell conformance', () => {
         await page.evaluate(() => window.__wardleyApp?.destroy());
       },
       // The import findings name lines, never elements a row could select.
-      absent: ['legend', 'inspector', 'invalid', 'problemSelection'],
+      absent: ["legend", "inspector", "invalid", "problemSelection"],
       show: {
         // A link to a map with findings, loaded fresh: the import the user started reports them
         // to the pill and its list, as the app's real path does.
@@ -50,14 +50,14 @@ test.describe('web app: shell conformance', () => {
           await page.evaluate(() => {
             const shell = window.__wardleyApp!.shell;
             shell.setStatus({
-              severity: 'danger',
-              text: shell.messages.invalidFile('Wardley map'),
+              severity: "danger",
+              text: shell.messages.invalidFile("Wardley map"),
             });
           });
         },
         // A fresh visit: the page without a map in its link.
         async emptyState(page) {
-          await page.goto('/');
+          await page.goto("/");
           await waitForViewer(page);
         },
         async toast(page, { status, text, actionLabel }) {
@@ -76,8 +76,8 @@ test.describe('web app: shell conformance', () => {
       drop: {
         // A .wmap file has no MIME type the browser knows; a picture is refused already while it
         // is dragged and, dropped all the same, opens nothing.
-        accepted: { name: 'tea-shop.wmap', type: '', text: EXAMPLE_MAP },
-        rejected: { name: 'map.png', type: 'image/png', text: 'x' },
+        accepted: { name: "tea-shop.wmap", type: "", text: EXAMPLE_MAP },
+        rejected: { name: "map.png", type: "image/png", text: "x" },
       },
       // Every edit goes into the map the link and the download carry.
       labelEditor: kettleLabelEditor((page) =>

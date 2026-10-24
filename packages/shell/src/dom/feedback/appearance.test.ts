@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { APPEARANCE_STORAGE_KEY, type Theme } from "../../core/index.js";
 import type { StorageLike } from "../types.js";
-import { NO_TRANSITION_CLASS, connectWebAppearance, type WebAppearanceController } from "./appearance.js";
+import {
+  NO_TRANSITION_CLASS,
+  connectWebAppearance,
+  type WebAppearanceController,
+} from "./appearance.js";
 
 const themeColors = { light: "#335DE5", dark: "#1D1D1D" };
 const DARK_CAPABLE: readonly Theme[] = ["light", "dark"];
@@ -255,7 +259,9 @@ describe("connectWebAppearance: a dark-capable modeler (guide §13.3)", () => {
   it("applies another tab's choice from its storage event", () => {
     writeDarkCapableHead();
     const controller = connect(DARK_CAPABLE, new MemoryStorage());
-    window.dispatchEvent(new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "dark" }));
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "dark" }),
+    );
     expect(controller.choice()).toBe("dark");
     expect(headState().theme).toBe("dark");
     expect(document.documentElement.classList.contains(NO_TRANSITION_CLASS)).toBe(true);
@@ -263,7 +269,9 @@ describe("connectWebAppearance: a dark-capable modeler (guide §13.3)", () => {
     window.dispatchEvent(new StorageEvent("storage", { key: "other", newValue: "light" }));
     expect(controller.choice()).toBe("dark");
 
-    window.dispatchEvent(new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: null }));
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: null }),
+    );
     expect(controller.choice()).toBe("system");
     expect(headState().metas).toContain("color-scheme=light dark");
 
@@ -292,14 +300,20 @@ describe("connectWebAppearance: a light-only modeler (guide §13.3)", () => {
     expect(headState()).toEqual(before);
     expect(document.documentElement.classList.contains(NO_TRANSITION_CLASS)).toBe(false);
     expect(() =>
-      connectWebAppearance({ ownerDocument: document, themes: LIGHT_ONLY, options: undefined }).destroy(),
+      connectWebAppearance({
+        ownerDocument: document,
+        themes: LIGHT_ONLY,
+        options: undefined,
+      }).destroy(),
     ).not.toThrow();
   });
 
   it("ignores other tabs' storage events", () => {
     writeDarkCapableHead();
     const controller = connect(LIGHT_ONLY, new MemoryStorage());
-    window.dispatchEvent(new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "dark" }));
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "dark" }),
+    );
     expect(controller.choice()).toBe("system");
     expect(headState().theme).toBe("system");
   });
@@ -352,7 +366,9 @@ describe("connectWebAppearance: destroy", () => {
     controller.destroy();
     contrastQuery.change(true);
     expect(html.hasAttribute("data-cd-kontrast")).toBe(false);
-    window.dispatchEvent(new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "light" }));
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: APPEARANCE_STORAGE_KEY, newValue: "light" }),
+    );
     expect(headState().theme).toBe("dark");
     expect(contrastQuery.listeners.size).toBe(0);
   });

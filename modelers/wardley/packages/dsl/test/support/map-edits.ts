@@ -1,5 +1,5 @@
-import type { MapEdge, MapElement, WardleyMap } from '@miragon/wardley-schema-model';
-import { parseDSL } from '../../src/index.js';
+import type { MapEdge, MapElement, WardleyMap } from "@miragon/wardley-schema-model";
+import { parseDSL } from "../../src/index.js";
 
 /** Line-level difference between two texts (longest common subsequence). */
 export function lineDiff(before: string, after: string): { removed: string[]; added: string[] } {
@@ -63,11 +63,11 @@ export function deleteElement(map: WardleyMap, label: string): WardleyMap {
   const elements = map.elements
     .filter((el) => el !== target)
     .map((el): MapElement => {
-      if (el.elementType === 'component' && el.pipelineId === target.id) {
+      if (el.elementType === "component" && el.pipelineId === target.id) {
         const { pipelineId: _removed, ...rest } = el;
         return rest;
       }
-      if (el.elementType === 'pipeline') {
+      if (el.elementType === "pipeline") {
         return { ...el, childIds: el.childIds.filter((id) => id !== target.id) };
       }
       return el;
@@ -87,7 +87,7 @@ export function addEdges(map: WardleyMap, ...edges: MapEdge[]): WardleyMap {
 export function link(map: WardleyMap, id: string, from: string, to: string): MapEdge {
   return {
     id,
-    edgeType: 'dependency',
+    edgeType: "dependency",
     from: elementNamed(map, from).id,
     to: elementNamed(map, to).id,
   };
@@ -99,10 +99,10 @@ export function component(
   visibility: number,
   evolution: number,
 ): MapElement {
-  return { id, elementType: 'component', label, position: { visibility, evolution } };
+  return { id, elementType: "component", label, position: { visibility, evolution } };
 }
 
-const RENDERER_TYPE_ORDER = ['attitude', 'pipeline', 'note', 'component', 'anchor', 'annotation'];
+const RENDERER_TYPE_ORDER = ["attitude", "pipeline", "note", "component", "anchor", "annotation"];
 
 /** The element order the modeler exports: grouped by drawing layer, not by source line. */
 export function inRendererOrder(map: WardleyMap): WardleyMap {

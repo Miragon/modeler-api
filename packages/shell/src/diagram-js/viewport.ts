@@ -334,7 +334,8 @@ export class DiagramViewport implements Viewport {
     this.container.removeEventListener("wheel", this.onPointerInput, CAPTURE);
     this.container.removeEventListener("pointerdown", this.onPointerInput, CAPTURE);
     this.container.removeEventListener("keydown", this.onKeyInput, CAPTURE);
-    for (const [events, listener] of this.subscriptions.splice(0)) this.eventBus.off(events, listener);
+    for (const [events, listener] of this.subscriptions.splice(0))
+      this.eventBus.off(events, listener);
     this.listeners.clear();
   }
 
@@ -419,7 +420,12 @@ export class DiagramViewport implements Viewport {
       this.pendingView = undefined;
       this.write(viewbox);
     } else {
-      this.pendingView = { x: viewbox.x, y: viewbox.y, width: viewbox.width, height: viewbox.height };
+      this.pendingView = {
+        x: viewbox.x,
+        y: viewbox.y,
+        width: viewbox.width,
+        height: viewbox.height,
+      };
     }
   }
 
@@ -468,14 +474,19 @@ export class DiagramViewport implements Viewport {
 
   private prefersReducedMotion(): boolean {
     if (this.options.prefersReducedMotion) return this.options.prefersReducedMotion();
-    if (this.container.ownerDocument.documentElement.classList.contains(REDUCED_MOTION_CLASS)) return true;
-    return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (this.container.ownerDocument.documentElement.classList.contains(REDUCED_MOTION_CLASS))
+      return true;
+    return (
+      typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
   }
 
   private isOwnView(current: View): boolean {
     if (this.reference && sameView(current, this.reference)) return true;
     return (
-      this.animation !== undefined && this.lastWritten !== undefined && sameView(current, this.lastWritten)
+      this.animation !== undefined &&
+      this.lastWritten !== undefined &&
+      sameView(current, this.lastWritten)
     );
   }
 

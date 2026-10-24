@@ -1,8 +1,8 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type EventStormingModeling from '../modeling/EventStormingModeling.js';
-import { STICKY_KINDS, type EventStormingShape } from '../model/di-types.js';
-import { STICKY_STYLES } from '../draw/styles.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type EventStormingModeling from "../modeling/EventStormingModeling.js";
+import { STICKY_KINDS, type EventStormingShape } from "../model/di-types.js";
+import { STICKY_STYLES } from "../draw/styles.js";
 
 /** The 8 swatches = the 8 sticky fills (recolor any element into another kind's tone). */
 const SWATCHES: ReadonlyArray<{ value: string; title: string }> = STICKY_KINDS.map((kind) => ({
@@ -17,7 +17,7 @@ const SWATCHES: ReadonlyArray<{ value: string; title: string }> = STICKY_KINDS.m
  * `eventStormingModeling` (undo/redo). First cell = "no color" (back to the kind's default).
  */
 export default class EventStormingColorPicker {
-  static $inject = ['canvas', 'eventBus', 'eventStormingModeling'];
+  static $inject = ["canvas", "eventBus", "eventStormingModeling"];
 
   private popover: HTMLElement | undefined;
 
@@ -25,7 +25,7 @@ export default class EventStormingColorPicker {
     if (this.popover && !this.popover.contains(e.target as Node)) this.close();
   };
   private readonly onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') this.close();
+    if (e.key === "Escape") this.close();
   };
 
   constructor(
@@ -34,7 +34,7 @@ export default class EventStormingColorPicker {
     private readonly modeling: EventStormingModeling,
   ) {
     // Close on pan/zoom, drag or re-import (otherwise the popover ends up misplaced).
-    eventBus.on(['canvas.viewbox.changing', 'drag.init', 'diagram.clear'], () => this.close());
+    eventBus.on(["canvas.viewbox.changing", "drag.init", "diagram.clear"], () => this.close());
   }
 
   /** Opens the swatch grid for `shape` at the click position (viewport coordinates). */
@@ -43,21 +43,21 @@ export default class EventStormingColorPicker {
     const container = this.canvas.getContainer();
     const rect = container.getBoundingClientRect();
 
-    const pop = document.createElement('div');
-    pop.className = 'event-storming-color-picker';
+    const pop = document.createElement("div");
+    pop.className = "event-storming-color-picker";
 
     const swatches: ReadonlyArray<{ value: string | undefined; title: string; cls: string }> = [
-      { value: undefined, title: 'No color', cls: 'event-storming-cp-none' },
-      ...SWATCHES.map((c) => ({ value: c.value as string, title: c.title, cls: '' })),
+      { value: undefined, title: "No color", cls: "event-storming-cp-none" },
+      ...SWATCHES.map((c) => ({ value: c.value as string, title: c.title, cls: "" })),
     ];
     for (const s of swatches) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
+      const btn = document.createElement("button");
+      btn.type = "button";
       btn.className = `event-storming-cp-swatch ${s.cls}`.trim();
       btn.title = s.title;
       if (s.value) btn.style.background = s.value;
-      if ((shape.color ?? undefined) === s.value) btn.classList.add('event-storming-cp-active');
-      btn.addEventListener('click', (ev) => {
+      if ((shape.color ?? undefined) === s.value) btn.classList.add("event-storming-cp-active");
+      btn.addEventListener("click", (ev) => {
         ev.stopPropagation();
         this.modeling.setColor(shape, s.value);
         this.close();
@@ -80,8 +80,8 @@ export default class EventStormingColorPicker {
     this.popover = pop;
     // Attach listeners with a delay so the opening click does not immediately close the popover.
     setTimeout(() => {
-      document.addEventListener('click', this.onDocPointer, true);
-      document.addEventListener('keydown', this.onKey, true);
+      document.addEventListener("click", this.onDocPointer, true);
+      document.addEventListener("keydown", this.onKey, true);
     }, 0);
   }
 
@@ -89,7 +89,7 @@ export default class EventStormingColorPicker {
     if (!this.popover) return;
     this.popover.remove();
     this.popover = undefined;
-    document.removeEventListener('click', this.onDocPointer, true);
-    document.removeEventListener('keydown', this.onKey, true);
+    document.removeEventListener("click", this.onDocPointer, true);
+    document.removeEventListener("keydown", this.onKey, true);
   }
 }

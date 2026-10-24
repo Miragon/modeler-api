@@ -1,24 +1,24 @@
-import type Palette from 'diagram-js/lib/features/palette/Palette';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type LassoTool from 'diagram-js/lib/features/lasso-tool/LassoTool';
-import type WardleyDrawTool from '../draw-tool/WardleyDrawTool.js';
+import type Palette from "diagram-js/lib/features/palette/Palette";
+import type Create from "diagram-js/lib/features/create/Create";
+import type LassoTool from "diagram-js/lib/features/lasso-tool/LassoTool";
+import type WardleyDrawTool from "../draw-tool/WardleyDrawTool.js";
 import type {
   PaletteEntries,
   PaletteEntry,
   default as PaletteProvider,
-} from 'diagram-js/lib/features/palette/PaletteProvider';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type { CreateNewExtra } from '../model/WardleyElementFactory.js';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Parent, Shape } from 'diagram-js/lib/model/Types';
-import type { Injector } from 'didi';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type { FreeRect } from '../free-rect/index.js';
-import { isWardleyShape, type WardleyShape, type WardleyShapeType } from '../model/di-types.js';
-import { PALETTE_ICONS, attitudeIcon } from '../draw/palette-icons.js';
+} from "diagram-js/lib/features/palette/PaletteProvider";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type { CreateNewExtra } from "../model/WardleyElementFactory.js";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Parent, Shape } from "diagram-js/lib/model/Types";
+import type { Injector } from "didi";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type { FreeRect } from "../free-rect/index.js";
+import { isWardleyShape, type WardleyShape, type WardleyShapeType } from "../model/di-types.js";
+import { PALETTE_ICONS, attitudeIcon } from "../draw/palette-icons.js";
 
 interface PaletteSpec {
   key: string;
@@ -33,119 +33,119 @@ interface PaletteSpec {
 }
 
 // Group IDs with a prefix number -> stable, visible ordering of the palette groups.
-const GROUP_BLOCKS = 'wardley-1-blocks';
-const GROUP_STRATEGY = 'wardley-2-strategy';
-const GROUP_NOTES = 'wardley-3-notes';
+const GROUP_BLOCKS = "wardley-1-blocks";
+const GROUP_STRATEGY = "wardley-2-strategy";
+const GROUP_NOTES = "wardley-3-notes";
 
 const SPECS: readonly PaletteSpec[] = [
   {
-    key: 'component',
-    type: 'component',
-    label: 'Component',
-    title: 'Component',
-    shortcut: 'C',
+    key: "component",
+    type: "component",
+    label: "Component",
+    title: "Component",
+    shortcut: "C",
     icon: PALETTE_ICONS.component!,
     group: GROUP_BLOCKS,
   },
   {
-    key: 'market',
-    type: 'component',
-    label: 'Market',
-    title: 'Market component',
+    key: "market",
+    type: "component",
+    label: "Market",
+    title: "Market component",
     icon: PALETTE_ICONS.market!,
     group: GROUP_BLOCKS,
     extra: { market: true },
   },
   {
-    key: 'ecosystem',
-    type: 'component',
-    label: 'Ecosystem',
-    title: 'Ecosystem component',
+    key: "ecosystem",
+    type: "component",
+    label: "Ecosystem",
+    title: "Ecosystem component",
     icon: PALETTE_ICONS.ecosystem!,
     group: GROUP_BLOCKS,
     extra: { ecosystem: true },
   },
   {
-    key: 'anchor',
-    type: 'anchor',
-    label: 'User',
-    title: 'Anchor / User',
-    shortcut: 'U',
+    key: "anchor",
+    type: "anchor",
+    label: "User",
+    title: "Anchor / User",
+    shortcut: "U",
     icon: PALETTE_ICONS.anchor!,
     group: GROUP_BLOCKS,
   },
   {
-    key: 'pipeline',
-    type: 'pipeline',
-    label: 'Pipeline',
-    title: 'Pipeline',
-    shortcut: 'P',
+    key: "pipeline",
+    type: "pipeline",
+    label: "Pipeline",
+    title: "Pipeline",
+    shortcut: "P",
     icon: PALETTE_ICONS.pipeline!,
     group: GROUP_BLOCKS,
   },
   {
-    key: 'submap',
-    type: 'submap',
-    label: 'Submap',
-    title: 'Submap',
+    key: "submap",
+    type: "submap",
+    label: "Submap",
+    title: "Submap",
     icon: PALETTE_ICONS.submap!,
     group: GROUP_BLOCKS,
   },
 
   {
-    key: 'pioneers',
-    type: 'attitude',
-    label: 'Pioneers',
-    title: 'Pioneers region',
-    icon: attitudeIcon('pioneers'),
+    key: "pioneers",
+    type: "attitude",
+    label: "Pioneers",
+    title: "Pioneers region",
+    icon: attitudeIcon("pioneers"),
     group: GROUP_STRATEGY,
-    extra: { attitudeKind: 'pioneers' },
+    extra: { attitudeKind: "pioneers" },
   },
   {
-    key: 'settlers',
-    type: 'attitude',
-    label: 'Settlers',
-    title: 'Settlers region',
-    icon: attitudeIcon('settlers'),
+    key: "settlers",
+    type: "attitude",
+    label: "Settlers",
+    title: "Settlers region",
+    icon: attitudeIcon("settlers"),
     group: GROUP_STRATEGY,
-    extra: { attitudeKind: 'settlers' },
+    extra: { attitudeKind: "settlers" },
   },
   {
-    key: 'townplanners',
-    type: 'attitude',
-    label: 'Town Planners',
-    title: 'Town Planners region',
-    icon: attitudeIcon('townplanners'),
+    key: "townplanners",
+    type: "attitude",
+    label: "Town Planners",
+    title: "Town Planners region",
+    icon: attitudeIcon("townplanners"),
     group: GROUP_STRATEGY,
-    extra: { attitudeKind: 'townplanners' },
+    extra: { attitudeKind: "townplanners" },
   },
   {
-    key: 'accelerator',
-    type: 'accelerator',
-    label: 'Accelerate',
-    title: 'Accelerator',
+    key: "accelerator",
+    type: "accelerator",
+    label: "Accelerate",
+    title: "Accelerator",
     icon: PALETTE_ICONS.accelerator!,
     group: GROUP_STRATEGY,
-    extra: { acceleratorDirection: 'accelerate' },
+    extra: { acceleratorDirection: "accelerate" },
   },
   {
-    key: 'deaccelerator',
-    type: 'accelerator',
-    label: 'Deaccelerate',
-    title: 'Deaccelerator',
+    key: "deaccelerator",
+    type: "accelerator",
+    label: "Deaccelerate",
+    title: "Deaccelerator",
     icon: PALETTE_ICONS.deaccelerator!,
     group: GROUP_STRATEGY,
-    extra: { acceleratorDirection: 'deaccelerate' },
+    extra: { acceleratorDirection: "deaccelerate" },
   },
 
   // Annotations (numbered markers + legend) are deliberately NOT in the palette: Note covers
   // free text; imported OWM maps still render annotations (viewer compatibility).
   {
-    key: 'note',
-    type: 'note',
-    label: 'Note',
-    title: 'Note',
-    shortcut: 'N',
+    key: "note",
+    type: "note",
+    label: "Note",
+    title: "Note",
+    shortcut: "N",
     icon: PALETTE_ICONS.note!,
     group: GROUP_NOTES,
   },
@@ -161,15 +161,15 @@ interface ToolSpec {
 // Names in sentence case, keys apart (guide §5.6): the chrome tooltip shows the key as a chip, and
 // the gestures (Shift+drag, how a drawing ends) are listed in the keyboard shortcuts.
 const LASSO_TOOL: ToolSpec = {
-  key: 'lasso-tool',
-  title: 'Lasso',
-  shortcut: 'L',
+  key: "lasso-tool",
+  title: "Lasso",
+  shortcut: "L",
   icon: PALETTE_ICONS.lasso!,
 };
 
 const DRAW_TOOL: ToolSpec = {
-  key: 'draw-tool',
-  title: 'Draw',
+  key: "draw-tool",
+  title: "Draw",
   icon: PALETTE_ICONS.draw!,
 };
 
@@ -180,7 +180,7 @@ const STACK_OFFSET = 24;
 const MAX_STACK_STEPS = 12;
 
 function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
 /**
@@ -188,17 +188,17 @@ function escapeAttribute(value: string): string {
  * modeler shell dispatches it with `detail === 0`, every pointer click has 1 or more.
  */
 function isKeyboardClick(event: Event): boolean {
-  return event.type === 'click' && (event as MouseEvent).detail === 0;
+  return event.type === "click" && (event as MouseEvent).detail === 0;
 }
 
 export default class WardleyPaletteProvider implements PaletteProvider {
   static $inject = [
-    'palette',
-    'create',
-    'wardleyElementFactory',
-    'lassoTool',
-    'wardleyDrawTool',
-    'injector',
+    "palette",
+    "create",
+    "wardleyElementFactory",
+    "lassoTool",
+    "wardleyDrawTool",
+    "injector",
   ];
 
   /**
@@ -219,7 +219,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
     // squeeze it to 94px on canvases lower than ~694px and spill the entries out of the bar.
     (palette as unknown as { _needsCollapse: () => boolean })._needsCollapse = () => false;
     this.needsNativeTitle =
-      !injector.get('paletteTooltip', false) && !injector.get('modelerShell', false);
+      !injector.get("paletteTooltip", false) && !injector.get("modelerShell", false);
     palette.registerProvider(this);
   }
 
@@ -229,7 +229,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
     // Selection tool first. Group MUST be called "tools" and the key end in "-tool" — that is
     // what diagram-js' palette uses to highlight the active tool (tool-manager.update).
     entries[LASSO_TOOL.key] = {
-      group: 'tools',
+      group: "tools",
       ...this.describe(LASSO_TOOL.title, LASSO_TOOL.shortcut),
       html: this.entryHtml(LASSO_TOOL.title, LASSO_TOOL.icon, LASSO_TOOL.shortcut),
       action: {
@@ -238,7 +238,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
     };
 
     entries[DRAW_TOOL.key] = {
-      group: 'tools',
+      group: "tools",
       ...this.describe(DRAW_TOOL.title, DRAW_TOOL.shortcut),
       html: this.entryHtml(DRAW_TOOL.title, DRAW_TOOL.icon, DRAW_TOOL.shortcut),
       action: {
@@ -274,9 +274,9 @@ export default class WardleyPaletteProvider implements PaletteProvider {
   createAtFreeCenter(entryId: string): WardleyShape | undefined {
     const spec = SPECS.find((candidate) => `create.${candidate.key}` === entryId);
     if (!spec) return undefined;
-    const modeling = this.injector.get<Modeling>('modeling');
-    const canvas = this.injector.get<Canvas>('canvas');
-    const grid = this.injector.get<EvolutionGrid>('evolutionGrid');
+    const modeling = this.injector.get<Modeling>("modeling");
+    const canvas = this.injector.get<Canvas>("canvas");
+    const grid = this.injector.get<EvolutionGrid>("evolutionGrid");
 
     const shape = this.createShapeFor(spec);
     const position = this.freeCenterPosition(shape, canvas, grid);
@@ -286,11 +286,11 @@ export default class WardleyPaletteProvider implements PaletteProvider {
       canvas.getRootElement() as unknown as Parent,
     );
 
-    this.injector.get<Selection>('selection', false)?.select(shape as unknown as Shape);
+    this.injector.get<Selection>("selection", false)?.select(shape as unknown as Shape);
     canvas.focus();
     // Regions are unlabelled (OWM canon), so there is nothing to name.
-    if (spec.type !== 'attitude') {
-      this.injector.get<LabelEditingLike>('wardleyLabelEditing', false)?.activate(shape);
+    if (spec.type !== "attitude") {
+      this.injector.get<LabelEditingLike>("wardleyLabelEditing", false)?.activate(shape);
     }
     return shape;
   }
@@ -305,7 +305,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
     grid: EvolutionGrid,
   ): { x: number; y: number } {
     const freeCenter =
-      this.injector.get<FreeRect | null>('wardleyFreeRect', false)?.center() ??
+      this.injector.get<FreeRect | null>("wardleyFreeRect", false)?.center() ??
       (({ x, y, width, height }) => ({ x: x + width / 2, y: y + height / 2 }))(canvas.viewbox());
     const plotTopLeft = grid.toCanvas({ evolution: 0, visibility: 1 });
     const plotBottomRight = grid.toCanvas({ evolution: 1, visibility: 0 });
@@ -328,14 +328,14 @@ export default class WardleyPaletteProvider implements PaletteProvider {
         shape.height,
       ),
     });
-    const registry = this.injector.get<ElementRegistry>('elementRegistry');
+    const registry = this.injector.get<ElementRegistry>("elementRegistry");
     // Regions and drawings are backgrounds that other elements sit on, so only nodes block a spot.
     const occupied = (point: { x: number; y: number }) =>
       registry.find(
         (element: unknown) =>
           isWardleyShape(element) &&
-          element.wardleyType !== 'attitude' &&
-          element.wardleyType !== 'drawing' &&
+          element.wardleyType !== "attitude" &&
+          element.wardleyType !== "drawing" &&
           Math.abs(element.x + element.width / 2 - point.x) < (element.width + shape.width) / 2 &&
           Math.abs(element.y + element.height / 2 - point.y) < (element.height + shape.height) / 2,
       ) !== undefined;
@@ -349,7 +349,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
   private describe(
     title: string,
     shortcut: string | undefined,
-  ): Pick<PaletteEntry, 'title' | 'shortcut'> {
+  ): Pick<PaletteEntry, "title" | "shortcut"> {
     return shortcut ? { title, shortcut } : { title };
   }
 
@@ -357,9 +357,9 @@ export default class WardleyPaletteProvider implements PaletteProvider {
     // Next to a styled tooltip a native `title` would pop up a second, slower one.
     const nativeTitle = this.needsNativeTitle
       ? ` title="${escapeAttribute(shortcut ? `${title} — ${shortcut}` : title)}"`
-      : '';
-    const keyShortcut = shortcut ? ` aria-keyshortcuts="${escapeAttribute(shortcut)}"` : '';
-    return `<div class="entry wardley-palette-entry"${draggable ? ' draggable="true"' : ''}${nativeTitle}${keyShortcut}>${icon}</div>`;
+      : "";
+    const keyShortcut = shortcut ? ` aria-keyshortcuts="${escapeAttribute(shortcut)}"` : "";
+    return `<div class="entry wardley-palette-entry"${draggable ? ' draggable="true"' : ""}${nativeTitle}${keyShortcut}>${icon}</div>`;
   }
 }
 

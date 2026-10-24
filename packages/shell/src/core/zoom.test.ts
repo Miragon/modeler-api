@@ -88,7 +88,10 @@ describe("zoomReadout", () => {
   });
 
   it("reports the limits", () => {
-    expect(zoomReadout(0.2, "en", defaultMessages)).toMatchObject({ canZoomOut: false, canZoomIn: true });
+    expect(zoomReadout(0.2, "en", defaultMessages)).toMatchObject({
+      canZoomOut: false,
+      canZoomIn: true,
+    });
     expect(zoomReadout(4, "en", defaultMessages)).toMatchObject({
       text: "400%",
       canZoomOut: true,

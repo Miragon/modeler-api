@@ -53,8 +53,14 @@ describe("ICONS", () => {
       ["path", { d: "M4 19h16" }],
     ]);
     expect(ICONS.check).toEqual([["path", { d: "M20 6 9 17l-5-5" }]]);
-    expect(ICONS["share-2"][3]).toEqual(["line", { x1: "8.59", x2: "15.42", y1: "13.51", y2: "17.49" }]);
-    expect(ICONS.workflow[0]).toEqual(["rect", { width: "8", height: "8", x: "3", y: "3", rx: "2" }]);
+    expect(ICONS["share-2"][3]).toEqual([
+      "line",
+      { x1: "8.59", x2: "15.42", y1: "13.51", y2: "17.49" },
+    ]);
+    expect(ICONS.workflow[0]).toEqual([
+      "rect",
+      { width: "8", height: "8", x: "3", y: "3", rx: "2" },
+    ]);
   });
 
   it("draws the Draw tool as Lucide's spline end points joined by a straight segment", () => {
@@ -79,7 +85,10 @@ describe("iconMarkup", () => {
     expect(svg.getAttribute("stroke-linejoin")).toBe("round");
     expect(svg.getAttribute("aria-hidden")).toBe("true");
     expect(svg.getAttribute("focusable")).toBe("false");
-    expect([...svg.children].map((child) => child.getAttribute("d"))).toEqual(["M5 12h14", "M12 5v14"]);
+    expect([...svg.children].map((child) => child.getAttribute("d"))).toEqual([
+      "M5 12h14",
+      "M12 5v14",
+    ]);
   });
 
   it("takes size, stroke width and class, and the palette tool preset", () => {
@@ -87,7 +96,9 @@ describe("iconMarkup", () => {
     expect(svg.getAttribute("width")).toBe("20");
     expect(svg.getAttribute("stroke-width")).toBe("2");
     expect(svg.getAttribute("class")).toBe("tool");
-    expect(parse(iconMarkup("hand", { size: -3, strokeWidth: Number.NaN })).getAttribute("width")).toBe("16");
+    expect(
+      parse(iconMarkup("hand", { size: -3, strokeWidth: Number.NaN })).getAttribute("width"),
+    ).toBe("16");
   });
 
   it("drops every element and attribute that is not Lucide geometry", () => {
@@ -107,7 +118,9 @@ describe("iconMarkup", () => {
   });
 
   it("escapes attribute values", () => {
-    expect(iconMarkup([["path", { d: 'M0 0"/><script>' }]])).toContain('d="M0 0&quot;/&gt;&lt;script&gt;"');
+    expect(iconMarkup([["path", { d: 'M0 0"/><script>' }]])).toContain(
+      'd="M0 0&quot;/&gt;&lt;script&gt;"',
+    );
   });
 });
 

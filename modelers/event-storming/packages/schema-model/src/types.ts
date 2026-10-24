@@ -18,16 +18,16 @@ export interface Coordinate {
 }
 
 export type ElementType =
-  | 'event'
-  | 'command'
-  | 'actor'
-  | 'aggregate'
-  | 'policy'
-  | 'readmodel'
-  | 'external'
-  | 'hotspot'
-  | 'note'
-  | 'drawing';
+  | "event"
+  | "command"
+  | "actor"
+  | "aggregate"
+  | "policy"
+  | "readmodel"
+  | "external"
+  | "hotspot"
+  | "note"
+  | "drawing";
 
 export interface BoardElementBase {
   readonly id: string;
@@ -44,17 +44,17 @@ export interface BoardElementBase {
 
 /** Orange sticky: something that happened in the domain, past tense. */
 export interface DomainEventElement extends BoardElementBase {
-  readonly elementType: 'event';
+  readonly elementType: "event";
 }
 
 /** Blue sticky: an intent/action that triggers a domain event. */
 export interface CommandElement extends BoardElementBase {
-  readonly elementType: 'command';
+  readonly elementType: "command";
 }
 
 /** Small yellow sticky: the person issuing commands. */
 export interface ActorElement extends BoardElementBase {
-  readonly elementType: 'actor';
+  readonly elementType: "actor";
   /**
    * Pinning: id of the host sticky (a HOST_STICKY_KINDS element) this sticky is attached to
    * and moves with. `position` stays this element's own absolute center — attachedTo adds
@@ -65,34 +65,34 @@ export interface ActorElement extends BoardElementBase {
 
 /** Large yellow sticky: the consistency boundary that handles commands and emits events. */
 export interface AggregateElement extends BoardElementBase {
-  readonly elementType: 'aggregate';
+  readonly elementType: "aggregate";
 }
 
 /** Lilac sticky: reactive logic — "whenever X happens, do Y". */
 export interface PolicyElement extends BoardElementBase {
-  readonly elementType: 'policy';
+  readonly elementType: "policy";
 }
 
 /** Green sticky: information a user looks at to make a decision. */
 export interface ReadModelElement extends BoardElementBase {
-  readonly elementType: 'readmodel';
+  readonly elementType: "readmodel";
 }
 
 /** Pink sticky: a third-party system outside the team's control. */
 export interface ExternalSystemElement extends BoardElementBase {
-  readonly elementType: 'external';
+  readonly elementType: "external";
 }
 
 /** Red sticky: an open question, conflict or risk spotted during the workshop. */
 export interface HotspotElement extends BoardElementBase {
-  readonly elementType: 'hotspot';
+  readonly elementType: "hotspot";
   /** Pinning: id of the host sticky this sticky is attached to (see ActorElement.attachedTo). */
   readonly attachedTo?: string;
 }
 
-export type NoteAlignHorizontal = 'left' | 'center' | 'right';
+export type NoteAlignHorizontal = "left" | "center" | "right";
 
-export type NoteAlignVertical = 'top' | 'middle' | 'bottom';
+export type NoteAlignVertical = "top" | "middle" | "bottom";
 
 /** Per-note text alignment. An absent axis means the default: left / top. */
 export interface NoteAlign {
@@ -102,7 +102,7 @@ export interface NoteAlign {
 
 /** Free-text note; auto-sizes to its text unless a manual `size` is set. */
 export interface NoteElement extends BoardElementBase {
-  readonly elementType: 'note';
+  readonly elementType: "note";
   /**
    * Manual size in board pixels (the user resized the note by hand). Absent = auto-size
    * from the text — that decision lives in the renderer, the model only carries the
@@ -119,14 +119,14 @@ export interface NoteElement extends BoardElementBase {
   readonly attachedTo?: string;
 }
 
-export type DrawingStrokeStyle = 'solid' | 'dashed' | 'dotted';
+export type DrawingStrokeStyle = "solid" | "dashed" | "dotted";
 
 /**
  * Freeform polyline/polygon (project extension, Excalidraw-style annotation drawing).
  * `position` mirrors the first point; `points` are absolute board pixels.
  */
 export interface DrawingElement extends BoardElementBase {
-  readonly elementType: 'drawing';
+  readonly elementType: "drawing";
   readonly points: readonly Coordinate[];
   /** true = closed polygon, false/absent = open polyline. */
   readonly closed?: boolean;
@@ -148,7 +148,7 @@ export type BoardElement =
 /** The single edge kind: a directed arrow between two stickies. */
 export interface Arrow {
   readonly id: string;
-  readonly edgeType: 'arrow';
+  readonly edgeType: "arrow";
   /** BoardElement.id of the source sticky. */
   readonly from: string;
   /** BoardElement.id of the target sticky. */
@@ -164,11 +164,11 @@ export type BoardEdge = Arrow;
  * Filters which sticky kinds the creation surfaces offer; NOT a validation rule (elements
  * of any kind stay valid and editable on every level).
  */
-export type BoardLevel = 'big-picture' | 'process' | 'design';
+export type BoardLevel = "big-picture" | "process" | "design";
 
 export interface BoardConfig {
   readonly title: string;
-  readonly style?: 'classic' | 'dark';
+  readonly style?: "classic" | "dark";
   /** Workshop level; absent means `design` (everything available). */
   readonly level?: BoardLevel;
 }

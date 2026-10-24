@@ -1,5 +1,5 @@
-import { NOTE_STYLE, STICKY_STYLES } from './styles.js';
-import { STICKY_KINDS } from '../model/di-types.js';
+import { NOTE_STYLE, STICKY_STYLES } from "./styles.js";
+import { STICKY_KINDS } from "../model/di-types.js";
 
 /**
  * Palette icons: the creating entries are a mini preview of the ACTUAL canvas rendering
@@ -13,7 +13,7 @@ const wrap = (inner: string): string =>
 const stickySquare = (fill: string, stroke: string, tilt = 0): string =>
   wrap(
     `<rect x="4" y="5" width="16" height="14" fill="${fill}" stroke="${stroke}" stroke-width="1.5"${
-      tilt ? ` transform="rotate(${tilt} 12 12)"` : ''
+      tilt ? ` transform="rotate(${tilt} 12 12)"` : ""
     }/>`,
   );
 
@@ -52,7 +52,7 @@ export const PALETTE_ICONS: Record<string, string> = {
 // One colored square per sticky kind — the hotspot preview carries the canvas tilt.
 for (const kind of STICKY_KINDS) {
   const style = STICKY_STYLES[kind];
-  PALETTE_ICONS[kind] = stickySquare(style.fill, style.stroke, kind === 'hotspot' ? -6 : 0);
+  PALETTE_ICONS[kind] = stickySquare(style.fill, style.stroke, kind === "hotspot" ? -6 : 0);
 }
 
 /** Small colored square for the change-type popup menu entries. */

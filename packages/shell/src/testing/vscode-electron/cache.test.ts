@@ -6,7 +6,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import { ProgressReportStage, download, type ProgressReport } from "@vscode/test-electron";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { fakeTestElectron, readInstall, writeInstall } from "../../../test/support/test-electron.js";
+import {
+  fakeTestElectron,
+  readInstall,
+  writeInstall,
+} from "../../../test/support/test-electron.js";
 import {
   ABANDONED_DOWNLOAD_MS,
   ABANDONED_REPLACE_MS,
@@ -68,7 +72,11 @@ describe("resolveInSharedCache", () => {
     expect(executable).toBe(join(install, "code"));
     expect(fake.unpacked).toEqual([]);
     expect(await identity(install)).toBe(before);
-    expect(await readInstall(install)).toEqual({ code: "earlier run", app: "earlier run", complete: true });
+    expect(await readInstall(install)).toEqual({
+      code: "earlier run",
+      app: "earlier run",
+      complete: true,
+    });
     expect((await readdir(cachePath)).sort()).toEqual(["vscode-linux-x64-1.95.0", fake.folderName]);
   });
 
@@ -213,7 +221,10 @@ describe("resolveInSharedCache", () => {
     const longAgo = new Date(Date.now() - ABANDONED_DOWNLOAD_MS - 60_000);
     await utimes(killed, longAgo, longAgo);
 
-    await resolveInSharedCache({ cachePath, download: (path) => fake.download({ cachePath: path }) });
+    await resolveInSharedCache({
+      cachePath,
+      download: (path) => fake.download({ cachePath: path }),
+    });
 
     expect((await readdir(cachePath)).sort()).toEqual([
       `${PRIVATE_DOWNLOAD_PREFIX}in-progress`,
@@ -299,7 +310,10 @@ describe("resolveInSharedCache", () => {
           app: "A",
           complete: true,
         });
-        expect((await readdir(cachePath)).sort()).toEqual([basename(dirname(locked)), fake.folderName]);
+        expect((await readdir(cachePath)).sort()).toEqual([
+          basename(dirname(locked)),
+          fake.folderName,
+        ]);
       } finally {
         if (locked) await chmod(locked, 0o755);
       }
@@ -326,7 +340,9 @@ describe("resolveInSharedCache", () => {
     const cachePath = await emptyCache();
     const elsewhere = join(directory, "installed", "code");
 
-    expect(await resolveInSharedCache({ cachePath, download: async () => elsewhere })).toBe(elsewhere);
+    expect(await resolveInSharedCache({ cachePath, download: async () => elsewhere })).toBe(
+      elsewhere,
+    );
     expect(await readdir(cachePath)).toEqual([]);
   });
 });
@@ -344,7 +360,12 @@ describe("resolveInSharedCache with @vscode/test-electron 3.1.0", () => {
     };
   }
   const realDownload = (stages: string[]) => (cachePath: string) =>
-    download({ version: "1.96.0", platform: "linux-x64", cachePath, reporter: offlineReporter(stages) });
+    download({
+      version: "1.96.0",
+      platform: "linux-x64",
+      cachePath,
+      reporter: offlineReporter(stages),
+    });
 
   it("finds a cached version through the link", async () => {
     const cachePath = await emptyCache();
@@ -354,7 +375,10 @@ describe("resolveInSharedCache with @vscode/test-electron 3.1.0", () => {
     const executable = await resolveInSharedCache({ cachePath, download: realDownload(stages) });
 
     expect(executable).toBe(join(cachePath, folderName, "code"));
-    expect(stages).toEqual([ProgressReportStage.ResolvedVersion, ProgressReportStage.FoundMatchingInstall]);
+    expect(stages).toEqual([
+      ProgressReportStage.ResolvedVersion,
+      ProgressReportStage.FoundMatchingInstall,
+    ]);
     expect(await readdir(cachePath)).toEqual([folderName]);
   });
 
@@ -363,9 +387,9 @@ describe("resolveInSharedCache with @vscode/test-electron 3.1.0", () => {
     await writeInstall(join(cachePath, folderName), "cut short", false);
     const stages: string[] = [];
 
-    await expect(resolveInSharedCache({ cachePath, download: realDownload(stages) })).rejects.toThrow(
-      "Failed to download and unzip VS Code 1.96.0",
-    );
+    await expect(
+      resolveInSharedCache({ cachePath, download: realDownload(stages) }),
+    ).rejects.toThrow("Failed to download and unzip VS Code 1.96.0");
 
     expect(stages).toContain(ProgressReportStage.ResolvingCDNLocation);
     expect(await readInstall(join(cachePath, folderName))).toEqual({

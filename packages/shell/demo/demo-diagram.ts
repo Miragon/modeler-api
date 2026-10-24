@@ -265,7 +265,8 @@ class DemoSelectAll {
   ) {
     keyboard.addListener((context: { keyEvent: KeyboardEvent }) => {
       const event = context.keyEvent;
-      if (hooks.flaws.noSelectAll || event.shiftKey || !isCmd(event) || !isKey(["a", "A"], event)) return;
+      if (hooks.flaws.noSelectAll || event.shiftKey || !isCmd(event) || !isKey(["a", "A"], event))
+        return;
       const root = canvas.getRootElement();
       selection.select(elementRegistry.filter((element) => element !== root));
       return true;

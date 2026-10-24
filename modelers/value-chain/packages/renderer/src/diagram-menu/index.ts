@@ -1,4 +1,4 @@
-export { JSON_EXPORT_LABEL, diagramMenu } from './menu.js';
+export { JSON_EXPORT_LABEL, diagramMenu } from "./menu.js";
 export type {
   DiagramExport,
   DiagramExports,
@@ -7,8 +7,8 @@ export type {
   DiagramMenuActions,
   DiagramMenuDialog,
   DiagramMenuIcon,
-} from './menu.js';
-export { diagramShortcuts } from './shortcuts.js';
+} from "./menu.js";
+export { diagramShortcuts } from "./shortcuts.js";
 export type {
   DiagramShortcutOptions,
   ShortcutGroup,
@@ -16,6 +16,6 @@ export type {
   ShortcutPlatform,
   ShortcutRow,
   ShortcutsChrome,
-} from './shortcuts.js';
-export { createShortcutsDialog } from './ShortcutsDialog.js';
-export type { ShortcutsDialog, ShortcutsDialogChrome } from './ShortcutsDialog.js';
+} from "./shortcuts.js";
+export { createShortcutsDialog } from "./ShortcutsDialog.js";
+export type { ShortcutsDialog, ShortcutsDialogChrome } from "./ShortcutsDialog.js";

@@ -1,5 +1,5 @@
-import { patchDSL } from '@miragon/wardley-dsl';
-import type { WardleyMap } from '@miragon/wardley-schema-model';
+import { patchDSL } from "@miragon/wardley-dsl";
+import type { WardleyMap } from "@miragon/wardley-schema-model";
 
 /** Runs before the app's own `import.done` listeners (URL sync, chrome), which read the text. */
 const BEFORE_APP_LISTENERS = 2000;
@@ -20,14 +20,14 @@ export function trackSourceText(viewer: SourceTextViewer): () => string {
   let parsedText: string | undefined;
   let source: { text: string; map: WardleyMap } | undefined;
   viewer.on<{ text: string }>(
-    'import.parse.start',
+    "import.parse.start",
     (event) => {
       parsedText = event.text;
     },
     BEFORE_APP_LISTENERS,
   );
   viewer.on(
-    'import.done',
+    "import.done",
     () => {
       source = parsedText === undefined ? undefined : { text: parsedText, map: viewer.exportMap() };
       parsedText = undefined;

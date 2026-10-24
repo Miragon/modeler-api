@@ -1,7 +1,7 @@
 /** Central rendering constants (geometry, colors, typography) — Miragon corporate identity. */
 
-import { DEFAULT_PLOT_SIZE } from '@miragon/wardley-schema-model';
-import { MIRAGON } from '../theme/index.js';
+import { DEFAULT_PLOT_SIZE } from "@miragon/wardley-schema-model";
+import { MIRAGON } from "../theme/index.js";
 
 /**
  * Default plot area in diagram px (interior without axis margins). Changeable at runtime via
@@ -17,7 +17,7 @@ export const PLOT = {
 } as const;
 
 /** Smallest drawn plot — the size policy lives in schema-model (shared with the DSL parser). */
-export { PLOT_MIN } from '@miragon/wardley-schema-model';
+export { PLOT_MIN } from "@miragon/wardley-schema-model";
 
 export const NODE_SIZE = 34;
 export const COMPONENT_RADIUS = 15;
@@ -36,7 +36,7 @@ const NOTE_CHAR_W = 7.5;
  * its text -> the move/click hitbox grows with it (instead of a fixed 34px). Minimum = NODE_SIZE.
  */
 export function noteMetrics(label: string): { lines: string[]; width: number; height: number } {
-  const lines = (label && label.length ? label : 'note').split('\n');
+  const lines = (label && label.length ? label : "note").split("\n");
   const maxLen = Math.max(1, ...lines.map((l) => l.length));
   return {
     lines,
@@ -51,10 +51,10 @@ export function noteMetrics(label: string): { lines: string[]; width: number; he
  * must not change, so the notation keeps them as its own literals.
  */
 const NOTATION_STATUS = {
-  success: '#0B7A55',
-  warning: '#92610A',
-  danger: '#C92A2A',
-  info: '#2B50D4',
+  success: "#0B7A55",
+  warning: "#92610A",
+  danger: "#C92A2A",
+  info: "#2B50D4",
 } as const;
 
 /**
@@ -70,19 +70,19 @@ export const COLORS = {
   axis: MIRAGON.kontur,
   axisText: MIRAGON.textLeise,
   grid: MIRAGON.linie,
-  band: 'rgba(29,29,29,0.025)',
+  band: "rgba(29,29,29,0.025)",
   stroke: MIRAGON.schwarz,
   componentFill: MIRAGON.weiss,
   anchorFill: MIRAGON.schwarz,
   dependency: MIRAGON.kontur,
   accent: MIRAGON.blau,
-  accentSoft: 'rgba(51,93,229,0.12)',
+  accentSoft: "rgba(51,93,229,0.12)",
   flow: MIRAGON.blau,
   movement: NOTATION_STATUS.danger,
   inertia: MIRAGON.schwarz,
   noteText: MIRAGON.textLeise,
   pipeline: MIRAGON.schwarz,
-  annotationFill: '#FBF3E0',
+  annotationFill: "#FBF3E0",
   plotBackground: MIRAGON.weiss,
   accelerator: NOTATION_STATUS.success,
   deaccelerator: NOTATION_STATUS.danger,
@@ -95,14 +95,14 @@ export const COLORS = {
  * amber = watch, blue = info, purple = idea, slate = neutral.
  */
 export const NOTE_COLORS = [
-  { id: 'green', name: 'Green · good', value: NOTATION_STATUS.success },
-  { id: 'amber', name: 'Amber · watch', value: NOTATION_STATUS.warning },
-  { id: 'red', name: 'Red · problem', value: NOTATION_STATUS.danger },
-  { id: 'blue', name: 'Blue · info', value: NOTATION_STATUS.info },
-  { id: 'teal', name: 'Teal', value: '#0E8181' },
-  { id: 'purple', name: 'Purple · idea', value: '#6A3DB8' },
-  { id: 'pink', name: 'Pink', value: '#C2185B' },
-  { id: 'slate', name: 'Slate · neutral', value: '#4A4A4A' },
+  { id: "green", name: "Green · good", value: NOTATION_STATUS.success },
+  { id: "amber", name: "Amber · watch", value: NOTATION_STATUS.warning },
+  { id: "red", name: "Red · problem", value: NOTATION_STATUS.danger },
+  { id: "blue", name: "Blue · info", value: NOTATION_STATUS.info },
+  { id: "teal", name: "Teal", value: "#0E8181" },
+  { id: "purple", name: "Purple · idea", value: "#6A3DB8" },
+  { id: "pink", name: "Pink", value: "#C2185B" },
+  { id: "slate", name: "Slate · neutral", value: "#4A4A4A" },
 ] as const;
 
 /**
@@ -110,17 +110,17 @@ export const NOTE_COLORS = [
  * pioneers = blue (explore), settlers = amber (stabilise), town planners = green (industrialise).
  */
 export const ATTITUDE_COLORS: Record<string, { fill: string; stroke: string }> = {
-  pioneers: { fill: 'rgba(51,93,229,0.07)', stroke: MIRAGON.blau },
-  settlers: { fill: 'rgba(146,97,10,0.10)', stroke: NOTATION_STATUS.warning },
+  pioneers: { fill: "rgba(51,93,229,0.07)", stroke: MIRAGON.blau },
+  settlers: { fill: "rgba(146,97,10,0.10)", stroke: NOTATION_STATUS.warning },
   // Bright brand green only as the fill; the title and outline need the darker success value (AA).
-  townplanners: { fill: 'rgba(0,230,118,0.10)', stroke: NOTATION_STATUS.success },
+  townplanners: { fill: "rgba(0,230,118,0.10)", stroke: NOTATION_STATUS.success },
 };
 
 /** Canonical region titles (Wardley's Pioneers / Settlers / Town Planners), keyed by kind. */
 export const ATTITUDE_TITLES: Record<string, string> = {
-  pioneers: 'Pioneers',
-  settlers: 'Settlers',
-  townplanners: 'Town Planners',
+  pioneers: "Pioneers",
+  settlers: "Settlers",
+  townplanners: "Town Planners",
 };
 
 export const FONT = {

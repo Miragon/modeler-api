@@ -15,14 +15,14 @@ npm install @miragon/event-storming-transforms
 ## Usage
 
 ```ts
-import { parseDSL } from '@miragon/event-storming-dsl';
-import { moveElement, setStickyKind } from '@miragon/event-storming-transforms';
+import { parseDSL } from "@miragon/event-storming-dsl";
+import { moveElement, setStickyKind } from "@miragon/event-storming-transforms";
 
-const board = parseDSL('event Order Placed [620, 300]');
+const board = parseDSL("event Order Placed [620, 300]");
 const [orderPlaced] = board.elements;
 
 const moved = moveElement(board, orderPlaced.id, { x: 800, y: 300 }); // returns a new board
-const retyped = setStickyKind(moved, orderPlaced.id, 'policy');
+const retyped = setStickyKind(moved, orderPlaced.id, "policy");
 ```
 
 Also included: `moveBy` (delta translation), `setColor`/`clearColor` (sticky color override),

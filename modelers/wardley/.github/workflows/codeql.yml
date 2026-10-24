@@ -6,7 +6,7 @@ on:
     branches: [main]
   schedule:
     # Weekly scan catches advisories published after a PR merged.
-    - cron: '23 4 * * 1'
+    - cron: "23 4 * * 1"
 
 permissions:
   contents: read
@@ -35,4 +35,4 @@ jobs:
 
       - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          category: '/language:javascript-typescript'
+          category: "/language:javascript-typescript"

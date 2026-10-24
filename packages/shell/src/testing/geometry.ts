@@ -93,7 +93,13 @@ const SHEET_MAX_HEIGHT_SHARE = 0.45;
 
 type MeasureResult = { error: string } | (ChromeMeasurement & { duplicates: string[] });
 
-const measureProbe = ({ root, islands }: { root: string; islands: readonly string[] }): MeasureResult => {
+const measureProbe = ({
+  root,
+  islands,
+}: {
+  root: string;
+  islands: readonly string[];
+}): MeasureResult => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return { error: `no element matches the shell root selector "${root}"` };
@@ -108,7 +114,9 @@ const measureProbe = ({ root, islands }: { root: string; islands: readonly strin
     }
     boxes[name] = tools.box(element, rootElement);
   }
-  const cardWidths = [...rootElement.querySelectorAll<HTMLElement>('[data-chrome="toasts"] > [data-status]')]
+  const cardWidths = [
+    ...rootElement.querySelectorAll<HTMLElement>('[data-chrome="toasts"] > [data-status]'),
+  ]
     .filter((card) => tools.visible(card))
     .map((card) => card.getBoundingClientRect().width);
   return {
@@ -129,11 +137,16 @@ const measureProbe = ({ root, islands }: { root: string; islands: readonly strin
 };
 
 /** Measures the islands of the shell under `root` (default `.cd-shell`) in the page. */
-export async function measureChrome(page: PageLike, root: string = DEFAULT_ROOT): Promise<ChromeMeasurement> {
+export async function measureChrome(
+  page: PageLike,
+  root: string = DEFAULT_ROOT,
+): Promise<ChromeMeasurement> {
   const result = await inPage(page, measureProbe, { root, islands: CHROME_ISLANDS });
   if ("error" in result) throw new Error(`@miragon/modeler-shell conformance: ${result.error}`);
   if (result.duplicates.length > 0) {
-    const names = [...new Set(result.duplicates)].map((name) => `[data-chrome="${name}"]`).join(", ");
+    const names = [...new Set(result.duplicates)]
+      .map((name) => `[data-chrome="${name}"]`)
+      .join(", ");
     throw new Error(`@miragon/modeler-shell conformance: more than one visible ${names}`);
   }
   return {
@@ -186,9 +199,12 @@ export function bottomObstacle(box: IslandBox, container: Size): BottomObstacle 
 /** Why an island of the web column never shows in the IDE and embedded hosts (guide §5.2). */
 const WEB_ONLY: Partial<Record<ChromeIsland, string>> = {
   primary: "the top right stays empty in IDE and embedded hosts (guide §5.7)",
-  legal: "the legal line belongs to the web app; an IDE or an embedding host carries its own (guide §5.2)",
-  "empty-state": "IDE and embedded hosts have no start screen; they show the empty-file hint (guide §13.5)",
-  "drop-zone": "IDE and embedded hosts have no drop zone; their files belong to the host (guide §5.2)",
+  legal:
+    "the legal line belongs to the web app; an IDE or an embedding host carries its own (guide §5.2)",
+  "empty-state":
+    "IDE and embedded hosts have no start screen; they show the empty-file hint (guide §13.5)",
+  "drop-zone":
+    "IDE and embedded hosts have no drop zone; their files belong to the host (guide §5.2)",
 };
 
 /** The work chrome the web app's start screen hides (guide §8: only the card and the legal line show). */
@@ -204,7 +220,10 @@ export const WORK_CHROME: readonly ChromeIsland[] = [
 ];
 
 /** The anchors and limits of guide §5.2 to §5.15 for `measurement` in `host`. */
-export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHost): ChromeExpectations {
+export function chromeExpectations(
+  measurement: ChromeMeasurement,
+  host: ShellHost,
+): ChromeExpectations {
   const { container, islands, open, paletteRow } = measurement;
   const { edge, gap, row, free, inspectorWidth } = SHELL;
   const web = host === "web";
@@ -244,7 +263,12 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
   } else {
     if (!startScreen) required.push("zoom");
     const legalStack = edge + legalHeight + gap;
-    boxes.zoom = { right: edge, bottom: raised ? legalStack : edge, width: ZOOM_PANEL_WIDTH, height: row };
+    boxes.zoom = {
+      right: edge,
+      bottom: raised ? legalStack : edge,
+      width: ZOOM_PANEL_WIDTH,
+      height: row,
+    };
     const stackBase = web ? legalStack : edge;
     if (islands.problems) boxes.problems = { left: edge, bottom: stackBase, height: row };
     if (islands.legend) {
@@ -289,13 +313,15 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
         width: Math.min(EMPTY_STATE_MAX_WIDTH, container.width - 2 * edge),
       };
     }
-    if (islands["drop-zone"]) boxes["drop-zone"] = { left: edge, top: edge, right: edge, bottom: edge };
+    if (islands["drop-zone"])
+      boxes["drop-zone"] = { left: edge, top: edge, right: edge, bottom: edge };
   } else {
     Object.assign(hidden, WEB_ONLY);
   }
 
   if (host === "ide") {
-    hidden.toasts = "the IDE host shows no toasts; the extension shows the host's notification (guide §13.5)";
+    hidden.toasts =
+      "the IDE host shows no toasts; the extension shows the host's notification (guide §13.5)";
     hidden["problems-popover"] =
       "the IDE host opens its Problems view, never a list of its own (guide §5.10)";
   } else {
@@ -322,7 +348,8 @@ export function chromeExpectations(measurement: ChromeMeasurement, host: ShellHo
         maxHeight: POPOVER_MAX_HEIGHT,
       };
     } else {
-      hidden["problems-popover"] = "the problems list opens only above a visible pill (guide §5.10)";
+      hidden["problems-popover"] =
+        "the problems list opens only above a visible pill (guide §5.10)";
     }
   }
 
@@ -447,7 +474,8 @@ export function geometryProblems(
     const toPrimary = primary
       ? container.width - SHELL.edge - SHELL.row - (topRowLeft + palette.width)
       : Number.POSITIVE_INFINITY;
-    const fits = toMenu >= PALETTE_CLEARANCE + tolerance && toPrimary >= PALETTE_CLEARANCE + tolerance;
+    const fits =
+      toMenu >= PALETTE_CLEARANCE + tolerance && toPrimary >= PALETTE_CLEARANCE + tolerance;
     if (!clipped && fits) {
       const kept = primary
         ? `${round(toMenu)}px to the menu trigger and ${round(toPrimary)}px to the primary action's icon`
@@ -458,7 +486,12 @@ export function geometryProblems(
     }
   }
 
-  const state = (island: ChromeIsland, flag: boolean, attribute: string, hiddenBySheet: boolean) => {
+  const state = (
+    island: ChromeIsland,
+    flag: boolean,
+    attribute: string,
+    hiddenBySheet: boolean,
+  ) => {
     const shown = Boolean(islands[island]);
     if (flag && !shown && !hiddenBySheet) {
       problems.push(`${island}: the root carries ${attribute}, but the island is not visible`);
@@ -490,18 +523,25 @@ export function webRowProblems(
   if (host !== "web") {
     if (open.primaryCollapsed)
       problems.push('primary: the root carries data-primary="collapsed" outside the web app');
-    if (open.zoomRaised) problems.push('zoom: the root carries data-zoom-row="raised" outside the web app');
+    if (open.zoomRaised)
+      problems.push('zoom: the root carries data-zoom-row="raised" outside the web app');
     return problems;
   }
   if (open.primaryCollapsed && !islands.primary && !open.emptyState) {
-    problems.push('primary: the root carries data-primary="collapsed", but no primary action is visible');
+    problems.push(
+      'primary: the root carries data-primary="collapsed", but no primary action is visible',
+    );
   }
   const legal = islands.legal;
   const zoom = islands.zoom;
   if (legal && zoom) {
     const legalRight = legal.left + legal.width;
     const gap = container.width - SHELL.edge - zoom.width - legalRight;
-    const raised = zoomRowRaised({ containerWidth: container.width, legalRight, zoomWidth: zoom.width });
+    const raised = zoomRowRaised({
+      containerWidth: container.width,
+      legalRight,
+      zoomWidth: zoom.width,
+    });
     // A gap within the tolerance of the 8px limit may go either way.
     const borderline = Math.abs(gap - SHELL.gap) <= tolerance;
     if (raised && !open.zoomRaised && !borderline) {
@@ -632,7 +672,11 @@ export function tooltipProblems(
     ...limitViolations(
       "tooltip",
       tooltip,
-      { minLeft: edge, minRight: edge, maxWidth: Math.min(TOOLTIP_MAX_WIDTH, container.width - 2 * edge) },
+      {
+        minLeft: edge,
+        minRight: edge,
+        maxWidth: Math.min(TOOLTIP_MAX_WIDTH, container.width - 2 * edge),
+      },
       container,
       tolerance,
     ),

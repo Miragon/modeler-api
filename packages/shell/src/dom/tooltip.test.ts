@@ -56,7 +56,9 @@ describe("chrome tooltip (guide §5.6)", () => {
     zoomButton(root, "fit").focus();
     expect(tooltipOf(root).querySelector("kbd")?.textContent).toBe("Shift+1");
     zoomButton(root, "actual").focus();
-    expect(tooltipOf(root).querySelector(".cd-shell-tooltip-label")?.textContent).toBe("Zoom to 100%");
+    expect(tooltipOf(root).querySelector(".cd-shell-tooltip-label")?.textContent).toBe(
+      "Zoom to 100%",
+    );
   });
 
   it("shows at once on keyboard focus, also on a disabled button, and hides on blur", () => {

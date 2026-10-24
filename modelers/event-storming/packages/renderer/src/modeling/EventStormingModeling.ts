@@ -1,31 +1,31 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type { Root } from 'diagram-js/lib/model/Types';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type { Root } from "diagram-js/lib/model/Types";
 import {
   DEFAULT_BOARD_LEVEL,
   type BoardLevel,
   type DrawingStrokeStyle,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";
 import {
   isStickyKind,
   ROOT_ID,
   type EventStormingConnection,
   type EventStormingShape,
   type StickyKind,
-} from '../model/di-types.js';
-import type { RootBusinessObject } from '../io/types.js';
-import { STICKY_STYLES, isManualNoteBox, noteMetrics } from '../draw/styles.js';
-import UpdatePropertiesHandler from './cmd/UpdatePropertiesHandler.js';
+} from "../model/di-types.js";
+import type { RootBusinessObject } from "../io/types.js";
+import { STICKY_STYLES, isManualNoteBox, noteMetrics } from "../draw/styles.js";
+import UpdatePropertiesHandler from "./cmd/UpdatePropertiesHandler.js";
 
-const UPDATE_PROPERTIES = 'element.updateProperties';
+const UPDATE_PROPERTIES = "element.updateProperties";
 
 /**
  * High-level mutations on Event Storming elements that run through the commandStack (undo/redo).
  * Registers the generic UpdatePropertiesHandler at bootstrap.
  */
 export default class EventStormingModeling {
-  static $inject = ['commandStack', 'canvas', 'elementRegistry'];
+  static $inject = ["commandStack", "canvas", "elementRegistry"];
 
   constructor(
     private readonly commandStack: CommandStack,
@@ -47,7 +47,7 @@ export default class EventStormingModeling {
     // the center. A MANUAL box (differs from the text metrics) was the user's choice — keep it,
     // the text reflows/clips inside.
     if (
-      element.eventStormingType === 'note' &&
+      element.eventStormingType === "note" &&
       !isManualNoteBox(element.eventStormingLabel, element)
     ) {
       const { width, height } = noteMetrics(label);
@@ -119,7 +119,7 @@ export default class EventStormingModeling {
   setLevel(level: BoardLevel): void {
     if (this.getLevel() === level) return;
     const root = this.root();
-    const meta = root.businessObject ?? { config: { title: 'Untitled Board' } };
+    const meta = root.businessObject ?? { config: { title: "Untitled Board" } };
     this.commandStack.execute(UPDATE_PROPERTIES, {
       element: root,
       properties: { businessObject: { ...meta, config: { ...meta.config, level } } },

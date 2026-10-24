@@ -62,8 +62,14 @@ describe("decideTopRow (guide §5.15)", () => {
 
   it("is decidePaletteRow alone without a primary action", () => {
     for (const width of [1280, 800, 761, 760, 400]) {
-      expect(decideTopRow({ containerWidth: width, paletteWidth: PALETTE, menuRight: MENU_RIGHT })).toEqual({
-        paletteRow: decidePaletteRow({ containerWidth: width, paletteWidth: PALETTE, menuRight: MENU_RIGHT }),
+      expect(
+        decideTopRow({ containerWidth: width, paletteWidth: PALETTE, menuRight: MENU_RIGHT }),
+      ).toEqual({
+        paletteRow: decidePaletteRow({
+          containerWidth: width,
+          paletteWidth: PALETTE,
+          menuRight: MENU_RIGHT,
+        }),
         primaryLabel: "shown",
       });
     }

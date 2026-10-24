@@ -1,4 +1,4 @@
-import type { ImportWarning } from './types.js';
+import type { ImportWarning } from "./types.js";
 
 /**
  * One import warning as a single line of text, for hosts that take plain strings (the

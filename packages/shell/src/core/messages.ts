@@ -28,7 +28,12 @@ export interface ShellMessages {
   /** Pill text: "1 problem", "2 problems". */
   problems(count: number, formattedCount: string): string;
   /** Pill `aria-label`: "2 problems, 1 error", "2 problems, no errors". */
-  problemsLabel(count: number, errors: number, formattedCount: string, formattedErrors: string): string;
+  problemsLabel(
+    count: number,
+    errors: number,
+    formattedCount: string,
+    formattedErrors: string,
+  ): string;
   /** Pill tooltip in the IDE host. */
   showProblems: string;
   /** Empty-file hint (guide §13.5). */
@@ -152,7 +157,9 @@ export function resolveMessages(overrides?: ShellMessageOverrides | undefined): 
 
 // `{ menu: undefined }` (a spread of optional fields, a conditional override) keeps the default
 // instead of blanking the text.
-function definedEntries<T extends object>(partial: T): { [Key in keyof T]?: Exclude<T[Key], undefined> } {
+function definedEntries<T extends object>(
+  partial: T,
+): { [Key in keyof T]?: Exclude<T[Key], undefined> } {
   return Object.fromEntries(Object.entries(partial).filter(([, value]) => value !== undefined)) as {
     [Key in keyof T]?: Exclude<T[Key], undefined>;
   };

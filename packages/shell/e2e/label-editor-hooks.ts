@@ -34,7 +34,9 @@ export function demoLabelEditor(changes: (page: Page) => Promise<number>): Label
       const box = await page.evaluate(reachableBoxProbe, null);
       if (!box) throw new Error("demo: no box a pointer reaches to edit its label");
       await page.mouse.dblclick(box.x, box.y);
-      await page.waitForFunction(() => document.activeElement?.classList.contains("demo-label-editor"));
+      await page.waitForFunction(() =>
+        document.activeElement?.classList.contains("demo-label-editor"),
+      );
       const opens = (openedEditors.get(page)?.opens ?? 0) + 1;
       const typed = `Renamed box ${opens}`;
       await page.keyboard.type(typed);

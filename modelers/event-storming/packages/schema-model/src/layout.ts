@@ -1,6 +1,6 @@
 /** Pure layout helpers for the free Event Storming canvas (no persistence, no DOM). */
 
-import type { BoardElement, EventStormingBoard } from './types.js';
+import type { BoardElement, EventStormingBoard } from "./types.js";
 
 /**
  * Default framing for an empty board in board pixels. Single source of truth for the

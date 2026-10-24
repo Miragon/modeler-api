@@ -1,5 +1,5 @@
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type {
   AcceleratorDirection,
   AcceleratorElement,
@@ -14,23 +14,23 @@ import type {
   NoteElement,
   PipelineElement,
   SubmapElement,
-} from '@miragon/wardley-schema-model';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import { NODE_SIZE, PIPELINE_HEIGHT, noteMetrics } from '../draw/styles.js';
-import { connectionAnchorOf } from '../layout/index.js';
-import type { WardleyConnection, WardleyShape } from './di-types.js';
+} from "@miragon/wardley-schema-model";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import { NODE_SIZE, PIPELINE_HEIGHT, noteMetrics } from "../draw/styles.js";
+import { connectionAnchorOf } from "../layout/index.js";
+import type { WardleyConnection, WardleyShape } from "./di-types.js";
 
 /** Element types that edges and DSL lines reference by name — their labels must be unique. */
 const LINKABLE_TYPES: ReadonlySet<string> = new Set([
-  'component',
-  'anchor',
-  'submap',
-  'pipeline',
-  'accelerator',
+  "component",
+  "anchor",
+  "submap",
+  "pipeline",
+  "accelerator",
 ]);
 
 function isLinkableType(type: unknown): boolean {
-  return typeof type === 'string' && LINKABLE_TYPES.has(type);
+  return typeof type === "string" && LINKABLE_TYPES.has(type);
 }
 
 /**
@@ -59,7 +59,7 @@ export interface CreateNewExtra {
  * pixels via the SINGLE math source (EvolutionGrid, P7).
  */
 export default class WardleyElementFactory {
-  static $inject = ['elementFactory', 'evolutionGrid', 'elementRegistry'];
+  static $inject = ["elementFactory", "evolutionGrid", "elementRegistry"];
 
   constructor(
     private readonly elementFactory: ElementFactory,
@@ -107,12 +107,12 @@ export default class WardleyElementFactory {
    *        name: a standalone component may take the name of a pipeline without an anchor (and so
    *        anchor it), and such a pipeline may take the name of a free standalone component.
    */
-  private takenLinkableLabels(excludeId?: string, pairableType?: 'component' | 'pipeline') {
+  private takenLinkableLabels(excludeId?: string, pairableType?: "component" | "pipeline") {
     const taken = new Set<string>();
     for (const el of this.elementRegistry.getAll()) {
       if (excludeId && el.id === excludeId) continue;
       const { wardleyType, wardleyLabel } = el as { wardleyType?: unknown; wardleyLabel?: unknown };
-      if (!isLinkableType(wardleyType) || typeof wardleyLabel !== 'string') continue;
+      if (!isLinkableType(wardleyType) || typeof wardleyLabel !== "string") continue;
       if (wardleyType === pairableType && this.isUnpaired(el as WardleyShape)) continue;
       taken.add(wardleyLabel);
     }
@@ -120,14 +120,14 @@ export default class WardleyElementFactory {
   }
 
   /** Which partner type the element being renamed may share its new name with. */
-  private pairableTypeFor(excludeId?: string): 'component' | 'pipeline' | undefined {
+  private pairableTypeFor(excludeId?: string): "component" | "pipeline" | undefined {
     const renamed = excludeId
       ? (this.elementRegistry.getAll().find((el) => el.id === excludeId) as
           WardleyShape | undefined)
       : undefined;
     if (!renamed || !this.isUnpaired(renamed)) return undefined;
-    if (renamed.wardleyType === 'component') return 'pipeline';
-    if (renamed.wardleyType === 'pipeline') return 'component';
+    if (renamed.wardleyType === "component") return "pipeline";
+    if (renamed.wardleyType === "pipeline") return "component";
     return undefined;
   }
 
@@ -137,17 +137,17 @@ export default class WardleyElementFactory {
    */
   private isUnpaired(shape: WardleyShape): boolean {
     const shapes = this.elementRegistry.getAll() as WardleyShape[];
-    if (shape.wardleyType === 'pipeline') {
+    if (shape.wardleyType === "pipeline") {
       return !shapes.some(
         (other) =>
-          other.wardleyType === 'component' &&
+          other.wardleyType === "component" &&
           other.wardleyLabel === shape.wardleyLabel &&
           other.pipelineId !== shape.id,
       );
     }
-    if (shape.wardleyType !== 'component' || shape.pipelineId) return false;
+    if (shape.wardleyType !== "component" || shape.pipelineId) return false;
     return !shapes.some(
-      (other) => other.wardleyType === 'pipeline' && other.wardleyLabel === shape.wardleyLabel,
+      (other) => other.wardleyType === "pipeline" && other.wardleyLabel === shape.wardleyLabel,
     );
   }
 
@@ -156,14 +156,14 @@ export default class WardleyElementFactory {
     let max = 0;
     for (const el of this.elementRegistry.getAll()) {
       const n = (el as { annotationNumber?: unknown }).annotationNumber;
-      if (typeof n === 'number' && n > max) max = n;
+      if (typeof n === "number" && n > max) max = n;
     }
     return max + 1;
   }
 
   createComponent(el: ComponentElement): WardleyShape {
     const shape = this.node(
-      'component',
+      "component",
       el.id,
       el.label,
       el.position.visibility,
@@ -183,7 +183,7 @@ export default class WardleyElementFactory {
   }
 
   createAnchor(el: AnchorElement): WardleyShape {
-    return this.node('anchor', el.id, el.label, el.position.visibility, el.position.evolution, el, {
+    return this.node("anchor", el.id, el.label, el.position.visibility, el.position.evolution, el, {
       ...(el.labelOffset ? { labelOffset: el.labelOffset } : {}),
     });
   }
@@ -199,7 +199,7 @@ export default class WardleyElementFactory {
       y: center.y - height / 2,
       width,
       height,
-      wardleyType: 'note',
+      wardleyType: "note",
       wardleyLabel: el.label,
       evolution: el.position.evolution,
       visibility: el.position.visibility,
@@ -226,7 +226,7 @@ export default class WardleyElementFactory {
       y: start.y,
       width,
       height: PIPELINE_HEIGHT,
-      wardleyType: 'pipeline',
+      wardleyType: "pipeline",
       wardleyLabel: el.label,
       evolution: el.position.evolution,
       visibility: el.position.visibility,
@@ -242,14 +242,14 @@ export default class WardleyElementFactory {
 
   createAnnotation(el: AnnotationElement): WardleyShape {
     const pos = el.positions[0] ?? el.position;
-    return this.node('annotation', el.id, el.text, pos.visibility, pos.evolution, el, {
+    return this.node("annotation", el.id, el.text, pos.visibility, pos.evolution, el, {
       annotationNumber: el.number,
     });
   }
 
   createAccelerator(el: AcceleratorElement): WardleyShape {
     return this.node(
-      'accelerator',
+      "accelerator",
       el.id,
       el.label,
       el.position.visibility,
@@ -273,7 +273,7 @@ export default class WardleyElementFactory {
       y,
       width: Math.max(Math.abs(b.x - a.x), 4),
       height: Math.max(Math.abs(b.y - a.y), 4),
-      wardleyType: 'attitude',
+      wardleyType: "attitude",
       wardleyLabel: el.label || el.kind,
       attitudeKind: el.kind,
       evolution: el.position.evolution,
@@ -287,7 +287,7 @@ export default class WardleyElementFactory {
   }
 
   createSubmap(el: SubmapElement): WardleyShape {
-    return this.node('submap', el.id, el.label, el.position.visibility, el.position.evolution, el);
+    return this.node("submap", el.id, el.label, el.position.visibility, el.position.evolution, el);
   }
 
   createDrawing(el: DrawingElement): WardleyShape {
@@ -307,23 +307,23 @@ export default class WardleyElementFactory {
    */
   createFromModel(el: MapElement): WardleyShape | undefined {
     switch (el.elementType) {
-      case 'component':
+      case "component":
         return this.createComponent(el);
-      case 'anchor':
+      case "anchor":
         return this.createAnchor(el);
-      case 'note':
+      case "note":
         return this.createNote(el);
-      case 'pipeline':
+      case "pipeline":
         return this.createPipeline(el);
-      case 'annotation':
+      case "annotation":
         return this.createAnnotation(el);
-      case 'attitude':
+      case "attitude":
         return this.createAttitude(el);
-      case 'accelerator':
+      case "accelerator":
         return this.createAccelerator(el);
-      case 'submap':
+      case "submap":
         return this.createSubmap(el);
-      case 'drawing':
+      case "drawing":
         return this.createDrawing(el);
       default: {
         const exhaustive: never = el;
@@ -339,7 +339,7 @@ export default class WardleyElementFactory {
     extra: {
       id?: string;
       closed?: boolean;
-      strokeStyle?: DrawingElement['strokeStyle'];
+      strokeStyle?: DrawingElement["strokeStyle"];
       color?: string;
       businessObject?: DrawingElement;
     } = {},
@@ -358,8 +358,8 @@ export default class WardleyElementFactory {
       y,
       width,
       height,
-      wardleyType: 'drawing',
-      wardleyLabel: '',
+      wardleyType: "drawing",
+      wardleyLabel: "",
       evolution: firstNorm.evolution,
       visibility: firstNorm.visibility,
       drawingPoints: canvasPoints.map((p) => ({ x: p.x - x, y: p.y - y })),
@@ -372,23 +372,23 @@ export default class WardleyElementFactory {
   }
 
   createNew(
-    type: WardleyShape['wardleyType'],
+    type: WardleyShape["wardleyType"],
     rawLabel: string,
     extra: CreateNewExtra = {},
   ): WardleyShape {
     // Enforce a unique label -> lossless DSL round-trip (see uniqueLabel). Attitude regions are
     // unlabelled like in OWM: their title is the canonical kind name.
     const label =
-      type === 'attitude'
-        ? (extra.attitudeKind ?? 'pioneers')
+      type === "attitude"
+        ? (extra.attitudeKind ?? "pioneers")
         : isLinkableType(type)
           ? this.uniqueLabel(rawLabel)
           : rawLabel;
-    if (type === 'pipeline') {
+    if (type === "pipeline") {
       const shape = this.elementFactory.createShape({
         width: 200,
         height: PIPELINE_HEIGHT,
-        wardleyType: 'pipeline',
+        wardleyType: "pipeline",
         wardleyLabel: label,
         evolution: 0.5,
         visibility: 0.5,
@@ -398,25 +398,25 @@ export default class WardleyElementFactory {
       });
       return shape as unknown as WardleyShape;
     }
-    if (type === 'attitude') {
+    if (type === "attitude") {
       const shape = this.elementFactory.createShape({
         width: 180,
         height: 48,
-        wardleyType: 'attitude',
+        wardleyType: "attitude",
         wardleyLabel: label,
-        attitudeKind: extra.attitudeKind ?? 'pioneers',
+        attitudeKind: extra.attitudeKind ?? "pioneers",
         evolution: 0.5,
         visibility: 0.5,
         isFrame: true,
       });
       return shape as unknown as WardleyShape;
     }
-    if (type === 'note') {
+    if (type === "note") {
       const { width, height } = noteMetrics(label);
       const shape = this.elementFactory.createShape({
         width,
         height,
-        wardleyType: 'note',
+        wardleyType: "note",
         wardleyLabel: label,
         evolution: 0.5,
         visibility: 0.5,
@@ -430,7 +430,7 @@ export default class WardleyElementFactory {
         : undefined;
     // Annotations automatically get the next free number (instead of a fixed "1").
     const annotationNumber =
-      type === 'annotation' ? (extra.annotationNumber ?? this.nextAnnotationNumber()) : undefined;
+      type === "annotation" ? (extra.annotationNumber ?? this.nextAnnotationNumber()) : undefined;
     const shape = this.elementFactory.createShape({
       width: NODE_SIZE,
       height: NODE_SIZE,
@@ -446,21 +446,21 @@ export default class WardleyElementFactory {
   }
 
   createDependency(edge: MapEdge, source: WardleyShape, target: WardleyShape): WardleyConnection {
-    return this.connection('dependency', edge, source, target);
+    return this.connection("dependency", edge, source, target);
   }
 
   createFlow(edge: MapEdge, source: WardleyShape, target: WardleyShape): WardleyConnection {
-    const bidirectional = edge.edgeType === 'flow' && edge.bidirectional === true;
-    return this.connection('flow', edge, source, target, bidirectional);
+    const bidirectional = edge.edgeType === "flow" && edge.bidirectional === true;
+    return this.connection("flow", edge, source, target, bidirectional);
   }
 
   private node(
-    type: WardleyShape['wardleyType'],
+    type: WardleyShape["wardleyType"],
     id: string,
     label: string,
     visibility: number,
     evolution: number,
-    businessObject: WardleyShape['businessObject'],
+    businessObject: WardleyShape["businessObject"],
     extra: Partial<WardleyShape> = {},
   ): WardleyShape {
     const center = this.grid.toCanvas({ visibility, evolution });
@@ -483,13 +483,13 @@ export default class WardleyElementFactory {
   }
 
   private connection(
-    type: WardleyConnection['wardleyType'],
+    type: WardleyConnection["wardleyType"],
     edge: MapEdge,
     source: WardleyShape,
     target: WardleyShape,
     bidirectional = false,
   ): WardleyConnection {
-    const flowValue = edge.edgeType === 'flow' ? edge.flowValue : undefined;
+    const flowValue = edge.edgeType === "flow" ? edge.flowValue : undefined;
     const conn = this.elementFactory.createConnection({
       id: edge.id,
       source,

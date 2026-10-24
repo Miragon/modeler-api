@@ -25,7 +25,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Type guard for `MessageEvent.data` in the webview. */
 export function isAppearanceMessage(value: unknown): value is AppearanceMessage {
-  if (!isRecord(value) || value.type !== APPEARANCE_MESSAGE_TYPE || !isRecord(value.appearance)) return false;
+  if (!isRecord(value) || value.type !== APPEARANCE_MESSAGE_TYPE || !isRecord(value.appearance))
+    return false;
   const { theme, kontrast } = value.appearance;
   return (theme === "light" || theme === "dark") && (kontrast === undefined || kontrast === "hoch");
 }

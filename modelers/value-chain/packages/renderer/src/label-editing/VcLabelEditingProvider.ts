@@ -1,11 +1,11 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Element } from 'diagram-js/lib/model/Types';
-import { labelInset } from '../draw/geometry.js';
-import { FONT, LABEL_PADDING } from '../draw/styles.js';
-import { isOrgUnit, isVcShape, type VcShape } from '../model/di-types.js';
-import type VcModeling from '../modeling/VcModeling.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Element } from "diagram-js/lib/model/Types";
+import { labelInset } from "../draw/geometry.js";
+import { FONT, LABEL_PADDING } from "../draw/styles.js";
+import { isOrgUnit, isVcShape, type VcShape } from "../model/di-types.js";
+import type VcModeling from "../modeling/VcModeling.js";
 
 interface DirectEditingLike {
   registerProvider(provider: unknown): void;
@@ -47,7 +47,7 @@ interface SuspendedEdit {
  * text, when the imported diagram still has that element.
  */
 export default class VcLabelEditingProvider {
-  static $inject = ['directEditing', 'canvas', 'eventBus', 'vcModeling', 'elementRegistry'];
+  static $inject = ["directEditing", "canvas", "eventBus", "vcModeling", "elementRegistry"];
 
   private suspended: SuspendedEdit | null = null;
   private resumeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -61,7 +61,7 @@ export default class VcLabelEditingProvider {
   ) {
     directEditing.registerProvider(this);
 
-    eventBus.on('element.dblclick', (event: { element?: Element }) => {
+    eventBus.on("element.dblclick", (event: { element?: Element }) => {
       if (event.element && isVcShape(event.element)) {
         directEditing.activate(event.element);
       }
@@ -69,13 +69,13 @@ export default class VcLabelEditingProvider {
 
     // Open editing on freshly appended/created-with-source steps (after the default
     // handlers at priority 1000 have created the shape).
-    eventBus.on('autoPlace.end', 500, (event: { shape?: Element }) => {
+    eventBus.on("autoPlace.end", 500, (event: { shape?: Element }) => {
       if (event.shape && isVcShape(event.shape)) {
         directEditing.activate(event.shape);
       }
     });
     eventBus.on(
-      'create.end',
+      "create.end",
       500,
       (event: { context: { source?: Element; shape?: Element; canExecute?: unknown } }) => {
         const { source, shape, canExecute } = event.context;
@@ -86,7 +86,7 @@ export default class VcLabelEditingProvider {
     );
 
     // Interacting elsewhere commits (does not discard) the pending edit.
-    eventBus.on(['element.mousedown', 'drag.init', 'autoPlace.start', 'popupMenu.open'], () => {
+    eventBus.on(["element.mousedown", "drag.init", "autoPlace.start", "popupMenu.open"], () => {
       if (directEditing.isActive()) {
         directEditing.complete();
       }
@@ -94,18 +94,18 @@ export default class VcLabelEditingProvider {
 
     // diagram-js cannot tell a host's fit or restore from a wheel zoom, and a host's view change
     // must not write half-typed input into the document (contract L5): the edit stays open.
-    eventBus.on('canvas.viewbox.changed', () => this.followView());
+    eventBus.on("canvas.viewbox.changed", () => this.followView());
 
     // Model changed underneath the editor (undo/redo via chrome or API) — discard the
     // pending edit instead of committing against a possibly removed element.
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       if (directEditing.isActive()) {
         directEditing.cancel();
       }
     });
 
     // Before the canvas tears down: a field still open would commit onto the destroyed diagram.
-    eventBus.on('diagram.destroy', 1500, () => {
+    eventBus.on("diagram.destroy", 1500, () => {
       clearTimeout(this.resumeTimer);
       this.suspended = null;
       if (directEditing.isActive()) {
@@ -191,7 +191,7 @@ export default class VcLabelEditingProvider {
       width: `${width}px`,
       height: `${height}px`,
     });
-    textbox.content.style.fontSize = context.style?.['fontSize'] ?? '';
+    textbox.content.style.fontSize = context.style?.["fontSize"] ?? "";
     // complete() compares the box against this to tell an edit from a mere look at the label.
     active.context.bounds = context.bounds;
   }
@@ -217,18 +217,18 @@ export default class VcLabelEditingProvider {
     const style = {
       fontFamily: FONT.family,
       fontSize: `${FONT.size * zoom}px`,
-      fontWeight: 'normal',
+      fontWeight: "normal",
       lineHeight: String(FONT.lineHeight),
-      textAlign: 'center',
-      backgroundColor: 'var(--cd-ui-flaeche-hoch)',
-      border: '1px solid var(--cd-ui-interaktion)',
+      textAlign: "center",
+      backgroundColor: "var(--cd-ui-flaeche-hoch)",
+      border: "1px solid var(--cd-ui-interaktion)",
     };
 
     return {
       bounds,
       style,
       options: { centerVertically: true },
-      text: shape.vcLabel || '',
+      text: shape.vcLabel || "",
     };
   }
 
@@ -238,5 +238,5 @@ export default class VcLabelEditingProvider {
 }
 
 function sanitizeLabel(text: string): string {
-  return text.replace(/\r\n?/g, '\n').trim();
+  return text.replace(/\r\n?/g, "\n").trim();
 }

@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import { documentDiagnostics } from './diagnostics.js';
-import { DocumentWriter } from './documentWriter.js';
-import { exportImageToFile } from './exportImage.js';
-import { withExampleInserted } from './examples.js';
-import type { HostToWebview, WebviewToHost } from './protocol.js';
+import * as vscode from "vscode";
+import { documentDiagnostics } from "./diagnostics.js";
+import { DocumentWriter } from "./documentWriter.js";
+import { exportImageToFile } from "./exportImage.js";
+import { withExampleInserted } from "./examples.js";
+import type { HostToWebview, WebviewToHost } from "./protocol.js";
 
 /**
  * One open diagram editor: keeps the webview and the document in sync, fills the document's entry
@@ -44,7 +44,7 @@ export class DiagramSession implements vscode.Disposable {
     if (event.contentChanges.length === 0) return;
     this.refreshDiagnostics();
     if (this.writer.consumeEcho()) return;
-    void this.post({ type: 'update', text: this.document.getText() });
+    void this.post({ type: "update", text: this.document.getText() });
   }
 
   private refreshDiagnostics(): void {
@@ -64,30 +64,30 @@ export class DiagramSession implements vscode.Disposable {
       return;
     }
     this.postedProblems = problems;
-    void this.post({ type: 'problems', ...problems });
+    void this.post({ type: "problems", ...problems });
   }
 
   private async onMessage(message: WebviewToHost): Promise<void> {
     switch (message.type) {
-      case 'ready':
+      case "ready":
         // A reloaded webview sends `ready` again and has forgotten the count it was shown.
         this.postedProblems = undefined;
-        await this.post({ type: 'init', text: this.document.getText() });
+        await this.post({ type: "init", text: this.document.getText() });
         this.postProblems();
         break;
-      case 'edit':
+      case "edit":
         await this.writer.write(() => message.text, { suppressEcho: true });
         break;
-      case 'insertExample':
+      case "insertExample":
         await this.writer.write(withExampleInserted, { suppressEcho: false });
         break;
-      case 'export':
+      case "export":
         await exportImageToFile(this.document.uri, message.format, message.data);
         break;
-      case 'showProblems':
-        void vscode.commands.executeCommand('workbench.actions.view.problems');
+      case "showProblems":
+        void vscode.commands.executeCommand("workbench.actions.view.problems");
         break;
-      case 'error':
+      case "error":
         void vscode.window.showErrorMessage(message.message);
         break;
     }

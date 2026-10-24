@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import { Modeler } from '../../src/index.js';
-import { isWardleyShape, type WardleyShape } from '../../src/model/di-types.js';
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import { Modeler } from "../../src/index.js";
+import { isWardleyShape, type WardleyShape } from "../../src/model/di-types.js";
 // Pull the real stylesheet in so layout (getBBox) matches production. src/index.ts also imports it.
-import '../../src/assets/wardley.css';
+import "../../src/assets/wardley.css";
 
 // Minimal OWM map: an anchor depending on a component. DSL coords are [visibility, evolution].
 const DSL = `title Integration Fixture
@@ -20,15 +20,15 @@ function findByLabel(registry: ElementRegistry, label: string): WardleyShape {
   return shape;
 }
 
-describe('Modeler integration (real browser DOM)', () => {
+describe("Modeler integration (real browser DOM)", () => {
   let container: HTMLElement;
   let modeler: Modeler;
 
   beforeEach(() => {
-    container = document.createElement('div');
+    container = document.createElement("div");
     // Explicit pixel size: without it the canvas collapses to 0 height and getBBox boxes are empty.
-    container.style.width = '1024px';
-    container.style.height = '768px';
+    container.style.width = "1024px";
+    container.style.height = "768px";
     document.body.appendChild(container);
     modeler = new Modeler({ container });
   });
@@ -38,51 +38,51 @@ describe('Modeler integration (real browser DOM)', () => {
     container.remove();
   });
 
-  it('imports a DSL map into the elementRegistry with real SVG layout', async () => {
+  it("imports a DSL map into the elementRegistry with real SVG layout", async () => {
     const { warnings } = await modeler.importDSL(DSL);
     expect(warnings).toEqual([]);
 
-    const registry = modeler.get<ElementRegistry>('elementRegistry');
+    const registry = modeler.get<ElementRegistry>("elementRegistry");
     const labels = registry
       .filter(
         (el) =>
-          isWardleyShape(el) && (el.wardleyType === 'component' || el.wardleyType === 'anchor'),
+          isWardleyShape(el) && (el.wardleyType === "component" || el.wardleyType === "anchor"),
       )
       .map((el) => (el as WardleyShape).wardleyLabel)
       .sort();
-    expect(labels).toEqual(['Customer', 'Platform']);
+    expect(labels).toEqual(["Customer", "Platform"]);
 
     // Browser-only invariant: a real getBBox() yields a non-zero box. jsdom returns 0×0, so this is
     // exactly why the integration layer needs Browser Mode.
-    const gfx = registry.getGraphics(findByLabel(registry, 'Platform')) as SVGGraphicsElement;
+    const gfx = registry.getGraphics(findByLabel(registry, "Platform")) as SVGGraphicsElement;
     const box = gfx.getBBox();
     expect(box.width).toBeGreaterThan(0);
     expect(box.height).toBeGreaterThan(0);
   });
 
-  it('roundtrips importDSL -> exportMap with stable labels and positions', async () => {
+  it("roundtrips importDSL -> exportMap with stable labels and positions", async () => {
     await modeler.importDSL(DSL);
     const map = modeler.exportMap();
 
-    expect(map.elements.map((e) => e.label).sort()).toEqual(['Customer', 'Platform']);
+    expect(map.elements.map((e) => e.label).sort()).toEqual(["Customer", "Platform"]);
     expect(map.edges).toHaveLength(1);
 
-    const platform = map.elements.find((e) => e.label === 'Platform');
+    const platform = map.elements.find((e) => e.label === "Platform");
     expect(platform?.position.evolution).toBeCloseTo(0.62, 2);
     expect(platform?.position.visibility).toBeCloseTo(0.55, 2);
 
     // saveSVG() depends on real layout — smoke-assert it serializes.
     const { svg } = await modeler.saveSVG();
-    expect(svg).toContain('<svg');
+    expect(svg).toContain("<svg");
   });
 
-  it('re-projects normalized coords on move and restores them on undo', async () => {
+  it("re-projects normalized coords on move and restores them on undo", async () => {
     await modeler.importDSL(DSL);
-    const registry = modeler.get<ElementRegistry>('elementRegistry');
-    const modeling = modeler.get<Modeling>('modeling');
-    const commandStack = modeler.get<CommandStack>('commandStack');
+    const registry = modeler.get<ElementRegistry>("elementRegistry");
+    const modeling = modeler.get<Modeling>("modeling");
+    const commandStack = modeler.get<CommandStack>("commandStack");
 
-    const platform = findByLabel(registry, 'Platform');
+    const platform = findByLabel(registry, "Platform");
     const before = {
       evolution: platform.evolution,
       visibility: platform.visibility,
@@ -112,19 +112,19 @@ describe('Modeler integration (real browser DOM)', () => {
 
   // Regression: an interactively drawn connection landed on top of the components, so its hit band
   // covered the half of the component it leaves from — grabbing it there picked the line instead.
-  it('keeps an interactively drawn connection behind the components it connects', async () => {
+  it("keeps an interactively drawn connection behind the components it connects", async () => {
     await modeler.importDSL(`title Connect Fixture
 component Platform [0.55, 0.40]
 component Storage [0.35, 0.62]`);
-    const registry = modeler.get<ElementRegistry>('elementRegistry');
-    const modeling = modeler.get<Modeling>('modeling');
-    const platform = findByLabel(registry, 'Platform');
-    const storage = findByLabel(registry, 'Storage');
+    const registry = modeler.get<ElementRegistry>("elementRegistry");
+    const modeling = modeler.get<Modeling>("modeling");
+    const platform = findByLabel(registry, "Platform");
+    const storage = findByLabel(registry, "Storage");
 
     // Same call (and attrs from the `connection.create` rule) the connect tool / append entry make.
-    const connection = modeling.connect(platform, storage, { wardleyType: 'dependency' });
+    const connection = modeling.connect(platform, storage, { wardleyType: "dependency" });
 
-    const platformHit = registry.getGraphics(platform).querySelector('.djs-hit')!;
+    const platformHit = registry.getGraphics(platform).querySelector(".djs-hit")!;
     const connectionGfx = registry.getGraphics(connection);
     expect(
       platformHit.compareDocumentPosition(connectionGfx) & Node.DOCUMENT_POSITION_PRECEDING,
@@ -143,21 +143,21 @@ component Storage [0.35, 0.62]`);
 
   // The renderer draws to the pipeline's ■ anchor; the waypoints (= the hit band) used to end where
   // the connect drag was released, and fall back to the box mid once the other end moved.
-  it('lays out a connection to a pipeline onto its ■ anchor', async () => {
+  it("lays out a connection to a pipeline onto its ■ anchor", async () => {
     await modeler.importDSL(`title Pipeline Fixture
 component Platform [0.75, 0.40]
 pipeline Hosting [0.30, 0.80] (y 0.40)`);
-    const registry = modeler.get<ElementRegistry>('elementRegistry');
-    const modeling = modeler.get<Modeling>('modeling');
-    const platform = findByLabel(registry, 'Platform');
-    const hosting = findByLabel(registry, 'Hosting');
+    const registry = modeler.get<ElementRegistry>("elementRegistry");
+    const modeling = modeler.get<Modeling>("modeling");
+    const platform = findByLabel(registry, "Platform");
+    const hosting = findByLabel(registry, "Hosting");
     const anchor = { x: hosting.x + hosting.width / 2, y: hosting.y };
 
     const releasePoint = { x: hosting.x + hosting.width - 10, y: hosting.y + hosting.height - 5 };
     const connection = modeling.connect(
       platform,
       hosting,
-      { wardleyType: 'dependency' },
+      { wardleyType: "dependency" },
       { connectionEnd: releasePoint },
     );
     expect(connection.waypoints[connection.waypoints.length - 1]).toEqual(anchor);
@@ -166,16 +166,16 @@ pipeline Hosting [0.30, 0.80] (y 0.40)`);
     expect(connection.waypoints[connection.waypoints.length - 1]).toEqual(anchor);
   });
 
-  it('re-lays the connections of a component glued onto a pipeline', async () => {
+  it("re-lays the connections of a component glued onto a pipeline", async () => {
     await modeler.importDSL(`title Glue Fixture
 component Platform [0.75, 0.40]
 component Storage [0.20, 0.10]
 pipeline Hosting [0.30, 0.80] (y 0.40)
 Platform -> Storage`);
-    const registry = modeler.get<ElementRegistry>('elementRegistry');
-    const modeling = modeler.get<Modeling>('modeling');
-    const storage = findByLabel(registry, 'Storage');
-    const hosting = findByLabel(registry, 'Hosting');
+    const registry = modeler.get<ElementRegistry>("elementRegistry");
+    const modeling = modeler.get<Modeling>("modeling");
+    const storage = findByLabel(registry, "Storage");
+    const hosting = findByLabel(registry, "Hosting");
     const connection = storage.incoming[0]!;
 
     // Drop the center into the lower part of the box, so the glue pulls it up onto the line.

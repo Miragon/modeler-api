@@ -120,7 +120,8 @@ export function createDropZone(context: DropZoneContext): DropZoneController {
 
   function rejectByDefault(files: readonly File[]): void {
     const accepted = acceptList(options.accept, lang);
-    for (const file of files) toast({ status: "danger", text: messages.cannotOpenFile(file.name, accepted) });
+    for (const file of files)
+      toast({ status: "danger", text: messages.cannotOpenFile(file.name, accepted) });
   }
 
   function receive(files: readonly File[], verdict: DragVerdict): void {
@@ -156,7 +157,9 @@ export function createDropZone(context: DropZoneContext): DropZoneController {
         show({ state: "none" });
         const files = Array.from(transfer.files ?? []);
         const items =
-          files.length > 0 ? files.map((file) => ({ kind: "file", type: file.type })) : dragItems(transfer);
+          files.length > 0
+            ? files.map((file) => ({ kind: "file", type: file.type }))
+            : dragItems(transfer);
         receive(files, verdictFor(items));
         break;
       }

@@ -5,7 +5,7 @@
  */
 
 /** The icons the guide gives these entries (guide §5.14, the shell's common set). */
-export type MapMenuIcon = 'file-image' | 'file-code-corner' | 'keyboard';
+export type MapMenuIcon = "file-image" | "file-code-corner" | "keyboard";
 
 interface MapMenuItem {
   readonly id: string;
@@ -15,13 +15,13 @@ interface MapMenuItem {
 }
 
 export interface MapMenuAction extends MapMenuItem {
-  readonly kind: 'action';
+  readonly kind: "action";
   readonly shortcut?: string;
   onSelect(): void;
 }
 
 export interface MapMenuDialog extends MapMenuItem {
-  readonly kind: 'dialog';
+  readonly kind: "dialog";
   /** The chip of a key that opens the dialog as well, e.g. "?". */
   readonly shortcut?: string;
   onSelect(): void;
@@ -69,11 +69,11 @@ export interface MapMenuActions {
 
 /** The labels of the export entries, also used by the hosts' commands and notifications. */
 export const EXPORT_LABELS = {
-  png: 'Export as PNG',
-  svg: 'Export as SVG',
-  transparentPng: 'Export as PNG (4×, transparent)',
-  json: 'Export as JSON',
-  wmap: 'Export as .wmap',
+  png: "Export as PNG",
+  svg: "Export as SVG",
+  transparentPng: "Export as PNG (4×, transparent)",
+  json: "Export as JSON",
+  wmap: "Export as .wmap",
 } as const;
 
 function exportEntry(
@@ -83,7 +83,7 @@ function exportEntry(
   icon?: MapMenuIcon,
 ): MapMenuAction {
   return {
-    kind: 'action',
+    kind: "action",
     id,
     label,
     ...(icon ? { icon } : {}),
@@ -94,16 +94,16 @@ function exportEntry(
 
 function exportEntries(exports: MapExports): MapMenuAction[] {
   const entries = [
-    exportEntry('export-png', EXPORT_LABELS.png, exports.png, 'file-image'),
-    exportEntry('export-svg', EXPORT_LABELS.svg, exports.svg, 'file-code-corner'),
+    exportEntry("export-png", EXPORT_LABELS.png, exports.png, "file-image"),
+    exportEntry("export-svg", EXPORT_LABELS.svg, exports.svg, "file-code-corner"),
   ];
   if (exports.transparentPng) {
     entries.push(
-      exportEntry('export-png-transparent', EXPORT_LABELS.transparentPng, exports.transparentPng),
+      exportEntry("export-png-transparent", EXPORT_LABELS.transparentPng, exports.transparentPng),
     );
   }
-  if (exports.json) entries.push(exportEntry('export-json', EXPORT_LABELS.json, exports.json));
-  if (exports.wmap) entries.push(exportEntry('export-wmap', EXPORT_LABELS.wmap, exports.wmap));
+  if (exports.json) entries.push(exportEntry("export-json", EXPORT_LABELS.json, exports.json));
+  if (exports.wmap) entries.push(exportEntry("export-wmap", EXPORT_LABELS.wmap, exports.wmap));
   return entries;
 }
 
@@ -115,26 +115,26 @@ function exportEntries(exports: MapExports): MapMenuAction[] {
 export function mapMenu(actions: MapMenuActions): MapMenu {
   const { mapTitle, shortcutsKey } = actions;
   const titleEntries: MapMenuEntry[] = mapTitle
-    ? [{ kind: 'dialog', id: 'map-title', label: 'Map title…', onSelect: () => mapTitle() }]
+    ? [{ kind: "dialog", id: "map-title", label: "Map title…", onSelect: () => mapTitle() }]
     : [];
   return {
     model: [
       ...titleEntries,
-      { kind: 'dialog', id: 'map-size', label: 'Map size…', onSelect: () => actions.mapSize() },
+      { kind: "dialog", id: "map-size", label: "Map size…", onSelect: () => actions.mapSize() },
       {
-        kind: 'dialog',
-        id: 'x-axis-labels',
-        label: 'X-axis labels…',
+        kind: "dialog",
+        id: "x-axis-labels",
+        label: "X-axis labels…",
         onSelect: () => actions.axisLabels(),
       },
     ],
     export: exportEntries(actions.exports),
     help: [
       {
-        kind: 'dialog',
-        id: 'keyboard-shortcuts',
-        label: 'Keyboard shortcuts…',
-        icon: 'keyboard',
+        kind: "dialog",
+        id: "keyboard-shortcuts",
+        label: "Keyboard shortcuts…",
+        icon: "keyboard",
         ...(shortcutsKey ? { shortcut: shortcutsKey } : {}),
         onSelect: () => actions.showKeyboardShortcuts(),
       },

@@ -1,17 +1,17 @@
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
 import {
   append as svgAppend,
   attr as svgAttr,
   create as svgCreate,
   remove as svgRemove,
-} from 'tiny-svg';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import { COLORS } from '../draw/styles.js';
-import { isWardleyShape, type WardleyShape } from '../model/di-types.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
+} from "tiny-svg";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import { COLORS } from "../draw/styles.js";
+import { isWardleyShape, type WardleyShape } from "../model/di-types.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
 
 interface Point {
   x: number;
@@ -24,7 +24,7 @@ interface Point {
  * recomputed bbox) as ONE undoable command.
  */
 export default class WardleyDrawingHandles {
-  static $inject = ['eventBus', 'canvas', 'wardleyModeling', 'evolutionGrid', 'injector'];
+  static $inject = ["eventBus", "canvas", "wardleyModeling", "evolutionGrid", "injector"];
 
   private shape: WardleyShape | null = null;
   private group: SVGElement | null = null;
@@ -37,18 +37,18 @@ export default class WardleyDrawingHandles {
     private readonly grid: EvolutionGrid,
     private readonly injector: Injector,
   ) {
-    eventBus.on('selection.changed', (event: { newSelection?: unknown[] }) => {
+    eventBus.on("selection.changed", (event: { newSelection?: unknown[] }) => {
       const sel = event.newSelection ?? [];
       const only = sel.length === 1 ? sel[0] : null;
       this.attach(
-        isWardleyShape(only) && only.wardleyType === 'drawing' ? (only as WardleyShape) : null,
+        isWardleyShape(only) && only.wardleyType === "drawing" ? (only as WardleyShape) : null,
       );
     });
     // Keep the handles glued to the shape while it is moved/changed.
-    eventBus.on('element.changed', (event: { element?: unknown }) => {
+    eventBus.on("element.changed", (event: { element?: unknown }) => {
       if (this.shape && event.element === this.shape) this.render();
     });
-    eventBus.on(['diagram.clear', 'diagram.destroy'], () => this.attach(null));
+    eventBus.on(["diagram.clear", "diagram.destroy"], () => this.attach(null));
   }
 
   private attach(shape: WardleyShape | null): void {
@@ -64,19 +64,19 @@ export default class WardleyDrawingHandles {
   private render(): void {
     this.clear();
     if (!this.shape) return;
-    const layer = this.canvas.getLayer('wardley-drawing-handles', 1100);
-    const group = svgCreate('g');
+    const layer = this.canvas.getLayer("wardley-drawing-handles", 1100);
+    const group = svgCreate("g");
     this.absolutePoints().forEach((p, index) => {
-      const handle = svgAttr(svgCreate('circle'), {
+      const handle = svgAttr(svgCreate("circle"), {
         cx: p.x,
         cy: p.y,
         r: 5,
         fill: COLORS.paper,
         stroke: COLORS.ink,
-        'stroke-width': 1.5,
-        class: 'wardley-drawing-handle',
+        "stroke-width": 1.5,
+        class: "wardley-drawing-handle",
       });
-      handle.addEventListener('mousedown', (e) => this.startDrag(e as MouseEvent, index));
+      handle.addEventListener("mousedown", (e) => this.startDrag(e as MouseEvent, index));
       svgAppend(group, handle);
     });
     svgAppend(layer, group);
@@ -95,14 +95,14 @@ export default class WardleyDrawingHandles {
       this.renderDragPreview(points, !!shape.closed);
     };
     const onUp = (ev: MouseEvent): void => {
-      document.removeEventListener('mousemove', onMove, true);
-      document.removeEventListener('mouseup', onUp, true);
+      document.removeEventListener("mousemove", onMove, true);
+      document.removeEventListener("mouseup", onUp, true);
       points[index] = this.toCanvasPoint(ev);
       this.clearDragPreview();
       this.commit(shape, points);
     };
-    document.addEventListener('mousemove', onMove, true);
-    document.addEventListener('mouseup', onUp, true);
+    document.addEventListener("mousemove", onMove, true);
+    document.addEventListener("mouseup", onUp, true);
   }
 
   /** New bbox + relative points + normalized anchor — ONE undoable updateProperties command. */
@@ -126,14 +126,14 @@ export default class WardleyDrawingHandles {
 
   private renderDragPreview(points: Point[], closed: boolean): void {
     this.clearDragPreview();
-    const layer = this.canvas.getLayer('wardley-drawing-handles', 1100);
-    const preview = svgAttr(svgCreate(closed ? 'polygon' : 'polyline'), {
-      points: points.map((p) => `${p.x},${p.y}`).join(' '),
-      fill: 'none',
+    const layer = this.canvas.getLayer("wardley-drawing-handles", 1100);
+    const preview = svgAttr(svgCreate(closed ? "polygon" : "polyline"), {
+      points: points.map((p) => `${p.x},${p.y}`).join(" "),
+      fill: "none",
       stroke: COLORS.ink,
-      'stroke-width': 1.5,
-      'stroke-dasharray': '5 4',
-      'pointer-events': 'none',
+      "stroke-width": 1.5,
+      "stroke-dasharray": "5 4",
+      "pointer-events": "none",
     });
     svgAppend(layer, preview);
     this.dragPreview = preview;

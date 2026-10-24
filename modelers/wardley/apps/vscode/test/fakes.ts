@@ -1,6 +1,6 @@
-import type * as vscode from 'vscode';
-import { Disposable, type Range, Uri, type WorkspaceEdit } from './__mocks__/vscode';
-import type { HostToWebview, WebviewToHost } from '../src/protocol.js';
+import type * as vscode from "vscode";
+import { Disposable, type Range, Uri, type WorkspaceEdit } from "./__mocks__/vscode";
+import type { HostToWebview, WebviewToHost } from "../src/protocol.js";
 
 /** A TextDocument stand-in with real line semantics (lineCount/lineAt) and a settable text. */
 export interface FakeDoc {
@@ -16,7 +16,7 @@ export interface FakeDoc {
   set(text: string): void;
 }
 
-export function fakeDocument(path: string, text: string, languageId = 'wardley-owm'): FakeDoc {
+export function fakeDocument(path: string, text: string, languageId = "wardley-owm"): FakeDoc {
   let current = text;
   const lines = () => current.split(/\r\n|\n/);
   return {
@@ -45,22 +45,22 @@ export function asTextDocument(doc: FakeDoc): vscode.TextDocument {
 
 /** Applies a range replacement like VS Code: inserted '\n' become the document's line break. */
 export function applyRangeEdit(text: string, range: Range, inserted: string): string {
-  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.split(/\r\n|\n/);
   const offsetOf = (position: { line: number; character: number }): number => {
     let offset = 0;
     for (let i = 0; i < position.line; i++) offset += lines[i]!.length + 1;
     return offset + position.character;
   };
-  const joined = lines.join('\n');
+  const joined = lines.join("\n");
   const result =
     joined.slice(0, offsetOf(range.start)) + inserted + joined.slice(offsetOf(range.end));
-  return result.split('\n').join(eol);
+  return result.split("\n").join(eol);
 }
 
 export function lastEdit(edit: WorkspaceEdit): { range: Range; text: string } {
   const last = edit.edits[edit.edits.length - 1];
-  if (!last) throw new Error('WorkspaceEdit has no edits.');
+  if (!last) throw new Error("WorkspaceEdit has no edits.");
   return { range: last.range as Range, text: last.text };
 }
 
@@ -81,8 +81,8 @@ export function fakeWebviewPanel(): FakePanel {
   let onDispose: (() => void) | undefined;
   const webview = {
     options: {},
-    html: '',
-    cspSource: 'vscode-webview://unit',
+    html: "",
+    cspSource: "vscode-webview://unit",
     asWebviewUri: (u: Uri) => u,
     postMessage: (msg: HostToWebview) => {
       posted.push(msg);
@@ -115,7 +115,7 @@ export function fakeWebviewPanel(): FakePanel {
     posted,
     updates: () =>
       posted
-        .filter((m): m is Extract<HostToWebview, { type: 'update' }> => m.type === 'update')
+        .filter((m): m is Extract<HostToWebview, { type: "update" }> => m.type === "update")
         .map((m) => m.text),
     receive: async (msg: WebviewToHost) => onMessage?.(msg),
     setActive: (active: boolean) => {
@@ -127,7 +127,7 @@ export function fakeWebviewPanel(): FakePanel {
 }
 
 export const fakeContext = {
-  extensionUri: Uri.parse('file:/ext'),
+  extensionUri: Uri.parse("file:/ext"),
 } as unknown as vscode.ExtensionContext;
 
 export const fakeToken = {} as vscode.CancellationToken;

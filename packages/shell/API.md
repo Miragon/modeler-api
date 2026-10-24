@@ -189,7 +189,9 @@ stylesheet reads the tokens:
 
 ```ts
 expect(SHELL).toEqual(shellSizesFromTokens(vendoredTokens.shell));
-expect(Object.keys(vendoredTokens.shell)).toEqual(expect.arrayContaining(Object.values(SHELL_TOKENS)));
+expect(Object.keys(vendoredTokens.shell)).toEqual(
+  expect.arrayContaining(Object.values(SHELL_TOKENS)),
+);
 ```
 
 ### Fit
@@ -224,7 +226,11 @@ function sameView(
   b: Pick<ScaledViewbox, "x" | "y" | "scale">,
   tolerance?: number,
 ): boolean;
-function interpolateViewbox(from: ScaledViewbox, to: ScaledViewbox, progress: number): ScaledViewbox;
+function interpolateViewbox(
+  from: ScaledViewbox,
+  to: ScaledViewbox,
+  progress: number,
+): ScaledViewbox;
 function easeStandard(progress: number): number; // cubic-bezier(0.4, 0, 0.2, 1)
 ```
 
@@ -287,7 +293,8 @@ interface KeyLike {
 }
 function matchChromeKey(event: KeyLike): ChromeKey | undefined;
 function isUndoRedoKey(event: KeyLike): boolean;
-const TEXT_FIELD_SELECTOR = "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+const TEXT_FIELD_SELECTOR =
+  "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
 
 interface KeyContext {
   host: ShellHost;
@@ -312,7 +319,11 @@ interface NavigatorLike {
   userAgentData?: { platform?: string };
 }
 function detectPlatform(navigator?: NavigatorLike): Platform;
-function shortcutLabel(key: ChromeKey, platform: Platform, keyNames: ShellMessages["keyNames"]): string;
+function shortcutLabel(
+  key: ChromeKey,
+  platform: Platform,
+  keyNames: ShellMessages["keyNames"],
+): string;
 function ariaKeyShortcuts(key: ChromeKey, platform: Platform): string;
 function ariaKeyShortcutsFromLabel(label: string): string | undefined;
 function commandKeyLabel(key: string, platform: Platform, keyNames: { ctrl: string }): string; // "⌘O", "Ctrl+O"
@@ -414,7 +425,12 @@ interface ShellMessages {
   legend: string; // "Legend"
   closeLegend: string; // "Close legend"
   problems(count: number, formattedCount: string): string; // "1 problem", "2 problems"
-  problemsLabel(count: number, errors: number, formattedCount: string, formattedErrors: string): string;
+  problemsLabel(
+    count: number,
+    errors: number,
+    formattedCount: string,
+    formattedErrors: string,
+  ): string;
   // "2 problems, 1 error", "2 problems, no errors"
   showProblems: string; // "Show in Problems view"
   emptyHint: string; // "Pick a tool from the palette to start."
@@ -1205,10 +1221,17 @@ interface LegalLineOptions {
 
 ```html
 <nav class="cd-shell-legal" data-chrome="legal" aria-label="Legal">
-  <a href="https://www.miragon.io/" … aria-describedby="cd-shell-legal-1-new-tab">© 2026 Miragon GmbH</a>
+  <a href="https://www.miragon.io/" … aria-describedby="cd-shell-legal-1-new-tab"
+    >© 2026 Miragon GmbH</a
+  >
   <span class="cd-shell-legal-item">
     <span aria-hidden="true">·</span>
-    <a href="https://www.miragon.io/impressum/" lang="de" target="_blank" rel="noopener noreferrer" …
+    <a
+      href="https://www.miragon.io/impressum/"
+      lang="de"
+      target="_blank"
+      rel="noopener noreferrer"
+      …
       >Impressum</a
     >
   </span>
@@ -1322,7 +1345,11 @@ interface DocumentMode {
   colorScheme: "light dark" | Theme; // <meta name="color-scheme">
   themeColor: ThemeColors; // the two theme-color metas
 }
-function documentMode(choice: AppearanceChoice, themes: readonly Theme[], colors: ThemeColors): DocumentMode;
+function documentMode(
+  choice: AppearanceChoice,
+  themes: readonly Theme[],
+  colors: ThemeColors,
+): DocumentMode;
 interface WebModeScriptOptions {
   themes: readonly Theme[];
   themeColors: ThemeColors;
@@ -1997,7 +2024,8 @@ What the webview bundle needs under this CSP:
       });
       return route.fulfill({ contentType: "text/html", body: html });
     }
-    if (pathname === "/stub.js") return route.fulfill({ contentType: "text/javascript", body: stubIife });
+    if (pathname === "/stub.js")
+      return route.fulfill({ contentType: "text/javascript", body: stubIife });
     return route.fulfill({ path: join(dist, pathname) }); // webview.js, webview.css, fonts/
   });
   await page.goto(`${ORIGIN}/`);
@@ -2175,7 +2203,10 @@ interface ShellCaseOutcome {
 }
 interface ShellConformanceCase {
   name: string;
-  run<P extends PageLike>(page: P, harness: ShellConformanceHarness<P>): Promise<ShellCaseOutcome | void>;
+  run<P extends PageLike>(
+    page: P,
+    harness: ShellConformanceHarness<P>,
+  ): Promise<ShellCaseOutcome | void>;
 }
 function shellConformanceCases(): ShellConformanceCase[];
 type ShellConformanceTest<P extends PageLike = PageLike> = (
@@ -2390,7 +2421,10 @@ and this entry:
 
 ```ts
 // e2e/webview/webview-test.ts
-import { installVsCodeWebviewStub, stubOptionsFromSearch } from "@miragon/modeler-shell/testing/vscode-stub";
+import {
+  installVsCodeWebviewStub,
+  stubOptionsFromSearch,
+} from "@miragon/modeler-shell/testing/vscode-stub";
 
 // before the webview runs, which calls acquireVsCodeApi() and mounts the shell
 installVsCodeWebviewStub({ ...stubOptionsFromSearch(location.search), themes: ["light"] });
@@ -2483,7 +2517,16 @@ function expectedWebviewAppearance(kind: ColorThemeKind, themes: readonly Theme[
 function workbenchThemeClass(kind: ColorThemeKind): string; // vs, vs-dark, hc-black, hc-light
 function webviewBodyClasses(kind: ColorThemeKind): readonly string[]; // sorted; kind 4 has both high-contrast classes
 
-const VSCODE_SMOKE_STEPS: readonly ["resolve", "launch", "open", "edit", "save", "undo", "themes", "close"];
+const VSCODE_SMOKE_STEPS: readonly [
+  "resolve",
+  "launch",
+  "open",
+  "edit",
+  "save",
+  "undo",
+  "themes",
+  "close",
+];
 type VsCodeSmokeStep = (typeof VSCODE_SMOKE_STEPS)[number];
 type VsCodeSmokeTimings = Partial<Record<VsCodeSmokeStep | "total", number>>; // milliseconds
 type ChromePresence = Partial<Record<ChromeIsland, boolean>>;
@@ -2726,7 +2769,9 @@ interface VsCodeSmokeDockerResult {
   results: string; // the results directory on the host, absolute
   timings: { image: number; run: number }; // ms; image 0 when it existed
 }
-function runVsCodeSmokeInDocker(options?: VsCodeSmokeDockerOptions): Promise<VsCodeSmokeDockerResult>;
+function runVsCodeSmokeInDocker(
+  options?: VsCodeSmokeDockerOptions,
+): Promise<VsCodeSmokeDockerResult>;
 
 // FROM node:<version>-bookworm-slim; apt-get install --no-install-recommends of the packages below
 function vsCodeSmokeDockerfile(nodeVersion: string): string;
@@ -2736,7 +2781,10 @@ function vsCodeSmokeDockerImage(nodeVersion: string, platform?: string): string;
 // Xvfb, xauth, Electron's libraries (GTK 3, NSS, GBM, ALSA, libsecret, libxkbfile, …), fonts, unzip, git
 const VSCODE_SMOKE_DOCKER_PACKAGES: readonly string[];
 // shared by every run on the machine: VS Code's downloads (the container's ~/.cache) and npm's cache
-const VSCODE_SMOKE_DOCKER_VOLUMES: { cache: "modeler-shell-vscode-cache"; npm: "modeler-shell-npm-cache" };
+const VSCODE_SMOKE_DOCKER_VOLUMES: {
+  cache: "modeler-shell-vscode-cache";
+  npm: "modeler-shell-npm-cache";
+};
 interface VsCodeSmokeDockerRunOptions {
   image: string;
   root: string; // absolute, on the host
@@ -2913,7 +2961,11 @@ import "./style.css"; // the modeler's own content: the "Keyboard shortcuts…" 
 import "@miragon/modeler-shell/shell.css";
 import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell";
 import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
-import { mountVsCodeShell, persistView, readShellState } from "@miragon/modeler-shell/vscode/webview";
+import {
+  mountVsCodeShell,
+  persistView,
+  readShellState,
+} from "@miragon/modeler-shell/vscode/webview";
 import { createShortcutsDialog } from "./shortcutsDialog";
 
 const vscode = acquireVsCodeApi();
@@ -2934,7 +2986,9 @@ const collaborative = createCollaborativeModeler({
 const modeler = collaborative.diagram;
 modeler.get("canvas");
 const viewOptions = modeler.get<EventStormingViewOptions>("eventStormingViewOptions");
-const levels = modeler.get<{ getLevel(): string; setLevel(level: string): void }>("eventStormingModeling");
+const levels = modeler.get<{ getLevel(): string; setLevel(level: string): void }>(
+  "eventStormingModeling",
+);
 // the canvas lock of an invalid file: context pad, move, resize, delete, paste, label editor
 const canvasLock = modeler.get<EventStormingReadOnly>("eventStormingReadOnly");
 const boardBounds = modeler.get<BoardBounds>("boardBounds");
@@ -3049,7 +3103,8 @@ window.addEventListener("message", (event) => {
   const message = event.data;
   if (message?.type === "init") void enqueueImport(message.text, true).then(firstImportSettled);
   if (message?.type === "update") void enqueueImport(message.text);
-  if (message?.type === "problems") shell.setProblems({ count: message.count, errors: message.errors });
+  if (message?.type === "problems")
+    shell.setProblems({ count: message.count, errors: message.errors });
   if (message?.type === "command" && message.name === "fitView") viewport.fit();
 });
 vscode.postMessage({ type: "ready" });
@@ -3157,7 +3212,9 @@ const shell = mountShell(document.getElementById("app")!, {
   themes: THEMES,
   messages: { canvas: "Event Storming board" },
   primary: { onSelect: () => share() }, // "Share", share-2
-  legal: { links: [{ label: "GitHub", href: "https://github.com/Miragon/event-storming-modeler" }] },
+  legal: {
+    links: [{ label: "GitHub", href: "https://github.com/Miragon/event-storming-modeler" }],
+  },
   file: {
     newDiagram: { onSelect: () => void newDiagram() },
     open: { onSelect: () => pickFile(), shortcut: openKey }, // also the start screen's "Open a file…"
@@ -3231,9 +3288,14 @@ async function replaceBoard(load: () => Promise<readonly ImportWarning[]>) {
   await openDocument(load, true);
   withdrawReplaceUndo();
   if (previous === undefined || previous === modeler.exportDSL()) return;
-  const undo = () => void openDocument(async () => (await modeler.importDSL(previous)).warnings, false);
+  const undo = () =>
+    void openDocument(async () => (await modeler.importDSL(previous)).warnings, false);
   replaceUndo = {
-    toast: shell.toast({ status: "info", text: "Board replaced", action: { label: "Undo", onSelect: undo } }),
+    toast: shell.toast({
+      status: "info",
+      text: "Board replaced",
+      action: { label: "Undo", onSelect: undo },
+    }),
     undo,
   };
 }
@@ -3271,7 +3333,8 @@ modeler.on("commandStack.changed", (event: { trigger?: string }) => {
 
 // 5. Start: the board from the link, else the start screen on an empty board.
 const linked = await readHashMap();
-if (linked !== null) await openDocument(async () => (await modeler.importDSL(linked)).warnings, true);
+if (linked !== null)
+  await openDocument(async () => (await modeler.importDSL(linked)).warnings, true);
 else {
   await modeler.importMap(createEmptyBoard("New board"));
   viewport.afterImport(); // an empty board at 100 %

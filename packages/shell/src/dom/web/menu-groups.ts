@@ -28,7 +28,10 @@ function fileEntry(spec: FileEntrySpec, action: FileMenuAction): MenuEntry {
  * (`dialog` with `FileMenuAction.dialog`) with the action's `shortcut` and `disabled`. Never
  * locked on a read-only canvas.
  */
-export function fileMenuEntries(options: FileMenuOptions, messages: ShellMessages): readonly MenuEntry[] {
+export function fileMenuEntries(
+  options: FileMenuOptions,
+  messages: ShellMessages,
+): readonly MenuEntry[] {
   const specs: readonly FileEntrySpec[] = [
     { option: "newDiagram", id: "new-diagram", label: messages.newDiagram, icon: "file-plus" },
     { option: "open", id: "open", label: messages.openFile, icon: "folder-open" },

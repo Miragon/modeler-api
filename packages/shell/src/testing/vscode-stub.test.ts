@@ -36,16 +36,24 @@ describe("installVsCodeWebviewStub", () => {
     expect(html.getAttribute("data-cd-theme")).toBe("light");
     expect(html.getAttribute("data-cd-kontrast")).toBe("hoch");
     expect([...document.body.classList]).toEqual(["vscode-high-contrast", "vscode-reduce-motion"]);
-    expect(document.head.querySelector("#_defaultStyles")?.textContent).toContain("@layer vscode-default");
+    expect(document.head.querySelector("#_defaultStyles")?.textContent).toContain(
+      "@layer vscode-default",
+    );
     expect((window as StubWindow).__modelerShellVsCodeStub?.kind).toBe(3);
   });
 
   it("switches the color theme as VS Code does: body classes, then the bridge's message", async () => {
-    const stub = installVsCodeWebviewStub({ requested: { theme: "light" }, themes: ["light", "dark"] });
+    const stub = installVsCodeWebviewStub({
+      requested: { theme: "light" },
+      themes: ["light", "dark"],
+    });
     const message = nextMessage();
     stub.setColorThemeKind(2);
     expect(document.body.className).toBe("vscode-dark");
-    expect(await message).toEqual({ type: "modelerShell.appearance", appearance: { theme: "dark" } });
+    expect(await message).toEqual({
+      type: "modelerShell.appearance",
+      appearance: { theme: "dark" },
+    });
   });
 
   it("answers the colorTheme setting and posts on a setting change", async () => {
@@ -57,7 +65,10 @@ describe("installVsCodeWebviewStub", () => {
     expect(document.documentElement.getAttribute("data-cd-theme")).toBe("dark");
     const message = nextMessage();
     stub.setColorTheme("light");
-    expect(await message).toEqual({ type: "modelerShell.appearance", appearance: { theme: "light" } });
+    expect(await message).toEqual({
+      type: "modelerShell.appearance",
+      appearance: { theme: "light" },
+    });
     expect(STUB_SETTING_KEY).toBe("miragon.modeler.colorTheme");
   });
 

@@ -35,7 +35,8 @@ function fakeVsCode(kind: number, settings: Record<string, unknown> = {}) {
   const configurationChanged = new Emitter<{ affectsConfiguration(section: string): boolean }>();
   const values = { ...settings };
   const getConfiguration = vi.fn((section?: string) => ({
-    get: <T>(key: string): T | undefined => values[section ? `${section}.${key}` : key] as T | undefined,
+    get: <T>(key: string): T | undefined =>
+      values[section ? `${section}.${key}` : key] as T | undefined,
   }));
   const vscode = {
     window: {
@@ -103,7 +104,12 @@ describe("currentAppearance", () => {
   const lightOnly: readonly Theme[] = ["light"];
   const lightAndDark: readonly Theme[] = ["light", "dark"];
 
-  type Row = [kind: number, setting: ColorThemeSetting | undefined, lightOnly: Appearance, both: Appearance];
+  type Row = [
+    kind: number,
+    setting: ColorThemeSetting | undefined,
+    lightOnly: Appearance,
+    both: Appearance,
+  ];
   const rows: Row[] = [
     [1, undefined, LIGHT, LIGHT],
     [2, undefined, LIGHT, DARK],
@@ -123,18 +129,27 @@ describe("currentAppearance", () => {
     [4, "dark", LIGHT_HOCH, DARK_HOCH],
   ];
 
-  it.each(rows)("kind %i, setting %s: light-only %o, light and dark %o", (kind, setting, light, both) => {
-    const settings = setting ? { [SETTING_KEY]: setting } : {};
-    const { vscode } = fakeVsCode(kind, settings);
-    expect(currentAppearance(vscode, { themes: lightOnly, settingKey: SETTING_KEY })).toEqual(light);
-    expect(currentAppearance(vscode, { themes: lightAndDark, settingKey: SETTING_KEY })).toEqual(both);
-  });
+  it.each(rows)(
+    "kind %i, setting %s: light-only %o, light and dark %o",
+    (kind, setting, light, both) => {
+      const settings = setting ? { [SETTING_KEY]: setting } : {};
+      const { vscode } = fakeVsCode(kind, settings);
+      expect(currentAppearance(vscode, { themes: lightOnly, settingKey: SETTING_KEY })).toEqual(
+        light,
+      );
+      expect(currentAppearance(vscode, { themes: lightAndDark, settingKey: SETTING_KEY })).toEqual(
+        both,
+      );
+    },
+  );
 
   it("never turns a light-only modeler dark", () => {
     for (const kind of [1, 2, 3, 4, 0, 99]) {
       for (const setting of ["automatic", "light", "dark", undefined]) {
         const { vscode } = fakeVsCode(kind, { [SETTING_KEY]: setting });
-        expect(currentAppearance(vscode, { themes: ["light"], settingKey: SETTING_KEY }).theme).toBe("light");
+        expect(
+          currentAppearance(vscode, { themes: ["light"], settingKey: SETTING_KEY }).theme,
+        ).toBe("light");
       }
     }
   });
@@ -153,7 +168,9 @@ describe("currentAppearance", () => {
 
   it("treats an unknown setting value as automatic", () => {
     const { vscode } = fakeVsCode(2, { [SETTING_KEY]: "solarized" });
-    expect(currentAppearance(vscode, { themes: ["light", "dark"], settingKey: SETTING_KEY })).toEqual(DARK);
+    expect(
+      currentAppearance(vscode, { themes: ["light", "dark"], settingKey: SETTING_KEY }),
+    ).toEqual(DARK);
   });
 });
 
@@ -191,7 +208,10 @@ describe("connectThemeBridge", () => {
     host.setKind(2);
     host.setKind(3);
 
-    expect(view.postMessage.mock.calls.map(([sent]) => sent)).toEqual([message(LIGHT), message(LIGHT_HOCH)]);
+    expect(view.postMessage.mock.calls.map(([sent]) => sent)).toEqual([
+      message(LIGHT),
+      message(LIGHT_HOCH),
+    ]);
   });
 
   it("posts when the setting changes, not for unrelated configuration keys", () => {
@@ -278,7 +298,9 @@ describe("connectThemeBridge", () => {
   it("throws without themes", () => {
     const host = fakeVsCode(1);
     const view = fakePanel();
-    expect(() => connectThemeBridge(host.vscode, view.panel, { themes: [] })).toThrow(/at least one theme/);
+    expect(() => connectThemeBridge(host.vscode, view.panel, { themes: [] })).toThrow(
+      /at least one theme/,
+    );
     expect(host.themeChanged.size).toBe(0);
   });
 });

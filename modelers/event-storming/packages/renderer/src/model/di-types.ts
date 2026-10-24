@@ -1,4 +1,4 @@
-import type { Shape, Connection } from 'diagram-js/lib/model/Types';
+import type { Shape, Connection } from "diagram-js/lib/model/Types";
 import {
   ATTACHABLE_STICKY_KINDS,
   HOST_STICKY_KINDS,
@@ -7,7 +7,7 @@ import {
   type DrawingStrokeStyle,
   type NoteAlignHorizontal,
   type NoteAlignVertical,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";
 
 /**
  * diagram-js runtime model with Event Storming extensions.
@@ -18,21 +18,21 @@ import {
  */
 
 /** ID of the diagram-js root element of the Event Storming board. */
-export const ROOT_ID = 'event-storming-root';
+export const ROOT_ID = "event-storming-root";
 
 export type EventStormingShapeType =
-  | 'event'
-  | 'command'
-  | 'actor'
-  | 'aggregate'
-  | 'policy'
-  | 'readmodel'
-  | 'external'
-  | 'hotspot'
-  | 'note'
-  | 'drawing';
+  | "event"
+  | "command"
+  | "actor"
+  | "aggregate"
+  | "policy"
+  | "readmodel"
+  | "external"
+  | "hotspot"
+  | "note"
+  | "drawing";
 
-export type EventStormingConnectionType = 'arrow';
+export type EventStormingConnectionType = "arrow";
 
 export interface EventStormingShape extends Shape {
   eventStormingType: EventStormingShapeType;
@@ -66,28 +66,28 @@ export interface EventStormingConnection extends Connection {
 }
 
 function isObject(el: unknown): el is Record<string, unknown> {
-  return typeof el === 'object' && el !== null;
+  return typeof el === "object" && el !== null;
 }
 
 /** Shapes and connections both carry `eventStormingType` — only connections have waypoints. */
 export function isEventStormingShape(el: unknown): el is EventStormingShape {
-  return isObject(el) && typeof el['eventStormingType'] === 'string' && !('waypoints' in el);
+  return isObject(el) && typeof el["eventStormingType"] === "string" && !("waypoints" in el);
 }
 
 export function isEventStormingConnection(el: unknown): el is EventStormingConnection {
-  return isObject(el) && typeof el['eventStormingType'] === 'string' && 'waypoints' in el;
+  return isObject(el) && typeof el["eventStormingType"] === "string" && "waypoints" in el;
 }
 
 /** The eight sticky kinds — connectable, retypeable, always fixed-size (not note/drawing). */
 export const STICKY_KINDS = [
-  'event',
-  'command',
-  'actor',
-  'aggregate',
-  'policy',
-  'readmodel',
-  'external',
-  'hotspot',
+  "event",
+  "command",
+  "actor",
+  "aggregate",
+  "policy",
+  "readmodel",
+  "external",
+  "hotspot",
 ] as const;
 
 export type StickyKind = (typeof STICKY_KINDS)[number];
@@ -119,9 +119,9 @@ export function isHostSticky(el: unknown): el is EventStormingShape {
 }
 
 export function isDrawing(el: unknown): el is EventStormingShape {
-  return isEventStormingShape(el) && el.eventStormingType === 'drawing';
+  return isEventStormingShape(el) && el.eventStormingType === "drawing";
 }
 
 export function isNote(el: unknown): el is EventStormingShape {
-  return isEventStormingShape(el) && el.eventStormingType === 'note';
+  return isEventStormingShape(el) && el.eventStormingType === "note";
 }

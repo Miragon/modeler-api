@@ -1,5 +1,5 @@
-import { sortByTimeline, type EventStormingBoard } from '@miragon/event-storming-schema-model';
-import { isStickyElementType, type StickyElementType } from './kind.js';
+import { sortByTimeline, type EventStormingBoard } from "@miragon/event-storming-schema-model";
+import { isStickyElementType, type StickyElementType } from "./kind.js";
 
 /**
  * Per-kind lane centers (board pixels, top → bottom) for the classic picture-that-explains-

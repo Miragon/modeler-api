@@ -1,31 +1,31 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Connect from 'diagram-js/lib/features/connect/Connect';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type Dragging from 'diagram-js/lib/features/dragging/Dragging';
-import type LassoTool from 'diagram-js/lib/features/lasso-tool/LassoTool';
-import type Mouse from 'diagram-js/lib/features/mouse/Mouse';
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import type Rules from 'diagram-js/lib/features/rules/Rules';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
-import type { Injector } from 'didi';
-import type WardleyCopyPaste from '../modeling/WardleyCopyPaste.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyDrawTool from '../draw-tool/WardleyDrawTool.js';
-import type WardleyLabelEditing from '../label-editing/WardleyLabelEditing.js';
-import type { FreeRect } from '../free-rect/index.js';
-import { isReadOnly } from '../read-only/index.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Connect from "diagram-js/lib/features/connect/Connect";
+import type Create from "diagram-js/lib/features/create/Create";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
+import type LassoTool from "diagram-js/lib/features/lasso-tool/LassoTool";
+import type Mouse from "diagram-js/lib/features/mouse/Mouse";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import type Rules from "diagram-js/lib/features/rules/Rules";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
+import type { Injector } from "didi";
+import type WardleyCopyPaste from "../modeling/WardleyCopyPaste.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyDrawTool from "../draw-tool/WardleyDrawTool.js";
+import type WardleyLabelEditing from "../label-editing/WardleyLabelEditing.js";
+import type { FreeRect } from "../free-rect/index.js";
+import { isReadOnly } from "../read-only/index.js";
 import {
   isWardleyConnection,
   isWardleyShape,
   type WardleyShape,
   type WardleyShapeType,
-} from '../model/di-types.js';
+} from "../model/di-types.js";
 
 /** Diagram config `wardleyKeyboard` (Modeler option `keyboard`). */
 export interface WardleyKeyboardConfig {
@@ -48,10 +48,10 @@ const ARROW_DELTAS: Record<string, { x: number; y: number }> = {
 };
 
 const QUICK_CREATE: Record<string, { type: WardleyShapeType; label: string }> = {
-  c: { type: 'component', label: 'Component' },
-  u: { type: 'anchor', label: 'User' },
-  n: { type: 'note', label: 'Note' },
-  p: { type: 'pipeline', label: 'Pipeline' },
+  c: { type: "component", label: "Component" },
+  u: { type: "anchor", label: "User" },
+  n: { type: "note", label: "Note" },
+  p: { type: "pipeline", label: "Pipeline" },
 };
 
 /** Keyboard-created shapes stay this far inside the plot edge. */
@@ -78,20 +78,20 @@ interface PlotBounds {
  * type-ahead, menu/dialog navigation, colour swatches).
  */
 const OWN_KEYS_SELECTOR = [
-  'input',
-  'textarea',
-  'select',
+  "input",
+  "textarea",
+  "select",
   '[contenteditable=""]',
   '[contenteditable="true"]',
-  'dialog',
+  "dialog",
   '[role="dialog"]',
   '[aria-modal="true"]',
   '[role="menu"]',
-  '.wardley-color-picker',
-].join(', ');
+  ".wardley-color-picker",
+].join(", ");
 
 /** Single-key tools (create, lasso, connect): a plain button does nothing with letter keys. */
-const BUTTON_SAFE_TOOL_KEYS = new Set([...Object.keys(QUICK_CREATE), 'l', 'a']);
+const BUTTON_SAFE_TOOL_KEYS = new Set([...Object.keys(QUICK_CREATE), "l", "a"]);
 
 /**
  * Keys a focused host button has no use for, so they still reach the canvas: undo/redo and the
@@ -100,7 +100,7 @@ const BUTTON_SAFE_TOOL_KEYS = new Set([...Object.keys(QUICK_CREATE), 'l', 'a']);
 function isButtonSafeKey(event: KeyboardEvent): boolean {
   if (event.altKey) return false;
   const key = event.key.toLowerCase();
-  if (event.ctrlKey || event.metaKey) return key === 'z' || key === 'y';
+  if (event.ctrlKey || event.metaKey) return key === "z" || key === "y";
   return BUTTON_SAFE_TOOL_KEYS.has(key);
 }
 
@@ -125,7 +125,7 @@ export function shouldIgnoreKeyEvent(
   if (target === document.body || target === document.documentElement) return false;
   if (canvasContainer.contains(target)) return false;
   if (canvasTargetsOnly) return true;
-  if (target.closest('.djs-palette')) return false;
+  if (target.closest(".djs-palette")) return false;
   if (target.closest('button, [role="button"]') && isButtonSafeKey(event)) return false;
   return true;
 }
@@ -138,19 +138,19 @@ export function shouldIgnoreKeyEvent(
  */
 export default class WardleyKeyboard {
   static $inject = [
-    'canvas',
-    'commandStack',
-    'selection',
-    'modeling',
-    'wardleyCopyPaste',
-    'wardleyElementFactory',
-    'create',
-    'mouse',
-    'lassoTool',
-    'eventBus',
-    'elementRegistry',
-    'injector',
-    'config.wardleyKeyboard',
+    "canvas",
+    "commandStack",
+    "selection",
+    "modeling",
+    "wardleyCopyPaste",
+    "wardleyElementFactory",
+    "create",
+    "mouse",
+    "lassoTool",
+    "eventBus",
+    "elementRegistry",
+    "injector",
+    "config.wardleyKeyboard",
   ];
 
   private pointerOverCanvas = false;
@@ -175,34 +175,34 @@ export default class WardleyKeyboard {
   ) {
     const container = canvas.getContainer();
     const undoRedoEnabled = config?.undoRedo !== false;
-    const dragging = injector.get<Dragging | null>('dragging', false);
-    const connect = injector.get<Connect | null>('connect', false);
-    const rules = injector.get<Rules | null>('rules', false);
-    const popupMenu = injector.get<PopupMenu | null>('popupMenu', false);
-    const drawTool = injector.get<WardleyDrawTool | null>('wardleyDrawTool', false);
+    const dragging = injector.get<Dragging | null>("dragging", false);
+    const connect = injector.get<Connect | null>("connect", false);
+    const rules = injector.get<Rules | null>("rules", false);
+    const popupMenu = injector.get<PopupMenu | null>("popupMenu", false);
+    const drawTool = injector.get<WardleyDrawTool | null>("wardleyDrawTool", false);
     this.labelEditing =
-      injector.get<WardleyLabelEditing | null>('wardleyLabelEditing', false) ?? null;
-    this.grid = injector.get<EvolutionGrid | null>('evolutionGrid', false) ?? null;
-    this.freeRect = injector.get<FreeRect | null>('wardleyFreeRect', false) ?? null;
-    const canvasTargetsOnly = !!injector.get('modelerShell', false);
+      injector.get<WardleyLabelEditing | null>("wardleyLabelEditing", false) ?? null;
+    this.grid = injector.get<EvolutionGrid | null>("evolutionGrid", false) ?? null;
+    this.freeRect = injector.get<FreeRect | null>("wardleyFreeRect", false) ?? null;
+    const canvasTargetsOnly = !!injector.get("modelerShell", false);
 
     // getLastMoveEvent() never returns null (it fabricates an event at 0,0), so whether the
     // pointer really is over the canvas has to be tracked here.
     const onPointerMove = () => (this.pointerOverCanvas = true);
     const onPointerLeave = () => (this.pointerOverCanvas = false);
-    container.addEventListener('mousemove', onPointerMove);
-    container.addEventListener('mouseleave', onPointerLeave);
+    container.addEventListener("mousemove", onPointerMove);
+    container.addEventListener("mouseleave", onPointerLeave);
 
     // Escape is consumed by drags, the draw tool and popups, which react in the capture phase or
     // on keyup — their state is snapshotted before any of them runs.
     let escapeOwnedByOverlay = false;
     const onKeydownCapture = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== "Escape") return;
       escapeOwnedByOverlay =
         !!dragging?.context() ||
         !!drawTool?.isActive() ||
         !!popupMenu?.isOpen() ||
-        !!container.querySelector('.wardley-color-picker');
+        !!container.querySelector(".wardley-color-picker");
     };
 
     const deleteSelection = (e: KeyboardEvent) => {
@@ -239,50 +239,50 @@ export default class WardleyKeyboard {
     // A locked canvas (an invalid file in an IDE) keeps selection, copy and the lasso.
     const locked = () => isReadOnly(injector);
     const onModifierShortcut = (e: KeyboardEvent, key: string) => {
-      if (locked() && !['a', 'c'].includes(key)) return;
-      if (key === 'z' || key === 'y') {
+      if (locked() && !["a", "c"].includes(key)) return;
+      if (key === "z" || key === "y") {
         if (!undoRedoEnabled) return;
         e.preventDefault();
-        if (key === 'z' && !e.shiftKey) commandStack.undo();
+        if (key === "z" && !e.shiftKey) commandStack.undo();
         else commandStack.redo();
-      } else if (key === 'a') {
+      } else if (key === "a") {
         e.preventDefault();
         selection.select(
           elementRegistry.filter((el) => isWardleyShape(el) || isWardleyConnection(el)),
         );
-      } else if (key === 'c') {
+      } else if (key === "c") {
         if (copyPaste.copy()) {
           e.preventDefault();
           internalClipboardIsNewest = true;
         }
-      } else if (key === 'v') {
+      } else if (key === "v") {
         pasteFromInternalClipboard(e);
-      } else if (key === 'd') {
+      } else if (key === "d") {
         e.preventDefault();
         if (copyPaste.duplicate()) internalClipboardIsNewest = true;
-      } else if (key === 'delete' || key === 'backspace') {
+      } else if (key === "delete" || key === "backspace") {
         deleteSelection(e);
       }
     };
 
     const onPlainKey = (e: KeyboardEvent, key: string) => {
       const toolKey = !e.altKey;
-      if (locked() && key !== 'escape' && key !== 'l') return;
-      if (key === 'escape') {
+      if (locked() && key !== "escape" && key !== "l") return;
+      if (key === "escape") {
         if (!escapeOwnedByOverlay && selection.get().length) selection.select(null);
-      } else if (key === 'delete' || key === 'backspace') {
+      } else if (key === "delete" || key === "backspace") {
         deleteSelection(e);
       } else if (toolKey && key in QUICK_CREATE) {
         e.preventDefault();
         const { type, label } = QUICK_CREATE[key]!;
         this.quickCreate(type, label);
-      } else if (toolKey && key === 'a') {
+      } else if (toolKey && key === "a") {
         const source = this.singleSelectedShape();
-        if (!source || !connect || !rules?.allowed('connection.start', { source })) return;
+        if (!source || !connect || !rules?.allowed("connection.start", { source })) return;
         e.preventDefault();
         const center = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
         connect.start(this.pointerEventOr(center), source as unknown as Element, center, true);
-      } else if (toolKey && key === 'l') {
+      } else if (toolKey && key === "l") {
         e.preventDefault();
         lassoTool.activateSelection(mouse.getLastMoveEvent(), true);
       } else if (key in ARROW_DELTAS) {
@@ -304,22 +304,22 @@ export default class WardleyKeyboard {
       else onPlainKey(e, key);
     };
 
-    window.addEventListener('keydown', onKeydownCapture, true);
-    document.addEventListener('keydown', onKeydown);
-    window.addEventListener('blur', markSystemClipboardNewer);
-    document.addEventListener('copy', markSystemClipboardNewer);
-    document.addEventListener('cut', markSystemClipboardNewer);
-    window.addEventListener('paste', onPaste);
-    eventBus.on('diagram.destroy', () => {
+    window.addEventListener("keydown", onKeydownCapture, true);
+    document.addEventListener("keydown", onKeydown);
+    window.addEventListener("blur", markSystemClipboardNewer);
+    document.addEventListener("copy", markSystemClipboardNewer);
+    document.addEventListener("cut", markSystemClipboardNewer);
+    window.addEventListener("paste", onPaste);
+    eventBus.on("diagram.destroy", () => {
       clearTimeout(deferredPaste);
-      window.removeEventListener('keydown', onKeydownCapture, true);
-      document.removeEventListener('keydown', onKeydown);
-      window.removeEventListener('blur', markSystemClipboardNewer);
-      document.removeEventListener('copy', markSystemClipboardNewer);
-      document.removeEventListener('cut', markSystemClipboardNewer);
-      window.removeEventListener('paste', onPaste);
-      container.removeEventListener('mousemove', onPointerMove);
-      container.removeEventListener('mouseleave', onPointerLeave);
+      window.removeEventListener("keydown", onKeydownCapture, true);
+      document.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("blur", markSystemClipboardNewer);
+      document.removeEventListener("copy", markSystemClipboardNewer);
+      document.removeEventListener("cut", markSystemClipboardNewer);
+      window.removeEventListener("paste", onPaste);
+      container.removeEventListener("mousemove", onPointerMove);
+      container.removeEventListener("mouseleave", onPointerLeave);
     });
   }
 
@@ -402,7 +402,7 @@ export default class WardleyKeyboard {
     const viewbox = this.canvas.viewbox();
     const scale = this.canvas.zoom();
     const rect = this.canvas.getContainer().getBoundingClientRect();
-    return new MouseEvent('mousemove', {
+    return new MouseEvent("mousemove", {
       clientX: rect.left + (canvasPoint.x - viewbox.x) * scale,
       clientY: rect.top + (canvasPoint.y - viewbox.y) * scale,
     });

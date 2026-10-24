@@ -3,13 +3,13 @@
  * host shows the save dialog and writes the bytes.
  */
 
-import { COLORS } from '@miragon/event-storming-renderer';
+import { COLORS } from "@miragon/event-storming-renderer";
 
 /** Rasterizes the SVG to a PNG picture; `transparent` leaves out the paper fill (slides, docs). */
 export async function svgToPng(svg: string, scale = 2, transparent = false): Promise<Blob> {
   const { width, height } = svgSize(svg);
   const png = await rasterize(svg, width, height, scale, transparent);
-  return new Blob([png as BlobPart], { type: 'image/png' });
+  return new Blob([png as BlobPart], { type: "image/png" });
 }
 
 function svgSize(svg: string): { width: number; height: number } {
@@ -25,28 +25,28 @@ async function rasterize(
   scale: number,
   transparent: boolean,
 ): Promise<Uint8Array> {
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const img = new Image();
     img.width = width;
     img.height = height;
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Could not render the SVG.'));
+      img.onerror = () => reject(new Error("Could not render the SVG."));
       img.src = url;
     });
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context not available.');
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context not available.");
     if (!transparent) {
       ctx.fillStyle = COLORS.paper;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('PNG generation failed.');
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("PNG generation failed.");
     return new Uint8Array(await blob.arrayBuffer());
   } finally {
     URL.revokeObjectURL(url);
@@ -57,8 +57,8 @@ async function rasterize(
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
-    reader.onerror = () => reject(new Error('Could not read the export blob.'));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(new Error("Could not read the export blob."));
     reader.readAsDataURL(blob);
   });
 }

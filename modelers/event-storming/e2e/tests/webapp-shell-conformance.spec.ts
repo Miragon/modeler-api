@@ -1,10 +1,10 @@
-import { test, type Page } from '@playwright/test';
-import { registerShellConformance, type ShellSkip } from '@miragon/modeler-shell/testing';
-import { EXAMPLE_BOARD } from '../../apps/webapp/src/example.js';
-import { encodeMapCompressed } from '../../apps/webapp/src/share.js';
-import { THEMES } from '../../apps/webapp/src/themes.js';
-import { SHELL_KIT_SIZES, typeIntoStickyLabel } from './support/shell-kit.js';
-import { exportDSL, waitForViewer } from './support/viewer.js';
+import { test, type Page } from "@playwright/test";
+import { registerShellConformance, type ShellSkip } from "@miragon/modeler-shell/testing";
+import { EXAMPLE_BOARD } from "../../apps/webapp/src/example.js";
+import { encodeMapCompressed } from "../../apps/webapp/src/share.js";
+import { THEMES } from "../../apps/webapp/src/themes.js";
+import { SHELL_KIT_SIZES, typeIntoStickyLabel } from "./support/shell-kit.js";
+import { exportDSL, waitForViewer } from "./support/viewer.js";
 
 /**
  * The shell's conformance kit against the real web app (the web host of guide §5.2): geometry at
@@ -17,7 +17,7 @@ import { exportDSL, waitForViewer } from './support/viewer.js';
  * harness declares them absent; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
-  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
+  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
 
 /** The example with two lines the parser cannot take: two text rows in the problems list. */
 const BOARD_WITH_FINDINGS = `${EXAMPLE_BOARD}\nevent Broken [abc, 20]\nOrder Placed -> Nowhere\n`;
@@ -28,12 +28,12 @@ const freshPages = new WeakSet<Page>();
 /** The board text when the label editor last opened: what a save or a share would carry. */
 const boardAtLabelEditorOpen = new WeakMap<Page, string>();
 
-test.describe('web app: shell conformance', () => {
+test.describe("web app: shell conformance", () => {
   test.describe.configure({ timeout: 60_000 });
 
   registerShellConformance<Page>(
     {
-      host: 'web',
+      host: "web",
       themes: THEMES,
       // The kit emulates the system's colour scheme and contrast before every open.
       async open(page, { size }) {
@@ -57,7 +57,7 @@ test.describe('web app: shell conformance', () => {
       },
       // The web app's problems come from the parser and name lines, never elements (a JSON board
       // with a dangling pin is refused before the import), so no row of its list selects.
-      absent: ['legend', 'inspector', 'invalid', 'problemSelection'],
+      absent: ["legend", "inspector", "invalid", "problemSelection"],
       show: {
         // A link to a board with findings, loaded fresh: the import the user started reports them
         // to the pill and its list, as the app's real path does.
@@ -69,14 +69,14 @@ test.describe('web app: shell conformance', () => {
           await page.evaluate(() => {
             const shell = window.__eventStormingApp!.shell;
             shell.setStatus({
-              severity: 'danger',
-              text: shell.messages.invalidFile('Event Storming board'),
+              severity: "danger",
+              text: shell.messages.invalidFile("Event Storming board"),
             });
           });
         },
         // A fresh visit: the page without a board in its link.
         async emptyState(page) {
-          await page.goto('/');
+          await page.goto("/");
           await waitForViewer(page);
         },
         async toast(page, { status, text, actionLabel }) {
@@ -107,8 +107,8 @@ test.describe('web app: shell conformance', () => {
       drop: {
         // A .storm file has no MIME type the browser knows; a picture is refused already while
         // it is dragged and, dropped all the same, opens nothing.
-        accepted: { name: 'board.storm', type: '', text: EXAMPLE_BOARD },
-        rejected: { name: 'map.png', type: 'image/png', text: 'x' },
+        accepted: { name: "board.storm", type: "", text: EXAMPLE_BOARD },
+        rejected: { name: "map.png", type: "image/png", text: "x" },
       },
     },
     test,

@@ -7,7 +7,11 @@ type Listener = (event: never) => unknown;
 export class FakeEventBus {
   private readonly listeners = new Map<string, Array<{ priority: number; callback: Listener }>>();
 
-  on(events: string | string[], priorityOrListener: number | Listener, maybeListener?: Listener): void {
+  on(
+    events: string | string[],
+    priorityOrListener: number | Listener,
+    maybeListener?: Listener,
+  ): void {
     const priority = typeof priorityOrListener === "number" ? priorityOrListener : 1000;
     const callback = typeof priorityOrListener === "number" ? maybeListener : priorityOrListener;
     if (!callback) throw new Error("listener missing");

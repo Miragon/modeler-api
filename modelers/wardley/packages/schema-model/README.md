@@ -15,9 +15,9 @@ npm install @miragon/wardley-schema-model
 ## Usage
 
 ```ts
-import { createEmptyMap, serializeMap, parseMapJSON } from '@miragon/wardley-schema-model';
+import { createEmptyMap, serializeMap, parseMapJSON } from "@miragon/wardley-schema-model";
 
-const map = createEmptyMap('Tea Shop');
+const map = createEmptyMap("Tea Shop");
 
 const json = serializeMap(map); // deterministic: stable key order, rounded coordinates
 const restored = parseMapJSON(json); // validated + migrated to the current schema

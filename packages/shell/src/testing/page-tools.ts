@@ -143,7 +143,9 @@ export const installPageTools = (_: null): void => {
     if (node.nodeType === Node.TEXT_NODE) {
       // visibility inherits, but a descendant may turn it back on, so it is read per text node
       const parent = node.parentElement;
-      return parent && getComputedStyle(parent).visibility === "hidden" ? "" : (node.textContent ?? "");
+      return parent && getComputedStyle(parent).visibility === "hidden"
+        ? ""
+        : (node.textContent ?? "");
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return "";
     const element = node as Element;
@@ -187,7 +189,9 @@ export const installPageTools = (_: null): void => {
         typeof document.getAnimations === "function"
           ? document.getAnimations().filter((animation) => {
               const end = animation.effect?.getComputedTiming().endTime;
-              return animation.playState === "running" && typeof end === "number" && Number.isFinite(end);
+              return (
+                animation.playState === "running" && typeof end === "number" && Number.isFinite(end)
+              );
             })
           : [];
       if (running.length > 0) {
@@ -221,7 +225,8 @@ export const installPageTools = (_: null): void => {
     describe,
     facts(element) {
       const attributes: Record<string, string> = {};
-      for (const name of element.getAttributeNames()) attributes[name] = element.getAttribute(name) ?? "";
+      for (const name of element.getAttributeNames())
+        attributes[name] = element.getAttribute(name) ?? "";
       return {
         tag: element.tagName.toLowerCase(),
         description: describe(element),
@@ -317,17 +322,27 @@ export interface TargetFacts {
 }
 
 /** The first visible match of `selector` inside the root; `null` when there is none. */
-export const targetProbe = ({ root, selector }: { root: string; selector: string }): TargetFacts | null => {
+export const targetProbe = ({
+  root,
+  selector,
+}: {
+  root: string;
+  selector: string;
+}): TargetFacts | null => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return null;
-  const element = [...rootElement.querySelectorAll(selector)].find((candidate) => tools.visible(candidate));
+  const element = [...rootElement.querySelectorAll(selector)].find((candidate) =>
+    tools.visible(candidate),
+  );
   if (!element) return null;
   const rect = element.getBoundingClientRect();
   return {
     client: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
     box: tools.box(element, rootElement),
-    label: (element.getAttribute("aria-label") ?? element.textContent ?? "").replace(/\s+/g, " ").trim(),
+    label: (element.getAttribute("aria-label") ?? element.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim(),
   };
 };
 
@@ -347,14 +362,22 @@ export const menuItemProbe = ({
   root: string;
   menuId: string;
 }): { x: number; y: number } | null => {
-  const item = document.querySelector(root)?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
+  const item = document
+    .querySelector(root)
+    ?.querySelector(`[role="menu"] [data-menu-id="${menuId}"]`);
   if (!item) return null;
   const rect = item.getBoundingClientRect();
   return rect.width > 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
 };
 
 /** Focuses the first match of `selector` inside the root; the description of the focused element. */
-export const focusProbe = ({ root, selector }: { root: string; selector: string }): string | null => {
+export const focusProbe = ({
+  root,
+  selector,
+}: {
+  root: string;
+  selector: string;
+}): string | null => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const element = document.querySelector(root)?.querySelector<HTMLElement | SVGElement>(selector);
   if (!element) return null;
@@ -379,7 +402,13 @@ export interface OverlayFacts {
   id: string;
 }
 
-export const overlayProbe = ({ root, role }: { root: string; role: string }): OverlayFacts | null => {
+export const overlayProbe = ({
+  root,
+  role,
+}: {
+  root: string;
+  role: string;
+}): OverlayFacts | null => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return null;
@@ -434,7 +463,14 @@ export const clearKeysProbe = (_: null): void => {
 };
 
 export type InjectedKind =
-  "input" | "textarea" | "contenteditable" | "modal" | "popover" | "dialog" | "modal-dialog" | "focus-target";
+  | "input"
+  | "textarea"
+  | "contenteditable"
+  | "modal"
+  | "popover"
+  | "dialog"
+  | "modal-dialog"
+  | "focus-target";
 
 /**
  * Adds a stand-in for what modelers render inside the shell (text fields: an input, a textarea, an
@@ -481,7 +517,13 @@ export const removeInjectedProbe = (_: null): void => {
  * Activates the first match of `selector` inside the root with `HTMLElement.click()`: its action
  * runs as on a click, but no pointer moves the focus (`detail` is 0, as for Enter or Space).
  */
-export const scriptedClickProbe = ({ root, selector }: { root: string; selector: string }): boolean => {
+export const scriptedClickProbe = ({
+  root,
+  selector,
+}: {
+  root: string;
+  selector: string;
+}): boolean => {
   const element = document.querySelector(root)?.querySelector<HTMLElement>(selector);
   if (!element) return false;
   element.click();
@@ -563,7 +605,9 @@ export const leftoverProbe = (_: null): LeftoverFacts => {
       .filter((element) => [...element.classList].some(shellClass))
       .map((element) => tools.describe(element)),
     documentClasses: [...document.documentElement.classList].filter(shellClass),
-    chromeElements: [...document.querySelectorAll("[data-chrome]")].map((element) => tools.describe(element)),
+    chromeElements: [...document.querySelectorAll("[data-chrome]")].map((element) =>
+      tools.describe(element),
+    ),
     rootClasses: root ? [...root.classList].filter(shellClass) : [],
     rootAttributes: root ? root.getAttributeNames() : [],
     errors: [...tools.errors],
@@ -571,7 +615,13 @@ export const leftoverProbe = (_: null): LeftoverFacts => {
 };
 
 /** Puts a foreign page's `<html>` in a mode, as a themed host page around an embedded modeler. */
-export const hostPageModeProbe = ({ theme, kontrast }: { theme: string; kontrast: string | null }): void => {
+export const hostPageModeProbe = ({
+  theme,
+  kontrast,
+}: {
+  theme: string;
+  kontrast: string | null;
+}): void => {
   const html = document.documentElement;
   html.setAttribute("data-cd-theme", theme);
   if (kontrast) html.setAttribute("data-cd-kontrast", kontrast);

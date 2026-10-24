@@ -1,12 +1,12 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { ComponentElement, MapElement, SubmapElement } from '@miragon/wardley-schema-model';
-import type { WardleyShape } from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import { createFieldError } from '../label-editing/index.js';
-import { isAllowedLinkUrl, sanitizeLinkUrl } from './link-url.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { ComponentElement, MapElement, SubmapElement } from "@miragon/wardley-schema-model";
+import type { WardleyShape } from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import { createFieldError } from "../label-editing/index.js";
+import { isAllowedLinkUrl, sanitizeLinkUrl } from "./link-url.js";
 
 interface ActiveLinkEdit {
   elementId: string;
@@ -26,18 +26,18 @@ const AFTER_REDRAW_PRIORITY = 500;
 /** Screen px between the field and its error caption. */
 const CAPTION_GAP = 4;
 
-const INVALID_HINT = 'Use an http(s) or mailto address, or a relative path such as ./other.wmap';
+const INVALID_HINT = "Use an http(s) or mailto address, or a relative path such as ./other.wmap";
 
 /** Element types that carry an OWM `url(...)` reference. */
 export function canHaveLink(shape: WardleyShape): boolean {
-  return shape.wardleyType === 'component' || shape.wardleyType === 'submap';
+  return shape.wardleyType === "component" || shape.wardleyType === "submap";
 }
 
 /** The stored address: `url` on components, `urlRef` on submaps (both live on the businessObject). */
 export function linkOf(shape: WardleyShape): string | undefined {
   const businessObject = shape.businessObject;
-  if (shape.wardleyType === 'submap') return (businessObject as SubmapElement | undefined)?.urlRef;
-  if (shape.wardleyType === 'component')
+  if (shape.wardleyType === "submap") return (businessObject as SubmapElement | undefined)?.urlRef;
+  if (shape.wardleyType === "component")
     return (businessObject as ComponentElement | undefined)?.url;
   return undefined;
 }
@@ -48,7 +48,7 @@ export function linkOf(shape: WardleyShape): string | undefined {
  * mailto, relative) are rejected and the field stays open marked invalid.
  */
 export default class WardleyLinkEditing {
-  static $inject = ['eventBus', 'canvas', 'wardleyModeling', 'injector'];
+  static $inject = ["eventBus", "canvas", "wardleyModeling", "injector"];
 
   private active: ActiveLinkEdit | null = null;
   private relayoutPending = false;
@@ -59,17 +59,17 @@ export default class WardleyLinkEditing {
     private readonly modeling: WardleyModeling,
     private readonly injector: Injector,
   ) {
-    eventBus.on(['element.mousedown', 'drag.init'], () => this.active?.commit());
+    eventBus.on(["element.mousedown", "drag.init"], () => this.active?.commit());
     // A host's view change (restoring the view after a peer's re-import, a refit) must not commit
     // the half-typed address into the shared document (modeler-api L5): the field follows instead.
-    eventBus.on('canvas.viewbox.changing', () => this.relayoutAfterViewChange());
-    eventBus.on('canvas.viewbox.changed', () => this.active?.relayout());
+    eventBus.on("canvas.viewbox.changing", () => this.relayoutAfterViewChange());
+    eventBus.on("canvas.viewbox.changed", () => this.active?.relayout());
     // A redraw of the edited element (a host resizing the map while the field is open) moves it
     // without a view change; the priority waits for the redraw.
-    eventBus.on('shape.changed', AFTER_REDRAW_PRIORITY, (event: { element?: { id?: string } }) => {
+    eventBus.on("shape.changed", AFTER_REDRAW_PRIORITY, (event: { element?: { id?: string } }) => {
       if (this.active && event.element?.id === this.active.elementId) this.active.relayout();
     });
-    eventBus.on(['diagram.clear', 'diagram.destroy'], () => this.cancel());
+    eventBus.on(["diagram.clear", "diagram.destroy"], () => this.cancel());
   }
 
   /**
@@ -79,11 +79,11 @@ export default class WardleyLinkEditing {
    */
   setLink(shape: WardleyShape, rawUrl: string | undefined): boolean {
     if (!canHaveLink(shape)) return false;
-    const url = sanitizeLinkUrl(rawUrl ?? '');
+    const url = sanitizeLinkUrl(rawUrl ?? "");
     if (url && !isAllowedLinkUrl(url)) return false;
-    if ((linkOf(shape) ?? '') === url) return true;
+    if ((linkOf(shape) ?? "") === url) return true;
 
-    const key = shape.wardleyType === 'submap' ? 'urlRef' : 'url';
+    const key = shape.wardleyType === "submap" ? "urlRef" : "url";
     if (!shape.businessObject) {
       // diagram-js defines `businessObject` as non-deletable, so undo could not restore "absent".
       // A link-less base carries nothing the exporter reads, so attaching it outside the command
@@ -109,17 +109,17 @@ export default class WardleyLinkEditing {
     this.active?.commit();
 
     const container = this.canvas.getContainer();
-    const field = document.createElement('input');
+    const field = document.createElement("input");
     // type="url" would flag relative paths such as ./other.wmap as :invalid.
-    field.type = 'text';
-    field.inputMode = 'url';
+    field.type = "text";
+    field.inputMode = "url";
     field.spellcheck = false;
-    field.autocomplete = 'off';
-    field.className = 'wardley-label-input wardley-link-input';
-    field.placeholder = 'https://… or ./other.wmap';
-    field.setAttribute('aria-label', `Link of ${shape.wardleyLabel || shape.wardleyType}`);
-    field.value = options.value ?? linkOf(shape) ?? '';
-    field.style.position = 'absolute';
+    field.autocomplete = "off";
+    field.className = "wardley-label-input wardley-link-input";
+    field.placeholder = "https://… or ./other.wmap";
+    field.setAttribute("aria-label", `Link of ${shape.wardleyLabel || shape.wardleyType}`);
+    field.value = options.value ?? linkOf(shape) ?? "";
+    field.style.position = "absolute";
     const placeField = () => {
       const scale = this.canvas.zoom();
       const viewbox = this.canvas.viewbox();
@@ -136,9 +136,9 @@ export default class WardleyLinkEditing {
     const cleanup = () => {
       if (done) return;
       done = true;
-      field.removeEventListener('keydown', onKey);
-      field.removeEventListener('blur', onBlur);
-      field.removeEventListener('input', clearInvalid);
+      field.removeEventListener("keydown", onKey);
+      field.removeEventListener("blur", onBlur);
+      field.removeEventListener("input", clearInvalid);
       error.clear();
       field.remove();
       this.active = null;
@@ -171,19 +171,19 @@ export default class WardleyLinkEditing {
       if (!tryCommit()) cleanup();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         cleanup();
         this.canvas.focus();
-      } else if (event.key === 'Enter') {
+      } else if (event.key === "Enter") {
         event.preventDefault();
         if (tryCommit()) this.canvas.focus();
       }
     };
     const onBlur = () => commit();
-    field.addEventListener('keydown', onKey);
-    field.addEventListener('blur', onBlur);
-    field.addEventListener('input', clearInvalid);
+    field.addEventListener("keydown", onKey);
+    field.addEventListener("blur", onBlur);
+    field.addEventListener("input", clearInvalid);
 
     const relayout = () => {
       if (done) return;

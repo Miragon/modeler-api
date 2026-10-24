@@ -2,9 +2,9 @@ import type {
   BoardElement,
   EventStormingBoard,
   NoteElement,
-} from '@miragon/event-storming-schema-model';
-import { IdAllocator, STICKY_ID_PREFIXES } from './ids.js';
-import { ID_CHARSET_RE, decodeName, slug } from './lexer.js';
+} from "@miragon/event-storming-schema-model";
+import { IdAllocator, STICKY_ID_PREFIXES } from "./ids.js";
+import { ID_CHARSET_RE, decodeName, slug } from "./lexer.js";
 
 /**
  * Coordinate formatter: 3-decimal rounding, NEVER exponent notation — `String(1e21)` yields
@@ -26,41 +26,41 @@ function r(n: number): string {
 function escapeText(label: string): string {
   return label
     .trim()
-    .replace(/\n/g, '\\n')
-    .replace(/(?<!:)\/\//g, '∕∕')
-    .replace(/\/\*/g, '∕*');
+    .replace(/\n/g, "\\n")
+    .replace(/(?<!:)\/\//g, "∕∕")
+    .replace(/\/\*/g, "∕*");
 }
 
 /** Names are additionally arrow-safe: a literal `->` inside a name would break `A -> B` lines. */
 function escapeName(label: string): string {
-  return escapeText(label).replace(/->/g, '→');
+  return escapeText(label).replace(/->/g, "→");
 }
 
 /** Types referenced BY THEIR NAME in the DSL (arrow endpoints + namespace) — all sticky kinds. */
 const NAMED_TYPES: ReadonlySet<string> = new Set([
-  'event',
-  'command',
-  'actor',
-  'aggregate',
-  'policy',
-  'readmodel',
-  'external',
-  'hotspot',
+  "event",
+  "command",
+  "actor",
+  "aggregate",
+  "policy",
+  "readmodel",
+  "external",
+  "hotspot",
 ]);
 
 const DEFAULT_NAMES: Readonly<Record<string, string>> = {
-  event: 'Domain Event',
-  command: 'Command',
-  actor: 'Actor',
-  aggregate: 'Aggregate',
-  policy: 'Policy',
-  readmodel: 'Read Model',
-  external: 'External System',
-  hotspot: 'Hotspot',
+  event: "Domain Event",
+  command: "Command",
+  actor: "Actor",
+  aggregate: "Aggregate",
+  policy: "Policy",
+  readmodel: "Read Model",
+  external: "External System",
+  hotspot: "Hotspot",
 };
 
 function defaultName(type: string): string {
-  return DEFAULT_NAMES[type] ?? 'Sticky';
+  return DEFAULT_NAMES[type] ?? "Sticky";
 }
 
 /**
@@ -80,7 +80,7 @@ function serializedNames(board: EventStormingBoard): Map<string, string> {
 
 /** Color override extension: `(color …)` after the coordinates. */
 function colorSuffix(el: { color?: string }): string {
-  return el.color ? ` (color ${el.color})` : '';
+  return el.color ? ` (color ${el.color})` : "";
 }
 
 /**
@@ -89,9 +89,9 @@ function colorSuffix(el: { color?: string }): string {
  * left/top, so existing boards serialize byte-identically.
  */
 function alignSuffix(el: NoteElement): string {
-  const horizontal = el.align?.horizontal ?? 'left';
-  const vertical = el.align?.vertical ?? 'top';
-  return horizontal === 'left' && vertical === 'top' ? '' : ` (align ${horizontal} ${vertical})`;
+  const horizontal = el.align?.horizontal ?? "left";
+  const vertical = el.align?.vertical ?? "top";
+  return horizontal === "left" && vertical === "top" ? "" : ` (align ${horizontal} ${vertical})`;
 }
 
 /**
@@ -112,7 +112,7 @@ export function serializeDSL(board: EventStormingBoard): string {
   for (const name of names.values()) nameCount.set(name, (nameCount.get(name) ?? 0) + 1);
   const referencedById = (id: string): boolean => {
     const name = names.get(id);
-    return name !== undefined && (nameCount.get(name)! > 1 || name.startsWith('#'));
+    return name !== undefined && (nameCount.get(name)! > 1 || name.startsWith("#"));
   };
 
   // Ids surface in the text only via the `(id …)` suffix. An id outside the DSL id charset
@@ -141,21 +141,21 @@ export function serializeDSL(board: EventStormingBoard): string {
   // the host is a named sticky kind; `ref` falls back to the raw id purely defensively.
   const onSuffix = (el: BoardElement): string => {
     const hostId =
-      el.elementType === 'actor' || el.elementType === 'hotspot' || el.elementType === 'note'
+      el.elementType === "actor" || el.elementType === "hotspot" || el.elementType === "note"
         ? el.attachedTo
         : undefined;
-    return hostId ? ` (on ${ref(hostId)})` : '';
+    return hostId ? ` (on ${ref(hostId)})` : "";
   };
 
   for (const el of board.elements) {
-    const idSuffix = declaredIds.has(el.id) ? ` (id ${idOf(el.id)})` : '';
+    const idSuffix = declaredIds.has(el.id) ? ` (id ${idOf(el.id)})` : "";
     lines.push(elementLine(el, nameOf(el), idSuffix, onSuffix(el)));
   }
 
   // validateBoard guarantees arrow endpoints are sticky kinds, so the name map always covers
   // them — `ref`'s raw-id fallback is purely defensive for unvalidated input.
   for (const edge of board.edges) {
-    const annotation = edge.label ? `; ${edge.label}` : '';
+    const annotation = edge.label ? `; ${edge.label}` : "";
     lines.push(`${ref(edge.from)} -> ${ref(edge.to)}${annotation}`);
   }
 
@@ -163,16 +163,16 @@ export function serializeDSL(board: EventStormingBoard): string {
   // same keyword (e.g. an unparsable `style` line from externally-authored DSL) would otherwise
   // produce a contradictory duplicate line — drop it (config is the truth).
   if (board.rawPassthrough) {
-    const emitted = new Set<string>(['title']);
-    if (board.config.style) emitted.add('style');
-    if (board.config.level) emitted.add('level');
+    const emitted = new Set<string>(["title"]);
+    if (board.config.style) emitted.add("style");
+    if (board.config.level) emitted.add("level");
     for (const raw of board.rawPassthrough) {
       if (emitted.has(raw.trim().split(/\s+/)[0]!)) continue;
       lines.push(raw);
     }
   }
 
-  return lines.join('\n') + '\n';
+  return lines.join("\n") + "\n";
 }
 
 /**
@@ -194,7 +194,7 @@ function idsToDeclare(
   for (const el of board.elements) {
     const prefix = STICKY_ID_PREFIXES[el.elementType];
     if (prefix === undefined) {
-      allocator.alloc(el.elementType === 'note' ? 'note' : 'draw', noteOrDrawingName(el));
+      allocator.alloc(el.elementType === "note" ? "note" : "draw", noteOrDrawingName(el));
       continue;
     }
     const parsedName = decodeName(nameOf(el));
@@ -213,37 +213,37 @@ function idsToDeclare(
 
 /** The label the parser allocates a note's or a drawing's id from. */
 function noteOrDrawingName(el: BoardElement): string {
-  if (el.elementType === 'drawing') return 'line';
-  return decodeName(escapeText(el.label)) || 'note';
+  if (el.elementType === "drawing") return "line";
+  return decodeName(escapeText(el.label)) || "note";
 }
 
 function elementLine(el: BoardElement, name: string, idSuffix: string, attach: string): string {
   const p = el.position;
   switch (el.elementType) {
-    case 'event':
-    case 'command':
-    case 'actor':
-    case 'aggregate':
-    case 'policy':
-    case 'readmodel':
-    case 'external':
-    case 'hotspot':
+    case "event":
+    case "command":
+    case "actor":
+    case "aggregate":
+    case "policy":
+    case "readmodel":
+    case "external":
+    case "hotspot":
       // Canonical suffix order: `(color …) (id …) (on …)` — `(on …)` stays last (see above).
       return `${el.elementType} ${name} [${r(p.x)}, ${r(p.y)}]${colorSuffix(el)}${idSuffix}${attach}`;
-    case 'note': {
+    case "note": {
       // Escape line breaks/comment starters -> the line-based DSL stays single-line. `->` is
       // fine in note text (notes are never arrow endpoints), so no `→` replacement here.
       // Canonical note suffix order: `(color …) (size WxH) (align h v) (on …)` — `(on …)`
       // stays last (final-paren rule, see above); size/align/attachment are only present when
       // set, so plain boards stay byte-identical.
-      const size = el.size ? ` (size ${r(el.size.width)}x${r(el.size.height)})` : '';
+      const size = el.size ? ` (size ${r(el.size.width)}x${r(el.size.height)})` : "";
       return `note ${escapeText(name)} [${r(p.x)}, ${r(p.y)}]${colorSuffix(el)}${size}${alignSuffix(el)}${attach}`;
     }
-    case 'drawing': {
+    case "drawing": {
       // Project extension (freeform drawing): tuple list + style flags.
-      const pts = el.points.map((q) => `[${r(q.x)}, ${r(q.y)}]`).join(', ');
-      const closed = el.closed ? ' (closed)' : '';
-      const stroke = el.strokeStyle && el.strokeStyle !== 'solid' ? ` (${el.strokeStyle})` : '';
+      const pts = el.points.map((q) => `[${r(q.x)}, ${r(q.y)}]`).join(", ");
+      const closed = el.closed ? " (closed)" : "";
+      const stroke = el.strokeStyle && el.strokeStyle !== "solid" ? ` (${el.strokeStyle})` : "";
       return `line [${pts}]${closed}${stroke}${colorSuffix(el)}`;
     }
   }

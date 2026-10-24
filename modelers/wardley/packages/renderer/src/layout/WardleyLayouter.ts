@@ -1,7 +1,7 @@
-import BaseLayouter, { type LayoutConnectionHints } from 'diagram-js/lib/layout/BaseLayouter';
-import type { ConnectionLike } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
-import { isPipeline } from '../model/di-types.js';
+import BaseLayouter, { type LayoutConnectionHints } from "diagram-js/lib/layout/BaseLayouter";
+import type { ConnectionLike } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import { isPipeline } from "../model/di-types.js";
 
 interface Bounds {
   x: number;
@@ -27,8 +27,8 @@ export default class WardleyLayouter extends BaseLayouter {
     connection: ConnectionLike,
     hints: LayoutConnectionHints = {},
   ): Point[] {
-    const source = hints.source ?? connection['source'];
-    const target = hints.target ?? connection['target'];
+    const source = hints.source ?? connection["source"];
+    const target = hints.target ?? connection["target"];
     return super.layoutConnection(connection, {
       ...hints,
       ...(source ? { connectionStart: connectionAnchorOf(source) } : {}),

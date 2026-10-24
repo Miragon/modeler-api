@@ -250,7 +250,8 @@ async function lockedFileProblems<P extends PageLike>(
   return (await menuEntries(page, root))
     .filter((entry) => entry.group === "file" && entry.disabled)
     .map(
-      (entry) => `menu: File entry "${entry.name}" is aria-disabled on the read-only canvas (guide §13.5)`,
+      (entry) =>
+        `menu: File entry "${entry.name}" is aria-disabled on the read-only canvas (guide §13.5)`,
     );
 }
 
@@ -273,8 +274,14 @@ async function stackOnWrappedLine<P extends PageLike>(
   }
   await settle(page);
   const measurement = await measureChrome(page, root);
-  const lines = Math.round((measurement.islands.legal?.height ?? LEGAL_LINE_HEIGHT) / LEGAL_LINE_HEIGHT);
-  const state = [`${Math.round(measurement.container.width)}px wide`, `a legal line of ${lines}`, ...shown];
+  const lines = Math.round(
+    (measurement.islands.legal?.height ?? LEGAL_LINE_HEIGHT) / LEGAL_LINE_HEIGHT,
+  );
+  const state = [
+    `${Math.round(measurement.container.width)}px wide`,
+    `a legal line of ${lines}`,
+    ...shown,
+  ];
   return geometryProblems(measurement, "web").map((problem) => `[${state.join(", ")}] ${problem}`);
 }
 
@@ -381,7 +388,8 @@ async function toastFocusOnStartScreen<P extends PageLike>(
   const closeName = (await toasts(page, root))?.toasts
     .find((toast) => toast.text.includes(text))
     ?.buttons.at(-1)?.name;
-  if (!closeName || !(await inPage(page, focusToastButtonProbe, { root, text, name: closeName }))) return [];
+  if (!closeName || !(await inPage(page, focusToastButtonProbe, { root, text, name: closeName })))
+    return [];
   await page.keyboard.press("Enter");
   await settle(page);
   const focus = await inPage(page, focusOwnerProbe, { root });
@@ -468,7 +476,8 @@ const emptyStateCase: ShellConformanceCase = {
         (state) => state === null || !state.shown,
         1000,
       );
-      if (after) problems.push(...afterStartProblems(after, await inPage(page, focusOwnerProbe, { root })));
+      if (after)
+        problems.push(...afterStartProblems(after, await inPage(page, focusOwnerProbe, { root })));
     }
     return finish("emptyState", harness.host, problems, []);
   },
@@ -533,14 +542,17 @@ async function toastAnatomy<P extends PageLike>(
     const reached = (facts: ToastsFacts | null): boolean =>
       toastLiveRegion(facts?.live ?? [], status)?.text.includes(text) ?? false;
     const announced =
-      persistent && reached(await pollUntil(page, () => toasts(page, root), reached, TOAST_ANNOUNCE_WAIT_MS));
+      persistent &&
+      reached(await pollUntil(page, () => toasts(page, root), reached, TOAST_ANNOUNCE_WAIT_MS));
     problems.push(...toastAnatomyProblems(toast, status, lang, { persistent, announced }));
     const close = toast.buttons.at(-1);
     if (close) {
       await page.mouse.click(close.client.x, close.client.y);
       await page.mouse.move(PARK.x, PARK.y);
       await settle(page);
-      const still = (await toasts(page, root))?.toasts.some((candidate) => candidate.text.includes(text));
+      const still = (await toasts(page, root))?.toasts.some((candidate) =>
+        candidate.text.includes(text),
+      );
       if (still) problems.push(`toasts: Close does not close the ${status} toast`);
     }
   }
@@ -585,7 +597,9 @@ async function toastTiming<P extends PageLike>(
   await settle(page);
   const target = (await toasts(page, root))?.toasts.find((toast) => toast.text.includes(hovered));
   if (target) await page.mouse.move(target.client.x, target.client.y);
-  const focusTarget = (await toasts(page, root))?.toasts.find((toast) => toast.text.includes(focused));
+  const focusTarget = (await toasts(page, root))?.toasts.find((toast) =>
+    toast.text.includes(focused),
+  );
   const closeName = focusTarget?.buttons.at(-1)?.name ?? "";
   await inPage(page, focusToastButtonProbe, { root, text: focused, name: closeName });
 
@@ -657,7 +671,8 @@ async function toastAboveModal<P extends PageLike>(
     if (await inPage(page, showModalProbe, null)) {
       await show(page, { status: "success", text });
       await settle(page);
-      const shown = (await toasts(page, root))?.toasts.some((toast) => toast.text.includes(text)) ?? false;
+      const shown =
+        (await toasts(page, root))?.toasts.some((toast) => toast.text.includes(text)) ?? false;
       const { toggles, open } = await inPage(page, toastStackTogglesProbe, { root });
       if (!shown) problems.push("toasts: show.toast with a showModal() dialog open shows nothing");
       else if (!open || toggles.at(-1) !== "open") {
@@ -719,7 +734,8 @@ const toastsCase: ShellConformanceCase = {
     const show = harness.show?.toast;
     if (harness.host === "ide") {
       await openHarness(page, harness, { size, requested: LIGHT });
-      if (show) await show(page, { status: "success", text: "Conformance: a toast in the IDE host" });
+      if (show)
+        await show(page, { status: "success", text: "Conformance: a toast in the IDE host" });
       await settle(page);
       const facts = await toasts(page, root);
       const problems: string[] = [];
@@ -778,9 +794,13 @@ async function keyboardRows(page: PageLike, root: string): Promise<string[]> {
   const count = opened?.rows.length ?? 0;
   if (!opened?.popover?.visible || count === 0) {
     await closeByEscape(page);
-    return opened?.popover?.visible ? [] : ["problems-popover: Enter on the pill does not open the list"];
+    return opened?.popover?.visible
+      ? []
+      : ["problems-popover: Enter on the pill does not open the list"];
   }
-  const steps: PopoverKeyStep[] = [{ key: "Enter on the pill", expected: 0, focused: opened.focusedRow }];
+  const steps: PopoverKeyStep[] = [
+    { key: "Enter on the pill", expected: 0, focused: opened.focusedRow },
+  ];
   for (let index = 1; index < count; index++) {
     await page.keyboard.press("ArrowDown");
     steps.push({
@@ -791,9 +811,17 @@ async function keyboardRows(page: PageLike, root: string): Promise<string[]> {
   }
   if (count > 1) {
     await page.keyboard.press("Home");
-    steps.push({ key: "Home", expected: 0, focused: (await popover(page, root))?.focusedRow ?? null });
+    steps.push({
+      key: "Home",
+      expected: 0,
+      focused: (await popover(page, root))?.focusedRow ?? null,
+    });
     await page.keyboard.press("End");
-    steps.push({ key: "End", expected: count - 1, focused: (await popover(page, root))?.focusedRow ?? null });
+    steps.push({
+      key: "End",
+      expected: count - 1,
+      focused: (await popover(page, root))?.focusedRow ?? null,
+    });
   }
   await closeByEscape(page);
   return popoverKeyboardProblems(steps, count);
@@ -806,7 +834,8 @@ const problemsListCase: ShellConformanceCase = {
     const root = harness.root ?? DEFAULT_ROOT;
     const size = sizeOf(harness);
     const show = harness.show?.problems;
-    if (!show) return unfed(harness, "problems") ? skipFor("problems", "the problems list") : undefined;
+    if (!show)
+      return unfed(harness, "problems") ? skipFor("problems", "the problems list") : undefined;
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     await show(page);
@@ -821,7 +850,8 @@ const problemsListCase: ShellConformanceCase = {
         [],
       );
     }
-    const opensList = harness.host === "web" || before.pill.attributes["aria-haspopup"] === "dialog";
+    const opensList =
+      harness.host === "web" || before.pill.attributes["aria-haspopup"] === "dialog";
     if (!opensList) {
       const after = await clickPill(page, root);
       if (after?.popover?.visible) {
@@ -834,7 +864,8 @@ const problemsListCase: ShellConformanceCase = {
     const lang = await inPage(page, documentLangProbe, null);
     const container = (await measureChrome(page, root)).container;
     const opened = await clickPill(page, root);
-    if (!opened) return finish("problemsList", harness.host, ["problems: the pill cannot be clicked"], []);
+    if (!opened)
+      return finish("problemsList", harness.host, ["problems: the pill cannot be clicked"], []);
     problems.push(...openPopoverProblems(opened, container, lang));
 
     await closeByEscape(page);
@@ -895,10 +926,18 @@ const dropZoneCase: ShellConformanceCase = {
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const problems: string[] = [];
-    const probeFile: DropFixture = { name: "conformance.txt", type: "text/plain", text: "conformance" };
+    const probeFile: DropFixture = {
+      name: "conformance.txt",
+      type: "text/plain",
+      text: "conformance",
+    };
 
     if (harness.host !== "web" || !fixtures) {
-      const facts = await drag(page, { root, files: [probeFile], steps: ["dragenter", "dragover"] });
+      const facts = await drag(page, {
+        root,
+        files: [probeFile],
+        steps: ["dragenter", "dragover"],
+      });
       if (facts && (facts.state !== null || facts.zone?.visible)) {
         problems.push(
           `drop-zone: a file drag shows a drop zone in the ${harness.host} host; its files belong to the host (guide §5.2)`,
@@ -920,7 +959,9 @@ const dropZoneCase: ShellConformanceCase = {
       if (over) problems.push(...dropStateProblems(over, expected, context, container));
       const left = await drag(page, { root, files, strings, steps: ["dragleave"] });
       if (left && expected !== "none") {
-        problems.push(...dropStateProblems(left, "none", `${context}, once it left the page,`, container));
+        problems.push(
+          ...dropStateProblems(left, "none", `${context}, once it left the page,`, container),
+        );
       }
     };
     await check([accepted], [], "over", `a drag of "${accepted.name}"`);
@@ -964,7 +1005,11 @@ const dropZoneCase: ShellConformanceCase = {
       }
       await dismissAll(page, root);
     }
-    const dropped = await drag(page, { root, files: [accepted], steps: ["dragenter", "dragover", "drop"] });
+    const dropped = await drag(page, {
+      root,
+      files: [accepted],
+      steps: ["dragenter", "dragover", "drop"],
+    });
     if (dropped?.events.find((event) => event.type === "drop")?.defaultPrevented === false) {
       problems.push(
         `drop-zone: the drop of "${accepted.name}" is not prevented, so the browser would open the file`,

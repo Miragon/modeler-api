@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { WEBVIEW_THEMES } from '../../vscode/src/themes.js';
-import { THEMES } from '../src/themes.js';
+import { describe, expect, it } from "vitest";
+import { WEBVIEW_THEMES } from "../../vscode/src/themes.js";
+import { THEMES } from "../src/themes.js";
 
-describe('THEMES', () => {
-  it('declares the modes of the VS Code webview: one diagram, one look in both hosts', () => {
+describe("THEMES", () => {
+  it("declares the modes of the VS Code webview: one diagram, one look in both hosts", () => {
     expect(THEMES).toEqual(WEBVIEW_THEMES);
-    expect(THEMES).toEqual(['light']);
+    expect(THEMES).toEqual(["light"]);
   });
 });

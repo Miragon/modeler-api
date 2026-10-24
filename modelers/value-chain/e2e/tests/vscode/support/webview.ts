@@ -1,11 +1,11 @@
-import type { Page } from '@playwright/test';
-import type { Appearance } from '@miragon/modeler-shell';
-import { vsCodeStubSearch } from '@miragon/modeler-shell/testing';
+import type { Page } from "@playwright/test";
+import type { Appearance } from "@miragon/modeler-shell";
+import { vsCodeStubSearch } from "@miragon/modeler-shell/testing";
 
-export const LIGHT: Appearance = { theme: 'light' };
+export const LIGHT: Appearance = { theme: "light" };
 export const WIDE = { width: 1280, height: 900 } as const;
 
-export type TestDiagram = 'example' | 'empty' | 'blank' | 'invalid';
+export type TestDiagram = "example" | "empty" | "blank" | "invalid";
 
 export interface OpenOptions {
   size?: { width: number; height: number };
@@ -17,7 +17,7 @@ export interface OpenOptions {
 export async function openWebview(page: Page, options: OpenOptions = {}): Promise<void> {
   await page.setViewportSize(options.size ?? WIDE);
   const search = new URLSearchParams(vsCodeStubSearch(options.requested ?? LIGHT));
-  if (options.diagram) search.set('diagram', options.diagram);
+  if (options.diagram) search.set("diagram", options.diagram);
   await page.goto(`/webview-test.html?${search.toString()}`);
   await page.waitForFunction(() => window.webviewReady === true);
 }
@@ -49,7 +49,7 @@ export async function waitForPosted(page: Page, type: string): Promise<PostedMes
 
 /** Delivers a host message the way VS Code does: a `message` event on the webview's window. */
 export async function postFromHost(page: Page, message: PostedMessage): Promise<void> {
-  await page.evaluate((data) => window.postMessage(data, '*'), message);
+  await page.evaluate((data) => window.postMessage(data, "*"), message);
 }
 
 export function countOf(messages: readonly PostedMessage[], type: string): number {

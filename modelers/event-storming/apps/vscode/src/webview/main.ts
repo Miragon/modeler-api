@@ -1,6 +1,6 @@
-import './zod-jitless.js';
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist-mono/wght.css';
+import "./zod-jitless.js";
+import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist-mono/wght.css";
 import {
   boardMenu,
   createCollaborativeModeler,
@@ -9,24 +9,24 @@ import {
   type CollaborativeEventStormingModeler,
   type EventStormingReadOnly,
   type TypeCaptions,
-} from '@miragon/event-storming-renderer';
-import '@miragon/modeler-shell/shell.css';
-import type { ShellHandle } from '@miragon/modeler-shell';
-import { INVALID_STATUS_DELAY_MS } from '@miragon/modeler-shell/core';
+} from "@miragon/event-storming-renderer";
+import "@miragon/modeler-shell/shell.css";
+import type { ShellHandle } from "@miragon/modeler-shell";
+import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell/core";
 import {
   connectDiagramJs,
   shellModule,
   type DiagramJsConnection,
-} from '@miragon/modeler-shell/diagram-js';
+} from "@miragon/modeler-shell/diagram-js";
 import {
   mountVsCodeShell,
   persistView,
   readShellState,
-} from '@miragon/modeler-shell/vscode/webview';
-import type { HostToWebview, WebviewCommand, WebviewToHost } from '../protocol.js';
-import { WEBVIEW_THEMES } from '../themes.js';
-import { blobToBase64, svgToPng } from './io.js';
-import { readTypeCaptionsVisible, writeTypeCaptionsVisible } from './state.js';
+} from "@miragon/modeler-shell/vscode/webview";
+import type { HostToWebview, WebviewCommand, WebviewToHost } from "../protocol.js";
+import { WEBVIEW_THEMES } from "../themes.js";
+import { blobToBase64, svgToPng } from "./io.js";
+import { readTypeCaptionsVisible, writeTypeCaptionsVisible } from "./state.js";
 
 interface VsCodeApi {
   postMessage(message: WebviewToHost): void;
@@ -49,7 +49,7 @@ interface SelectionLike {
   select(elements: DiagramElement[] | null): void;
 }
 
-const BOARD_NAME = 'Event Storming board';
+const BOARD_NAME = "Event Storming board";
 
 const vscode = acquireVsCodeApi();
 const storedShellState = readShellState(vscode);
@@ -64,16 +64,16 @@ const collaborative = createCollaborativeModeler({
   freeArea: { insets: () => shell.fitInsets() },
 });
 const modeler = collaborative.diagram;
-modeler.get('canvas');
-const registry = modeler.get<ElementRegistryLike>('elementRegistry');
-const selection = modeler.get<SelectionLike>('selection');
-const typeCaptions = modeler.get<TypeCaptions>('eventStormingViewOptions');
-const levels = modeler.get<BoardLevels>('eventStormingModeling');
-const canvasLock = modeler.get<EventStormingReadOnly>('eventStormingReadOnly');
+modeler.get("canvas");
+const registry = modeler.get<ElementRegistryLike>("elementRegistry");
+const selection = modeler.get<SelectionLike>("selection");
+const typeCaptions = modeler.get<TypeCaptions>("eventStormingViewOptions");
+const levels = modeler.get<BoardLevels>("eventStormingModeling");
+const canvasLock = modeler.get<EventStormingReadOnly>("eventStormingReadOnly");
 if (readTypeCaptionsVisible(vscode) === false) typeCaptions.setTypeCaptionsVisible(false);
 
-const app = document.getElementById('app');
-if (!app) throw new Error('The webview HTML has no #app root.');
+const app = document.getElementById("app");
+if (!app) throw new Error("The webview HTML has no #app root.");
 
 const shell = mountVsCodeShell(app, {
   themes: WEBVIEW_THEMES,
@@ -92,11 +92,11 @@ const shell = mountVsCodeShell(app, {
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
   }),
-  problems: { onActivate: () => post({ type: 'showProblems' }) },
-  emptyHint: { onInsertExample: () => post({ type: 'insertExample' }) },
+  problems: { onActivate: () => post({ type: "showProblems" }) },
+  emptyHint: { onInsertExample: () => post({ type: "insertExample" }) },
 });
 const shortcutsDialog = createShortcutsDialog(shell);
-modeler.on('diagram.destroy', () => shortcutsDialog.destroy());
+modeler.on("diagram.destroy", () => shortcutsDialog.destroy());
 
 // A cheap test only: the shell asks on every content change, and exportMap() validates the board.
 const isEmpty = (): boolean =>
@@ -109,7 +109,7 @@ persistView(vscode, viewport);
 // Two-way sync with the document
 // ---------------------------------------------------------------------------
 
-let lastText = '';
+let lastText = "";
 let initialized = false;
 
 function post(message: WebviewToHost): void {
@@ -118,7 +118,7 @@ function post(message: WebviewToHost): void {
 
 /** Compares two DSL texts modulo line endings/trailing whitespace (= save transforms). */
 function sameBoardText(a: string, b: string): boolean {
-  return a.replace(/\r\n/g, '\n').trim() === b.replace(/\r\n/g, '\n').trim();
+  return a.replace(/\r\n/g, "\n").trim() === b.replace(/\r\n/g, "\n").trim();
 }
 
 function selectedIds(): string[] {
@@ -144,7 +144,7 @@ function showInvalidBoard(): void {
   canvasLock.setReadOnly(true);
   shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
   shell.setStatus(
-    { severity: 'danger', text: shell.messages.invalidFile(BOARD_NAME) },
+    { severity: "danger", text: shell.messages.invalidFile(BOARD_NAME) },
     { delayMs: INVALID_STATUS_DELAY_MS },
   );
 }
@@ -186,7 +186,7 @@ let importChain: Promise<void> = Promise.resolve();
 function enqueueImport(text: string): Promise<void> {
   importChain = importChain
     .then(() => importText(text))
-    .catch((error: unknown) => console.error('Event Storming import failed', error));
+    .catch((error: unknown) => console.error("Event Storming import failed", error));
   return importChain;
 }
 
@@ -198,11 +198,11 @@ function pushEdit(): void {
   const text = collaborative.exportText();
   if (text === lastText) return;
   lastText = text;
-  post({ type: 'edit', text });
+  post({ type: "edit", text });
 }
 
 collaborative.onContentChanged(pushEdit);
-modeler.on('commandStack.changed', () => shell.menu.refresh());
+modeler.on("commandStack.changed", () => shell.menu.refresh());
 
 // ---------------------------------------------------------------------------
 // Export (the webview rasterizes/serializes; the host shows the save dialog)
@@ -226,18 +226,18 @@ async function withoutSelection<T>(task: () => Promise<T>): Promise<T> {
 async function exportSvg(): Promise<void> {
   try {
     const { svg } = await withoutSelection(() => modeler.saveSVG());
-    post({ type: 'export', format: 'svg', data: svg });
+    post({ type: "export", format: "svg", data: svg });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the board as SVG: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the board as SVG: ${messageOf(error)}` });
   }
 }
 
 async function exportPng(): Promise<void> {
   try {
     const { svg } = await withoutSelection(() => modeler.saveSVG());
-    post({ type: 'export', format: 'png', data: await blobToBase64(await svgToPng(svg)) });
+    post({ type: "export", format: "png", data: await blobToBase64(await svgToPng(svg)) });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the board as PNG: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the board as PNG: ${messageOf(error)}` });
   }
 }
 
@@ -246,18 +246,18 @@ async function exportPngTransparent(): Promise<void> {
   try {
     const { svg } = await withoutSelection(() => modeler.saveSVG());
     const png = await svgToPng(svg, 4, true);
-    post({ type: 'export', format: 'png-transparent', data: await blobToBase64(png) });
+    post({ type: "export", format: "png-transparent", data: await blobToBase64(png) });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the board as PNG: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the board as PNG: ${messageOf(error)}` });
   }
 }
 
 /** The board's JSON in its own element order, as the web app exports it. */
 function exportJson(): void {
   try {
-    post({ type: 'export', format: 'json', data: JSON.stringify(modeler.exportMap(), null, 2) });
+    post({ type: "export", format: "json", data: JSON.stringify(modeler.exportMap(), null, 2) });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the board as JSON: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the board as JSON: ${messageOf(error)}` });
   }
 }
 
@@ -275,36 +275,36 @@ const COMMANDS: Readonly<Record<WebviewCommand, () => void>> = {
 
 function isHostMessage(data: unknown): data is HostToWebview {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
-    typeof (data as { type?: unknown }).type === 'string'
+    typeof (data as { type?: unknown }).type === "string"
   );
 }
 
 let firstImportSettled: () => void = () => undefined;
 const ready = new Promise<void>((resolve) => (firstImportSettled = resolve));
 
-window.addEventListener('message', (event: MessageEvent<unknown>) => {
+window.addEventListener("message", (event: MessageEvent<unknown>) => {
   if (!isHostMessage(event.data)) return;
   const message = event.data;
   switch (message.type) {
-    case 'init':
+    case "init":
       void enqueueImport(message.text).then(firstImportSettled);
       break;
-    case 'update':
+    case "update":
       void enqueueImport(message.text);
       break;
-    case 'problems':
+    case "problems":
       shell.setProblems({ count: message.count, errors: message.errors });
       break;
-    case 'command':
+    case "command":
       // Only own entries: a name such as "constructor" must not reach Object.prototype.
       if (Object.hasOwn(COMMANDS, message.name)) COMMANDS[message.name]();
       break;
   }
 });
 
-post({ type: 'ready' });
+post({ type: "ready" });
 
 /** For test pages: the mounted parts, and `ready` once the first `init` import settled. */
 export const webview: {

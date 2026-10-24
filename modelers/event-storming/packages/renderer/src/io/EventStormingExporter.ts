@@ -1,5 +1,5 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type { Root } from 'diagram-js/lib/model/Types';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type { Root } from "diagram-js/lib/model/Types";
 import {
   validateBoard,
   CURRENT_SCHEMA_VERSION,
@@ -8,14 +8,14 @@ import {
   type BoardElement,
   type EventStormingBoard,
   type NoteAlign,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";
 import {
   isEventStormingConnection,
   isEventStormingShape,
   type EventStormingShape,
-} from '../model/di-types.js';
-import { isManualNoteBox } from '../draw/styles.js';
-import { ROOT_ID, type RootBusinessObject } from './types.js';
+} from "../model/di-types.js";
+import { isManualNoteBox } from "../draw/styles.js";
+import { ROOT_ID, type RootBusinessObject } from "./types.js";
 
 /**
  * Reconstructs an EventStormingBoard from the diagram-js runtime model. The DI properties are
@@ -23,7 +23,7 @@ import { ROOT_ID, type RootBusinessObject } from './types.js';
  * geometry; the `businessObject` only serves as identity backref and is not consulted for data.
  */
 export default class EventStormingExporter {
-  static $inject = ['elementRegistry'];
+  static $inject = ["elementRegistry"];
 
   constructor(private readonly elementRegistry: ElementRegistry) {}
 
@@ -32,7 +32,7 @@ export default class EventStormingExporter {
     const root = this.elementRegistry.get(ROOT_ID) as
       (Root & { businessObject?: RootBusinessObject }) | undefined;
     const meta = root?.businessObject;
-    const config: BoardConfig = meta?.config ?? { title: 'Untitled Board' };
+    const config: BoardConfig = meta?.config ?? { title: "Untitled Board" };
 
     const elements: BoardElement[] = [];
     const edges: BoardEdge[] = [];
@@ -42,9 +42,9 @@ export default class EventStormingExporter {
       if (isEventStormingConnection(el)) {
         edges.push({
           id: el.id,
-          edgeType: 'arrow',
-          from: el.source?.id ?? '',
-          to: el.target?.id ?? '',
+          edgeType: "arrow",
+          from: el.source?.id ?? "",
+          to: el.target?.id ?? "",
           ...(el.linkLabel ? { label: el.linkLabel } : {}),
         });
       } else if (isEventStormingShape(el)) {
@@ -66,14 +66,14 @@ export default class EventStormingExporter {
 
   /** Builds a BoardElement from the DI properties; position = shape center. */
   private buildElement(el: EventStormingShape): BoardElement | undefined {
-    if (el.eventStormingType === 'drawing') {
+    if (el.eventStormingType === "drawing") {
       // Points are stored relative to the shape in px — convert back to absolute board px.
       const points = (el.drawingPoints ?? []).map((p) => ({ x: el.x + p.x, y: el.y + p.y }));
       if (points.length < 2) return undefined;
       return {
         id: el.id,
-        elementType: 'drawing',
-        label: '',
+        elementType: "drawing",
+        label: "",
         position: points[0]!,
         points,
         ...(el.closed ? { closed: true } : {}),
@@ -84,10 +84,10 @@ export default class EventStormingExporter {
     // Auto-vs-manual: `size` is emitted ONLY when the note box differs from its text metrics —
     // auto-sized notes stay absent-size, keeping existing boards byte-identical on round-trip.
     const manualSize =
-      el.eventStormingType === 'note' && isManualNoteBox(el.eventStormingLabel, el)
+      el.eventStormingType === "note" && isManualNoteBox(el.eventStormingLabel, el)
         ? { width: el.width, height: el.height }
         : undefined;
-    const align = el.eventStormingType === 'note' ? noteAlignOf(el) : undefined;
+    const align = el.eventStormingType === "note" ? noteAlignOf(el) : undefined;
     return {
       id: el.id,
       elementType: el.eventStormingType,
@@ -110,8 +110,8 @@ export default class EventStormingExporter {
  */
 function noteAlignOf(el: EventStormingShape): NoteAlign | undefined {
   const horizontal =
-    el.alignHorizontal && el.alignHorizontal !== 'left' ? el.alignHorizontal : undefined;
-  const vertical = el.alignVertical && el.alignVertical !== 'top' ? el.alignVertical : undefined;
+    el.alignHorizontal && el.alignHorizontal !== "left" ? el.alignHorizontal : undefined;
+  const vertical = el.alignVertical && el.alignVertical !== "top" ? el.alignVertical : undefined;
   if (!horizontal && !vertical) return undefined;
   return { ...(horizontal ? { horizontal } : {}), ...(vertical ? { vertical } : {}) };
 }

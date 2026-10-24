@@ -9,7 +9,8 @@ export const LEGAL_LINE_HEIGHT = 20;
 
 /** A measured legal line's height in whole lines, at least one: what the stack above it stands on. */
 export function legalLineHeight(measured: number | undefined): number {
-  if (measured === undefined || !Number.isFinite(measured) || measured <= 0) return LEGAL_LINE_HEIGHT;
+  if (measured === undefined || !Number.isFinite(measured) || measured <= 0)
+    return LEGAL_LINE_HEIGHT;
   return Math.max(1, Math.round(measured / LEGAL_LINE_HEIGHT)) * LEGAL_LINE_HEIGHT;
 }
 

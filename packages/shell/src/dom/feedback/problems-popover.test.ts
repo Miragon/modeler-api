@@ -16,7 +16,12 @@ afterEach(() => {
 });
 
 const ITEMS: readonly ProblemItem[] = [
-  { severity: "error", message: "Unknown sticky type “evnt”.", location: "Line 12", elementId: "Sticky_1" },
+  {
+    severity: "error",
+    message: "Unknown sticky type “evnt”.",
+    location: "Line 12",
+    elementId: "Sticky_1",
+  },
   { severity: "warning", message: "Unused aggregate.", location: "Line 30" },
   { severity: "warning", message: "A box without a name.", elementId: "Box_2" },
 ];
@@ -116,17 +121,13 @@ describe("problems popover: rows", () => {
       "Unused aggregate.",
       "A box without a name.",
     ]);
-    expect(rows.map((row) => row.querySelector(".cd-shell-problem-location")?.textContent ?? null)).toEqual([
-      "Line 12",
-      "Line 30",
-      null,
-    ]);
+    expect(
+      rows.map((row) => row.querySelector(".cd-shell-problem-location")?.textContent ?? null),
+    ).toEqual(["Line 12", "Line 30", null]);
     // circle-x has a circle, triangle-alert none: the shape carries the severity.
-    expect(rows.map((row) => row.querySelector(".cd-shell-problem-icon svg circle") !== null)).toEqual([
-      true,
-      false,
-      false,
-    ]);
+    expect(
+      rows.map((row) => row.querySelector(".cd-shell-problem-icon svg circle") !== null),
+    ).toEqual([true, false, false]);
     expect(rowButtons(element).every((button) => button.type === "button")).toBe(true);
   });
 
@@ -134,14 +135,16 @@ describe("problems popover: rows", () => {
     const { popover, element } = setup();
     popover.setItems(ITEMS);
     const icons = [...element.querySelectorAll<HTMLElement>(".cd-shell-problem-icon")];
-    expect(icons.map((icon) => [icon.getAttribute("role"), icon.getAttribute("aria-label")])).toEqual([
+    expect(
+      icons.map((icon) => [icon.getAttribute("role"), icon.getAttribute("aria-label")]),
+    ).toEqual([
       ["img", "Error"],
       ["img", "Warning"],
       ["img", "Warning"],
     ]);
-    expect(icons.every((icon) => icon.querySelector("svg")?.getAttribute("aria-hidden") === "true")).toBe(
-      true,
-    );
+    expect(
+      icons.every((icon) => icon.querySelector("svg")?.getAttribute("aria-hidden") === "true"),
+    ).toBe(true);
   });
 
   it("re-renders on setItems while closed as well", () => {
@@ -249,7 +252,9 @@ describe("problems popover: opening and closing", () => {
     const stopper = (event: Event) => event.stopPropagation();
     // Capture phase: diagram-js stops pointer events on the canvas.
     root.addEventListener("pointerdown", stopper);
-    root.querySelector(".cd-shell-canvas")?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    root
+      .querySelector(".cd-shell-canvas")
+      ?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     root.removeEventListener("pointerdown", stopper);
     expect(popover.isOpen()).toBe(false);
     expect(document.activeElement).toBe(focused);
@@ -357,7 +362,9 @@ describe("problems popover: keys inside", () => {
 describe("problems popover: selecting a row", () => {
   it("closes, focuses the canvas, then calls onSelectItem", () => {
     const seen: { open: boolean; focus: Element | null }[] = [];
-    const onSelectItem = vi.fn(() => seen.push({ open: popover.isOpen(), focus: document.activeElement }));
+    const onSelectItem = vi.fn(() =>
+      seen.push({ open: popover.isOpen(), focus: document.activeElement }),
+    );
     const { popover, element, svg } = setup({ onSelectItem });
     popover.setItems(ITEMS);
     popover.open();
@@ -390,10 +397,16 @@ describe("problems popover: setItems while open", () => {
     popover.setItems(ITEMS);
     popover.open();
     rowButtons(element)[1]?.focus();
-    const added: ProblemItem = { severity: "error", message: "Arrow to nowhere.", elementId: "Arrow_9" };
+    const added: ProblemItem = {
+      severity: "error",
+      message: "Arrow to nowhere.",
+      elementId: "Arrow_9",
+    };
     popover.setItems([added, ...ITEMS]);
     const focused = document.activeElement as HTMLElement;
-    expect(focused.querySelector(".cd-shell-problem-message")?.textContent).toBe("A box without a name.");
+    expect(focused.querySelector(".cd-shell-problem-message")?.textContent).toBe(
+      "A box without a name.",
+    );
     expect(rowButtons(element).indexOf(focused as HTMLButtonElement)).toBe(2);
   });
 

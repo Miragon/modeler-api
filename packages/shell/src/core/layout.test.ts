@@ -21,21 +21,25 @@ describe("decidePaletteRow (guide §5.15)", () => {
   const MENU_RIGHT = 12 + 40;
 
   it("puts the palette in the second row up to 760px width", () => {
-    expect(decidePaletteRow({ containerWidth: 760, paletteWidth: 100, menuRight: MENU_RIGHT })).toBe(
-      "second-row",
-    );
-    expect(decidePaletteRow({ containerWidth: 420, paletteWidth: 100, menuRight: MENU_RIGHT })).toBe(
-      "second-row",
-    );
-    expect(decidePaletteRow({ containerWidth: 761, paletteWidth: 100, menuRight: MENU_RIGHT })).toBe("top");
+    expect(
+      decidePaletteRow({ containerWidth: 760, paletteWidth: 100, menuRight: MENU_RIGHT }),
+    ).toBe("second-row");
+    expect(
+      decidePaletteRow({ containerWidth: 420, paletteWidth: 100, menuRight: MENU_RIGHT }),
+    ).toBe("second-row");
+    expect(
+      decidePaletteRow({ containerWidth: 761, paletteWidth: 100, menuRight: MENU_RIGHT }),
+    ).toBe("top");
   });
 
   it("keeps at least 16px to the menu trigger", () => {
     // (1000 − 864) / 2 = 68 = 52 + 16
-    expect(decidePaletteRow({ containerWidth: 1000, paletteWidth: 864, menuRight: MENU_RIGHT })).toBe("top");
-    expect(decidePaletteRow({ containerWidth: 1000, paletteWidth: 865, menuRight: MENU_RIGHT })).toBe(
-      "second-row",
-    );
+    expect(
+      decidePaletteRow({ containerWidth: 1000, paletteWidth: 864, menuRight: MENU_RIGHT }),
+    ).toBe("top");
+    expect(
+      decidePaletteRow({ containerWidth: 1000, paletteWidth: 865, menuRight: MENU_RIGHT }),
+    ).toBe("second-row");
   });
 
   it("keeps at least 16px to the primary action", () => {
@@ -46,7 +50,9 @@ describe("decidePaletteRow (guide §5.15)", () => {
   });
 
   it("checks the side of the primary action only where there is one", () => {
-    expect(decidePaletteRow({ containerWidth: 1000, paletteWidth: 800, menuRight: MENU_RIGHT })).toBe("top");
+    expect(
+      decidePaletteRow({ containerWidth: 1000, paletteWidth: 800, menuRight: MENU_RIGHT }),
+    ).toBe("top");
   });
 });
 
@@ -56,9 +62,12 @@ describe("legendStartsOpen (guide §5.10, deprecated)", () => {
     [900, 441],
     [900, 1280],
     [1200, 1920],
-  ])("is false at %i high and %i wide: without a stored state the legend starts closed", (height, width) => {
-    expect(legendStartsOpen(height, width)).toBe(false);
-  });
+  ])(
+    "is false at %i high and %i wide: without a stored state the legend starts closed",
+    (height, width) => {
+      expect(legendStartsOpen(height, width)).toBe(false);
+    },
+  );
 
   it("is false without arguments and with only a height", () => {
     expect(legendStartsOpen()).toBe(false);
@@ -90,7 +99,12 @@ describe("placeTooltip (guide §5.6)", () => {
   it("stands below the second row at top 112", () => {
     const anchor = entry(secondRowPalette, 200);
     expect(
-      placeTooltip({ anchor, island: secondRowPalette, tooltip, container: { width: 420, height: 700 } }).y,
+      placeTooltip({
+        anchor,
+        island: secondRowPalette,
+        tooltip,
+        container: { width: 420, height: 700 },
+      }).y,
     ).toBe(112);
   });
 
@@ -104,12 +118,17 @@ describe("placeTooltip (guide §5.6)", () => {
   it("stands above a card in the lower half, 8px above it", () => {
     const legend: Bounds = { x: 12, y: 500, width: 220, height: 388 };
     const close = { x: 196, y: 508, width: 28, height: 28 };
-    expect(placeTooltip({ anchor: close, island: legend, tooltip, container }).y).toBe(500 - 8 - 28);
+    expect(placeTooltip({ anchor: close, island: legend, tooltip, container }).y).toBe(
+      500 - 8 - 28,
+    );
   });
 
   it("keeps 12px to the left edge", () => {
     const menu: Bounds = { x: 12, y: 12, width: 40, height: 40 };
-    expect(placeTooltip({ anchor: menu, island: menu, tooltip, container })).toEqual({ x: 12, y: 60 });
+    expect(placeTooltip({ anchor: menu, island: menu, tooltip, container })).toEqual({
+      x: 12,
+      y: 60,
+    });
   });
 
   it("keeps 12px to the right edge", () => {
@@ -122,7 +141,12 @@ describe("placeTooltip (guide §5.6)", () => {
     const narrow = { width: 200, height: 700 };
     const island: Bounds = { x: 12, y: 12, width: 40, height: 40 };
     expect(
-      placeTooltip({ anchor: island, island, tooltip: { width: 190, height: 28 }, container: narrow }).x,
+      placeTooltip({
+        anchor: island,
+        island,
+        tooltip: { width: 190, height: 28 },
+        container: narrow,
+      }).x,
     ).toBe(12);
   });
 });

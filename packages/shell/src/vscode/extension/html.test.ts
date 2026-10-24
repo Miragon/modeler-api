@@ -28,8 +28,8 @@ function parse(html: string): Document {
 interface HappyDomSettings {
   handleDisabledFileLoadingAsSuccess: boolean;
 }
-const happyDomSettings = (window as unknown as { happyDOM?: { settings: HappyDomSettings } }).happyDOM
-  ?.settings;
+const happyDomSettings = (window as unknown as { happyDOM?: { settings: HappyDomSettings } })
+  .happyDOM?.settings;
 const loadingWasSuccess = happyDomSettings?.handleDisabledFileLoadingAsSuccess;
 
 beforeAll(() => {
@@ -37,7 +37,8 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  if (happyDomSettings) happyDomSettings.handleDisabledFileLoadingAsSuccess = loadingWasSuccess ?? false;
+  if (happyDomSettings)
+    happyDomSettings.handleDisabledFileLoadingAsSuccess = loadingWasSuccess ?? false;
 });
 
 afterEach(() => {
@@ -65,7 +66,9 @@ describe("renderWebviewHtml", () => {
     const html = renderWebviewHtml(options());
     expect(html.startsWith("<!doctype html>\n<html ")).toBe(true);
     expect(html).toContain('<meta charset="UTF-8" />');
-    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0" />');
+    expect(html).toContain(
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+    );
   });
 
   it("sets the CSP with data: fonts, inline styles and the nonce'd script source", () => {
@@ -79,7 +82,9 @@ describe("renderWebviewHtml", () => {
 
   it("drops 'unsafe-inline' with inlineStyles: false", () => {
     const document = parse(renderWebviewHtml(options({ inlineStyles: false })));
-    const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content");
+    const csp = document
+      .querySelector('meta[http-equiv="Content-Security-Policy"]')
+      ?.getAttribute("content");
     expect(csp).toContain(`style-src ${CSP_SOURCE}; `);
     expect(csp).not.toContain("unsafe-inline");
   });
@@ -130,10 +135,14 @@ describe("renderWebviewHtml", () => {
         cspSource: 'https://a.test" http-equiv="refresh',
       }),
     );
-    expect(html).toContain("<title>Board &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co</title>");
+    expect(html).toContain(
+      "<title>Board &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co</title>",
+    );
     expect(html).toContain('lang="en&quot; onload=&quot;x"');
     expect(html).toContain('src="https://example.test/webview.js?a=1&amp;b=&quot;2&quot;"');
-    expect(html).toContain('href="https://example.test/a.css&quot;&gt;&lt;script&gt;x&lt;/script&gt;"');
+    expect(html).toContain(
+      'href="https://example.test/a.css&quot;&gt;&lt;script&gt;x&lt;/script&gt;"',
+    );
     expect(html).not.toContain("<script>x</script>");
 
     const document = parse(html);
@@ -155,7 +164,9 @@ describe("renderWebviewHtml", () => {
   });
 
   it("rejects a nonce that would break out of the CSP", () => {
-    expect(() => renderWebviewHtml(options({ nonce: "abc' 'unsafe-inline" }))).toThrow(/invalid nonce/);
+    expect(() => renderWebviewHtml(options({ nonce: "abc' 'unsafe-inline" }))).toThrow(
+      /invalid nonce/,
+    );
     expect(() => renderWebviewHtml(options({ nonce: "" }))).toThrow(/invalid nonce/);
   });
 });

@@ -1,5 +1,5 @@
-import type { ModuleDeclaration } from 'didi';
-import describeCanvas from './describeCanvas.js';
+import type { ModuleDeclaration } from "didi";
+import describeCanvas from "./describeCanvas.js";
 
 /** Names the canvas for assistive technology (role, role description, label). */
 export const canvasAccessibilityModule: ModuleDeclaration = {
@@ -11,4 +11,4 @@ export {
   focusCanvasWithoutRing,
   lastInteractionWasPointer,
   trackInputModality,
-} from './canvasFocus.js';
+} from "./canvasFocus.js";

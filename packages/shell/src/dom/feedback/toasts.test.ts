@@ -135,7 +135,10 @@ describe("toaster: live regions (guide §8, §12)", () => {
     const { polite, assertive } = regions(toaster);
     expect(toaster.announcer.isConnected).toBe(true);
     expect(toaster.announcer.className).toBe("cd-shell-live");
-    expect([polite.getAttribute("role"), polite.getAttribute("aria-live")]).toEqual(["status", "polite"]);
+    expect([polite.getAttribute("role"), polite.getAttribute("aria-live")]).toEqual([
+      "status",
+      "polite",
+    ]);
     expect([assertive.getAttribute("role"), assertive.getAttribute("aria-live")]).toEqual([
       "alert",
       "assertive",
@@ -216,7 +219,11 @@ describe("toaster: live regions (guide §8, §12)", () => {
 
   it("puts the action as a ghost button before Close", () => {
     const { toaster, stack } = setup();
-    toaster.show({ status: "info", text: "Board replaced", action: { label: "Undo", onSelect() {} } });
+    toaster.show({
+      status: "info",
+      text: "Board replaced",
+      action: { label: "Undo", onSelect() {} },
+    });
     const [card] = cards(stack);
     const action = card?.querySelector<HTMLButtonElement>(".cd-shell-toast-action");
     expect(action?.classList.contains("cd-shell-button")).toBe(true);
@@ -344,7 +351,11 @@ describe("toaster: lifetime (guide §8)", () => {
 
   it("never closes a toast with an action by itself", () => {
     const { toaster, stack } = setup();
-    toaster.show({ status: "info", text: "Board replaced", action: { label: "Undo", onSelect() {} } });
+    toaster.show({
+      status: "info",
+      text: "Board replaced",
+      action: { label: "Undo", onSelect() {} },
+    });
     vi.advanceTimersByTime(10 * 60_000);
     expect(texts(stack)).toEqual(["Board replaced"]);
   });

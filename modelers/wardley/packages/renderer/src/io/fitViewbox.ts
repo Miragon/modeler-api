@@ -1,4 +1,4 @@
-import type { FreeRectInsets } from '../free-rect/index.js';
+import type { FreeRectInsets } from "../free-rect/index.js";
 
 /** An import never opens the map above 100 %, like the shell's fit and the other renderers. */
 export const MAX_IMPORT_ZOOM = 1;

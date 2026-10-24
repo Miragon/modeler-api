@@ -44,7 +44,8 @@ export function createLegalLine(context: LegalLineContext): LegalLineController 
       { href, lang, target: "_blank", rel: "noopener noreferrer", "aria-describedby": newTabId },
       label,
     );
-  const separator = (): HTMLElement => createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·");
+  const separator = (): HTMLElement =>
+    createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·");
   const item = (anchor: HTMLAnchorElement): HTMLElement =>
     createElement(ownerDocument, "span", { class: "cd-shell-legal-item" }, separator(), anchor);
 

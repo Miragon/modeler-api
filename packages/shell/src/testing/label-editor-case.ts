@@ -8,7 +8,11 @@ import {
   finish,
   openHarness,
 } from "./case-tools.js";
-import { labelEditorCommitProblems, labelEditorOpenProblems, labelEditorStepProblems } from "./checks.js";
+import {
+  labelEditorCommitProblems,
+  labelEditorOpenProblems,
+  labelEditorStepProblems,
+} from "./checks.js";
 import { emptyCanvasSpotProbe, labelEditorProbe, type LabelEditorFacts } from "./facts.js";
 import { DEFAULT_ROOT } from "./geometry.js";
 import type {
@@ -89,7 +93,11 @@ const VIEW_STEPS: readonly ViewStep[] = [
   containerResize,
 ];
 
-async function editorFacts(page: PageLike, root: string, host: ShellHost): Promise<LabelEditorFacts> {
+async function editorFacts(
+  page: PageLike,
+  root: string,
+  host: ShellHost,
+): Promise<LabelEditorFacts> {
   const facts = await inPage(page, labelEditorProbe, { root });
   if (!facts) fail("labelEditor", host, [`no element matches the shell root selector "${root}"`]);
   return facts;

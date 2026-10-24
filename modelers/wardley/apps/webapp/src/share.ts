@@ -6,15 +6,15 @@
 
 /** Bytes -> URL-safe Base64 (A-Za-z0-9-_, no padding). */
 function toBase64Url(bytes: Uint8Array): string {
-  let bin = '';
+  let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromBase64Url(b64: string): Uint8Array {
-  let norm = b64.replace(/-/g, '+').replace(/_/g, '/');
+  let norm = b64.replace(/-/g, "+").replace(/_/g, "/");
   const pad = norm.length % 4;
-  if (pad) norm += '='.repeat(4 - pad);
+  if (pad) norm += "=".repeat(4 - pad);
   const bin = atob(norm);
   return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
@@ -36,27 +36,27 @@ export function decodeMap(b64: string): string {
 
 /** UTF-8 -> deflate-raw -> URL-safe Base64. Real-world maps shrink by ~5-8x. */
 export async function encodeMapCompressed(text: string): Promise<string> {
-  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
+  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream("deflate-raw"));
   return toBase64Url(deflated);
 }
 
 /** URL-safe Base64 -> inflate -> UTF-8. */
 export async function decodeMapCompressed(b64: string): Promise<string> {
-  const inflated = await pipe(fromBase64Url(b64), new DecompressionStream('deflate-raw'));
+  const inflated = await pipe(fromBase64Url(b64), new DecompressionStream("deflate-raw"));
   return new TextDecoder().decode(inflated);
 }
 
-const HASH_PREFIX_COMPRESSED = '#mz=';
-const HASH_PREFIX_LEGACY = '#m=';
+const HASH_PREFIX_COMPRESSED = "#mz=";
+const HASH_PREFIX_LEGACY = "#m=";
 
 /**
  * What a URL hash holds: no map at all (`none`, e.g. `#section-2`), a readable map (`ok`), or a map
  * link that cannot be decoded (`corrupt`, typically a link truncated by a mail or chat client).
  */
 export type HashMapResult =
-  | { readonly kind: 'none' }
-  | { readonly kind: 'ok'; readonly dsl: string }
-  | { readonly kind: 'corrupt' };
+  | { readonly kind: "none" }
+  | { readonly kind: "ok"; readonly dsl: string }
+  | { readonly kind: "corrupt" };
 
 /** Decodes the map in a hash (compressed `#mz=` or legacy `#m=`). */
 export async function readHashMap(hash: string = location.hash): Promise<HashMapResult> {
@@ -65,14 +65,14 @@ export async function readHashMap(hash: string = location.hash): Promise<HashMap
     : hash.startsWith(HASH_PREFIX_LEGACY)
       ? hash.slice(HASH_PREFIX_LEGACY.length)
       : undefined;
-  if (payload === undefined) return { kind: 'none' };
+  if (payload === undefined) return { kind: "none" };
   try {
     const dsl = hash.startsWith(HASH_PREFIX_COMPRESSED)
       ? await decodeMapCompressed(payload)
       : decodeMap(payload);
-    return dsl.trim() ? { kind: 'ok', dsl } : { kind: 'corrupt' };
+    return dsl.trim() ? { kind: "ok", dsl } : { kind: "corrupt" };
   } catch {
-    return { kind: 'corrupt' };
+    return { kind: "corrupt" };
   }
 }
 
@@ -82,12 +82,12 @@ export async function readHashMap(hash: string = location.hash): Promise<HashMap
  */
 export function readShareLink(text: string): Promise<HashMapResult> {
   const match = /#mz?=[A-Za-z0-9_-]*/.exec(text.trim());
-  return match ? readHashMap(match[0]) : Promise.resolve({ kind: 'none' });
+  return match ? readHashMap(match[0]) : Promise.resolve({ kind: "none" });
 }
 
 /** Updates the hash with an already encoded (compressed) map, without a history entry. */
 export function writeHashPayload(payload: string): void {
-  history.replaceState(null, '', HASH_PREFIX_COMPRESSED + payload);
+  history.replaceState(null, "", HASH_PREFIX_COMPRESSED + payload);
 }
 
 /** Updates the hash with the current DSL (no history entry). */

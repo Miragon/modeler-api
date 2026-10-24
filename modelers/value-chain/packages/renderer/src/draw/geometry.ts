@@ -32,8 +32,8 @@ export function chevronPathAt(x: number, y: number, width: number, height: numbe
     `L${x + width - d},${y + height}`,
     `L${x},${y + height}`,
     `L${x + d},${my}`,
-    'Z',
-  ].join('');
+    "Z",
+  ].join("");
 }
 
 /** Ellipse path (organizational unit), arc-based so cropping intersects exactly. */
@@ -45,6 +45,6 @@ export function ellipsePathAt(x: number, y: number, width: number, height: numbe
     `M${cx},${y}`,
     `A${rx},${ry} 0 0 1 ${cx},${y + height}`,
     `A${rx},${ry} 0 0 1 ${cx},${y}`,
-    'Z',
-  ].join('');
+    "Z",
+  ].join("");
 }

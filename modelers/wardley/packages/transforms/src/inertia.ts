@@ -1,5 +1,5 @@
-import type { ComponentDecorators, WardleyMap } from '@miragon/wardley-schema-model';
-import { updateElement, compact } from './util.js';
+import type { ComponentDecorators, WardleyMap } from "@miragon/wardley-schema-model";
+import { updateElement, compact } from "./util.js";
 
 export function toggleInertia(map: WardleyMap, componentId: string): WardleyMap {
   return setInertia(map, componentId);
@@ -8,7 +8,7 @@ export function toggleInertia(map: WardleyMap, componentId: string): WardleyMap 
 /** Sets the inertia flag explicitly (or toggles it when `value` is omitted). */
 export function setInertia(map: WardleyMap, componentId: string, value?: boolean): WardleyMap {
   return updateElement(map, componentId, (el) => {
-    if (el.elementType !== 'component') {
+    if (el.elementType !== "component") {
       throw new Error(`inertia only applies to components; "${componentId}" is ${el.elementType}.`);
     }
     const next = value ?? !el.decorators?.inertia;

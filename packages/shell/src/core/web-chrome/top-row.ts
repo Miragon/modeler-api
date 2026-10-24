@@ -56,8 +56,10 @@ export function decideTopRow(input: TopRowInput): TopRow {
       menuRight,
       primaryLeft: containerWidth - SHELL.edge - primaryWidth,
     });
-  if (paletteRowBeside(primary.withLabel) === "top") return { paletteRow: "top", primaryLabel: "shown" };
-  if (paletteRowBeside(primary.iconOnly) === "top") return { paletteRow: "top", primaryLabel: "collapsed" };
+  if (paletteRowBeside(primary.withLabel) === "top")
+    return { paletteRow: "top", primaryLabel: "shown" };
+  if (paletteRowBeside(primary.iconOnly) === "top")
+    return { paletteRow: "top", primaryLabel: "collapsed" };
   const labelledLeft = containerWidth - SHELL.edge - primary.withLabel;
   return {
     paletteRow: "second-row",

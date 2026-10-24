@@ -64,7 +64,9 @@ export interface ToastSlot {
 export function toastToEvict(stack: readonly ToastSlot[]): number | undefined {
   if (stack.length < MAX_TOASTS) return undefined;
   const evicted =
-    stack.find((slot) => !slot.engaged && !slot.hasAction) ?? stack.find((slot) => !slot.engaged) ?? stack[0];
+    stack.find((slot) => !slot.engaged && !slot.hasAction) ??
+    stack.find((slot) => !slot.engaged) ??
+    stack[0];
   return evicted?.id;
 }
 

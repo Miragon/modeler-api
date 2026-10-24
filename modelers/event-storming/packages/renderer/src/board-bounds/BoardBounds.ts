@@ -1,7 +1,7 @@
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import { DEFAULT_BOARD_SIZE } from '@miragon/event-storming-schema-model';
-import { ROOT_ID, isEventStormingConnection } from '../model/di-types.js';
-import { drawnShapeBox, linkLabelBox } from '../draw/index.js';
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import { DEFAULT_BOARD_SIZE } from "@miragon/event-storming-schema-model";
+import { ROOT_ID, isEventStormingConnection } from "../model/di-types.js";
+import { drawnShapeBox, linkLabelBox } from "../draw/index.js";
 
 export interface Bounds {
   x: number;
@@ -26,10 +26,10 @@ function isPositionedShape(
   return (
     el.id !== ROOT_ID &&
     !el.waypoints &&
-    typeof el.x === 'number' &&
-    typeof el.y === 'number' &&
-    typeof el.width === 'number' &&
-    typeof el.height === 'number'
+    typeof el.x === "number" &&
+    typeof el.y === "number" &&
+    typeof el.width === "number" &&
+    typeof el.height === "number"
   );
 }
 
@@ -39,7 +39,7 @@ function isPositionedShape(
  * bounds source for the SVG export viewBox, the importer's fit and `contentBounds()`.
  */
 export default class BoardBounds {
-  static $inject = ['elementRegistry'];
+  static $inject = ["elementRegistry"];
 
   constructor(private readonly elementRegistry: ElementRegistry) {}
 

@@ -1,9 +1,9 @@
-import { test, type Page } from '@playwright/test';
-import { registerShellConformance, type ShellSkip } from '@miragon/modeler-shell/testing';
-import { EXAMPLE_DOCUMENT } from '../../apps/webapp/src/example.js';
-import { THEMES } from '../../apps/webapp/src/themes.js';
-import { labelEditorHooks } from './support/label-editor.js';
-import { exportText, linkTo, waitForApp } from './support/webapp.js';
+import { test, type Page } from "@playwright/test";
+import { registerShellConformance, type ShellSkip } from "@miragon/modeler-shell/testing";
+import { EXAMPLE_DOCUMENT } from "../../apps/webapp/src/example.js";
+import { THEMES } from "../../apps/webapp/src/themes.js";
+import { labelEditorHooks } from "./support/label-editor.js";
+import { exportText, linkTo, waitForApp } from "./support/webapp.js";
 
 /**
  * The shell's conformance kit against the real web app (the web host of guide §5.2): geometry at
@@ -16,17 +16,17 @@ import { exportText, linkTo, waitForApp } from './support/webapp.js';
  * warning), so the harness declares them absent; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
-  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
+  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
 
 /** Pages that start every visit without the autosaved diagram of an earlier one. */
 const freshPages = new WeakSet<Page>();
 
-test.describe('web app: shell conformance', () => {
+test.describe("web app: shell conformance", () => {
   test.describe.configure({ timeout: 60_000 });
 
   registerShellConformance<Page>(
     {
-      host: 'web',
+      host: "web",
       themes: THEMES,
       // The kit emulates the system's colour scheme and contrast before every open.
       async open(page, { size }) {
@@ -47,20 +47,20 @@ test.describe('web app: shell conformance', () => {
       async destroy(page) {
         await page.evaluate(() => window.__valueChainApp?.destroy());
       },
-      absent: ['legend', 'inspector', 'invalid', 'problems'],
+      absent: ["legend", "inspector", "invalid", "problems"],
       show: {
         async status(page) {
           await page.evaluate(() => {
             const shell = window.__valueChainApp!.shell;
             shell.setStatus({
-              severity: 'danger',
-              text: shell.messages.invalidFile('value chain diagram'),
+              severity: "danger",
+              text: shell.messages.invalidFile("value chain diagram"),
             });
           });
         },
         // A fresh visit: the page without a diagram in its link or in the storage.
         async emptyState(page) {
-          await page.goto('/');
+          await page.goto("/");
           await waitForApp(page);
         },
         async toast(page, { status, text, actionLabel }) {
@@ -80,12 +80,12 @@ test.describe('web app: shell conformance', () => {
       labelEditor: labelEditorHooks(exportText),
       drop: {
         accepted: {
-          name: 'porter.vc.json',
-          type: 'application/json',
+          name: "porter.vc.json",
+          type: "application/json",
           text: EXAMPLE_DOCUMENT,
         },
         // A picture is refused already while it is dragged and, dropped all the same, opens nothing.
-        rejected: { name: 'map.png', type: 'image/png', text: 'x' },
+        rejected: { name: "map.png", type: "image/png", text: "x" },
       },
     },
     test,

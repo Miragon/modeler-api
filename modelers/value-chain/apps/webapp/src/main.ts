@@ -1,10 +1,10 @@
 // Geist and Geist Mono (Miragon's typefaces, SIL OFL), self-hosted: no font CDN (offline, GDPR).
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist-mono/wght.css';
+import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist-mono/wght.css";
 // The renderer's stylesheet brings the vendored tokens, diagram-js.css and the canvas mapping; the
 // chrome's stylesheet comes last.
-import '@miragon/value-chain-renderer/assets/value-chain.css';
-import '@miragon/modeler-shell/shell.css';
+import "@miragon/value-chain-renderer/assets/value-chain.css";
+import "@miragon/modeler-shell/shell.css";
 import {
   BLANK_DOCUMENT_NAME,
   createCollaborativeModeler,
@@ -12,12 +12,12 @@ import {
   diagramMenu,
   svgToPng,
   type VcBounds,
-} from '@miragon/value-chain-renderer';
+} from "@miragon/value-chain-renderer";
 import {
   createEmptyDocument,
   parseDocumentJSON,
   serializeDocument,
-} from '@miragon/value-chain-schema-model';
+} from "@miragon/value-chain-schema-model";
 import {
   TEXT_FIELD_SELECTOR,
   commandKeyLabel,
@@ -26,14 +26,14 @@ import {
   isUndoRedoKey,
   mountShell,
   type ToastHandle,
-} from '@miragon/modeler-shell';
-import { connectDiagramJs, shellModule } from '@miragon/modeler-shell/diagram-js';
-import { copyTextWhenReady } from './clipboard.js';
-import { EXAMPLE_DOCUMENT } from './example.js';
-import { diagramFileName, downloadBlob, downloadText, isDefaultName } from './files.js';
-import { documentHash, hashHoldsDocument, readHashDocument, shareUrl } from './share.js';
-import { forgetStoredDocument, readStoredDocument, storeDocument } from './storage.js';
-import { THEMES } from './themes.js';
+} from "@miragon/modeler-shell";
+import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
+import { copyTextWhenReady } from "./clipboard.js";
+import { EXAMPLE_DOCUMENT } from "./example.js";
+import { diagramFileName, downloadBlob, downloadText, isDefaultName } from "./files.js";
+import { documentHash, hashHoldsDocument, readHashDocument, shareUrl } from "./share.js";
+import { forgetStoredDocument, readStoredDocument, storeDocument } from "./storage.js";
+import { THEMES } from "./themes.js";
 
 interface DiagramElement {
   id: string;
@@ -46,11 +46,11 @@ interface CommandStackLike {
   canUndo(): boolean;
 }
 
-const APP_NAME = 'Value Chain Modeler';
-const REPOSITORY_URL = 'https://github.com/Miragon/value-chain-modeler';
+const APP_NAME = "Value Chain Modeler";
+const REPOSITORY_URL = "https://github.com/Miragon/value-chain-modeler";
 // The MIME type decides during a drag, the extension at the drop (guide §9); a .vc file has none.
-const DIAGRAM_FILE_TYPES = ['.vc', '.json', 'application/json'];
-const CHECK_DIAGRAM_FILE = 'Check that it contains a valid value chain diagram.';
+const DIAGRAM_FILE_TYPES = [".vc", ".json", "application/json"];
+const CHECK_DIAGRAM_FILE = "Check that it contains a valid value chain diagram.";
 const BROKEN_LINK_TEXT =
   "Couldn't read the diagram in this link. Check that you copied the whole link.";
 const LOST_DRAFT_TEXT =
@@ -58,8 +58,8 @@ const LOST_DRAFT_TEXT =
 const REFUSED_DIAGRAM_TEXT = "Couldn't open the diagram. Reload the page and try again.";
 const EMPTY_DOCUMENT = serializeDocument(createEmptyDocument(BLANK_DOCUMENT_NAME));
 
-const app = document.getElementById('app');
-if (!app) throw new Error('index.html has no #app root.');
+const app = document.getElementById("app");
+if (!app) throw new Error("index.html has no #app root.");
 
 // 1. The diagram first, so its services exist before the shell mounts around it. The web app keeps
 //    the canvas's own undo and redo keys; the shell's viewport fits every new document itself.
@@ -70,25 +70,25 @@ const collaborative = createCollaborativeModeler({
   fitOnImport: false,
 });
 const modeler = collaborative.diagram;
-modeler.get('canvas');
-const selection = modeler.get<SelectionLike>('selection');
-const commandStack = modeler.get<CommandStackLike>('commandStack');
-const bounds = modeler.get<VcBounds>('vcBounds');
+modeler.get("canvas");
+const selection = modeler.get<SelectionLike>("selection");
+const commandStack = modeler.get<CommandStackLike>("commandStack");
+const bounds = modeler.get<VcBounds>("vcBounds");
 
 const platform = detectPlatform(navigator);
-const openKey = commandKeyLabel('O', platform, defaultMessages.keyNames);
-const saveKey = commandKeyLabel('S', platform, defaultMessages.keyNames);
+const openKey = commandKeyLabel("O", platform, defaultMessages.keyNames);
+const saveKey = commandKeyLabel("S", platform, defaultMessages.keyNames);
 
 // 2. The chrome around it: the whole web column of guide §5.2.
 const shell = mountShell(app, {
-  host: 'web',
+  host: "web",
   canvas: modeler.container,
-  lang: 'en',
+  lang: "en",
   platform,
   themes: THEMES,
-  messages: { canvas: 'Value chain diagram' },
+  messages: { canvas: "Value chain diagram" },
   primary: { onSelect: () => share() },
-  legal: { links: [{ label: 'GitHub', href: REPOSITORY_URL }] },
+  legal: { links: [{ label: "GitHub", href: REPOSITORY_URL }] },
   file: {
     newDiagram: { onSelect: () => void newDiagram() },
     open: { onSelect: () => pickFile(), shortcut: openKey },
@@ -105,11 +105,11 @@ const shell = mountShell(app, {
   }),
   emptyState: {
     title: APP_NAME,
-    text: 'Start a new diagram, or explore the example.',
-    komet: '/miragon-komet-blau.svg',
+    text: "Start a new diagram, or explore the example.",
+    komet: "/miragon-komet-blau.svg",
     onNewDiagram: () => void newDiagram(),
     onShowExample: () => void showExample(),
-    dropHint: 'Or drop a .vc or .json file here',
+    dropHint: "Or drop a .vc or .json file here",
   },
   dropZone: {
     accept: DIAGRAM_FILE_TYPES,
@@ -120,7 +120,7 @@ const shell = mountShell(app, {
 });
 // The modeler's own dialog in the shell root; it goes with the diagram.
 const shortcutsDialog = createShortcutsDialog(shell, { fileKeys: true });
-modeler.on('diagram.destroy', () => shortcutsDialog.destroy());
+modeler.on("diagram.destroy", () => shortcutsDialog.destroy());
 
 // 3. Viewport, palette skin, keys. Cheap tests only: the shell asks on every content change.
 const connection = connectDiagramJs(shell, modeler, {
@@ -138,7 +138,7 @@ let destroyed = false;
 /** Blank text is an empty diagram, as in VS Code; anything else must be a valid document. */
 function canonicalDocument(text: string): string {
   return serializeDocument(
-    text.trim() === '' ? createEmptyDocument(BLANK_DOCUMENT_NAME) : parseDocumentJSON(text),
+    text.trim() === "" ? createEmptyDocument(BLANK_DOCUMENT_NAME) : parseDocumentJSON(text),
   );
 }
 
@@ -164,7 +164,7 @@ async function openDocument(text: string): Promise<boolean> {
   try {
     await collaborative.importText(text);
   } catch (error) {
-    console.error('[value-chain-import]', error);
+    console.error("[value-chain-import]", error);
     return false;
   } finally {
     viewport.afterImport();
@@ -210,7 +210,7 @@ async function replaceDiagram(
   refusal = REFUSED_DIAGRAM_TEXT,
 ): Promise<boolean> {
   if (!(await openDocument(text))) {
-    shell.toast({ status: 'danger', text: refusal });
+    shell.toast({ status: "danger", text: refusal });
     return false;
   }
   withdrawReplaceUndo();
@@ -221,9 +221,9 @@ async function replaceDiagram(
   };
   const offer: ReplaceUndo = {
     toast: shell.toast({
-      status: 'info',
-      text: 'Diagram replaced',
-      action: { label: 'Undo', onSelect: undo },
+      status: "info",
+      text: "Diagram replaced",
+      action: { label: "Undo", onSelect: undo },
     }),
     run: () => {
       offer.toast.dismiss();
@@ -249,21 +249,21 @@ async function openDiagramFile(file: File): Promise<void> {
   try {
     text = canonicalDocument(await file.text());
   } catch (error) {
-    console.error('[value-chain-open]', error);
-    shell.toast({ status: 'danger', text: unreadable });
+    console.error("[value-chain-open]", error);
+    shell.toast({ status: "danger", text: unreadable });
     return;
   }
   await replaceDiagram(text, currentTextUnlessEmpty(), unreadable);
 }
 
-const fileInput = document.createElement('input');
-fileInput.type = 'file';
-fileInput.accept = DIAGRAM_FILE_TYPES.join(',');
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = DIAGRAM_FILE_TYPES.join(",");
 fileInput.hidden = true;
 document.body.append(fileInput);
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
-  fileInput.value = '';
+  fileInput.value = "";
   if (file) void openDiagramFile(file);
 });
 
@@ -290,7 +290,7 @@ function clearLink(): void {
   linkWrites += 1;
   linkedText = undefined;
   if (hashHoldsDocument()) {
-    history.replaceState(history.state, '', `${location.pathname}${location.search}`);
+    history.replaceState(history.state, "", `${location.pathname}${location.search}`);
   }
 }
 
@@ -298,7 +298,7 @@ async function showLink(text: string): Promise<void> {
   const write = ++linkWrites;
   const hash = await documentHash(text);
   if (write !== linkWrites || destroyed) return;
-  history.replaceState(history.state, '', `${location.pathname}${location.search}${hash}`);
+  history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
   linkedText = text;
 }
 
@@ -322,7 +322,7 @@ function onHashChange(): void {
   void (async () => {
     const text = canonicalOrUndefined(await readHashDocument());
     if (text === undefined) {
-      if (hashHoldsDocument()) shell.toast({ status: 'danger', text: BROKEN_LINK_TEXT });
+      if (hashHoldsDocument()) shell.toast({ status: "danger", text: BROKEN_LINK_TEXT });
       return;
     }
     adoptLink(text);
@@ -345,11 +345,11 @@ function share(): void {
     try {
       await showLink(text);
       await copied;
-      shell.toast({ status: 'success', text: 'Link copied' });
+      shell.toast({ status: "success", text: "Link copied" });
     } catch (error) {
-      console.error('[value-chain-share]', error);
+      console.error("[value-chain-share]", error);
       shell.toast({
-        status: 'danger',
+        status: "danger",
         text: "Couldn't copy the link. Copy it from the address bar instead.",
       });
     }
@@ -368,44 +368,44 @@ function withoutSelection<T>(task: () => T): T {
 }
 
 function announceExport(fileName: string): void {
-  shell.toast({ status: 'success', text: `Exported ${fileName}.` });
+  shell.toast({ status: "success", text: `Exported ${fileName}.` });
 }
 
 async function exportPng(): Promise<void> {
-  const fileName = diagramFileName(documentName(), 'png');
+  const fileName = diagramFileName(documentName(), "png");
   try {
     const { svg } = withoutSelection(() => modeler.saveSVG());
     downloadBlob(await svgToPng(svg), fileName);
     announceExport(fileName);
   } catch (error) {
-    console.error('[value-chain-export]', error);
+    console.error("[value-chain-export]", error);
     shell.toast({
-      status: 'danger',
+      status: "danger",
       text: "Couldn't export the diagram as PNG. Try again, or export it as SVG.",
     });
   }
 }
 
 function exportSvg(): void {
-  const fileName = diagramFileName(documentName(), 'svg');
+  const fileName = diagramFileName(documentName(), "svg");
   try {
     const { svg } = withoutSelection(() => modeler.saveSVG());
-    downloadText(svg, fileName, 'image/svg+xml');
+    downloadText(svg, fileName, "image/svg+xml");
     announceExport(fileName);
   } catch (error) {
-    console.error('[value-chain-export]', error);
-    shell.toast({ status: 'danger', text: "Couldn't export the diagram as SVG. Try again." });
+    console.error("[value-chain-export]", error);
+    shell.toast({ status: "danger", text: "Couldn't export the diagram as SVG. Try again." });
   }
 }
 
 function exportJson(): void {
-  const fileName = diagramFileName(documentName(), 'json');
+  const fileName = diagramFileName(documentName(), "json");
   try {
-    downloadText(collaborative.exportText(), fileName, 'application/json');
+    downloadText(collaborative.exportText(), fileName, "application/json");
     announceExport(fileName);
   } catch (error) {
-    console.error('[value-chain-export]', error);
-    shell.toast({ status: 'danger', text: `Couldn't export ${fileName}. Try again.` });
+    console.error("[value-chain-export]", error);
+    shell.toast({ status: "danger", text: `Couldn't export ${fileName}. Try again.` });
   }
 }
 
@@ -422,7 +422,7 @@ function isInTextField(target: EventTarget | null): boolean {
 }
 
 function modalOpen(): boolean {
-  return document.querySelector('dialog:modal') !== null;
+  return document.querySelector("dialog:modal") !== null;
 }
 
 /** After a replacement the canvas has nothing to undo (the import cleared it): Cmd/Ctrl+Z takes the diagram back. */
@@ -431,7 +431,7 @@ function onUndoReplaceKey(event: KeyboardEvent): void {
   if (!offer || event.shiftKey || event.isComposing || !isUndoRedoKey(event)) return;
   // Cmd/Ctrl+Y is redo; the typed letter decides (QWERTZ swaps the keys), as in isUndoRedoKey.
   const ascii = event.key.length === 1 && event.key.charCodeAt(0) < 0x80;
-  if ((ascii ? event.key.toLowerCase() : event.code === 'KeyZ' ? 'z' : '') !== 'z') return;
+  if ((ascii ? event.key.toLowerCase() : event.code === "KeyZ" ? "z" : "") !== "z") return;
   if (isInTextField(event.target) || modalOpen() || commandStack.canUndo()) return;
   event.preventDefault();
   if (!event.repeat) offer.run();
@@ -442,11 +442,11 @@ function onAppKey(event: KeyboardEvent): void {
   onUndoReplaceKey(event);
   if (event.shiftKey) return;
   const key = event.key.toLowerCase();
-  if ((key !== 'o' && key !== 's') || event.isComposing) return;
+  if ((key !== "o" && key !== "s") || event.isComposing) return;
   // Never the browser's "Open file" or "Save page as" instead, also not over a dialog.
   event.preventDefault();
   if (event.repeat || modalOpen()) return;
-  if (key === 'o') {
+  if (key === "o") {
     pickFile();
     return;
   }
@@ -458,8 +458,8 @@ function onAppKey(event: KeyboardEvent): void {
   exportJson();
 }
 
-window.addEventListener('keydown', onAppKey);
-window.addEventListener('hashchange', onHashChange);
+window.addEventListener("keydown", onAppKey);
+window.addEventListener("hashchange", onHashChange);
 
 // ---------------------------------------------------------------------------
 // Start: the diagram from the link, else the one this browser kept, else the start screen
@@ -483,9 +483,9 @@ if (!started) {
   shell.setEmptyState(true);
   updateDocumentTitle();
   // The stored text stays as it is until the next edit, for a manual rescue.
-  if (storedText !== undefined) shell.toast({ status: 'danger', text: LOST_DRAFT_TEXT });
+  if (storedText !== undefined) shell.toast({ status: "danger", text: LOST_DRAFT_TEXT });
 }
-if (brokenLink) shell.toast({ status: 'danger', text: BROKEN_LINK_TEXT });
+if (brokenLink) shell.toast({ status: "danger", text: BROKEN_LINK_TEXT });
 
 /** For the console and the e2e suite: the app's parts and its teardown, once it started. */
 const valueChainApp = {
@@ -497,8 +497,8 @@ const valueChainApp = {
     if (destroyed) return;
     destroyed = true;
     withdrawReplaceUndo();
-    window.removeEventListener('keydown', onAppKey);
-    window.removeEventListener('hashchange', onHashChange);
+    window.removeEventListener("keydown", onAppKey);
+    window.removeEventListener("hashchange", onHashChange);
     fileInput.remove();
     connection.destroy();
     collaborative.destroy();

@@ -19,7 +19,11 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
 }
 
 /** Sets an attribute, or removes it for `null`/`false`. */
-export function toggleAttribute(element: Element, name: string, value: string | null | false): void {
+export function toggleAttribute(
+  element: Element,
+  name: string,
+  value: string | null | false,
+): void {
   if (value === null || value === false) element.removeAttribute(name);
   else element.setAttribute(name, value);
 }

@@ -1,16 +1,16 @@
-import { describe, expect, it } from 'vitest';
-import type { MapEdge, MapElement, WardleyMap } from '@miragon/wardley-schema-model';
-import { parseDSL, serializeDSL } from '../src/index.js';
-import { patchDSLWithOutcome, type PatchOutcome } from '../src/patch.js';
-import { generateMapText, seededRandom } from './support/generated-maps.js';
-import { lineDiff } from './support/map-edits.js';
-import { meaningOf } from './support/meaning.js';
-import { collectMapFiles, collectMarkdownExamples } from './support/plugin-examples.js';
+import { describe, expect, it } from "vitest";
+import type { MapEdge, MapElement, WardleyMap } from "@miragon/wardley-schema-model";
+import { parseDSL, serializeDSL } from "../src/index.js";
+import { patchDSLWithOutcome, type PatchOutcome } from "../src/patch.js";
+import { generateMapText, seededRandom } from "./support/generated-maps.js";
+import { lineDiff } from "./support/map-edits.js";
+import { meaningOf } from "./support/meaning.js";
+import { collectMapFiles, collectMarkdownExamples } from "./support/plugin-examples.js";
 import {
   collectParserTestFixtures,
   documentationMap,
   vscodeExampleMap,
-} from './support/test-fixtures.js';
+} from "./support/test-fixtures.js";
 
 type Random = () => number;
 type Mutation = (map: WardleyMap, random: Random, serial: number) => WardleyMap;
@@ -19,7 +19,7 @@ const pick = <T>(random: Random, list: readonly T[]): T | undefined =>
   list.length ? list[Math.floor(random() * list.length)] : undefined;
 const nudge = (random: Random, value: number) =>
   Math.min(1, Math.max(0, Math.round((value + (random() - 0.5) * 0.2) * 1000) / 1000));
-const NAMED = new Set(['component', 'anchor', 'submap', 'accelerator']);
+const NAMED = new Set(["component", "anchor", "submap", "accelerator"]);
 
 function replaceElement(map: WardleyMap, target: MapElement, next: MapElement): WardleyMap {
   return { ...map, elements: map.elements.map((el) => (el === target ? next : el)) };
@@ -35,7 +35,7 @@ const MUTATIONS: Record<string, Mutation> = {
       evolution: nudge(random, target.position.evolution),
     };
     switch (target.elementType) {
-      case 'pipeline': {
+      case "pipeline": {
         const start = nudge(random, target.evolutionStart);
         return replaceElement(map, target, {
           ...target,
@@ -43,13 +43,13 @@ const MUTATIONS: Record<string, Mutation> = {
           evolutionEnd: Math.max(Math.min(start, 0.9) + 0.05, target.evolutionEnd),
         });
       }
-      case 'annotation':
+      case "annotation":
         return replaceElement(map, target, {
           ...target,
           position,
           positions: [position, ...target.positions.slice(1)],
         });
-      case 'drawing':
+      case "drawing":
         return replaceElement(map, target, {
           ...target,
           position,
@@ -62,7 +62,7 @@ const MUTATIONS: Record<string, Mutation> = {
   rename(map, random, serial) {
     const target = pick(
       random,
-      map.elements.filter((el) => NAMED.has(el.elementType) || el.elementType === 'note'),
+      map.elements.filter((el) => NAMED.has(el.elementType) || el.elementType === "note"),
     );
     if (!target) return map;
     return replaceElement(map, target, { ...target, label: `${target.label} v${serial}` });
@@ -73,11 +73,11 @@ const MUTATIONS: Record<string, Mutation> = {
     const elements = map.elements
       .filter((el) => el !== target)
       .map((el): MapElement => {
-        if (el.elementType === 'component' && el.pipelineId === target.id) {
+        if (el.elementType === "component" && el.pipelineId === target.id) {
           const { pipelineId: _detached, ...rest } = el;
           return rest;
         }
-        if (el.elementType === 'pipeline') {
+        if (el.elementType === "pipeline") {
           return { ...el, childIds: el.childIds.filter((id) => id !== target.id) };
         }
         return el;
@@ -90,12 +90,12 @@ const MUTATIONS: Record<string, Mutation> = {
       random() < 0.3
         ? pick(
             random,
-            map.elements.filter((el) => el.elementType === 'pipeline'),
+            map.elements.filter((el) => el.elementType === "pipeline"),
           )
         : undefined;
     const added: MapElement = {
       id: `new_${serial}`,
-      elementType: 'component',
+      elementType: "component",
       label: `Added ${serial}`,
       position: {
         visibility: pipeline ? pipeline.position.visibility : nudge(random, 0.5),
@@ -108,13 +108,13 @@ const MUTATIONS: Record<string, Mutation> = {
   reparent(map, random) {
     const child = pick(
       random,
-      map.elements.filter((el) => el.elementType === 'component' && el.pipelineId !== undefined),
+      map.elements.filter((el) => el.elementType === "component" && el.pipelineId !== undefined),
     );
     const pipeline = pick(
       random,
-      map.elements.filter((el) => el.elementType === 'pipeline'),
+      map.elements.filter((el) => el.elementType === "pipeline"),
     );
-    if (child?.elementType !== 'component' || pipeline?.elementType !== 'pipeline') return map;
+    if (child?.elementType !== "component" || pipeline?.elementType !== "pipeline") return map;
     const elements = map.elements.map((el): MapElement => {
       if (el === child) {
         return {
@@ -123,7 +123,7 @@ const MUTATIONS: Record<string, Mutation> = {
           position: { ...child.position, visibility: pipeline.position.visibility },
         };
       }
-      if (el.elementType !== 'pipeline') return el;
+      if (el.elementType !== "pipeline") return el;
       const childIds = el.childIds.filter((id) => id !== child.id);
       return { ...el, childIds: el === pipeline ? [...childIds, child.id] : childIds };
     });
@@ -136,8 +136,8 @@ const MUTATIONS: Record<string, Mutation> = {
     if (!from || !to) return map;
     const edge: MapEdge =
       random() < 0.7
-        ? { id: `link_${serial}`, edgeType: 'dependency', from: from.id, to: to.id }
-        : { id: `link_${serial}`, edgeType: 'flow', from: from.id, to: to.id, flowValue: '5' };
+        ? { id: `link_${serial}`, edgeType: "dependency", from: from.id, to: to.id }
+        : { id: `link_${serial}`, edgeType: "flow", from: from.id, to: to.id, flowValue: "5" };
     return { ...map, edges: [...map.edges, edge] };
   },
   deleteLink(map, random) {
@@ -147,9 +147,9 @@ const MUTATIONS: Record<string, Mutation> = {
   evolve(map, random) {
     const target = pick(
       random,
-      map.elements.filter((el) => el.elementType === 'component'),
+      map.elements.filter((el) => el.elementType === "component"),
     );
-    if (target?.elementType !== 'component') return map;
+    if (target?.elementType !== "component") return map;
     const { movement: _replaced, ...rest } = target;
     const next: MapElement =
       random() < 0.4 && target.movement
@@ -160,10 +160,10 @@ const MUTATIONS: Record<string, Mutation> = {
   decorate(map, random) {
     const target = pick(
       random,
-      map.elements.filter((el) => el.elementType === 'component'),
+      map.elements.filter((el) => el.elementType === "component"),
     );
-    if (target?.elementType !== 'component') return map;
-    const method = pick(random, ['build', 'buy', 'outsource'] as const);
+    if (target?.elementType !== "component") return map;
+    const method = pick(random, ["build", "buy", "outsource"] as const);
     return replaceElement(map, target, {
       ...target,
       decorators: { ...target.decorators, inertia: random() < 0.5, ...(method ? { method } : {}) },
@@ -177,7 +177,7 @@ const MUTATIONS: Record<string, Mutation> = {
       return { ...map, config: { ...config, size: { width: 800 + serial, height: 600 } } };
     }
     if (choice < 0.8) {
-      return { ...map, config: { ...config, evolutionLabels: ['A', 'B', 'C', `D${serial}`] } };
+      return { ...map, config: { ...config, evolutionLabels: ["A", "B", "C", `D${serial}`] } };
     }
     return { ...map, config: { ...config, yAxisLabel: `Value ${serial}` } };
   },
@@ -224,8 +224,8 @@ const wellFormedMaps = [
   documentationMap(),
 ];
 
-describe('patchDSL under random edits (seeded)', () => {
-  it('always means exactly what serializeDSL would write, on corner-case maps', () => {
+describe("patchDSL under random edits (seeded)", () => {
+  it("always means exactly what serializeDSL would write, on corner-case maps", () => {
     const random = seededRandom(7);
     const texts = [
       ...collectParserTestFixtures(),
@@ -237,27 +237,27 @@ describe('patchDSL under random edits (seeded)', () => {
     expect(mismatches.slice(0, 3)).toEqual([]);
   });
 
-  it('patches well-formed maps in place without falling back to a full rewrite', () => {
+  it("patches well-formed maps in place without falling back to a full rewrite", () => {
     const random = seededRandom(11);
     const results = wellFormedMaps.flatMap((text, mapIndex) =>
       Array.from({ length: 40 }, (_, index) => run(text, random, mapIndex * 100 + index)),
     );
     expect(results.filter((result) => !result.meaningMatches).slice(0, 3)).toEqual([]);
-    const fallbacks = results.filter((result) => result.outcome === 'serialized');
+    const fallbacks = results.filter((result) => result.outcome === "serialized");
     expect(fallbacks.slice(0, 3)).toEqual([]);
-    const minimal = results.filter((result) => result.outcome === 'patched').length;
+    const minimal = results.filter((result) => result.outcome === "patched").length;
     expect(minimal / results.length).toBeGreaterThan(0.9);
   });
 
-  it('keeps every comment and blank line of a well-formed map through single edits', () => {
+  it("keeps every comment and blank line of a well-formed map through single edits", () => {
     const random = seededRandom(23);
     for (const [mapIndex, text] of wellFormedMaps.entries()) {
-      const commented = `// header\n\n${text.replace(/\n(?=component)/, '\n\n// section\n')}`;
+      const commented = `// header\n\n${text.replace(/\n(?=component)/, "\n\n// section\n")}`;
       for (let index = 0; index < 20; index++) {
         const result = run(commented, random, mapIndex * 100 + index, 1);
-        if (result.outcome !== 'patched') continue;
+        if (result.outcome !== "patched") continue;
         const { removed } = lineDiff(commented, result.patched);
-        expect(removed.filter((line) => line.trim() === '' || line.startsWith('//'))).toEqual([]);
+        expect(removed.filter((line) => line.trim() === "" || line.startsWith("//"))).toEqual([]);
       }
     }
   });

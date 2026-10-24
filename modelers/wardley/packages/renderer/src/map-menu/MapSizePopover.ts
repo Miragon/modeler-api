@@ -4,31 +4,31 @@ import {
   PLOT_MIN,
   parsePlotLength,
   plotLengthMessage,
-} from '@miragon/wardley-schema-model';
-import type { Modeler } from '../Modeler.js';
-import type { MapSizeInfo } from '../WardleyBaseViewer.js';
-import { element } from './dom.js';
-import { dialogButton } from './dialog.js';
+} from "@miragon/wardley-schema-model";
+import type { Modeler } from "../Modeler.js";
+import type { MapSizeInfo } from "../WardleyBaseViewer.js";
+import { element } from "./dom.js";
+import { dialogButton } from "./dialog.js";
 import {
   createPopover,
   field,
   withMapListeners,
   type PopoverChrome,
   type PopoverHandle,
-} from './popover.js';
+} from "./popover.js";
 
-const CUSTOM = 'custom';
+const CUSTOM = "custom";
 
 /** The size the popover last drew; `undefined` = the default size without a `size` line. */
 type Target = { width: number; height: number } | undefined;
 
 function numberInput(min: number, max: number): HTMLInputElement {
-  const input = element('input', '');
-  input.type = 'number';
-  input.inputMode = 'numeric';
+  const input = element("input", "");
+  input.type = "number";
+  input.inputMode = "numeric";
   input.min = String(min);
   input.max = String(max);
-  input.step = '10';
+  input.step = "10";
   return input;
 }
 
@@ -39,21 +39,21 @@ function numberInput(min: number, max: number): HTMLInputElement {
  * a canvas that turns read-only, after putting the previous size back.
  */
 export function createMapSizePopover(chrome: PopoverChrome, modeler: Modeler): PopoverHandle {
-  const preset = element('select', '');
+  const preset = element("select", "");
   for (const choice of MAP_SIZE_PRESETS) {
-    const option = element('option', '', `${choice.name} (${choice.width} × ${choice.height})`);
+    const option = element("option", "", `${choice.name} (${choice.width} × ${choice.height})`);
     option.value = choice.id;
     preset.append(option);
   }
-  const custom = element('option', '', 'Custom');
+  const custom = element("option", "", "Custom");
   custom.value = CUSTOM;
   preset.append(custom);
   const width = numberInput(PLOT_MIN.width, PLOT_MAX.width);
   const height = numberInput(PLOT_MIN.height, PLOT_MAX.height);
-  const reset = dialogButton('Reset to default', 'ghost');
-  const sizeField = field('Size', preset);
-  const widthField = field('Width', width);
-  const heightField = field('Height', height);
+  const reset = dialogButton("Reset to default", "ghost");
+  const sizeField = field("Size", preset);
+  const widthField = field("Width", width);
+  const heightField = field("Height", height);
 
   let atOpen: MapSizeInfo | undefined;
   let target: { size: Target } | undefined;
@@ -75,8 +75,8 @@ export function createMapSizePopover(chrome: PopoverChrome, modeler: Modeler): P
     void applied.then(() => show(modeler.getMapSize()));
   };
 
-  const applyLength = (input: HTMLInputElement, axis: 'width' | 'height') => {
-    const fieldOf = axis === 'width' ? widthField : heightField;
+  const applyLength = (input: HTMLInputElement, axis: "width" | "height") => {
+    const fieldOf = axis === "width" ? widthField : heightField;
     const length = parsePlotLength(input.value, axis);
     if (length === undefined) {
       fieldOf.showError(plotLengthMessage(axis));
@@ -89,27 +89,27 @@ export function createMapSizePopover(chrome: PopoverChrome, modeler: Modeler): P
   };
 
   const popover = createPopover(chrome, {
-    className: 'wardley-map-size',
-    title: 'Map size',
+    className: "wardley-map-size",
+    title: "Map size",
     build(body, footer, done) {
-      const lengths = element('div', 'wardley-field-row');
-      const times = element('span', 'wardley-field-times', '×');
-      times.setAttribute('aria-hidden', 'true');
+      const lengths = element("div", "wardley-field-row");
+      const times = element("span", "wardley-field-times", "×");
+      times.setAttribute("aria-hidden", "true");
       lengths.append(widthField.wrapper, times, heightField.wrapper);
-      const hint = element('p', 'wardley-popover-hint', 'Or drag the plot’s right or bottom edge.');
+      const hint = element("p", "wardley-popover-hint", "Or drag the plot’s right or bottom edge.");
       body.append(sizeField.wrapper, lengths, hint);
-      const doneButton = dialogButton('Done', 'secondary');
-      doneButton.addEventListener('click', done);
+      const doneButton = dialogButton("Done", "secondary");
+      doneButton.addEventListener("click", done);
       footer.append(reset, doneButton);
 
-      preset.addEventListener('change', () => {
+      preset.addEventListener("change", () => {
         const choice = MAP_SIZE_PRESETS.find((candidate) => candidate.id === preset.value);
         if (choice) preview({ width: choice.width, height: choice.height });
         else width.focus();
       });
-      width.addEventListener('change', () => applyLength(width, 'width'));
-      height.addEventListener('change', () => applyLength(height, 'height'));
-      reset.addEventListener('click', () => {
+      width.addEventListener("change", () => applyLength(width, "width"));
+      height.addEventListener("change", () => applyLength(height, "height"));
+      reset.addEventListener("click", () => {
         // Reset disables itself, which would drop the focus out of the popover.
         preset.focus();
         preview(undefined);
@@ -125,9 +125,9 @@ export function createMapSizePopover(chrome: PopoverChrome, modeler: Modeler): P
       const previewed = target;
       target = undefined;
       // An import already dropped the preview together with the map it was drawn on.
-      if (!previewed || end === 'import') return;
+      if (!previewed || end === "import") return;
       // Committing the size at open puts it back without an undo step.
-      const size = end === 'done' ? previewed.size : sizeOf(atOpen);
+      const size = end === "done" ? previewed.size : sizeOf(atOpen);
       void (size ? modeler.setMapSize(size.width, size.height) : modeler.resetMapSize());
     },
   });

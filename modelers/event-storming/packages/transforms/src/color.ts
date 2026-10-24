@@ -1,5 +1,5 @@
-import type { BoardElement, EventStormingBoard } from '@miragon/event-storming-schema-model';
-import { updateElement, compact } from './util.js';
+import type { BoardElement, EventStormingBoard } from "@miragon/event-storming-schema-model";
+import { updateElement, compact } from "./util.js";
 
 /** Sets the element's color override (CSS color, typically a hex sticky fill). */
 export function setColor(

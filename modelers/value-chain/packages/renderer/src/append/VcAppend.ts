@@ -1,10 +1,10 @@
-import type AutoPlace from 'diagram-js/lib/features/auto-place/AutoPlace';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type { Shape } from 'diagram-js/lib/model/Types';
-import type { ConnectionType } from '@miragon/value-chain-schema-model';
-import type VcElementFactory from '../model/VcElementFactory.js';
-import type VcConnect from '../connect/VcConnect.js';
-import type { VcShape } from '../model/di-types.js';
+import type AutoPlace from "diagram-js/lib/features/auto-place/AutoPlace";
+import type Create from "diagram-js/lib/features/create/Create";
+import type { Shape } from "diagram-js/lib/model/Types";
+import type { ConnectionType } from "@miragon/value-chain-schema-model";
+import type VcElementFactory from "../model/VcElementFactory.js";
+import type VcConnect from "../connect/VcConnect.js";
+import type { VcShape } from "../model/di-types.js";
 
 /**
  * Append interactions à la bpmn.io: click places the new element automatically
@@ -13,7 +13,7 @@ import type { VcShape } from '../model/di-types.js';
  * unit; the other types append a step.
  */
 export default class VcAppend {
-  static $inject = ['autoPlace', 'create', 'vcElementFactory', 'vcConnect'];
+  static $inject = ["autoPlace", "create", "vcElementFactory", "vcConnect"];
 
   constructor(
     private readonly autoPlace: AutoPlace,
@@ -27,7 +27,7 @@ export default class VcAppend {
     const newShape = this.autoPlace.append(source as Shape, this.createShape(type) as Shape, {
       connection: { vcType: type },
     }) as Shape;
-    this.vcConnect.pendingType = 'sequence';
+    this.vcConnect.pendingType = "sequence";
     return newShape;
   }
 
@@ -39,6 +39,6 @@ export default class VcAppend {
   }
 
   private createShape(type: ConnectionType): VcShape {
-    return type === 'assignment' ? this.factory.createNewOrgUnit() : this.factory.createNewStep();
+    return type === "assignment" ? this.factory.createNewOrgUnit() : this.factory.createNewStep();
   }
 }

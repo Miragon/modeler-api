@@ -1,6 +1,6 @@
-export const EMPTY_BOARD = 'title New board\n';
+export const EMPTY_BOARD = "title New board\n";
 
-const EXAMPLE_TITLE = 'title Order Checkout';
+const EXAMPLE_TITLE = "title Order Checkout";
 
 const EXAMPLE_CONTENT = `actor Customer [80, 300]
 command Place Order [240, 300]
@@ -35,9 +35,9 @@ export const EXAMPLE_BOARD = `${EXAMPLE_TITLE}\n\n${EXAMPLE_CONTENT}`;
  * §13.5); the line break style follows the document.
  */
 export function withExampleInserted(documentText: string): string {
-  const lineBreak = documentText.includes('\r\n') ? '\r\n' : '\n';
+  const lineBreak = documentText.includes("\r\n") ? "\r\n" : "\n";
   const content = EXAMPLE_CONTENT.replace(/\n/g, lineBreak);
-  if (documentText.trim() === '') return `${documentText}${content}`;
+  if (documentText.trim() === "") return `${documentText}${content}`;
   const terminated = /\r?\n$/.test(documentText) ? documentText : `${documentText}${lineBreak}`;
   const separated = /(\r?\n)[ \t]*\r?\n$/.test(terminated)
     ? terminated

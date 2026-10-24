@@ -1,65 +1,65 @@
-import './assets/event-storming.css';
+import "./assets/event-storming.css";
 
-export { Viewer } from './Viewer.js';
-export { NavigatedViewer } from './NavigatedViewer.js';
-export { Modeler } from './Modeler.js';
-export { EventStormingBaseViewer } from './EventStormingBaseViewer.js';
-export type { EventStormingViewerOptions, EventCallback } from './EventStormingBaseViewer.js';
+export { Viewer } from "./Viewer.js";
+export { NavigatedViewer } from "./NavigatedViewer.js";
+export { Modeler } from "./Modeler.js";
+export { EventStormingBaseViewer } from "./EventStormingBaseViewer.js";
+export type { EventStormingViewerOptions, EventCallback } from "./EventStormingBaseViewer.js";
 export {
   EVENT_STORMING_NOTATION,
   createCollaborativeModeler,
   createCollaborativeViewer,
-} from './collaborative/index.js';
+} from "./collaborative/index.js";
 export type {
   CollaborativeEventStormingModeler,
   CollaborativeEventStormingOptions,
   EventStormingElementsSurface,
-} from './collaborative/index.js';
+} from "./collaborative/index.js";
 
-export { eventStormingModelModule, EventStormingElementFactory } from './model/index.js';
-export { boardBoundsModule, BoardBounds } from './board-bounds/index.js';
-export { eventStormingDrawModule, EventStormingRenderer } from './draw/index.js';
+export { eventStormingModelModule, EventStormingElementFactory } from "./model/index.js";
+export { boardBoundsModule, BoardBounds } from "./board-bounds/index.js";
+export { eventStormingDrawModule, EventStormingRenderer } from "./draw/index.js";
 export {
   eventStormingViewOptionsModule,
   EventStormingViewOptions,
   VIEW_OPTIONS_CHANGED_EVENT,
-} from './view-options/index.js';
-export { COLORS, STICKY_STYLES, NOTE_STYLE } from './draw/styles.js';
-export { parseNoteMarkdown, serializeNoteMarkdown, plainNoteText } from './draw/note-markdown.js';
-export type { NoteLine, NoteRun } from './draw/note-markdown.js';
+} from "./view-options/index.js";
+export { COLORS, STICKY_STYLES, NOTE_STYLE } from "./draw/styles.js";
+export { parseNoteMarkdown, serializeNoteMarkdown, plainNoteText } from "./draw/note-markdown.js";
+export type { NoteLine, NoteRun } from "./draw/note-markdown.js";
 
 /* Miragon brand tokens (single source of truth for colour) — for consumers theming their own chrome. */
-export { MIRAGON } from './theme/index.js';
+export { MIRAGON } from "./theme/index.js";
 export {
   ioModule,
   EventStormingImporter,
   EventStormingExporter,
   saveSVG,
   ROOT_ID,
-} from './io/index.js';
-export { eventStormingModelingModule, EventStormingModeling } from './modeling/index.js';
-export { eventStormingRulesModule, EventStormingRules } from './rules/index.js';
-export { elementSnappingModule } from './snapping/index.js';
-export { eventStormingPaletteModule } from './palette/index.js';
-export { eventStormingContextPadModule } from './context-pad/index.js';
-export { labelEditingModule, EventStormingLabelEditing } from './label-editing/index.js';
-export { eventStormingKeyboardModule } from './keyboard/index.js';
-export type { EventStormingKeyboardConfig } from './keyboard/index.js';
+} from "./io/index.js";
+export { eventStormingModelingModule, EventStormingModeling } from "./modeling/index.js";
+export { eventStormingRulesModule, EventStormingRules } from "./rules/index.js";
+export { elementSnappingModule } from "./snapping/index.js";
+export { eventStormingPaletteModule } from "./palette/index.js";
+export { eventStormingContextPadModule } from "./context-pad/index.js";
+export { labelEditingModule, EventStormingLabelEditing } from "./label-editing/index.js";
+export { eventStormingKeyboardModule } from "./keyboard/index.js";
+export type { EventStormingKeyboardConfig } from "./keyboard/index.js";
 export {
   eventStormingPopupModule,
   EventStormingElementSettingsProvider,
   POPUP_PROVIDER_ID,
-} from './popup/index.js';
-export { eventStormingAppendModule, EventStormingAppendBehavior } from './append/index.js';
-export { eventStormingAttachModule, EventStormingAttachBehavior } from './attach/index.js';
-export { eventStormingColorPickerModule, EventStormingColorPicker } from './color-picker/index.js';
-export { eventStormingResizeModule, EventStormingResizeBehavior } from './resize/index.js';
+} from "./popup/index.js";
+export { eventStormingAppendModule, EventStormingAppendBehavior } from "./append/index.js";
+export { eventStormingAttachModule, EventStormingAttachBehavior } from "./attach/index.js";
+export { eventStormingColorPickerModule, EventStormingColorPicker } from "./color-picker/index.js";
+export { eventStormingResizeModule, EventStormingResizeBehavior } from "./resize/index.js";
 export {
   eventStormingReadOnlyModule,
   EventStormingReadOnly,
   READ_ONLY_CHANGED_EVENT,
-} from './read-only/index.js';
-export type { FreeArea, FreeRectInsets } from './palette/EventStormingPaletteProvider.js';
+} from "./read-only/index.js";
+export type { FreeArea, FreeRectInsets } from "./palette/EventStormingPaletteProvider.js";
 
 /* The board's menu entries and keyboard shortcuts for the chrome around it (guide §5.4), typed
    structurally so a host hands them to @miragon/modeler-shell without the renderer importing it. */
@@ -70,7 +70,7 @@ export {
   boardShortcuts,
   commandKeyLabel,
   createShortcutsDialog,
-} from './board-menu/index.js';
+} from "./board-menu/index.js";
 export type {
   BoardExport,
   BoardExports,
@@ -92,7 +92,7 @@ export type {
   ShortcutsDialog,
   ShortcutsDialogChrome,
   TypeCaptions,
-} from './board-menu/index.js';
+} from "./board-menu/index.js";
 
 export {
   isEventStormingShape,
@@ -104,16 +104,16 @@ export {
   isAttachableSticky,
   isHostSticky,
   STICKY_KINDS,
-} from './model/di-types.js';
+} from "./model/di-types.js";
 export type {
   EventStormingShape,
   EventStormingConnection,
   EventStormingShapeType,
   EventStormingConnectionType,
   StickyKind,
-} from './model/di-types.js';
-export type { ImportWarning, RootBusinessObject } from './io/index.js';
-export { importWarningText } from './io/index.js';
+} from "./model/di-types.js";
+export type { ImportWarning, RootBusinessObject } from "./io/index.js";
+export { importWarningText } from "./io/index.js";
 
 // Icons (Material Icons, Apache-2.0), deprecated: the chrome's icons come from the modeler shell.
 export {
@@ -134,4 +134,4 @@ export {
   ICON_EYE,
   ICON_FIT,
   ICON_ADD,
-} from './draw/icons.js';
+} from "./draw/icons.js";

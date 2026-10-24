@@ -1,16 +1,16 @@
-import type { ElementType } from '@miragon/event-storming-schema-model';
-import { slug } from './lexer.js';
+import type { ElementType } from "@miragon/event-storming-schema-model";
+import { slug } from "./lexer.js";
 
 /** Sticky keywords double as `elementType` values; the value is the ID prefix. */
 export const STICKY_ID_PREFIXES: Readonly<Partial<Record<ElementType, string>>> = {
-  event: 'event',
-  command: 'cmd',
-  actor: 'actor',
-  aggregate: 'agg',
-  policy: 'policy',
-  readmodel: 'read',
-  external: 'ext',
-  hotspot: 'hot',
+  event: "event",
+  command: "cmd",
+  actor: "actor",
+  aggregate: "agg",
+  policy: "policy",
+  readmodel: "read",
+  external: "ext",
+  hotspot: "hot",
 };
 
 // Board ids become diagram-js element ids, and the renderer's root elements live in the same

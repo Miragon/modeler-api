@@ -87,16 +87,23 @@ describe("the one keydown listener", () => {
     shell.setZoomTarget(target);
     const editable = root.appendChild(document.createElement("div"));
     editable.contentEditable = "true";
-    expect(keydown(editable, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(false);
+    expect(keydown(editable, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(
+      false,
+    );
     expect(
-      keydown(document.body, { key: "=", code: "Equal", metaKey: true, isComposing: true }).defaultPrevented,
+      keydown(document.body, { key: "=", code: "Equal", metaKey: true, isComposing: true })
+        .defaultPrevented,
     ).toBe(false);
     const dialog = root.appendChild(document.createElement("div"));
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    expect(keydown(document.body, { key: "0", code: "Digit0", ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(
+      keydown(document.body, { key: "0", code: "Digit0", ctrlKey: true }).defaultPrevented,
+    ).toBe(false);
     dialog.hidden = true;
-    expect(keydown(document.body, { key: "0", code: "Digit0", ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(
+      keydown(document.body, { key: "0", code: "Digit0", ctrlKey: true }).defaultPrevented,
+    ).toBe(true);
     expect(target.calls).toEqual(["actual"]);
   });
 
@@ -116,7 +123,9 @@ describe("the one keydown listener", () => {
     const { shell } = mount();
     const target = fakeZoomTarget(0.15);
     shell.setZoomTarget(target);
-    expect(keydown(document.body, { key: "-", code: "Minus", metaKey: true }).defaultPrevented).toBe(true);
+    expect(
+      keydown(document.body, { key: "-", code: "Minus", metaKey: true }).defaultPrevented,
+    ).toBe(true);
     expect(target.calls).toEqual([]);
   });
 
@@ -125,7 +134,9 @@ describe("the one keydown listener", () => {
     const target = fakeZoomTarget(1);
     shell.setZoomTarget(target);
     const outside = document.body.appendChild(document.createElement("button"));
-    expect(keydown(outside, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(false);
+    expect(keydown(outside, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(
+      false,
+    );
     expect(
       keydown(root.querySelector(".cd-shell-canvas")!, { key: "=", code: "Equal", metaKey: true })
         .defaultPrevented,

@@ -20,10 +20,10 @@ npm install @miragon/event-storming-renderer
 ```
 
 ```ts
-import { NavigatedViewer } from '@miragon/event-storming-renderer';
-import '@miragon/event-storming-renderer/assets/event-storming.css';
+import { NavigatedViewer } from "@miragon/event-storming-renderer";
+import "@miragon/event-storming-renderer/assets/event-storming.css";
 
-const viewer = new NavigatedViewer({ container: document.querySelector('#canvas')! });
+const viewer = new NavigatedViewer({ container: document.querySelector("#canvas")! });
 
 await viewer.importDSL(`title Order Checkout
 actor Customer [80, 300]
@@ -213,7 +213,7 @@ corporate identity); provide it yourself — recommended self-hosted via
 [`@fontsource`](https://fontsource.org/) (one variable file covers all weights):
 
 ```ts
-import '@fontsource-variable/geist/wght.css';
+import "@fontsource-variable/geist/wght.css";
 ```
 
 Without a font the fallback chain degrades cleanly to system sans.

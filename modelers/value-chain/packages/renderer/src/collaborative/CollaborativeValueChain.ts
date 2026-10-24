@@ -7,30 +7,30 @@ import {
   type ElementsSurface,
   type ImportResult,
   type ModelerMeta,
-} from '@miragon/modeler-api';
-import type { ModuleDeclaration } from 'didi';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
+} from "@miragon/modeler-api";
+import type { ModuleDeclaration } from "didi";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Selection from "diagram-js/lib/features/selection/Selection";
 import {
   createEmptyDocument,
   parseDocumentJSON,
   serializeDocument,
   type Point,
   type ValueChainDocument,
-} from '@miragon/value-chain-schema-model';
-import { Modeler } from '../Modeler.js';
-import { NavigatedViewer } from '../NavigatedViewer.js';
-import type { VcViewerOptions } from '../VcBaseViewer.js';
-import type VcBounds from '../bounds/VcBounds.js';
-import { isVcShape, type VcShape } from '../model/di-types.js';
+} from "@miragon/value-chain-schema-model";
+import { Modeler } from "../Modeler.js";
+import { NavigatedViewer } from "../NavigatedViewer.js";
+import type { VcViewerOptions } from "../VcBaseViewer.js";
+import type VcBounds from "../bounds/VcBounds.js";
+import { isVcShape, type VcShape } from "../model/di-types.js";
 
 /** Stable notation id in `meta.notation` of the collaborative-modeler contract. */
-export const VALUE_CHAIN_NOTATION = 'value-chain';
+export const VALUE_CHAIN_NOTATION = "value-chain";
 
 /** What a blank text (a file just created in the explorer) opens as. */
-export const BLANK_DOCUMENT_NAME = 'New value chain';
+export const BLANK_DOCUMENT_NAME = "New value chain";
 
 /**
  * The contract's factory options (`freeArea`, `fitOnImport`, `undoRedoKeys`, see
@@ -48,7 +48,7 @@ export interface CollaborativeValueChainOptions extends CollaborativeModelerOpti
 
 /** The contract surface plus the wrapped diagram for host-specific wiring. */
 export interface CollaborativeValueChainModeler extends CollaborativeModeler {
-  readonly elements: ElementsSurface & Required<Pick<ElementsSurface, 'bounds'>>;
+  readonly elements: ElementsSurface & Required<Pick<ElementsSurface, "bounds">>;
   /**
    * The tight box around every step, org unit and connection (waypoints included) in diagram
    * coordinates, without a margin of its own; undefined while the diagram has no element. Label
@@ -89,8 +89,8 @@ export function createCollaborativeViewer(
 
 function diagramOptions(options: CollaborativeValueChainOptions): VcViewerOptions {
   return {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     additionalModules: options.additionalModules ?? [],
     fitOnImport: options.fitOnImport ?? true,
   };
@@ -98,21 +98,21 @@ function diagramOptions(options: CollaborativeValueChainOptions): VcViewerOption
 
 /** Blank text is an empty diagram; anything else must be a valid document. */
 function documentOf(text: string): ValueChainDocument {
-  return text.trim() === '' ? createEmptyDocument(BLANK_DOCUMENT_NAME) : parseDocumentJSON(text);
+  return text.trim() === "" ? createEmptyDocument(BLANK_DOCUMENT_NAME) : parseDocumentJSON(text);
 }
 
 function collaborative(
   diagram: Modeler | NavigatedViewer,
   editable: boolean,
 ): CollaborativeValueChainModeler {
-  const eventBus = diagram.get<EventBus>('eventBus');
-  const canvas = diagram.get<Canvas>('canvas');
-  const elementRegistry = diagram.get<ElementRegistry>('elementRegistry');
-  const selection = diagram.get<Selection>('selection');
-  const vcBounds = diagram.get<VcBounds>('vcBounds');
+  const eventBus = diagram.get<EventBus>("eventBus");
+  const canvas = diagram.get<Canvas>("canvas");
+  const elementRegistry = diagram.get<ElementRegistry>("elementRegistry");
+  const selection = diagram.get<Selection>("selection");
+  const vcBounds = diagram.get<VcBounds>("vcBounds");
   const contentListeners = new Set<() => void>();
   let destroyed = false;
-  let lastExport = '';
+  let lastExport = "";
 
   const meta: ModelerMeta = {
     notation: VALUE_CHAIN_NOTATION,
@@ -122,12 +122,12 @@ function collaborative(
 
   if (editable) {
     // Imports erase the history without this event, so every delivery is a user's change.
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       for (const listener of [...contentListeners]) listener();
     });
   }
 
-  const elements: CollaborativeValueChainModeler['elements'] = {
+  const elements: CollaborativeValueChainModeler["elements"] = {
     list: () =>
       destroyed ? [] : (elementRegistry.getAll() as unknown[]).filter(isVcShape).map(elementInfo),
     reveal(id) {
@@ -142,8 +142,8 @@ function collaborative(
     onSelection(callback) {
       const listener = (event: unknown) =>
         callback(shapeIds((event as { newSelection?: unknown[] }).newSelection ?? []));
-      eventBus.on('selection.changed', listener);
-      return () => eventBus.off('selection.changed', listener);
+      eventBus.on("selection.changed", listener);
+      return () => eventBus.off("selection.changed", listener);
     },
     bounds(id): ElementBounds | undefined {
       if (destroyed) return undefined;
@@ -163,7 +163,7 @@ function collaborative(
       canvas.resized();
     },
     importText(text): Promise<ImportResult> {
-      if (destroyed) return Promise.reject(new Error('The modeler was destroyed.'));
+      if (destroyed) return Promise.reject(new Error("The modeler was destroyed."));
       try {
         const warnings = diagram.importDocument(documentOf(text));
         return Promise.resolve({ warnings: warnings.map((warning) => warning.message) });
@@ -204,7 +204,7 @@ function collaborative(
       try {
         lastExport = serializeDocument(diagram.exportDocument());
       } catch {
-        lastExport = '';
+        lastExport = "";
       }
       destroyed = true;
       contentListeners.clear();
@@ -222,7 +222,7 @@ function elementInfo(element: VcShape): ElementInfo {
 }
 
 function isViewState(state: unknown): state is ViewState {
-  if (typeof state !== 'object' || state === null) return false;
+  if (typeof state !== "object" || state === null) return false;
   const { x, y, width, height } = state as Record<string, unknown>;
   return (
     isFiniteNumber(x) &&
@@ -235,5 +235,5 @@ function isViewState(state: unknown): state is ViewState {
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+  return typeof value === "number" && Number.isFinite(value);
 }

@@ -23,7 +23,8 @@ function isShown(element: Element): boolean {
   if (element.localName === "dialog" && !element.hasAttribute("open")) return false;
   if (element.closest("[hidden]")) return false;
   return (
-    typeof element.checkVisibility !== "function" || element.checkVisibility({ visibilityProperty: true })
+    typeof element.checkVisibility !== "function" ||
+    element.checkVisibility({ visibilityProperty: true })
   );
 }
 
@@ -37,7 +38,9 @@ function isModal(element: Element): boolean {
 }
 
 function openDialogs(scope: ParentNode): Element[] {
-  return [...scope.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog')].filter(isShown);
+  return [...scope.querySelectorAll('[role="dialog"], [role="alertdialog"], dialog')].filter(
+    isShown,
+  );
 }
 
 /** A shown modal dialog in `scope`, by the keys' own test (the drop zone forbids drops meanwhile). */

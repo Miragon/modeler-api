@@ -1,20 +1,20 @@
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
 import {
   append as svgAppend,
   attr as svgAttr,
   create as svgCreate,
   remove as svgRemove,
-} from 'tiny-svg';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
-import { COLORS } from '../draw/styles.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type { WardleyShape } from '../model/di-types.js';
+} from "tiny-svg";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
+import { COLORS } from "../draw/styles.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type { WardleyShape } from "../model/di-types.js";
 
 interface Point {
   x: number;
@@ -32,13 +32,13 @@ const CLOSE_RADIUS = 12;
  */
 export default class WardleyDrawTool {
   static $inject = [
-    'canvas',
-    'eventBus',
-    'modeling',
-    'selection',
-    'wardleyElementFactory',
-    'evolutionGrid',
-    'injector',
+    "canvas",
+    "eventBus",
+    "modeling",
+    "selection",
+    "wardleyElementFactory",
+    "evolutionGrid",
+    "injector",
   ];
 
   private active = false;
@@ -55,7 +55,7 @@ export default class WardleyDrawTool {
     private readonly grid: EvolutionGrid,
     private readonly injector: Injector,
   ) {
-    eventBus.on('diagram.destroy', () => this.cancel());
+    eventBus.on("diagram.destroy", () => this.cancel());
   }
 
   isActive(): boolean {
@@ -73,7 +73,7 @@ export default class WardleyDrawTool {
    */
   private outerContainer(): HTMLElement {
     const container = this.canvas.getContainer();
-    return (container.closest('.wardley-container') as HTMLElement | null) ?? container;
+    return (container.closest(".wardley-container") as HTMLElement | null) ?? container;
   }
 
   activate(): void {
@@ -82,14 +82,14 @@ export default class WardleyDrawTool {
     this.points = [];
     this.cursor = null;
     const container = this.canvas.getContainer();
-    this.outerContainer().classList.add('wardley-draw-mode');
+    this.outerContainer().classList.add("wardley-draw-mode");
     // Capture phase: while drawing, clicks must NOT select/move elements underneath.
-    container.addEventListener('mousedown', this.onMouseDown, true);
-    container.addEventListener('dblclick', this.onDblClick, true);
-    container.addEventListener('mousemove', this.onMouseMove, true);
-    document.addEventListener('keydown', this.onKeyDown, true);
+    container.addEventListener("mousedown", this.onMouseDown, true);
+    container.addEventListener("dblclick", this.onDblClick, true);
+    container.addEventListener("mousemove", this.onMouseMove, true);
+    document.addEventListener("keydown", this.onKeyDown, true);
     // Light up the palette entry (same channel the tool manager uses).
-    this.eventBus.fire('tool-manager.update', { tool: 'draw' });
+    this.eventBus.fire("tool-manager.update", { tool: "draw" });
   }
 
   /** Finishes the current polyline (>= 2 points) and deactivates the tool. */
@@ -131,15 +131,15 @@ export default class WardleyDrawTool {
     if (!this.active) return;
     this.active = false;
     const container = this.canvas.getContainer();
-    this.outerContainer().classList.remove('wardley-draw-mode');
-    container.removeEventListener('mousedown', this.onMouseDown, true);
-    container.removeEventListener('dblclick', this.onDblClick, true);
-    container.removeEventListener('mousemove', this.onMouseMove, true);
-    document.removeEventListener('keydown', this.onKeyDown, true);
+    this.outerContainer().classList.remove("wardley-draw-mode");
+    container.removeEventListener("mousedown", this.onMouseDown, true);
+    container.removeEventListener("dblclick", this.onDblClick, true);
+    container.removeEventListener("mousemove", this.onMouseMove, true);
+    document.removeEventListener("keydown", this.onKeyDown, true);
     this.points = [];
     this.cursor = null;
     this.clearPreview();
-    this.eventBus.fire('tool-manager.update', { tool: null });
+    this.eventBus.fire("tool-manager.update", { tool: null });
   }
 
   /**
@@ -161,7 +161,7 @@ export default class WardleyDrawTool {
   /** Palette/context-pad/menus live INSIDE the container — let their clicks through. */
   private isChromeTarget(e: MouseEvent): boolean {
     const target = e.target as HTMLElement | null;
-    return !!target?.closest('.djs-palette, .djs-context-pad, .wardley-color-picker');
+    return !!target?.closest(".djs-palette, .djs-context-pad, .wardley-color-picker");
   }
 
   private readonly onMouseDown = (e: MouseEvent): void => {
@@ -199,14 +199,14 @@ export default class WardleyDrawTool {
   };
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       // Excalidraw semantics: Escape COMMITS what is there (undo removes it); it only
       // cancels while no line exists yet.
       if (this.points.length >= 2) this.finish();
       else this.cancel();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
       this.finish();
@@ -216,45 +216,45 @@ export default class WardleyDrawTool {
   private renderPreview(): void {
     this.clearPreview();
     if (!this.points.length) return;
-    const layer = this.canvas.getLayer('wardley-draw-preview', 1000);
-    const group = svgCreate('g');
+    const layer = this.canvas.getLayer("wardley-draw-preview", 1000);
+    const group = svgCreate("g");
     const pts = this.cursor ? [...this.points, this.cursor] : this.points;
     svgAppend(
       group,
-      svgAttr(svgCreate('polyline'), {
-        points: pts.map((p) => `${p.x},${p.y}`).join(' '),
-        fill: 'none',
+      svgAttr(svgCreate("polyline"), {
+        points: pts.map((p) => `${p.x},${p.y}`).join(" "),
+        fill: "none",
         stroke: COLORS.ink,
-        'stroke-width': 2,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'stroke-dasharray': '5 4',
+        "stroke-width": 2,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        "stroke-dasharray": "5 4",
       }),
     );
     // First point = "close the shape here", last point = "finish the line here".
     const first = this.points[0]!;
     svgAppend(
       group,
-      svgAttr(svgCreate('circle'), {
+      svgAttr(svgCreate("circle"), {
         cx: first.x,
         cy: first.y,
         r: this.points.length >= 3 ? 5 : 3,
         fill: COLORS.paper,
         stroke: COLORS.ink,
-        'stroke-width': 1.5,
+        "stroke-width": 1.5,
       }),
     );
     if (this.points.length >= 2) {
       const last = this.points[this.points.length - 1]!;
       svgAppend(
         group,
-        svgAttr(svgCreate('circle'), {
+        svgAttr(svgCreate("circle"), {
           cx: last.x,
           cy: last.y,
           r: 5,
           fill: COLORS.paper,
           stroke: COLORS.ink,
-          'stroke-width': 1.5,
+          "stroke-width": 1.5,
         }),
       );
     }

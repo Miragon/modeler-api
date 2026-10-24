@@ -25,7 +25,7 @@ import {
   type PipelineElement,
   type SubmapElement,
   type WardleyMap,
-} from '@miragon/wardley-schema-model';
+} from "@miragon/wardley-schema-model";
 import {
   CommentStripper,
   METHODS,
@@ -50,13 +50,13 @@ import {
   type MutableDecorators,
   type SuffixToken,
   type TextSpan,
-} from './lexer.js';
-import { UniqueNames, escapeCommentMarkers, roundAsWritten, writtenName } from './names.js';
-import type { UrlReferenceHint } from './serializer.js';
+} from "./lexer.js";
+import { UniqueNames, escapeCommentMarkers, roundAsWritten, writtenName } from "./names.js";
+import type { UrlReferenceHint } from "./serializer.js";
 
 /** Splits `A -> B` at the FIRST arrow — plain indexOf, immune to regex backtracking. */
 function splitDependency(core: string): { left: string; right: string } | null {
-  const arrow = core.indexOf('->');
+  const arrow = core.indexOf("->");
   if (arrow <= 0) return null;
   const left = core.slice(0, arrow).trim();
   const right = core.slice(arrow + 2).trim();
@@ -70,7 +70,7 @@ function splitFlow(
   core: string,
 ): { left: string; right: string; op: string; value?: string } | null {
   for (let i = 1; i < core.length; i++) {
-    if (core[i] !== '+') continue;
+    if (core[i] !== "+") continue;
     let j = i + 1;
     let value: string | undefined;
     if (core[j] === "'") {
@@ -79,9 +79,9 @@ function splitFlow(
       value = core.slice(j + 1, end);
       j = end + 1;
     }
-    const op = core.startsWith('<>', j)
-      ? '<>'
-      : core[j] === '>' || core[j] === '<'
+    const op = core.startsWith("<>", j)
+      ? "<>"
+      : core[j] === ">" || core[j] === "<"
         ? core[j]!
         : null;
     if (!op) continue;
@@ -95,42 +95,42 @@ function splitFlow(
 // (`Title Search -> X` vs. `title Search -> X`); `title`, `evolution`, `y-axis` and `evolve` hold
 // `->` themselves. The declared names decide.
 const LINK_LIKE_STATEMENT_KEYWORDS: ReadonlySet<string> = new Set([
-  'title',
-  'style',
-  'size',
-  'evolution',
-  'y-axis',
-  'annotations',
-  'annotation',
-  'evolve',
-  'line',
+  "title",
+  "style",
+  "size",
+  "evolution",
+  "y-axis",
+  "annotations",
+  "annotation",
+  "evolve",
+  "line",
 ]);
 // A declaration needs a tuple, which a link line has only after its `;` (`note A -> B; see [x, y]`).
 // `pipeline` is not among them: read as a statement it opens or closes pipeline blocks, which would
 // change what the other lines declare between the two readings, so such a line is always a link.
 const DECLARATION_KEYWORDS: ReadonlySet<string> = new Set([
-  'anchor',
-  'component',
-  'market',
-  'ecosystem',
-  'note',
-  'pioneers',
-  'settlers',
-  'townplanners',
-  'url',
-  'build',
-  'buy',
-  'outsource',
-  'accelerator',
-  'deaccelerator',
-  'submap',
+  "anchor",
+  "component",
+  "market",
+  "ecosystem",
+  "note",
+  "pioneers",
+  "settlers",
+  "townplanners",
+  "url",
+  "build",
+  "buy",
+  "outsource",
+  "accelerator",
+  "deaccelerator",
+  "submap",
 ]);
-const KNOWN_STYLES: ReadonlySet<string> = new Set(['wardley', 'handwritten', 'colour', 'dark']);
+const KNOWN_STYLES: ReadonlySet<string> = new Set(["wardley", "handwritten", "colour", "dark"]);
 
 interface PendingLink {
   readonly left: string;
   readonly right: string;
-  readonly kind: 'dependency' | 'flow';
+  readonly kind: "dependency" | "flow";
   readonly bidirectional?: boolean;
   /** `+<` — flow direction reversed (right -> left). */
   readonly reverse?: boolean;
@@ -147,7 +147,7 @@ interface PendingEvolve {
   readonly name: string;
   readonly newLabel?: string;
   readonly target: number;
-  readonly method?: Movement['method'];
+  readonly method?: Movement["method"];
   readonly labelOffset?: LabelOffsetToken;
   /** Findings that only matter once the evolve is applied; the whole line is kept otherwise. */
   readonly notes: readonly string[];
@@ -195,7 +195,7 @@ interface UrlDefinition {
 }
 /** An `evolution`/`y-axis` line that cannot be used; `index` is its place in the passthrough. */
 interface UnusedConfigLine {
-  readonly keyword: 'evolution' | 'y-axis';
+  readonly keyword: "evolution" | "y-axis";
   readonly reason: string;
   readonly index: number;
   readonly line: number;
@@ -223,26 +223,26 @@ function compact<T extends Record<string, unknown>>(obj: T): T {
 }
 
 function linkCore(line: string): string {
-  const semi = line.indexOf(';');
+  const semi = line.indexOf(";");
   return semi >= 0 ? line.slice(0, semi) : line;
 }
 
 /** Reads `A -> B`, `A +> B`, `A +'value'<> B`, … with an optional `; annotation` — or null. */
 function readLink(line: string, lineNo: number, text: string): PendingLink | null {
-  const semi = line.indexOf(';');
+  const semi = line.indexOf(";");
   const core = (semi >= 0 ? line.slice(0, semi) : line).trim();
-  const label = semi >= 0 ? line.slice(semi + 1).trim() : '';
+  const label = semi >= 0 ? line.slice(semi + 1).trim() : "";
   const common = { ...(label ? { label } : {}), raw: line, lineNo, text };
   const dependency = splitDependency(core);
-  if (dependency) return { ...dependency, kind: 'dependency', ...common };
+  if (dependency) return { ...dependency, kind: "dependency", ...common };
   const flow = splitFlow(core);
   if (!flow) return null;
   return {
     left: flow.left,
     right: flow.right,
-    kind: 'flow',
-    bidirectional: flow.op === '<>',
-    reverse: flow.op === '<',
+    kind: "flow",
+    bidirectional: flow.op === "<>",
+    reverse: flow.op === "<",
     ...(flow.value ? { flowValue: flow.value } : {}),
     ...common,
   };
@@ -256,7 +256,7 @@ function couldBeStatement(line: string, keyword: string, after: string): boolean
   return (
     LINK_LIKE_STATEMENT_KEYWORDS.has(keyword) ||
     (DECLARATION_KEYWORDS.has(keyword) && parseCoords(line) !== null) ||
-    (keyword === 'url' && readUrlDefinition(after) !== null)
+    (keyword === "url" && readUrlDefinition(after) !== null)
   );
 }
 
@@ -269,11 +269,11 @@ function namesAsWritten(link: PendingLink): { left: string; right: string } {
   const keyword = keywordOf(link.left);
   const nameAfterKeyword = link.left.slice(keyword.length).trim();
   return {
-    left: [keyword, nameAfterKeyword].filter(Boolean).join(' '),
+    left: [keyword, nameAfterKeyword].filter(Boolean).join(" "),
     right: link.right
-      .split('->')
+      .split("->")
       .map((part) => part.trim())
-      .join('->'),
+      .join("->"),
   };
 }
 
@@ -283,7 +283,7 @@ function leftNameIsDeclared(link: PendingLink, names: ReadonlySet<string>): bool
 
 function unknownStatementMessage(line: string): string {
   const core = linkCore(line);
-  if (/->|\+('[^']*')?(<>|>|<)/.test(core)) return 'Link needs a name on both sides';
+  if (/->|\+('[^']*')?(<>|>|<)/.test(core)) return "Link needs a name on both sides";
   const flowValue = /\+'[^']*'/.exec(core);
   if (flowValue) return `Flow ${flowValue[0]} has no direction — add ">", "<" or "<>"`;
   return `Unknown statement "${line.split(/\s/)[0]}"`;
@@ -306,10 +306,10 @@ function buildEdges(
       unresolved(link, fromId ? link.right : link.left);
       continue;
     }
-    if (link.kind === 'dependency') {
+    if (link.kind === "dependency") {
       const edge = compact({
         id: `dep_${++dependencies}`,
-        edgeType: 'dependency',
+        edgeType: "dependency",
         from: fromId,
         to: toId,
         label: labelOf(link),
@@ -322,7 +322,7 @@ function buildEdges(
     const [from, to] = link.reverse ? [toId, fromId] : [fromId, toId];
     const edge = compact({
       id: `flow_${++flows}`,
-      edgeType: 'flow',
+      edgeType: "flow",
       from,
       to,
       bidirectional: link.bidirectional ? true : undefined,
@@ -443,9 +443,9 @@ class MapReader {
   /** Candidate for a `{` block opening: a block binds only to the directly preceding pipeline line. */
   private lastPipeline: PendingPipeline | null = null;
   private blockPipeline: PendingPipeline | null = null;
-  private blockOpening = { line: 0, text: '' };
+  private blockOpening = { line: 0, text: "" };
   private lineNo = 0;
-  private currentLine = '';
+  private currentLine = "";
   private readonly declarationLineById = new Map<string, number>();
   private readonly configLinesByKeyword = new Map<string, number[]>();
   private readonly evolveLinesById = new Map<string, number[]>();
@@ -461,7 +461,7 @@ class MapReader {
     this.declarationLineById.set(element.id, line);
   }
 
-  private recordBlockLine(pipeline: PendingPipeline, end: 'open' | 'close'): void {
+  private recordBlockLine(pipeline: PendingPipeline, end: "open" | "close"): void {
     const lines = this.blockLines.get(pipeline) ?? {};
     lines[end] = this.lineNo;
     this.blockLines.set(pipeline, lines);
@@ -485,7 +485,7 @@ class MapReader {
 
   /** For a line that looks like a known construct but cannot be parsed. */
   private failed(line: string): void {
-    this.keep(line, 'Line not understood — kept as written');
+    this.keep(line, "Line not understood — kept as written");
   }
 
   // A reference binds to the name as written first, so `X 2` stays bound to an explicit "X 2" even
@@ -513,7 +513,7 @@ class MapReader {
   }
 
   private keepUnusedConfigLine(
-    keyword: 'evolution' | 'y-axis',
+    keyword: "evolution" | "y-axis",
     statement: string,
     reason: string,
   ): void {
@@ -567,7 +567,7 @@ class MapReader {
 
   /** A suffix written in front of the coordinates is part of the name or text (OWM). */
   private reportMisplacedSuffix(groups: readonly string[], where: string, fix: string): void {
-    if (groups.length) this.diag(`"${groups.join(' ')}" ${where} — ${fix}`);
+    if (groups.length) this.diag(`"${groups.join(" ")}" ${where} — ${fix}`);
   }
 
   /**
@@ -611,7 +611,7 @@ class MapReader {
   private openBlock(): void {
     if (this.lastPipeline) {
       this.blockPipeline = this.lastPipeline;
-      this.recordBlockLine(this.blockPipeline, 'open');
+      this.recordBlockLine(this.blockPipeline, "open");
       this.blockOpening = { line: this.lineNo, text: this.currentLine };
     } else this.diag('Ignored "{" — a block must directly follow a pipeline line');
     this.lastPipeline = null;
@@ -619,7 +619,7 @@ class MapReader {
 
   private closeBlock(): void {
     if (this.blockPipeline) {
-      this.recordBlockLine(this.blockPipeline, 'close');
+      this.recordBlockLine(this.blockPipeline, "close");
       this.blockPipeline = null;
     } else this.diag('Ignored "}" — no pipeline block is open');
     this.lastPipeline = null;
@@ -649,7 +649,7 @@ class MapReader {
     const sourceLines = text.split(/\r?\n/);
     // The newline that ends the last line does not start another one; inside an unclosed block
     // comment that phantom line would otherwise be kept and grow the file by one line per save.
-    if (sourceLines.length > 1 && sourceLines[sourceLines.length - 1] === '') sourceLines.pop();
+    if (sourceLines.length > 1 && sourceLines[sourceLines.length - 1] === "") sourceLines.pop();
     let blockCommentStart: { readonly line: number; readonly text: string } | null = null;
     for (let i = 0; i < sourceLines.length; i++) {
       // A carriage return left over from a `\r\r\n` ending would become part of a kept comment,
@@ -690,17 +690,17 @@ class MapReader {
   private readCode(code: string): void {
     let statement = code;
     for (;;) {
-      if (statement.startsWith('{')) this.openBlock();
-      else if (statement.startsWith('}') && (this.blockPipeline || statement === '}')) {
+      if (statement.startsWith("{")) this.openBlock();
+      else if (statement.startsWith("}") && (this.blockPipeline || statement === "}")) {
         this.closeBlock();
       } else break;
       statement = statement.slice(1).trim();
     }
-    const closesBlock = this.blockPipeline !== null && statement.endsWith('}');
+    const closesBlock = this.blockPipeline !== null && statement.endsWith("}");
     if (closesBlock) statement = statement.slice(0, -1).trim();
     if (statement) this.readStatement(statement);
     if (closesBlock && this.blockPipeline) {
-      this.recordBlockLine(this.blockPipeline, 'close');
+      this.recordBlockLine(this.blockPipeline, "close");
       this.blockPipeline = null;
     }
   }
@@ -708,55 +708,55 @@ class MapReader {
   private readStatement(line: string): void {
     const kw = keywordOf(line);
     const after = line.slice(kw.length).trim();
-    if (this.blockPipeline && kw === 'component' && this.readBlockChild(after)) return;
+    if (this.blockPipeline && kw === "component" && this.readBlockChild(after)) return;
     this.lastPipeline = null;
     if (this.readsAsLink(line, kw, after)) return;
 
     switch (kw) {
-      case 'title':
-        this.setConfig('title', { ...this.config, title: this.readText(after) });
+      case "title":
+        this.setConfig("title", { ...this.config, title: this.readText(after) });
         return;
-      case 'anchor':
+      case "anchor":
         return this.readAnchor(line, after);
-      case 'component':
-      case 'market':
-      case 'ecosystem':
+      case "component":
+      case "market":
+      case "ecosystem":
         if (!this.pushComponent(after, kw)) this.failed(line);
         return;
-      case 'note':
+      case "note":
         return this.readNote(line, after);
-      case 'pipeline':
+      case "pipeline":
         return this.readPipeline(line, after);
-      case 'evolve':
+      case "evolve":
         return this.readEvolve(line, after);
-      case 'style':
+      case "style":
         return this.readStyle(line, after);
-      case 'size':
+      case "size":
         return this.readSize(line, after);
-      case 'evolution':
+      case "evolution":
         return this.readEvolution(line, after);
-      case 'y-axis':
+      case "y-axis":
         return this.readYAxis(line, after);
-      case 'annotations':
+      case "annotations":
         return this.readAnnotationsBox(line, after);
-      case 'annotation':
+      case "annotation":
         return this.readAnnotation(line, after);
-      case 'line':
+      case "line":
         return this.readDrawing(line, after);
-      case 'pioneers':
-      case 'settlers':
-      case 'townplanners':
+      case "pioneers":
+      case "settlers":
+      case "townplanners":
         return this.readAttitude(line, after, kw);
-      case 'url':
+      case "url":
         return this.readUrlDefinition(line, after);
-      case 'build':
-      case 'buy':
-      case 'outsource':
+      case "build":
+      case "buy":
+      case "outsource":
         return this.readMethod(line, after, kw);
-      case 'accelerator':
-      case 'deaccelerator':
+      case "accelerator":
+      case "deaccelerator":
         return this.readAccelerator(line, after, kw);
-      case 'submap':
+      case "submap":
         return this.readSubmap(line, after);
       default: {
         // A link whose name holds a tuple (`A [x] -> B`) still reads as one.
@@ -790,11 +790,11 @@ class MapReader {
   private readAnchor(line: string, after: string): void {
     const node = parseNode(after, ANCHOR_SUFFIXES, this.report);
     if (!node) return this.failed(line);
-    const label = this.nameElement(node.name, 'anchor');
-    const id = this.ids.alloc('anchor', label);
+    const label = this.nameElement(node.name, "anchor");
+    const id = this.ids.alloc("anchor", label);
     const anchor: AnchorElement = compact({
       id,
-      elementType: 'anchor',
+      elementType: "anchor",
       label,
       position: this.position(node.coords.a, node.coords.b),
       labelOffset: node.labelOffset,
@@ -810,11 +810,11 @@ class MapReader {
     const node = parseNode(after, COMPONENT_SUFFIXES, this.report, keywordMethod);
     if (!node) return false;
     const decorators = mergeLegacy(kw, node.decorators);
-    const label = this.nameElement(node.name, 'component');
-    const id = this.ids.alloc('cmp', label);
+    const label = this.nameElement(node.name, "component");
+    const id = this.ids.alloc("cmp", label);
     const component: ComponentElement = compact({
       id,
-      elementType: 'component',
+      elementType: "component",
       label,
       position: this.position(node.coords.a, node.coords.b),
       labelOffset: node.labelOffset,
@@ -833,14 +833,14 @@ class MapReader {
     const { color } = readSuffix(split.suffix, NOTE_SUFFIXES, this.report);
     this.reportMisplacedSuffix(
       splitTrailingGroups(split.name, { color: true, height: false }).groups,
-      'before the coordinates is read as part of the text',
-      'write it after them',
+      "before the coordinates is read as part of the text",
+      "write it after them",
     );
     // Literal `\n` back into real line breaks (multi-line notes).
-    const textPart = this.readText(split.name.replace(/\\n/g, '\n'));
+    const textPart = this.readText(split.name.replace(/\\n/g, "\n"));
     const note: NoteElement = compact({
-      id: this.ids.alloc('note', textPart || 'note'),
-      elementType: 'note',
+      id: this.ids.alloc("note", textPart || "note"),
+      elementType: "note",
       label: textPart,
       position: this.position(split.coords.a, split.coords.b),
       color,
@@ -853,7 +853,7 @@ class MapReader {
     this.endUnclosedBlock();
     let body = after;
     let opensBlock = false;
-    while (body.endsWith('{')) {
+    while (body.endsWith("{")) {
       if (opensBlock) this.diag('Ignored "{" — a block must directly follow a pipeline line');
       opensBlock = true;
       body = body.slice(0, -1).trim();
@@ -863,8 +863,8 @@ class MapReader {
     if (range && !range.coords) this.diag(unreadableNumberMessage(range.tuple));
     this.reportMisplacedSuffix(
       misplaced,
-      'before the coordinates is read as part of the name',
-      'write it after them',
+      "before the coordinates is read as part of the name",
+      "write it after them",
     );
     const notes: string[] = [];
     const note = (message: string) => notes.push(message);
@@ -888,7 +888,7 @@ class MapReader {
     this.pendingPipeline.push(pending);
     if (opensBlock) {
       this.blockPipeline = pending;
-      this.recordBlockLine(pending, 'open');
+      this.recordBlockLine(pending, "open");
       this.blockOpening = { line: this.lineNo, text: this.currentLine };
     } else this.lastPipeline = pending;
   }
@@ -911,7 +911,7 @@ class MapReader {
   private readStyle(line: string, after: string): void {
     const style = after.toLowerCase();
     if (KNOWN_STYLES.has(style)) {
-      this.setConfig('style', { ...this.config, style: style as MapStyle });
+      this.setConfig("style", { ...this.config, style: style as MapStyle });
     } else this.failed(line);
   }
 
@@ -923,7 +923,7 @@ class MapReader {
     }
     this.reportTextBefore(split.name);
     readSuffix(split.suffix, NO_SUFFIXES, this.report);
-    this.setConfig('size', { ...this.config, size: { width: coords.a, height: coords.b } });
+    this.setConfig("size", { ...this.config, size: { width: coords.a, height: coords.b } });
     // The written size is kept as is (lossless round-trip); the findings only explain how it is drawn.
     const problem = sizeOutsideLimits(coords.a, coords.b);
     if (problem) this.diag(problem);
@@ -938,31 +938,31 @@ class MapReader {
     // Exactly four positions (the serializer always writes four). Do NOT filter out
     // empty segments, otherwise an empty stage label is lost (the whole line would fall
     // out of the 4-slot grid and land in rawPassthrough -> axis snaps back to default).
-    const parts = after.split('->').map((s) => s.trim());
+    const parts = after.split("->").map((s) => s.trim());
     if (parts.length === 4) {
       const [first, second, third, fourth] = parts.map((part) => this.readText(part));
       const evolutionLabels = [first!, second!, third!, fourth!] as const;
-      this.setConfig('evolution', { ...this.config, evolutionLabels });
+      this.setConfig("evolution", { ...this.config, evolutionLabels });
     } else {
       const reason = `Evolution needs exactly four stages, found ${parts.length}`;
-      this.keepUnusedConfigLine('evolution', line, reason);
+      this.keepUnusedConfigLine("evolution", line, reason);
     }
   }
 
   /** `y-axis Label->BottomLabel->TopLabel` — keeps the end labels losslessly too. */
   private readYAxis(line: string, after: string): void {
-    const written = after.split('->').map((s) => s.trim());
+    const written = after.split("->").map((s) => s.trim());
     const [label, bottom, top] = written.filter(Boolean).map((part) => this.readText(part));
-    if (!label) return this.keepUnusedConfigLine('y-axis', line, 'y-axis has no label');
+    if (!label) return this.keepUnusedConfigLine("y-axis", line, "y-axis has no label");
     const { yAxisEndLabels: _replaced, ...otherConfig } = this.config;
     const ends = bottom && top ? ([bottom, top] as const) : undefined;
-    this.setConfig('y-axis', {
+    this.setConfig("y-axis", {
       ...otherConfig,
       yAxisLabel: label,
       ...(ends ? { yAxisEndLabels: ends } : {}),
     });
     if (written.length !== 1 && !(written.length === 3 && written.every(Boolean))) {
-      const read = [label, ...(ends ?? [])].join('->');
+      const read = [label, ...(ends ?? [])].join("->");
       this.diag(`y-axis takes "Label" or "Label->Bottom->Top" — read as "${read}"`);
     }
   }
@@ -972,13 +972,13 @@ class MapReader {
     if (!split) {
       return this.keep(
         line,
-        'Annotations box has no position — not used; add [visibility, maturity]',
+        "Annotations box has no position — not used; add [visibility, maturity]",
       );
     }
     this.reportTextBefore(split.name);
     readSuffix(split.suffix, NO_SUFFIXES, this.report);
     const annotationsBoxPosition = this.position(split.coords.a, split.coords.b);
-    this.setConfig('annotations', { ...this.config, annotationsBoxPosition });
+    this.setConfig("annotations", { ...this.config, annotationsBoxPosition });
   }
 
   /** `annotation N <position> [(color …)] <text>`; the position is a tuple or a tuple list. */
@@ -986,9 +986,9 @@ class MapReader {
     const numMatch = /^\s*(\d+)/.exec(after);
     const number = numMatch ? Number(numMatch[1]) : ++this.annotationCounter;
     if (!Number.isSafeInteger(number)) return this.failed(line);
-    const found = parsePositions(after.replace(/^\s*\d+\s*/, ''));
+    const found = parsePositions(after.replace(/^\s*\d+\s*/, ""));
     if (!found) {
-      return this.keep(line, 'Annotation has no position — not drawn; add [visibility, maturity]');
+      return this.keep(line, "Annotation has no position — not drawn; add [visibility, maturity]");
     }
     if (!found.tuples.length) return this.failed(line);
     for (const unreadable of found.unreadable) this.diag(unreadableNumberMessage(unreadable));
@@ -996,14 +996,14 @@ class MapReader {
     const { color, rest } = splitLeadingColor(found.after);
     this.reportMisplacedSuffix(
       splitTrailingGroups(rest, { color: true, height: false }).groups,
-      'after the annotation text is read as part of the text',
-      'write it directly after the position',
+      "after the annotation text is read as part of the text",
+      "write it directly after the position",
     );
     const text = this.readText(rest.trim());
     const positions: Coordinate[] = found.tuples.map((t) => this.position(t.a, t.b));
     const annotation: AnnotationElement = {
-      id: this.ids.alloc('anno', String(number)),
-      elementType: 'annotation',
+      id: this.ids.alloc("anno", String(number)),
+      elementType: "annotation",
       label: text,
       position: positions[0]!,
       number,
@@ -1023,9 +1023,9 @@ class MapReader {
     const suffix = readSuffix(list.after, DRAWING_SUFFIXES, this.report);
     const points = list.tuples.map((t) => this.position(t.a, t.b));
     const drawing: DrawingElement = {
-      id: this.ids.alloc('draw', 'line'),
-      elementType: 'drawing',
-      label: '',
+      id: this.ids.alloc("draw", "line"),
+      elementType: "drawing",
+      label: "",
       position: points[0]!,
       points,
       ...(suffix.closed ? { closed: true } : {}),
@@ -1072,12 +1072,12 @@ class MapReader {
   private readAccelerator(line: string, after: string, kw: string): void {
     const node = parseNode(after, ACCELERATOR_SUFFIXES, this.report);
     if (!node) return this.failed(line);
-    const label = this.nameElement(node.name, 'accelerator');
-    const id = this.ids.alloc('accel', label);
+    const label = this.nameElement(node.name, "accelerator");
+    const id = this.ids.alloc("accel", label);
     const accelerator: AcceleratorElement = {
       id,
-      elementType: 'accelerator',
-      direction: kw === 'deaccelerator' ? 'deaccelerate' : 'accelerate',
+      elementType: "accelerator",
+      direction: kw === "deaccelerator" ? "deaccelerate" : "accelerate",
       label,
       position: this.position(node.coords.a, node.coords.b),
       ...(node.color ? { color: node.color } : {}),
@@ -1089,11 +1089,11 @@ class MapReader {
   private readSubmap(line: string, after: string): void {
     const node = parseNode(after, SUBMAP_SUFFIXES, this.report);
     if (!node) return this.failed(line);
-    const label = this.nameElement(node.name, 'submap');
-    const id = this.ids.alloc('submap', label);
+    const label = this.nameElement(node.name, "submap");
+    const id = this.ids.alloc("submap", label);
     const submap: SubmapElement = {
       id,
-      elementType: 'submap',
+      elementType: "submap",
       label,
       position: this.position(node.coords.a, node.coords.b),
       ...(node.color ? { color: node.color } : {}),
@@ -1125,7 +1125,7 @@ class MapReader {
         if (definition) usedDefinitions.add(definition);
         urlReferences.set(
           element.id,
-          definition ? { kind: 'definition', name: definition.name } : { kind: 'embedded' },
+          definition ? { kind: "definition", name: definition.name } : { kind: "embedded" },
         );
       },
     );
@@ -1206,8 +1206,8 @@ class MapReader {
       primaryLineOf.set(`url:${definition.name}`, definition.lineNo);
     }
     for (const el of this.elements) {
-      const isChild = el.elementType === 'component' && el.pipelineId !== undefined;
-      const key = `${isChild ? 'child' : 'element'}:${el.id}`;
+      const isChild = el.elementType === "component" && el.pipelineId !== undefined;
+      const key = `${isChild ? "child" : "element"}:${el.id}`;
       const line = this.declarationLineById.get(el.id);
       if (line !== undefined) primaryLineOf.set(key, line);
       for (const methodLine of this.methodLinesById.get(el.id) ?? []) addSecondary(key, methodLine);
@@ -1236,10 +1236,10 @@ class MapReader {
   private resolvePipelines(): void {
     const componentByName = new Map<string, MapElement>();
     for (const el of this.elements) {
-      if (el.elementType === 'component') componentByName.set(el.label, el);
+      if (el.elementType === "component") componentByName.set(el.label, el);
     }
     for (const p of this.pendingPipeline) {
-      const label = writtenName(p.name, 'pipeline');
+      const label = writtenName(p.name, "pipeline");
       const component = componentByName.get(label);
       const writtenRange = pipelineRange(p);
       if (!writtenRange) {
@@ -1266,7 +1266,7 @@ class MapReader {
         );
       }
       const visibility = p.visibility ?? component?.position.visibility ?? 0.5;
-      const id = this.ids.alloc('pipeline', label);
+      const id = this.ids.alloc("pipeline", label);
       this.pipelineIds.set(p, id);
       if (writtenRange.fromChildren) this.rangeFromChildren.add(id);
       // Standalone pipelines (no same-named component) are edge endpoints themselves; an element
@@ -1275,7 +1275,7 @@ class MapReader {
         this.register(p.name, label, id);
       }
       const childNames = p.children.map((child) =>
-        this.nameElement(child.name, 'component', child.lineNo, child.text),
+        this.nameElement(child.name, "component", child.lineNo, child.text),
       );
       const { pipeline, children } = pipelineElements(
         { ...p, name: label },
@@ -1294,8 +1294,8 @@ class MapReader {
   }
 
   private componentIndex(name: string, indexById: ReadonlyMap<string, number>): number {
-    const index = indexById.get(this.idOfName(name) ?? '');
-    return index !== undefined && this.elements[index]!.elementType === 'component' ? index : -1;
+    const index = indexById.get(this.idOfName(name) ?? "");
+    return index !== undefined && this.elements[index]!.elementType === "component" ? index : -1;
   }
 
   private resolveEvolves(indexById: ReadonlyMap<string, number>): void {
@@ -1308,7 +1308,7 @@ class MapReader {
         const hint =
           misplaced && this.componentIndex(misplaced.name, indexById) >= 0
             ? misplacedEvolveSuffixHint(misplaced)
-            : '';
+            : "";
         this.diag(`evolve: component "${ev.name}" not found${hint}`, ev.lineNo, ev.text);
         continue;
       }
@@ -1362,7 +1362,7 @@ function renamedMessage(sourceName: string, name: string): string {
 
 function withoutTrailingCarriageReturns(line: string): string {
   let end = line.length;
-  while (end > 0 && line[end - 1] === '\r') end--;
+  while (end > 0 && line[end - 1] === "\r") end--;
   return line.slice(0, end);
 }
 
@@ -1379,8 +1379,8 @@ function withoutClosersOfKeptComments(
   const nextParse = new CommentStripper();
   return entries.map((entry) => {
     let text = entry.text;
-    if (!entry.isComment && nextParse.insideBlockComment && text.includes('*/')) {
-      text = text.replaceAll('*/', ' ');
+    if (!entry.isComment && nextParse.insideBlockComment && text.includes("*/")) {
+      text = text.replaceAll("*/", " ");
       report(
         'Ignored "*/" — this line is kept after an unclosed "/*" and would end that comment',
         entry.lineNo,
@@ -1403,13 +1403,13 @@ function replacedConfigLines(
 ): Set<number> {
   const configIsSet = {
     evolution: config.evolutionLabels !== undefined,
-    'y-axis': config.yAxisLabel !== undefined,
+    "y-axis": config.yAxisLabel !== undefined,
   };
   const replacedIndexes = new Set<number>();
   for (const unused of unusedLines) {
     const replaced = configIsSet[unused.keyword];
     if (replaced) replacedIndexes.add(unused.index);
-    const outcome = replaced ? `removed; another "${unused.keyword}" line sets it` : 'not used';
+    const outcome = replaced ? `removed; another "${unused.keyword}" line sets it` : "not used";
     report(`${unused.reason} — ${outcome}`, unused.line, unused.text);
   }
   return replacedIndexes;
@@ -1452,8 +1452,8 @@ function resolveUrlReferences(
       continue;
     }
     const el = elements[index]!;
-    if (el.elementType === 'component') elements[index] = { ...el, url: address };
-    else if (el.elementType === 'submap') elements[index] = { ...el, urlRef: address };
+    if (el.elementType === "component") elements[index] = { ...el, url: address };
+    else if (el.elementType === "submap") elements[index] = { ...el, urlRef: address };
     resolved(el, definition);
   }
   return definitions.filter((definition) => replaced.has(definition) || !used.has(definition));
@@ -1482,7 +1482,7 @@ function parseNode(
 ): ParsedNode | null {
   const split = splitAtCoords(after);
   if (!split || !split.name) return null;
-  const suffix = readSuffix(split.suffix, suffixes, report, 'after the coordinates', keywordMethod);
+  const suffix = readSuffix(split.suffix, suffixes, report, "after the coordinates", keywordMethod);
   return compact({
     name: split.name,
     coords: split.coords,
@@ -1494,19 +1494,19 @@ function parseNode(
 }
 
 /** The suffixes a statement can hold after its coordinates; anything else is reported and dropped. */
-type SuffixSlot = 'color' | 'decorators' | 'method' | 'label' | 'url' | 'height' | 'stroke';
+type SuffixSlot = "color" | "decorators" | "method" | "label" | "url" | "height" | "stroke";
 type SuffixSlots = ReadonlySet<SuffixSlot>;
 
-const COMPONENT_SUFFIXES: SuffixSlots = new Set(['color', 'decorators', 'label', 'url']);
-const PIPELINE_CHILD_SUFFIXES: SuffixSlots = new Set(['color', 'decorators', 'label']);
-const ANCHOR_SUFFIXES: SuffixSlots = new Set(['color', 'label']);
-const SUBMAP_SUFFIXES: SuffixSlots = new Set(['color', 'url']);
-const ACCELERATOR_SUFFIXES: SuffixSlots = new Set(['color']);
-const NOTE_SUFFIXES: SuffixSlots = new Set(['color']);
-const ATTITUDE_SUFFIXES: SuffixSlots = new Set(['color']);
-const PIPELINE_SUFFIXES: SuffixSlots = new Set(['color', 'height']);
-const DRAWING_SUFFIXES: SuffixSlots = new Set(['color', 'stroke']);
-const EVOLVE_SUFFIXES: SuffixSlots = new Set(['method']);
+const COMPONENT_SUFFIXES: SuffixSlots = new Set(["color", "decorators", "label", "url"]);
+const PIPELINE_CHILD_SUFFIXES: SuffixSlots = new Set(["color", "decorators", "label"]);
+const ANCHOR_SUFFIXES: SuffixSlots = new Set(["color", "label"]);
+const SUBMAP_SUFFIXES: SuffixSlots = new Set(["color", "url"]);
+const ACCELERATOR_SUFFIXES: SuffixSlots = new Set(["color"]);
+const NOTE_SUFFIXES: SuffixSlots = new Set(["color"]);
+const ATTITUDE_SUFFIXES: SuffixSlots = new Set(["color"]);
+const PIPELINE_SUFFIXES: SuffixSlots = new Set(["color", "height"]);
+const DRAWING_SUFFIXES: SuffixSlots = new Set(["color", "stroke"]);
+const EVOLVE_SUFFIXES: SuffixSlots = new Set(["method"]);
 const NO_SUFFIXES: SuffixSlots = new Set();
 
 interface SuffixReading {
@@ -1528,7 +1528,7 @@ function readSuffix(
   text: string,
   slots: SuffixSlots,
   report: (message: string) => void,
-  place = 'after the coordinates',
+  place = "after the coordinates",
   keywordMethod?: Method,
 ): SuffixReading {
   const reading: {
@@ -1540,26 +1540,26 @@ function readSuffix(
     strokeStyle?: DrawingStrokeStyle;
   } = {};
   const decorators: MutableDecorators = keywordMethod ? { method: keywordMethod } : {};
-  const seen = new Set<SuffixToken['kind']>();
+  const seen = new Set<SuffixToken["kind"]>();
   const ignored: TextSpan[] = [];
   /** Whether a group item fits the statement; sets it when it does. */
   const readGroupItem = (item: string): boolean => {
     if (
-      slots.has('decorators') &&
-      (item === 'market' || item === 'ecosystem' || item === 'inertia')
+      slots.has("decorators") &&
+      (item === "market" || item === "ecosystem" || item === "inertia")
     ) {
       decorators[item] = true;
       return true;
     }
-    if ((slots.has('decorators') || slots.has('method')) && METHODS.has(item)) {
+    if ((slots.has("decorators") || slots.has("method")) && METHODS.has(item)) {
       decorators.method ??= item as Method;
       return decorators.method === item;
     }
-    if (slots.has('stroke') && item === 'closed') {
+    if (slots.has("stroke") && item === "closed") {
       reading.closed = true;
       return true;
     }
-    if (slots.has('stroke') && (item === 'dashed' || item === 'dotted')) {
+    if (slots.has("stroke") && (item === "dashed" || item === "dotted")) {
       reading.strokeStyle ??= item;
       return reading.strokeStyle === item;
     }
@@ -1573,40 +1573,40 @@ function readSuffix(
 
   for (const token of scanSuffix(text)) {
     switch (token.kind) {
-      case 'color':
-        if (firstOf(token, 'color')) reading.color = token.color;
+      case "color":
+        if (firstOf(token, "color")) reading.color = token.color;
         else ignored.push(token);
         break;
-      case 'height':
-        if (firstOf(token, 'height')) {
+      case "height":
+        if (firstOf(token, "height")) {
           const height = readUnclampedNumber(token.value);
           if (height === null) report(unreadableNumberMessage(token.text));
           else reading.height = height;
         } else ignored.push(token);
         break;
-      case 'label':
-        if (firstOf(token, 'label')) {
+      case "label":
+        if (firstOf(token, "label")) {
           const dx = readUnclampedNumber(token.dx);
           const dy = readUnclampedNumber(token.dy);
           if (dx === null || dy === null) report(unreadableNumberMessage(token.text));
           else reading.labelOffset = { dx, dy };
         } else ignored.push(token);
         break;
-      case 'url':
-        if (token.ref && firstOf(token, 'url')) reading.urlRef = token.ref;
+      case "url":
+        if (token.ref && firstOf(token, "url")) reading.urlRef = token.ref;
         else ignored.push(token);
         break;
-      case 'inertia':
-        if (slots.has('decorators')) decorators.inertia = true;
+      case "inertia":
+        if (slots.has("decorators")) decorators.inertia = true;
         else ignored.push(token);
         break;
-      case 'group': {
+      case "group": {
         const unfit = token.items.filter((item) => !readGroupItem(item.text.toLowerCase()));
         if (unfit.length === token.items.length) ignored.push(token);
         else for (const item of unfit) ignored.push(item);
         break;
       }
-      case 'word':
+      case "word":
         ignored.push(token);
     }
   }
@@ -1621,14 +1621,14 @@ function quotedSpans(text: string, spans: readonly TextSpan[]): string {
   let end = start + spans[0]!.text.length;
   for (let i = 1; i < spans.length; i++) {
     const span = spans[i]!;
-    if (text.slice(end, span.at).trim() !== '') {
+    if (text.slice(end, span.at).trim() !== "") {
       pieces.push(text.slice(start, end));
       start = span.at;
     }
     end = span.at + span.text.length;
   }
   pieces.push(text.slice(start, end));
-  return pieces.map((piece) => `"${piece}"`).join(', ');
+  return pieces.map((piece) => `"${piece}"`).join(", ");
 }
 
 /**
@@ -1652,7 +1652,7 @@ function splitPipelineLine(body: string): {
     };
   }
   const { rest, groups } = splitTrailingGroups(body, kinds);
-  return { name: rest, range: null, suffixText: groups.join(' '), misplaced: [] };
+  return { name: rest, range: null, suffixText: groups.join(" "), misplaced: [] };
 }
 
 function unreadableNumberMessage(text: string): string {
@@ -1698,8 +1698,8 @@ function pipelineElements(
   const children = p.children.map(
     (c, index) =>
       compact({
-        id: ids.alloc('cmp', childNames[index]!),
-        elementType: 'component',
+        id: ids.alloc("cmp", childNames[index]!),
+        elementType: "component",
         label: childNames[index]!,
         position: { visibility, evolution: c.maturity },
         labelOffset: c.labelOffset,
@@ -1710,7 +1710,7 @@ function pipelineElements(
   );
   const pipeline: PipelineElement = {
     id,
-    elementType: 'pipeline',
+    elementType: "pipeline",
     label: p.name,
     position: { visibility, evolution: (range.start + range.end) / 2 },
     evolutionStart: range.start,
@@ -1729,7 +1729,7 @@ function pipelineElements(
 function parseBlockChild(
   after: string,
   report: (message: string) => void,
-): Omit<PipelineChild, 'lineNo' | 'text'> | null {
+): Omit<PipelineChild, "lineNo" | "text"> | null {
   const split = splitAtFirstChildTuple(after);
   if (!split?.before || split.values.length !== 1) return null;
   const maturity = Number(split.values[0]);
@@ -1741,7 +1741,7 @@ function parseBlockChild(
     decorators: suffix.decorators,
     labelOffset: suffix.labelOffset,
     color: suffix.color,
-  }) as Omit<PipelineChild, 'lineNo' | 'text'>;
+  }) as Omit<PipelineChild, "lineNo" | "text">;
 }
 
 /** Builds an AttitudeElement from two (arbitrarily oriented) corners; normalizes to TL/BR. */
@@ -1752,10 +1752,10 @@ function makeAttitude(
   color?: string,
 ): AttitudeElement {
   return {
-    id: ids.alloc('attitude', kind),
-    elementType: 'attitude',
+    id: ids.alloc("attitude", kind),
+    elementType: "attitude",
     kind,
-    label: '',
+    label: "",
     ...(color ? { color } : {}),
     position: {
       visibility: Math.max(v1, v2),
@@ -1771,9 +1771,9 @@ function makeAttitude(
 /** `market`/`ecosystem` and `build`/`buy`/`outsource` as the statement keyword (legacy OWM). */
 function mergeLegacy(kw: string, dec: InlineDecorators): ComponentDecorators {
   const merged: Record<string, unknown> = { ...dec };
-  if (kw === 'market') merged['market'] = true;
-  if (kw === 'ecosystem') merged['ecosystem'] = true;
-  if (METHODS.has(kw)) merged['method'] = kw;
+  if (kw === "market") merged["market"] = true;
+  if (kw === "ecosystem") merged["ecosystem"] = true;
+  if (METHODS.has(kw)) merged["method"] = kw;
   return compact(merged) as ComponentDecorators;
 }
 
@@ -1788,7 +1788,7 @@ function splitMisplacedEvolveSuffix(name: string): { name: string; suffix: strin
 }
 
 function misplacedEvolveSuffixHint({ name, suffix }: { name: string; suffix: string }): string {
-  return suffix.startsWith('(')
+  return suffix.startsWith("(")
     ? ` — for component "${name}", write "${suffix}" after the target`
     : ` — for component "${name}", write "${suffix}" on its component line`;
 }
@@ -1802,7 +1802,7 @@ const NUMBER_TOKEN_RE = /(^|\s)([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?)(?=\s
 function parseEvolve(
   after: string,
   report: (message: string) => void,
-): Omit<PendingEvolve, 'raw' | 'lineNo' | 'text' | 'notes'> | null {
+): Omit<PendingEvolve, "raw" | "lineNo" | "text" | "notes"> | null {
   const lo = parseLabelOffset(after);
   let targetMatch: RegExpExecArray | undefined;
   for (const match of lo.rest.matchAll(NUMBER_TOKEN_RE)) targetMatch = match;
@@ -1816,9 +1816,9 @@ function parseEvolve(
     lo.rest.slice(targetAt + targetMatch[2]!.length),
     EVOLVE_SUFFIXES,
     report,
-    'after the evolve target',
+    "after the evolve target",
   );
-  const renameIdx = namePart.indexOf('->');
+  const renameIdx = namePart.indexOf("->");
   const name = renameIdx >= 0 ? namePart.slice(0, renameIdx).trim() : namePart;
   const newLabel = renameIdx >= 0 ? namePart.slice(renameIdx + 2).trim() : undefined;
   return compact({
@@ -1827,15 +1827,15 @@ function parseEvolve(
     target,
     method: tail.decorators.method,
     labelOffset: lo.labelOffset ?? undefined,
-  }) as Omit<PendingEvolve, 'raw' | 'lineNo' | 'text' | 'notes'>;
+  }) as Omit<PendingEvolve, "raw" | "lineNo" | "text" | "notes">;
 }
 
 function sizeOutsideLimits(width: number, height: number): string | null {
   const below = width < PLOT_MIN.width || height < PLOT_MIN.height;
   const above = width > PLOT_MAX.width || height > PLOT_MAX.height;
   if (!below && !above) return null;
-  const drawnWidth = drawnPlotLength(width, 'width');
-  const drawnHeight = drawnPlotLength(height, 'height');
+  const drawnWidth = drawnPlotLength(width, "width");
+  const drawnHeight = drawnPlotLength(height, "height");
   const minimum = `${PLOT_MIN.width}×${PLOT_MIN.height}`;
   const maximum = `${PLOT_MAX.width}×${PLOT_MAX.height}`;
   const limit =

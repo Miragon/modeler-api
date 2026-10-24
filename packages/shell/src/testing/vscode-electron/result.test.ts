@@ -44,7 +44,9 @@ describe("VSCODE_SMOKE_STEPS", () => {
 
 describe("missingChrome", () => {
   it("is undefined when every expected island is visible", () => {
-    expect(missingChrome(["menu", "zoom"], { menu: true, zoom: true, palette: false })).toBeUndefined();
+    expect(
+      missingChrome(["menu", "zoom"], { menu: true, zoom: true, palette: false }),
+    ).toBeUndefined();
   });
 
   it("names the islands that are missing or hidden", () => {
@@ -66,7 +68,9 @@ describe("sameAppearance", () => {
 describe("screenshotFileName", () => {
   it("is <name>-<theme id>.png, with a name safe for every file system", () => {
     expect(screenshotFileName("wardley", highContrastDark)).toBe("wardley-high-contrast-dark.png");
-    expect(screenshotFileName("@miragon/event storming", light)).toBe("-miragon-event-storming-light.png");
+    expect(screenshotFileName("@miragon/event storming", light)).toBe(
+      "-miragon-event-storming-light.png",
+    );
   });
 });
 
@@ -120,7 +124,9 @@ describe("formatVsCodeSmoke", () => {
     const text = formatVsCodeSmoke(
       result({
         ok: false,
-        failures: ["themes: Default Dark Modern: the webview shows dark, the theme bridge has to show light"],
+        failures: [
+          "themes: Default Dark Modern: the webview shows dark, the theme bridge has to show light",
+        ],
         themes: [
           {
             theme: dark,

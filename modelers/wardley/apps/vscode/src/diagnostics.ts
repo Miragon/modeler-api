@@ -1,11 +1,11 @@
-import * as vscode from 'vscode';
-import { parseDSLWithDiagnostics } from '@miragon/wardley-dsl';
+import * as vscode from "vscode";
+import { parseDSLWithDiagnostics } from "@miragon/wardley-dsl";
 
-export const WARDLEY_LANGUAGE_ID = 'wardley-owm';
+export const WARDLEY_LANGUAGE_ID = "wardley-owm";
 const REFRESH_DELAY_MS = 200;
 
 /** Read-only copies (Git diffs, history) would list every problem a second time. */
-const IGNORED_SCHEMES: ReadonlySet<string> = new Set(['git', 'gitlens', 'vscode-scm']);
+const IGNORED_SCHEMES: ReadonlySet<string> = new Set(["git", "gitlens", "vscode-scm"]);
 
 /** Whether `document` is a Wardley map worth checking (`.wmap`/`.owm` get the language id). */
 export function isWardleyDocument(document: vscode.TextDocument): boolean {
@@ -33,7 +33,7 @@ export function wardleyDiagnostics(document: vscode.TextDocument): vscode.Diagno
       finding.message,
       vscode.DiagnosticSeverity.Warning,
     );
-    diagnostic.source = 'wardley';
+    diagnostic.source = "wardley";
     return diagnostic;
   });
 }
@@ -49,7 +49,7 @@ export class WardleyDiagnostics implements vscode.Disposable {
   readonly onDidChange = this.changeEmitter.event;
 
   constructor() {
-    this.collection = vscode.languages.createDiagnosticCollection('wardley');
+    this.collection = vscode.languages.createDiagnosticCollection("wardley");
     this.subscriptions.push(
       vscode.workspace.onDidOpenTextDocument((document) => this.refresh(document)),
       vscode.workspace.onDidChangeTextDocument((event) => this.scheduleRefresh(event.document)),

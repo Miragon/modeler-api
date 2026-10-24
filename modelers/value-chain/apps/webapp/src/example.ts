@@ -1,5 +1,5 @@
-import { loadDocument, serializeDocument } from '@miragon/value-chain-schema-model';
-import exampleJson from '../../../example/porter.vc.json' with { type: 'json' };
+import { loadDocument, serializeDocument } from "@miragon/value-chain-schema-model";
+import exampleJson from "../../../example/porter.vc.json" with { type: "json" };
 
 /**
  * The Porter example, canonical: a primary chain with a decomposed "Operations" step and an

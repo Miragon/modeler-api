@@ -237,7 +237,10 @@ describe("switchWorkbenchTheme", () => {
     });
     const { outcome } = await runSwitch(vsCode, { theme: DARK, timeoutMs: 30_000 });
 
-    expect(vsCode.switches.map(({ colorTheme }) => colorTheme)).toEqual([DARK.name, HIGH_CONTRAST.name]);
+    expect(vsCode.switches.map(({ colorTheme }) => colorTheme)).toEqual([
+      DARK.name,
+      HIGH_CONTRAST.name,
+    ]);
     expect(outcome.switched).toBe(false);
     expect(outcome.ms).toBe(30_000);
     expect(missedThemeSwitch(DARK, outcome, NAMES)).toContain(
@@ -287,7 +290,10 @@ describe("describeWorkbenchTheme", () => {
       "Default Light Modern (.vs.vscode-theme-defaults-themes-light_modern-json)",
     );
     expect(
-      describeWorkbenchTheme({ type: "vs-dark", id: "vscode-theme-defaults-themes-2026-dark-json" }, NAMES),
+      describeWorkbenchTheme(
+        { type: "vs-dark", id: "vscode-theme-defaults-themes-2026-dark-json" },
+        NAMES,
+      ),
     ).toBe(".vs-dark.vscode-theme-defaults-themes-2026-dark-json");
     expect(describeWorkbenchTheme({ type: undefined, id: undefined }, NAMES)).toBe(
       "no theme class on .monaco-workbench",

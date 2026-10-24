@@ -1,12 +1,12 @@
-import { test, type Page } from '@playwright/test';
+import { test, type Page } from "@playwright/test";
 import {
   registerShellConformance,
   vsCodeStubSearch,
   type ShellSkip,
-} from '@miragon/modeler-shell/testing';
-import { WEBVIEW_THEMES } from '../../../apps/vscode/src/themes.js';
-import { SHELL_KIT_SIZES, typeIntoStickyLabel } from '../support/shell-kit.js';
-import { postedMessages } from './support/webview.js';
+} from "@miragon/modeler-shell/testing";
+import { WEBVIEW_THEMES } from "../../../apps/vscode/src/themes.js";
+import { SHELL_KIT_SIZES, typeIntoStickyLabel } from "../support/shell-kit.js";
+import { postedMessages } from "./support/webview.js";
 
 /**
  * The shell's conformance kit against the real VS Code webview (main.ts inside the VS Code stub):
@@ -19,20 +19,20 @@ import { postedMessages } from './support/webview.js';
  * asserts they never show; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
-  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
+  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
 
 /** The edits the webview has sent the extension host: each one would land in the document. */
 const editsSent = async (page: Page): Promise<number> =>
-  (await postedMessages(page)).filter((message) => message.type === 'edit').length;
+  (await postedMessages(page)).filter((message) => message.type === "edit").length;
 
 const editsAtLabelEditorOpen = new WeakMap<Page, number>();
 
-test.describe('VS Code webview: shell conformance', () => {
+test.describe("VS Code webview: shell conformance", () => {
   test.describe.configure({ timeout: 60_000 });
 
   registerShellConformance<Page>(
     {
-      host: 'ide',
+      host: "ide",
       themes: WEBVIEW_THEMES,
       async open(page, { size, requested }) {
         await page.setViewportSize(size);
@@ -50,7 +50,7 @@ test.describe('VS Code webview: shell conformance', () => {
       // The webview's Model group holds only the Level radios and the Type captions checkbox;
       // File actions are VS Code's own (guide §13.5), so no menu action hands the focus to the
       // canvas.
-      absent: ['legend', 'inspector', 'canvasMenuAction'],
+      absent: ["legend", "inspector", "canvasMenuAction"],
       // A sticky's label editor over the shell's zoom, fit and refit (contract L5): an edit the
       // webview posts is what VS Code would write into the document.
       labelEditor: {
@@ -66,7 +66,7 @@ test.describe('VS Code webview: shell conformance', () => {
       show: {
         async problems(page) {
           await page.evaluate(() =>
-            window.postMessage({ type: 'problems', count: 2, errors: 1 }, '*'),
+            window.postMessage({ type: "problems", count: 2, errors: 1 }, "*"),
           );
           await page.waitForFunction(
             () => document.querySelector<HTMLElement>('[data-chrome="problems"]')?.hidden === false,
@@ -76,8 +76,8 @@ test.describe('VS Code webview: shell conformance', () => {
           await page.evaluate(() => {
             const shell = window.shell!;
             shell.setStatus({
-              severity: 'danger',
-              text: shell.messages.invalidFile('Event Storming board'),
+              severity: "danger",
+              text: shell.messages.invalidFile("Event Storming board"),
             });
           });
         },
@@ -89,9 +89,9 @@ test.describe('VS Code webview: shell conformance', () => {
             const importText = modeler.importText.bind(modeler);
             modeler.importText = () => {
               modeler.importText = importText;
-              return Promise.reject(new Error('not importable'));
+              return Promise.reject(new Error("not importable"));
             };
-            window.postMessage({ type: 'update', text: 'title Broken\n' }, '*');
+            window.postMessage({ type: "update", text: "title Broken\n" }, "*");
           });
         },
       },

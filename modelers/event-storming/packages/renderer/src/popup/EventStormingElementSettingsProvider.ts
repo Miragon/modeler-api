@@ -1,23 +1,23 @@
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import type { PopupMenuTarget } from 'diagram-js/lib/features/popup-menu/PopupMenu';
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import type { PopupMenuTarget } from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type {
   PopupMenuEntries,
   default as PopupMenuProvider,
-} from 'diagram-js/lib/features/popup-menu/PopupMenuProvider';
-import { LEVEL_STICKY_KINDS } from '@miragon/event-storming-schema-model';
+} from "diagram-js/lib/features/popup-menu/PopupMenuProvider";
+import { LEVEL_STICKY_KINDS } from "@miragon/event-storming-schema-model";
 import {
   STICKY_KINDS,
   isSticky,
   type EventStormingShape,
   type StickyKind,
-} from '../model/di-types.js';
-import { STICKY_STYLES } from '../draw/styles.js';
-import { kindSquare } from '../draw/palette-icons.js';
-import type EventStormingModeling from '../modeling/EventStormingModeling.js';
+} from "../model/di-types.js";
+import { STICKY_STYLES } from "../draw/styles.js";
+import { kindSquare } from "../draw/palette-icons.js";
+import type EventStormingModeling from "../modeling/EventStormingModeling.js";
 
-export const POPUP_PROVIDER_ID = 'event-storming-element-settings';
+export const POPUP_PROVIDER_ID = "event-storming-element-settings";
 
-const KIND_GROUP = { id: 'kind', name: 'Change type' };
+const KIND_GROUP = { id: "kind", name: "Change type" };
 
 function mark(active: boolean, label: string): string {
   return active ? `✓ ${label}` : label;
@@ -29,7 +29,7 @@ function mark(active: boolean, label: string): string {
  * `eventStormingModeling.setStickyKind` (undo/redo).
  */
 export default class EventStormingElementSettingsProvider implements PopupMenuProvider {
-  static $inject = ['popupMenu', 'eventStormingModeling'];
+  static $inject = ["popupMenu", "eventStormingModeling"];
 
   constructor(
     popupMenu: PopupMenu,

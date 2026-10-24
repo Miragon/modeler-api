@@ -21,10 +21,10 @@ export async function copyText(text: string): Promise<boolean> {
  */
 export async function copyTextWhenReady(text: Promise<string>): Promise<boolean> {
   const clipboard = navigator.clipboard;
-  if (clipboard?.write && typeof ClipboardItem !== 'undefined') {
+  if (clipboard?.write && typeof ClipboardItem !== "undefined") {
     try {
-      const blob = text.then((value) => new Blob([value], { type: 'text/plain' }));
-      await clipboard.write([new ClipboardItem({ 'text/plain': blob })]);
+      const blob = text.then((value) => new Blob([value], { type: "text/plain" }));
+      await clipboard.write([new ClipboardItem({ "text/plain": blob })]);
       return true;
     } catch {
       // Older engines reject promise values in ClipboardItem; fall back to a plain write.

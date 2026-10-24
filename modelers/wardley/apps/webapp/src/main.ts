@@ -1,13 +1,13 @@
 // Geist and Geist Mono (Miragon's typefaces, SIL OFL), self-hosted: no font CDN (offline, GDPR).
 // Notes and axis captions are italic; the shortcut chips and the map text are Geist Mono.
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist/wght-italic.css';
-import '@fontsource-variable/geist-mono/wght.css';
+import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist/wght-italic.css";
+import "@fontsource-variable/geist-mono/wght.css";
 // The renderer's stylesheet brings the vendored tokens, diagram-js.css, the canvas mapping and the
 // map's dialogs and popovers; then the web app's text dialogs; the chrome's stylesheet comes last.
-import '@miragon/wardley-renderer/assets/wardley.css';
-import './style.css';
-import '@miragon/modeler-shell/shell.css';
+import "@miragon/wardley-renderer/assets/wardley.css";
+import "./style.css";
+import "@miragon/modeler-shell/shell.css";
 import {
   createAxisLabelsPopover,
   createCollaborativeModeler,
@@ -21,9 +21,9 @@ import {
   type LabelDeduplicatedEvent,
   type MapMenu,
   type Modeler,
-} from '@miragon/wardley-renderer';
-import { createEmptyMap, serializeMap } from '@miragon/wardley-schema-model';
-import { parseDSLWithDiagnostics } from '@miragon/wardley-dsl';
+} from "@miragon/wardley-renderer";
+import { createEmptyMap, serializeMap } from "@miragon/wardley-schema-model";
+import { parseDSLWithDiagnostics } from "@miragon/wardley-dsl";
 import {
   TEXT_FIELD_SELECTOR,
   commandKeyLabel,
@@ -33,8 +33,8 @@ import {
   isUndoRedoKey,
   mountShell,
   problemSummary,
-} from '@miragon/modeler-shell';
-import { connectDiagramJs, shellModule } from '@miragon/modeler-shell/diagram-js';
+} from "@miragon/modeler-shell";
+import { connectDiagramJs, shellModule } from "@miragon/modeler-shell/diagram-js";
 import {
   encodeMapCompressed,
   readHashMap,
@@ -43,21 +43,21 @@ import {
   writeHashMap,
   writeHashPayload,
   type HashMapResult,
-} from './share.js';
-import { downloadBlob, downloadText, importMapFile, readMapFile, type MapFile } from './io.js';
-import { copyTextWhenReady } from './clipboard.js';
-import { createMapReplacer } from './replace.js';
-import { trackSourceText } from './source-text.js';
-import { createTextDialogs } from './text-dialog.js';
-import { EXAMPLE_MAP } from './example.js';
-import { importWarningsText, problemItems } from './problems.js';
-import { THEMES } from './themes.js';
+} from "./share.js";
+import { downloadBlob, downloadText, importMapFile, readMapFile, type MapFile } from "./io.js";
+import { copyTextWhenReady } from "./clipboard.js";
+import { createMapReplacer } from "./replace.js";
+import { trackSourceText } from "./source-text.js";
+import { createTextDialogs } from "./text-dialog.js";
+import { EXAMPLE_MAP } from "./example.js";
+import { importWarningsText, problemItems } from "./problems.js";
+import { THEMES } from "./themes.js";
 import {
   downloadFileName,
   importErrorMessage,
   isDefaultTitle,
   type DownloadKind,
-} from './map-file.js';
+} from "./map-file.js";
 
 interface DiagramElement {
   id: string;
@@ -66,16 +66,16 @@ interface ElementRegistryLike {
   getAll(): DiagramElement[];
 }
 
-const APP_NAME = 'Wardley Maps Modeler';
-const MAP_NAME = 'Wardley map';
-const REPOSITORY_URL = 'https://github.com/Miragon/wardley-maps-modeler';
+const APP_NAME = "Wardley Maps Modeler";
+const MAP_NAME = "Wardley map";
+const REPOSITORY_URL = "https://github.com/Miragon/wardley-maps-modeler";
 /** Extensions for the file picker and the drop; the MIME types decide during a drag (guide §9). */
-const MAP_FILE_TYPES = ['.wmap', '.owm', '.json', 'application/json', 'text/plain'];
+const MAP_FILE_TYPES = [".wmap", ".owm", ".json", "application/json", "text/plain"];
 const CORRUPT_LINK_MESSAGE =
-  'This map link is incomplete or damaged. Ask the sender to share it again or to send the .wmap file.';
+  "This map link is incomplete or damaged. Ask the sender to share it again or to send the .wmap file.";
 
-const app = document.getElementById('app');
-if (!app) throw new Error('index.html has no #app root.');
+const app = document.getElementById("app");
+if (!app) throw new Error("index.html has no #app root.");
 
 // 1. The diagram first: the map's keyboard listens on document and must run before the chrome's key
 //    listener, and the Modeler builds its diagram lazily on the first get(). The web app keeps the
@@ -88,17 +88,17 @@ const collaborative = createCollaborativeModeler({
   freeArea: { insets: () => shell.fitInsets() },
 });
 const viewer = collaborative.diagram as Modeler;
-viewer.get('canvas');
-const registry = viewer.get<ElementRegistryLike>('elementRegistry');
+viewer.get("canvas");
+const registry = viewer.get<ElementRegistryLike>("elementRegistry");
 const currentDSL = trackSourceText(viewer);
 Object.assign(globalThis as Record<string, unknown>, { __wardleyViewer: viewer });
 
 const platform = detectPlatform(navigator);
-const openKey = commandKeyLabel('O', platform, defaultMessages.keyNames);
-const saveKey = commandKeyLabel('S', platform, defaultMessages.keyNames);
-const copyKeys = commandKeyLabel('C', platform, defaultMessages.keyNames);
-const applyKeys = platform === 'mac' ? '⌘↵' : `${defaultMessages.keyNames.ctrl}+Enter`;
-const SHORTCUTS_KEY = '?';
+const openKey = commandKeyLabel("O", platform, defaultMessages.keyNames);
+const saveKey = commandKeyLabel("S", platform, defaultMessages.keyNames);
+const copyKeys = commandKeyLabel("C", platform, defaultMessages.keyNames);
+const applyKeys = platform === "mac" ? "⌘↵" : `${defaultMessages.keyNames.ctrl}+Enter`;
+const SHORTCUTS_KEY = "?";
 
 /** The map's menu groups, the same as in VS Code, plus the web app's title and text views. */
 function webMenu(): MapMenu {
@@ -107,11 +107,11 @@ function webMenu(): MapMenu {
     mapSize: () => mapSizePopover.open(),
     axisLabels: () => axisLabelsPopover.open(),
     exports: {
-      png: { onSelect: () => void exportPicture('png') },
-      svg: { onSelect: () => void exportPicture('svg') },
-      transparentPng: { onSelect: () => void exportPicture('png-transparent') },
-      json: { onSelect: () => exportMapText('json') },
-      wmap: { onSelect: () => exportMapText('dsl'), shortcut: saveKey },
+      png: { onSelect: () => void exportPicture("png") },
+      svg: { onSelect: () => void exportPicture("svg") },
+      transparentPng: { onSelect: () => void exportPicture("png-transparent") },
+      json: { onSelect: () => exportMapText("json") },
+      wmap: { onSelect: () => exportMapText("dsl"), shortcut: saveKey },
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
     shortcutsKey: SHORTCUTS_KEY,
@@ -121,18 +121,18 @@ function webMenu(): MapMenu {
     model: [
       ...map.model,
       {
-        kind: 'dialog',
-        id: 'edit-dsl',
-        label: 'Edit as OWM-DSL…',
-        onSelect: () => textDialogs.open('dsl', currentDSL()),
+        kind: "dialog",
+        id: "edit-dsl",
+        label: "Edit as OWM-DSL…",
+        onSelect: () => textDialogs.open("dsl", currentDSL()),
       },
       {
-        kind: 'dialog',
-        id: 'view-json',
-        label: 'View as JSON…',
+        kind: "dialog",
+        id: "view-json",
+        label: "View as JSON…",
         // Reading the map changes nothing, so it stays usable on a read-only canvas.
         keepEnabledWhenReadOnly: true,
-        onSelect: () => textDialogs.open('json', serializeMap(viewer.exportMap())),
+        onSelect: () => textDialogs.open("json", serializeMap(viewer.exportMap())),
       },
     ],
   };
@@ -140,14 +140,14 @@ function webMenu(): MapMenu {
 
 // 2. The chrome around it: the whole web column of guide §5.2.
 const shell = mountShell(app, {
-  host: 'web',
+  host: "web",
   canvas: viewer.container,
-  lang: 'en',
+  lang: "en",
   platform,
   themes: THEMES,
   messages: { canvas: MAP_NAME },
   primary: { onSelect: () => share() },
-  legal: { links: [{ label: 'GitHub', href: REPOSITORY_URL }] },
+  legal: { links: [{ label: "GitHub", href: REPOSITORY_URL }] },
   file: {
     newDiagram: { onSelect: () => void newDiagram() },
     open: { onSelect: () => pickFile(), shortcut: openKey },
@@ -160,12 +160,12 @@ const shell = mountShell(app, {
   emptyHint: {},
   emptyState: {
     title: APP_NAME,
-    text: 'Start a new diagram, or explore the example.',
-    komet: '/miragon-komet-blau.svg',
+    text: "Start a new diagram, or explore the example.",
+    komet: "/miragon-komet-blau.svg",
     onNewDiagram: () => void newDiagram(),
     onShowExample: () => void showExample(),
     // The same types the reject toast names (the accept list's extensions).
-    dropHint: 'Or drop a .wmap, .owm, or .json file here',
+    dropHint: "Or drop a .wmap, .owm, or .json file here",
   },
   dropZone: {
     accept: MAP_FILE_TYPES,
@@ -189,7 +189,7 @@ const textDialogs = createTextDialogs(shell, {
   applyKeys,
   copyKeys,
 });
-viewer.on('diagram.destroy', () => {
+viewer.on("diagram.destroy", () => {
   shortcutsDialog.destroy();
   titleDialog.destroy();
   mapSizePopover.destroy();
@@ -236,7 +236,7 @@ function isBlankMap(): boolean {
 }
 
 function currentTitle(): string {
-  return viewer.exportMap().config.title ?? '';
+  return viewer.exportMap().config.title ?? "";
 }
 
 /** The map's title in the tab (guide §5.4: the web app's title names the file), else the app. */
@@ -270,7 +270,7 @@ function reportWarnings(warnings: readonly ImportWarning[]): void {
   for (const warning of warnings) console.warn(`[wardley-import] ${warning.message}`);
   if (warnings.length === 0) return;
   const pill = shell.messages.problems(warnings.length, formatNumber(warnings.length, shell.lang));
-  shell.toast({ status: 'warning', text: importWarningsText(warnings.length, pill) });
+  shell.toast({ status: "warning", text: importWarningsText(warnings.length, pill) });
 }
 
 // Replacing the map clears the canvas history, so instead of asking first (guide §9) every
@@ -284,9 +284,9 @@ const mapReplacer = createMapReplacer({
   },
   offerUndo: (undo) =>
     shell.toast({
-      status: 'info',
-      text: 'Map replaced',
-      action: { label: 'Undo', onSelect: undo },
+      status: "info",
+      text: "Map replaced",
+      action: { label: "Undo", onSelect: undo },
     }),
 });
 
@@ -309,8 +309,8 @@ function showExample(): Promise<void> {
 }
 
 function showOpenError(error: unknown, fileName: string): void {
-  console.error('[wardley-import]', error);
-  shell.toast({ status: 'danger', text: importErrorMessage(error, fileName) });
+  console.error("[wardley-import]", error);
+  shell.toast({ status: "danger", text: importErrorMessage(error, fileName) });
 }
 
 /** Reads the file before the canvas is touched, so a file that is no map keeps map and view. */
@@ -330,22 +330,22 @@ async function openMapFile(file: File): Promise<void> {
 }
 
 async function importLink(result: HashMapResult): Promise<void> {
-  if (result.kind === 'corrupt') {
+  if (result.kind === "corrupt") {
     keepBrokenHash = true;
-    shell.toast({ status: 'danger', text: CORRUPT_LINK_MESSAGE });
-  } else if (result.kind === 'ok' && result.dsl !== currentDSL()) {
+    shell.toast({ status: "danger", text: CORRUPT_LINK_MESSAGE });
+  } else if (result.kind === "ok" && result.dsl !== currentDSL()) {
     await replaceMap(importText(result.dsl));
   }
 }
 
-const fileInput = document.createElement('input');
-fileInput.type = 'file';
-fileInput.accept = MAP_FILE_TYPES.join(',');
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = MAP_FILE_TYPES.join(",");
 fileInput.hidden = true;
 document.body.append(fileInput);
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
-  fileInput.value = '';
+  fileInput.value = "";
   if (file) void openMapFile(file);
 });
 
@@ -372,18 +372,18 @@ function share(): void {
       writeHashPayload(encoded);
       keepBrokenHash = false;
     } catch (error) {
-      console.error('[wardley-share]', error);
-      shell.toast({ status: 'danger', text: "Couldn't create the share link. Try again." });
+      console.error("[wardley-share]", error);
+      shell.toast({ status: "danger", text: "Couldn't create the share link. Try again." });
       return;
     }
     if (await copied) {
-      shell.toast({ status: 'success', text: 'Link copied' });
+      shell.toast({ status: "success", text: "Link copied" });
       return;
     }
     shell.toast({
-      status: 'danger',
+      status: "danger",
       text: "Couldn't copy the link.",
-      action: { label: 'Show link', onSelect: () => textDialogs.open('share', link) },
+      action: { label: "Show link", onSelect: () => textDialogs.open("share", link) },
     });
   })();
 }
@@ -391,35 +391,35 @@ function share(): void {
 function saveAs(kind: DownloadKind, save: (name: string) => void): void {
   const name = downloadFileName(currentTitle(), kind);
   save(name);
-  shell.toast({ status: 'success', text: `Exported ${name}.` });
+  shell.toast({ status: "success", text: `Exported ${name}.` });
 }
 
-function exportMapText(mode: 'dsl' | 'json', text?: string): void {
-  if (mode === 'dsl') {
-    saveAs('wmap', (name) => downloadText(text ?? currentDSL(), name, 'text/plain;charset=utf-8'));
+function exportMapText(mode: "dsl" | "json", text?: string): void {
+  if (mode === "dsl") {
+    saveAs("wmap", (name) => downloadText(text ?? currentDSL(), name, "text/plain;charset=utf-8"));
   } else {
-    saveAs('json', (name) =>
-      downloadText(text ?? serializeMap(viewer.exportMap()), name, 'application/json'),
+    saveAs("json", (name) =>
+      downloadText(text ?? serializeMap(viewer.exportMap()), name, "application/json"),
     );
   }
 }
 
 /** saveSVG leaves selection and hover state out, so the user's selection stays as it is. */
-async function exportPicture(kind: 'svg' | 'png' | 'png-transparent'): Promise<void> {
+async function exportPicture(kind: "svg" | "png" | "png-transparent"): Promise<void> {
   try {
     const { svg } = await viewer.saveSVG();
-    if (kind === 'svg') {
-      saveAs('svg', (name) => downloadText(svg, name, 'image/svg+xml'));
+    if (kind === "svg") {
+      saveAs("svg", (name) => downloadText(svg, name, "image/svg+xml"));
       return;
     }
-    const png = await svgToPng(svg, kind === 'png' ? {} : { scale: 4, transparent: true });
+    const png = await svgToPng(svg, kind === "png" ? {} : { scale: 4, transparent: true });
     saveAs(kind, (name) => downloadBlob(png, name));
   } catch (error) {
-    console.error('[wardley-export]', error);
+    console.error("[wardley-export]", error);
     shell.toast({
-      status: 'danger',
+      status: "danger",
       text:
-        kind === 'svg'
+        kind === "svg"
           ? "Couldn't export the map as SVG. Try again."
           : "Couldn't export the map as PNG. Try again, or export it as SVG.",
     });
@@ -439,7 +439,7 @@ function isInTextField(target: EventTarget | null): boolean {
 }
 
 function modalOpen(): boolean {
-  return document.querySelector('dialog:modal') !== null;
+  return document.querySelector("dialog:modal") !== null;
 }
 
 /** A modal dialog, or a popover such as "Map size…" or the problems list. */
@@ -453,7 +453,7 @@ function onUndoReplaceKey(event: KeyboardEvent): void {
   if (event.shiftKey || event.altKey || event.isComposing || !isUndoRedoKey(event)) return;
   // Cmd/Ctrl+Y is redo; the typed letter decides (QWERTZ swaps the keys), as in isUndoRedoKey.
   const ascii = event.key.length === 1 && event.key.charCodeAt(0) < 0x80;
-  if ((ascii ? event.key.toLowerCase() : event.code === 'KeyZ' ? 'z' : '') !== 'z') return;
+  if ((ascii ? event.key.toLowerCase() : event.code === "KeyZ" ? "z" : "") !== "z") return;
   if (isInTextField(event.target) || modalOpen() || shell.isEmptyStateShown()) return;
   event.preventDefault();
   event.stopPropagation();
@@ -472,18 +472,18 @@ function saveFromKey(): void {
   // A name being typed belongs in the file (and its name): the key does not take the focus off
   // the inline editor the way a menu click does.
   viewer.commitPendingEdits();
-  exportMapText('dsl');
+  exportMapText("dsl");
 }
 
 function onAppKey(event: KeyboardEvent): void {
   const command = event.metaKey || event.ctrlKey;
   if (command && !event.altKey && !event.shiftKey && !event.isComposing) {
     const key = event.key.toLowerCase();
-    if (key === 'o' || key === 's') {
+    if (key === "o" || key === "s") {
       // Never the browser's "Open file" or "Save page as" instead, also not over a dialog.
       event.preventDefault();
       if (event.repeat) return;
-      if (key === 's') saveFromKey();
+      if (key === "s") saveFromKey();
       else if (!modalOpen()) pickFile();
       return;
     }
@@ -499,7 +499,7 @@ function onAppKey(event: KeyboardEvent): void {
 /** OWM text or a share link pasted onto the canvas opens it (undoable like any replacement). */
 function onPaste(event: ClipboardEvent): void {
   if (event.defaultPrevented || anyDialogOpen() || isInTextField(event.target)) return;
-  const text = event.clipboardData?.getData('text/plain') ?? '';
+  const text = event.clipboardData?.getData("text/plain") ?? "";
   if (!text.trim()) return;
   if (/#mz?=/.test(text)) {
     event.preventDefault();
@@ -520,12 +520,12 @@ function syncUrl(): void {
     void writeHashMap(currentDSL());
   } else if (!keepBrokenHash) {
     // An empty map without custom config drops the hash: a clean URL, an empty start stays shareable.
-    history.replaceState(null, '', location.pathname + location.search);
+    history.replaceState(null, "", location.pathname + location.search);
   }
 }
 
-viewer.on<{ trigger?: string }>('commandStack.changed', (event) => {
-  if (event.trigger !== 'clear') {
+viewer.on<{ trigger?: string }>("commandStack.changed", (event) => {
+  if (event.trigger !== "clear") {
     // The first edit is a start as well; and an edit makes an open undo offer stale.
     shell.setEmptyState(false);
     keepBrokenHash = false;
@@ -535,19 +535,19 @@ viewer.on<{ trigger?: string }>('commandStack.changed', (event) => {
   updateDocumentTitle();
   syncUrl();
 });
-viewer.on('import.done', () => {
+viewer.on("import.done", () => {
   updateDocumentTitle();
   syncUrl();
 });
 // Live previews (axis labels, map size, plot-handle drags) are committed later as one change.
-viewer.on<{ transient?: boolean }>('wardley.config.changed', (event) => {
+viewer.on<{ transient?: boolean }>("wardley.config.changed", (event) => {
   if (event.transient) return;
   updateDocumentTitle();
   syncUrl();
 });
-viewer.on<LabelDeduplicatedEvent>('wardley.label.deduplicated', (event) => {
+viewer.on<LabelDeduplicatedEvent>("wardley.label.deduplicated", (event) => {
   shell.toast({
-    status: 'info',
+    status: "info",
     text: `“${event.requested}” already exists — renamed to “${event.applied}”, because links refer to names.`,
   });
 });
@@ -557,25 +557,25 @@ function onHashChange(): void {
   void readHashMap().then(importLink);
 }
 
-window.addEventListener('keydown', onUndoReplaceKey, true);
-window.addEventListener('keydown', onAppKey);
-document.addEventListener('paste', onPaste);
-window.addEventListener('hashchange', onHashChange);
+window.addEventListener("keydown", onUndoReplaceKey, true);
+window.addEventListener("keydown", onAppKey);
+document.addEventListener("paste", onPaste);
+window.addEventListener("hashchange", onHashChange);
 
 // ---------------------------------------------------------------------------
 // Start: the map from the link, else the start screen on an empty map
 // ---------------------------------------------------------------------------
 
 const initial = await readHashMap();
-if (initial.kind === 'ok') {
+if (initial.kind === "ok") {
   reportWarnings(await openDocument(importText(initial.dsl)));
 } else {
-  keepBrokenHash = initial.kind === 'corrupt';
+  keepBrokenHash = initial.kind === "corrupt";
   await viewer.importMap(createEmptyMap());
   viewport.afterImport();
   shell.setEmptyState(true);
   updateDocumentTitle();
-  if (keepBrokenHash) shell.toast({ status: 'danger', text: CORRUPT_LINK_MESSAGE });
+  if (keepBrokenHash) shell.toast({ status: "danger", text: CORRUPT_LINK_MESSAGE });
 }
 
 let destroyed = false;
@@ -588,10 +588,10 @@ const wardleyApp = {
   destroy(): void {
     if (destroyed) return;
     destroyed = true;
-    window.removeEventListener('keydown', onUndoReplaceKey, true);
-    window.removeEventListener('keydown', onAppKey);
-    document.removeEventListener('paste', onPaste);
-    window.removeEventListener('hashchange', onHashChange);
+    window.removeEventListener("keydown", onUndoReplaceKey, true);
+    window.removeEventListener("keydown", onAppKey);
+    document.removeEventListener("paste", onPaste);
+    window.removeEventListener("hashchange", onHashChange);
     fileInput.remove();
     connection.destroy();
     viewer.destroy();

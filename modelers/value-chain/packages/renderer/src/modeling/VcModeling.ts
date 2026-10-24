@@ -1,14 +1,14 @@
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type { Element } from 'diagram-js/lib/model/Types';
-import type { ConnectionType } from '@miragon/value-chain-schema-model';
-import UpdatePropertiesHandler from './cmd/UpdatePropertiesHandler.js';
-import type { VcConnection, VcShape } from '../model/di-types.js';
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type { Element } from "diagram-js/lib/model/Types";
+import type { ConnectionType } from "@miragon/value-chain-schema-model";
+import UpdatePropertiesHandler from "./cmd/UpdatePropertiesHandler.js";
+import type { VcConnection, VcShape } from "../model/di-types.js";
 
-const UPDATE_PROPERTIES = 'element.updateProperties';
+const UPDATE_PROPERTIES = "element.updateProperties";
 
 /** High-level undoable domain mutations; everything funnels through one command. */
 export default class VcModeling {
-  static $inject = ['commandStack'];
+  static $inject = ["commandStack"];
 
   constructor(private readonly commandStack: CommandStack) {
     commandStack.registerHandler(UPDATE_PROPERTIES, UpdatePropertiesHandler);

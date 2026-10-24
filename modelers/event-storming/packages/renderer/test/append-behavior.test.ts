@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
-import EventStormingAppendBehavior from '../src/append/EventStormingAppendBehavior.js';
-import { POPUP_PROVIDER_ID } from '../src/popup/index.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
+import EventStormingAppendBehavior from "../src/append/EventStormingAppendBehavior.js";
+import { POPUP_PROVIDER_ID } from "../src/popup/index.js";
 
 /**
  * The post-placement chain (popup -> retype -> label edit / dismiss -> remove) runs on real
@@ -35,18 +35,18 @@ function harness() {
   new EventStormingAppendBehavior(injector, eventBus);
   const closePopup = () => {
     popupOpen = false;
-    eventBus.fire('popupMenu.close');
+    eventBus.fire("popupMenu.close");
   };
   return { eventBus, popupMenu, modeling, labelEditing, closePopup };
 }
 
 function provisionalShape() {
   return {
-    id: 'event_1',
-    eventStormingType: 'event',
-    eventStormingLabel: '',
+    id: "event_1",
+    eventStormingType: "event",
+    eventStormingLabel: "",
     provisional: true,
-    parent: { id: 'event-storming-root' },
+    parent: { id: "event-storming-root" },
   } as Record<string, unknown>;
 }
 
@@ -55,17 +55,17 @@ function fireCreateEnd(
   shape: Record<string, unknown>,
   originalEvent?: { type: string },
 ) {
-  eventBus.fire('create.end', {
+  eventBus.fire("create.end", {
     context: { source: { x: 0, y: 0, width: 130, height: 90 }, shape, canExecute: {} },
     ...(originalEvent ? { originalEvent } : {}),
   });
 }
 
-describe('EventStormingAppendBehavior: post-placement chain', () => {
+describe("EventStormingAppendBehavior: post-placement chain", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('opens the change-type popup on the landed provisional sticky, not the label editor', () => {
+  it("opens the change-type popup on the landed provisional sticky, not the label editor", () => {
     const { eventBus, popupMenu, labelEditing } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
@@ -78,7 +78,7 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
     expect(labelEditing.activate).not.toHaveBeenCalled();
   });
 
-  it('keeps the direct label edit for non-provisional appends', () => {
+  it("keeps the direct label edit for non-provisional appends", () => {
     const { eventBus, popupMenu, labelEditing } = harness();
     const shape = { ...provisionalShape(), provisional: undefined };
     fireCreateEnd(eventBus, shape);
@@ -87,9 +87,9 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
     expect(labelEditing.activate).toHaveBeenCalledWith(shape);
   });
 
-  it('ignores plain palette creates (no source)', () => {
+  it("ignores plain palette creates (no source)", () => {
     const { eventBus, popupMenu, labelEditing } = harness();
-    eventBus.fire('create.end', { context: { shape: provisionalShape(), canExecute: {} } });
+    eventBus.fire("create.end", { context: { shape: provisionalShape(), canExecute: {} } });
     vi.runAllTimers();
     expect(popupMenu.open).not.toHaveBeenCalled();
     expect(labelEditing.activate).not.toHaveBeenCalled();
@@ -97,19 +97,19 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
 
   // Choosing runs the retype action BEFORE the popup closes (the command auto-closes it), so a
   // cleared `provisional` on close means: hand over to the label editor (step 2 of the chain).
-  it('opens the label editor after a kind was chosen', () => {
+  it("opens the label editor after a kind was chosen", () => {
     const { eventBus, modeling, labelEditing, closePopup } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
     vi.runAllTimers();
-    delete shape['provisional']; // what the setStickyKind confirmation does
+    delete shape["provisional"]; // what the setStickyKind confirmation does
     closePopup();
     vi.runAllTimers();
     expect(labelEditing.activate).toHaveBeenCalledWith(shape);
     expect(modeling.removeElements).not.toHaveBeenCalled();
   });
 
-  it('removes the still-provisional sticky when the popup is dismissed', () => {
+  it("removes the still-provisional sticky when the popup is dismissed", () => {
     const { eventBus, modeling, labelEditing, closePopup } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
@@ -120,18 +120,18 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
     expect(labelEditing.activate).not.toHaveBeenCalled();
   });
 
-  it('does not double-remove a sticky that already left the canvas (undo of the create)', () => {
+  it("does not double-remove a sticky that already left the canvas (undo of the create)", () => {
     const { eventBus, modeling, closePopup } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
     vi.runAllTimers();
-    shape['parent'] = null; // undo removed it from the canvas
+    shape["parent"] = null; // undo removed it from the canvas
     closePopup();
     vi.runAllTimers();
     expect(modeling.removeElements).not.toHaveBeenCalled();
   });
 
-  it('reacts to the NEXT popup close only once (no stale handler on later popups)', () => {
+  it("reacts to the NEXT popup close only once (no stale handler on later popups)", () => {
     const { eventBus, modeling, closePopup } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
@@ -140,12 +140,12 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
     vi.runAllTimers();
     expect(modeling.removeElements).toHaveBeenCalledTimes(1);
     // A later, unrelated popup close must not touch the (long gone) shape again.
-    eventBus.fire('popupMenu.close');
+    eventBus.fire("popupMenu.close");
     vi.runAllTimers();
     expect(modeling.removeElements).toHaveBeenCalledTimes(1);
   });
 
-  it('becomes a no-op after diagram.destroy (no commands on a destroyed diagram)', () => {
+  it("becomes a no-op after diagram.destroy (no commands on a destroyed diagram)", () => {
     const { eventBus, modeling, closePopup } = harness();
     const shape = provisionalShape();
     fireCreateEnd(eventBus, shape);
@@ -159,43 +159,43 @@ describe('EventStormingAppendBehavior: post-placement chain', () => {
 /** Close fires first (diagram teardown closes the popup), destroy lands before the deferred step. */
 function popupCloseThenDestroy(eventBus: EventBus, closePopup: () => void) {
   closePopup();
-  eventBus.fire('diagram.destroy');
+  eventBus.fire("diagram.destroy");
 }
 
-describe('EventStormingAppendBehavior: click-to-place gesture', () => {
+describe("EventStormingAppendBehavior: click-to-place gesture", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
   // Regression: a create ending on MOUSEDOWN (click-to-place) has its gesture's click still
   // pending; a popup opened before that click treated it as an outside click and dismissed
   // itself — deleting the blank sticky immediately for everyone who does not drag.
-  it('waits for the trailing click before opening the chooser on mousedown placements', () => {
+  it("waits for the trailing click before opening the chooser on mousedown placements", () => {
     const { eventBus, popupMenu } = harness();
-    fireCreateEnd(eventBus, provisionalShape(), { type: 'mousedown' });
+    fireCreateEnd(eventBus, provisionalShape(), { type: "mousedown" });
     vi.advanceTimersByTime(0);
     expect(popupMenu.open).not.toHaveBeenCalled();
 
-    document.dispatchEvent(new Event('click', { bubbles: true }));
+    document.dispatchEvent(new Event("click", { bubbles: true }));
     vi.runAllTimers();
     expect(popupMenu.open).toHaveBeenCalledTimes(1);
   });
 
-  it('opens via the safety fallback when the gesture click never arrives', () => {
+  it("opens via the safety fallback when the gesture click never arrives", () => {
     const { eventBus, popupMenu } = harness();
-    fireCreateEnd(eventBus, provisionalShape(), { type: 'mousedown' });
+    fireCreateEnd(eventBus, provisionalShape(), { type: "mousedown" });
     vi.advanceTimersByTime(300);
     vi.runAllTimers();
     expect(popupMenu.open).toHaveBeenCalledTimes(1);
 
     // A later stray click must not open a second popup (listener was removed).
-    document.dispatchEvent(new Event('click', { bubbles: true }));
+    document.dispatchEvent(new Event("click", { bubbles: true }));
     vi.runAllTimers();
     expect(popupMenu.open).toHaveBeenCalledTimes(1);
   });
 
-  it('drag placements (mouseup) keep the immediate deferred open', () => {
+  it("drag placements (mouseup) keep the immediate deferred open", () => {
     const { eventBus, popupMenu } = harness();
-    fireCreateEnd(eventBus, provisionalShape(), { type: 'mouseup' });
+    fireCreateEnd(eventBus, provisionalShape(), { type: "mouseup" });
     vi.runAllTimers();
     expect(popupMenu.open).toHaveBeenCalledTimes(1);
   });

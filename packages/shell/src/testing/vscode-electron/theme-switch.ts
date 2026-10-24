@@ -79,7 +79,10 @@ export function describeWorkbenchTheme(
  * it, so VS Code read that write, and the requested theme after it is a change again even when VS
  * Code had read the requested one before without applying it.
  */
-export function detourTheme(requested: ColorThemeKind, shownType: string | undefined): VsCodeColorTheme {
+export function detourTheme(
+  requested: ColorThemeKind,
+  shownType: string | undefined,
+): VsCodeColorTheme {
   return VSCODE_COLOR_THEMES.find(
     (theme) => theme.kind !== requested && workbenchThemeClass(theme.kind) !== shownType,
   )!;
@@ -101,7 +104,10 @@ export async function switchWorkbenchTheme(
   const { theme } = options;
   const started = performance.now();
   const deadline = started + options.timeoutMs;
-  const retryAfterMs = Math.min(options.retryAfterMs ?? THEME_RETRY_AFTER_MS, options.timeoutMs / 4);
+  const retryAfterMs = Math.min(
+    options.retryAfterMs ?? THEME_RETRY_AFTER_MS,
+    options.timeoutMs / 4,
+  );
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
   const log = options.log ?? (() => undefined);
   const written: string[] = [];

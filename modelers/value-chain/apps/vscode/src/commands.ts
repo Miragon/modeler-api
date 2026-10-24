@@ -1,19 +1,19 @@
-import * as vscode from 'vscode';
-import type { WebviewCommand } from './protocol.js';
+import * as vscode from "vscode";
+import type { WebviewCommand } from "./protocol.js";
 
-export const DIAGRAM_VIEW_TYPE = 'valueChain.diagramEditor';
+export const DIAGRAM_VIEW_TYPE = "valueChain.diagramEditor";
 
 export const WEBVIEW_COMMANDS: Readonly<Record<WebviewCommand, string>> = {
-  fitView: 'valueChain.fitView',
-  exportPng: 'valueChain.exportPng',
-  exportSvg: 'valueChain.exportSvg',
+  fitView: "valueChain.fitView",
+  exportPng: "valueChain.exportPng",
+  exportSvg: "valueChain.exportSvg",
 };
 
-export const NO_DIAGRAM_MESSAGE = 'Open a value chain diagram in the diagram editor first.';
+export const NO_DIAGRAM_MESSAGE = "Open a value chain diagram in the diagram editor first.";
 
 /** Text and diagram side by side (guide §13.5), from the editor title of either editor. */
-export const OPEN_SOURCE_COMMAND = 'valueChain.openSource';
-export const OPEN_DIAGRAM_COMMAND = 'valueChain.openDiagram';
+export const OPEN_SOURCE_COMMAND = "valueChain.openSource";
+export const OPEN_DIAGRAM_COMMAND = "valueChain.openDiagram";
 
 /**
  * Editor title buttons pass the editor's resource; the Command Palette passes nothing, so the
@@ -31,9 +31,9 @@ export function registerSideBySideCommands(
       const uri = resourceArgument(argument) ?? activeDiagramUri();
       if (!uri) return void vscode.window.showInformationMessage(NO_DIAGRAM_MESSAGE);
       return vscode.commands.executeCommand(
-        'vscode.openWith',
+        "vscode.openWith",
         uri,
-        'default',
+        "default",
         vscode.ViewColumn.Beside,
       );
     }),
@@ -41,7 +41,7 @@ export function registerSideBySideCommands(
       const uri = resourceArgument(argument) ?? vscode.window.activeTextEditor?.document.uri;
       if (!uri) return undefined;
       return vscode.commands.executeCommand(
-        'vscode.openWith',
+        "vscode.openWith",
         uri,
         DIAGRAM_VIEW_TYPE,
         vscode.ViewColumn.Beside,

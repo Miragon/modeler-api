@@ -20,7 +20,12 @@ function toScreen(point: Point, box: ScaledViewbox): Point {
   return { x: (point.x - box.x) * box.scale, y: (point.y - box.y) * box.scale };
 }
 
-function fitted(bounds: Bounds, container = CONTAINER, insets = IDE_INSETS, maxZoom?: number): ScaledViewbox {
+function fitted(
+  bounds: Bounds,
+  container = CONTAINER,
+  insets = IDE_INSETS,
+  maxZoom?: number,
+): ScaledViewbox {
   const box = fitViewbox(bounds, container, insets, maxZoom);
   if (!box) throw new Error("expected a viewbox");
   return box;
@@ -88,7 +93,11 @@ describe("fitViewbox", () => {
   });
 
   it("keeps the container's aspect ratio, so diagram-js applies exactly the computed scale", () => {
-    for (const container of [CONTAINER, { width: 420, height: 700 }, { width: 1920, height: 300 }]) {
+    for (const container of [
+      CONTAINER,
+      { width: 420, height: 700 },
+      { width: 1920, height: 300 },
+    ]) {
       const box = fitted({ x: 10, y: 20, width: 300, height: 900 }, container);
       expect(box.width / box.height).toBeCloseTo(container.width / container.height);
       expect(box.width * box.scale).toBeCloseTo(container.width);
@@ -106,12 +115,17 @@ describe("fitViewbox", () => {
   it("scales a zero-height content by its width", () => {
     const box = fitted({ x: 0, y: 40, width: 1904, height: 0 });
     expect(box.scale).toBeCloseTo(952 / 1904);
-    expect(toScreen({ x: 952, y: 40 }, box)).toEqual({ x: expect.closeTo(500), y: expect.closeTo(412) });
+    expect(toScreen({ x: 952, y: 40 }, box)).toEqual({
+      x: expect.closeTo(500),
+      y: expect.closeTo(412),
+    });
   });
 
   it("returns undefined for content without width and height", () => {
     expect(fitViewbox({ x: 5, y: 5, width: 0, height: 0 }, CONTAINER, IDE_INSETS)).toBeUndefined();
-    expect(fitViewbox({ x: 5, y: 5, width: Number.NaN, height: 0 }, CONTAINER, IDE_INSETS)).toBeUndefined();
+    expect(
+      fitViewbox({ x: 5, y: 5, width: Number.NaN, height: 0 }, CONTAINER, IDE_INSETS),
+    ).toBeUndefined();
   });
 
   it("returns undefined for a 0 × 0 container (a hidden tab)", () => {
@@ -124,7 +138,10 @@ describe("fitViewbox", () => {
   it("centres in the whole container on an axis the insets leave no room on", () => {
     const box = fitted({ x: 0, y: 0, width: 100, height: 280 }, { width: 600, height: 140 });
     expect(box.scale).toBeCloseTo(0.5);
-    expect(toScreen({ x: 50, y: 140 }, box)).toEqual({ x: expect.closeTo(300), y: expect.closeTo(70) });
+    expect(toScreen({ x: 50, y: 140 }, box)).toEqual({
+      x: expect.closeTo(300),
+      y: expect.closeTo(70),
+    });
   });
 });
 
@@ -189,10 +206,14 @@ describe("fitInsets (guide §5.9)", () => {
   it("raises the web app's bottom row by every extra line of a wrapped legal line", () => {
     expect(fitInsets(layout({ host: "web", zoomRaised: true, legalHeight: 20 })).bottom).toBe(92);
     expect(fitInsets(layout({ host: "web", zoomRaised: true, legalHeight: 40 })).bottom).toBe(112);
-    expect(fitInsets(layout({ host: "web", problemsVisible: true, legalHeight: 39.5 })).bottom).toBe(112);
+    expect(
+      fitInsets(layout({ host: "web", problemsVisible: true, legalHeight: 39.5 })).bottom,
+    ).toBe(112);
     // Without the raised row the legal line stays below the fit's 64.
     expect(fitInsets(layout({ host: "web", legalHeight: 40 })).bottom).toBe(64);
-    expect(fitInsets(layout({ host: "ide", problemsVisible: true, legalHeight: 40 })).bottom).toBe(64);
+    expect(fitInsets(layout({ host: "ide", problemsVisible: true, legalHeight: 40 })).bottom).toBe(
+      64,
+    );
   });
 
   it("right 324 (12 + 288 + 24) with an open side inspector in containers wider than 760", () => {
@@ -206,10 +227,12 @@ describe("fitInsets (guide §5.9)", () => {
 
   it("left 12 + legend width + 24 with an open legend in containers wider than 440 only", () => {
     expect(fitInsets(layout({ legendWidth: 200 })).left).toBe(236);
-    expect(fitInsets(layout({ container: { width: 441, height: 700 }, legendWidth: 184.5 })).left).toBe(
-      220.5,
-    );
-    expect(fitInsets(layout({ container: { width: 440, height: 700 }, legendWidth: 200 })).left).toBe(24);
+    expect(
+      fitInsets(layout({ container: { width: 441, height: 700 }, legendWidth: 184.5 })).left,
+    ).toBe(220.5);
+    expect(
+      fitInsets(layout({ container: { width: 440, height: 700 }, legendWidth: 200 })).left,
+    ).toBe(24);
     expect(fitInsets(layout({ legendWidth: 0 })).left).toBe(24);
   });
 
@@ -244,7 +267,9 @@ describe("fitInsets (guide §5.9)", () => {
   });
 
   it("keeps the default bottom while the sheet's top edge is not measured yet", () => {
-    expect(fitInsets(layout({ container: { width: 600, height: 700 }, inspector: {} })).bottom).toBe(64);
+    expect(
+      fitInsets(layout({ container: { width: 600, height: 700 }, inspector: {} })).bottom,
+    ).toBe(64);
   });
 });
 

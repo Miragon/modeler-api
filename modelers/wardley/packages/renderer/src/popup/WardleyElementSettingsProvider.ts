@@ -1,18 +1,18 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type PopupMenu from 'diagram-js/lib/features/popup-menu/PopupMenu';
-import type { PopupMenuTarget } from 'diagram-js/lib/features/popup-menu/PopupMenu';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
+import type { PopupMenuTarget } from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type {
   PopupMenuEntries,
   default as PopupMenuProvider,
-} from 'diagram-js/lib/features/popup-menu/PopupMenuProvider';
-import { isComponent, type WardleyShape } from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
+} from "diagram-js/lib/features/popup-menu/PopupMenuProvider";
+import { isComponent, type WardleyShape } from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
 
-export const POPUP_PROVIDER_ID = 'wardley-element-settings';
+export const POPUP_PROVIDER_ID = "wardley-element-settings";
 
-const TYPE_GROUP = { id: 'type', name: 'Type' };
-const METHOD_GROUP = { id: 'method', name: 'Sourcing' };
-const PROP_GROUP = { id: 'props', name: 'Properties' };
+const TYPE_GROUP = { id: "type", name: "Type" };
+const METHOD_GROUP = { id: "method", name: "Sourcing" };
+const PROP_GROUP = { id: "props", name: "Properties" };
 
 /**
  * The menu handles its own keys (arrows select, Enter picks); without this the document-level
@@ -20,7 +20,7 @@ const PROP_GROUP = { id: 'props', name: 'Properties' };
  * still bubble: diagram-js closes the menu from a document listener.
  */
 function keepKeysInsidePopup(event: KeyboardEvent): void {
-  if (event.key !== 'Escape') event.stopPropagation();
+  if (event.key !== "Escape") event.stopPropagation();
 }
 
 function mark(active: boolean, label: string): string {
@@ -33,7 +33,7 @@ function mark(active: boolean, label: string): string {
  * All actions go through `wardleyModeling` (undo/redo).
  */
 export default class WardleyElementSettingsProvider implements PopupMenuProvider {
-  static $inject = ['popupMenu', 'wardleyModeling', 'eventBus'];
+  static $inject = ["popupMenu", "wardleyModeling", "eventBus"];
 
   constructor(
     popupMenu: PopupMenu,
@@ -41,11 +41,11 @@ export default class WardleyElementSettingsProvider implements PopupMenuProvider
     eventBus: EventBus,
   ) {
     popupMenu.registerProvider(POPUP_PROVIDER_ID, this);
-    eventBus.on('popupMenu.open', () => {
+    eventBus.on("popupMenu.open", () => {
       const container = (popupMenu as unknown as { _current?: { container?: HTMLElement } })
         ._current?.container;
-      if (container?.getAttribute('data-popup') !== POPUP_PROVIDER_ID) return;
-      container.addEventListener('keydown', keepKeysInsidePopup);
+      if (container?.getAttribute("data-popup") !== POPUP_PROVIDER_ID) return;
+      container.addEventListener("keydown", keepKeysInsidePopup);
     });
   }
 
@@ -57,47 +57,47 @@ export default class WardleyElementSettingsProvider implements PopupMenuProvider
 
   private componentEntries(shape: WardleyShape): PopupMenuEntries {
     const dec = shape.decorators ?? {};
-    const kind = dec.ecosystem ? 'ecosystem' : dec.market ? 'market' : 'normal';
+    const kind = dec.ecosystem ? "ecosystem" : dec.market ? "market" : "normal";
     const method = dec.method;
 
     return {
-      'type-normal': {
-        label: mark(kind === 'normal', 'Normal'),
+      "type-normal": {
+        label: mark(kind === "normal", "Normal"),
         group: TYPE_GROUP,
         action: () => this.modeling.setMarketEcosystem(shape, undefined),
       },
-      'type-market': {
-        label: mark(kind === 'market', 'Market'),
+      "type-market": {
+        label: mark(kind === "market", "Market"),
         group: TYPE_GROUP,
-        action: () => this.modeling.setMarketEcosystem(shape, 'market'),
+        action: () => this.modeling.setMarketEcosystem(shape, "market"),
       },
-      'type-ecosystem': {
-        label: mark(kind === 'ecosystem', 'Ecosystem'),
+      "type-ecosystem": {
+        label: mark(kind === "ecosystem", "Ecosystem"),
         group: TYPE_GROUP,
-        action: () => this.modeling.setMarketEcosystem(shape, 'ecosystem'),
+        action: () => this.modeling.setMarketEcosystem(shape, "ecosystem"),
       },
-      'method-none': {
-        label: mark(!method, 'None'),
+      "method-none": {
+        label: mark(!method, "None"),
         group: METHOD_GROUP,
         action: () => this.modeling.setMethod(shape, undefined),
       },
-      'method-build': {
-        label: mark(method === 'build', 'Build'),
+      "method-build": {
+        label: mark(method === "build", "Build"),
         group: METHOD_GROUP,
-        action: () => this.modeling.setMethod(shape, 'build'),
+        action: () => this.modeling.setMethod(shape, "build"),
       },
-      'method-buy': {
-        label: mark(method === 'buy', 'Buy'),
+      "method-buy": {
+        label: mark(method === "buy", "Buy"),
         group: METHOD_GROUP,
-        action: () => this.modeling.setMethod(shape, 'buy'),
+        action: () => this.modeling.setMethod(shape, "buy"),
       },
-      'method-outsource': {
-        label: mark(method === 'outsource', 'Outsource'),
+      "method-outsource": {
+        label: mark(method === "outsource", "Outsource"),
         group: METHOD_GROUP,
-        action: () => this.modeling.setMethod(shape, 'outsource'),
+        action: () => this.modeling.setMethod(shape, "outsource"),
       },
-      'prop-inertia': {
-        label: mark(!!dec.inertia, 'Inertia'),
+      "prop-inertia": {
+        label: mark(!!dec.inertia, "Inertia"),
         group: PROP_GROUP,
         action: () => this.modeling.toggleInertia(shape),
       },

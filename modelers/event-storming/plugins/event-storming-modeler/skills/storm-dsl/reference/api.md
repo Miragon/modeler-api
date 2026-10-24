@@ -10,7 +10,7 @@ ESM, TypeScript types included.
 ## Text ↔ board
 
 ```ts
-import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from '@miragon/event-storming-dsl';
+import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from "@miragon/event-storming-dsl";
 
 const board = parseDSL(stormText); // EventStormingBoard
 const text = serializeDSL(board); // canonical .storm text, trailing newline included
@@ -61,7 +61,7 @@ From `@miragon/event-storming-schema-model`, re-exported for convenience:
 ```ts
 interface EventStormingBoard {
   readonly schemaVersion: number;
-  readonly config: { title: string; style?: 'classic' | 'dark'; level?: BoardLevel };
+  readonly config: { title: string; style?: "classic" | "dark"; level?: BoardLevel };
   readonly elements: readonly BoardElement[];
   readonly edges: readonly BoardEdge[]; // { id, edgeType: 'arrow', from, to, label? }
   readonly rawPassthrough?: readonly string[];
@@ -79,7 +79,7 @@ new board rather than mutating one, or use the pure transforms in
 ## JSON bridge
 
 ```ts
-import { boardToJSON, boardFromJSON, loadBoard } from '@miragon/event-storming-dsl';
+import { boardToJSON, boardFromJSON, loadBoard } from "@miragon/event-storming-dsl";
 
 const json = boardToJSON(board); // deterministic JSON string
 const back = boardFromJSON(json); // validated EventStormingBoard

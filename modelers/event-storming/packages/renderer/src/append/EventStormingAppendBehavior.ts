@@ -1,6 +1,6 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
-import { POPUP_PROVIDER_ID } from '../popup/index.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
+import { POPUP_PROVIDER_ID } from "../popup/index.js";
 
 interface ConnectionPreviewLike {
   drawPreview(context: object, canConnect: unknown, hints: object): void;
@@ -67,31 +67,31 @@ const CHOOSER_GAP = 6;
  * Both only when `context.source` is set; ordinary palette-create stays untouched.
  */
 export default class EventStormingAppendBehavior {
-  static $inject = ['injector', 'eventBus'];
+  static $inject = ["injector", "eventBus"];
 
   constructor(injector: Injector, eventBus: EventBus) {
     const connectionPreview = injector.get(
-      'connectionPreview',
+      "connectionPreview",
       false,
     ) as ConnectionPreviewLike | null;
     const labelEditing = injector.get(
-      'eventStormingLabelEditing',
+      "eventStormingLabelEditing",
       false,
     ) as LabelEditingLike | null;
-    const popupMenu = injector.get('popupMenu', false) as PopupMenuLike | null;
-    const modeling = injector.get('modeling', false) as ModelingLike | null;
-    const canvas = injector.get('canvas', false) as CanvasLike | null;
+    const popupMenu = injector.get("popupMenu", false) as PopupMenuLike | null;
+    const modeling = injector.get("modeling", false) as ModelingLike | null;
+    const canvas = injector.get("canvas", false) as CanvasLike | null;
 
     // The chain steps run deferred (setTimeout) — after a teardown they must become no-ops
     // instead of executing commands on a destroyed diagram.
     let destroyed = false;
-    eventBus.on('diagram.destroy', () => {
+    eventBus.on("diagram.destroy", () => {
       destroyed = true;
     });
 
     // (1) arrow preview
     if (connectionPreview) {
-      eventBus.on('create.move', (event: CreateEvent) => {
+      eventBus.on("create.move", (event: CreateEvent) => {
         const { context } = event;
         const source = context.source;
         if (!source) return;
@@ -105,7 +105,7 @@ export default class EventStormingAppendBehavior {
       });
 
       eventBus.on(
-        ['create.end', 'create.cancel', 'create.cleanup'],
+        ["create.end", "create.cancel", "create.cleanup"],
         (event: { context: object }) => {
           connectionPreview.cleanUp(event.context);
         },
@@ -132,7 +132,7 @@ export default class EventStormingAppendBehavior {
         modeling.removeElements([shape]);
         return;
       }
-      eventBus.once('popupMenu.close', () => {
+      eventBus.once("popupMenu.close", () => {
         // Deferred: the close event fires INSIDE PopupMenu.close() — executing a command here
         // would re-enter close() via its auto-close binding, and the label editor would lose
         // focus to the popup teardown's focus restore.
@@ -151,7 +151,7 @@ export default class EventStormingAppendBehavior {
 
     // (2) post-placement chain: provisional stickies get the kind chooser first (label editing
     // follows the retype); a non-provisional append opens the label editor directly.
-    eventBus.on('create.end', AFTER_CREATE, (event: CreateEvent) => {
+    eventBus.on("create.end", AFTER_CREATE, (event: CreateEvent) => {
       const { context } = event;
       if (!context.source || !context.canExecute || !context.shape) return;
       const shape = context.shape;
@@ -159,17 +159,17 @@ export default class EventStormingAppendBehavior {
         // Open only after render/cleanup — like the label edit below, plus the create's own
         // commandStack.changed would auto-close a popup opened synchronously.
         const original = (event as { originalEvent?: Event }).originalEvent;
-        if (original?.type === 'mousedown') {
+        if (original?.type === "mousedown") {
           // Click-to-place: the create ends on MOUSEDOWN, so the gesture's trailing click is
           // still pending — it would hit the freshly opened popup as an outside click and
           // dismiss it (removing the blank sticky right away). Open after that click passed;
           // the timeout covers gestures whose click never fires (e.g. mouseup off-window).
           const openAfterClick = () => {
-            document.removeEventListener('click', openAfterClick, true);
+            document.removeEventListener("click", openAfterClick, true);
             clearTimeout(fallback);
             setTimeout(() => openKindChooser(shape), 0);
           };
-          document.addEventListener('click', openAfterClick, true);
+          document.addEventListener("click", openAfterClick, true);
           const fallback = setTimeout(openAfterClick, 300);
           return;
         }

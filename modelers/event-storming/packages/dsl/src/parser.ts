@@ -16,7 +16,7 @@ import {
   type NoteAlignHorizontal,
   type NoteAlignVertical,
   type NoteElement,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";
 import {
   indexOfOutsideQuotes,
   keywordOf,
@@ -30,25 +30,25 @@ import {
   splitAtCoords,
   splitLineComment,
   decodeName,
-} from './lexer.js';
-import { IdAllocator, STICKY_ID_PREFIXES, isEngineId } from './ids.js';
+} from "./lexer.js";
+import { IdAllocator, STICKY_ID_PREFIXES, isEngineId } from "./ids.js";
 
 /** Splits `A -> B` at the FIRST arrow — plain indexOf, immune to regex backtracking. */
 function splitArrow(core: string): { left: string; right: string } | null {
-  const arrow = core.indexOf('->');
+  const arrow = core.indexOf("->");
   if (arrow <= 0) return null;
   const left = core.slice(0, arrow).trim();
   const right = core.slice(arrow + 2).trim();
   return left && right ? { left, right } : null;
 }
 
-const KNOWN_STYLES: ReadonlySet<string> = new Set(['classic', 'dark']);
+const KNOWN_STYLES: ReadonlySet<string> = new Set(["classic", "dark"]);
 
 const ATTACHABLE_KINDS: ReadonlySet<string> = new Set(ATTACHABLE_STICKY_KINDS);
 
 const HOST_KINDS: ReadonlySet<string> = new Set(HOST_STICKY_KINDS);
 
-const KNOWN_LEVELS: ReadonlySet<string> = new Set(['big-picture', 'process', 'design']);
+const KNOWN_LEVELS: ReadonlySet<string> = new Set(["big-picture", "process", "design"]);
 
 // The 8 sticky kinds — the only legal arrow endpoints (mirrors validateBoard's contract).
 const STICKY_KINDS: ReadonlySet<string> = new Set(Object.keys(STICKY_ID_PREFIXES));
@@ -87,8 +87,8 @@ function modelAlign(
 ): NoteAlign | undefined {
   if (!align) return undefined;
   const out = compact({
-    horizontal: align.horizontal === 'left' ? undefined : align.horizontal,
-    vertical: align.vertical === 'top' ? undefined : align.vertical,
+    horizontal: align.horizontal === "left" ? undefined : align.horizontal,
+    vertical: align.vertical === "top" ? undefined : align.vertical,
   }) as NoteAlign;
   return Object.keys(out).length ? out : undefined;
 }
@@ -126,7 +126,7 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
   const pendingArrows: PendingArrow[] = [];
   const pendingAttachments: PendingAttachment[] = [];
 
-  let config: BoardConfig = { title: 'Untitled Board' };
+  let config: BoardConfig = { title: "Untitled Board" };
   let inBlockComment = false;
 
   const register = (name: string, id: string) => {
@@ -135,14 +135,14 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
 
   // Diagnostics helpers: read the current line/number from the loop state.
   let lineNo = 0;
-  let currentLine = '';
+  let currentLine = "";
 
   /** Tries to capture a line as an arrow. Returns true when consumed. */
   const pushArrow = (line: string): boolean => {
     // Split off an optional arrow annotation after ';' (e.g. `A -> B; async`).
-    const semi = line.indexOf(';');
+    const semi = line.indexOf(";");
     const core = semi >= 0 ? line.slice(0, semi).trim() : line;
-    const arrowLabel = semi >= 0 ? line.slice(semi + 1).trim() : '';
+    const arrowLabel = semi >= 0 ? line.slice(semi + 1).trim() : "";
     const arrow = splitArrow(core);
     if (!arrow) return false;
     pendingArrows.push({
@@ -169,14 +169,14 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
     const raw = sourceLines[i]!;
     // The empty piece after a final newline is no line: inside an open block comment it would be
     // kept as one, and every save would append another blank line.
-    if (raw === '' && i === sourceLines.length - 1) continue;
+    if (raw === "" && i === sourceLines.length - 1) continue;
     lineNo = i + 1;
     currentLine = raw.trim();
     let working = raw;
 
     // --- Comments (`//`, `/* */`): strip, but keep losslessly in rawPassthrough. ---
     if (inBlockComment) {
-      const close = working.indexOf('*/');
+      const close = working.indexOf("*/");
       if (close < 0) {
         rawPassthrough.push(raw);
         continue;
@@ -185,9 +185,9 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
       working = working.slice(close + 2);
       inBlockComment = false;
     }
-    let open = indexOfOutsideQuotes(working, '/*');
+    let open = indexOfOutsideQuotes(working, "/*");
     while (open >= 0) {
-      const close = working.indexOf('*/', open + 2);
+      const close = working.indexOf("*/", open + 2);
       if (close < 0) {
         rawPassthrough.push(working.slice(open));
         working = working.slice(0, open);
@@ -196,7 +196,7 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
       }
       rawPassthrough.push(working.slice(open, close + 2));
       working = `${working.slice(0, open)} ${working.slice(close + 2)}`;
-      open = indexOfOutsideQuotes(working, '/*');
+      open = indexOfOutsideQuotes(working, "/*");
     }
     const { code, comment } = splitLineComment(working);
     if (comment !== null) rawPassthrough.push(comment);
@@ -217,43 +217,43 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
     // sticky name (e.g. one named "Title Page" — declarations always precede arrows in
     // serialized DSL). `style`/`level`/`line` need no exemption: style and level values are
     // single words and drawings always carry coordinate tuples.
-    const semi = line.indexOf(';');
+    const semi = line.indexOf(";");
     const beforeAnnotation = semi >= 0 ? line.slice(0, semi) : line;
     const titleAsArrow = (): boolean => {
       const arrow = splitArrow(beforeAnnotation.trim());
       return arrow !== null && nameToId.has(decodeName(arrow.left));
     };
-    if ((kw !== 'title' || titleAsArrow()) && !parseCoords(beforeAnnotation) && pushArrow(line)) {
+    if ((kw !== "title" || titleAsArrow()) && !parseCoords(beforeAnnotation) && pushArrow(line)) {
       continue;
     }
 
     switch (kw) {
-      case 'title':
+      case "title":
         config = { ...config, title: after };
         break;
 
-      case 'style': {
+      case "style": {
         const s = after.toLowerCase();
-        if (KNOWN_STYLES.has(s)) config = { ...config, style: s as 'classic' | 'dark' };
+        if (KNOWN_STYLES.has(s)) config = { ...config, style: s as "classic" | "dark" };
         else failed(line);
         break;
       }
 
-      case 'level': {
+      case "level": {
         const l = after.toLowerCase();
         if (KNOWN_LEVELS.has(l)) config = { ...config, level: l as BoardLevel };
         else failed(line);
         break;
       }
 
-      case 'event':
-      case 'command':
-      case 'actor':
-      case 'aggregate':
-      case 'policy':
-      case 'readmodel':
-      case 'external':
-      case 'hotspot': {
+      case "event":
+      case "command":
+      case "actor":
+      case "aggregate":
+      case "policy":
+      case "readmodel":
+      case "external":
+      case "hotspot": {
         const node = parseSticky(after);
         if (!node) {
           failed(line);
@@ -304,9 +304,9 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
         break;
       }
 
-      case 'note': {
+      case "note": {
         const split = splitAtCoords(after);
-        if (!split && after.includes('[')) {
+        if (!split && after.includes("[")) {
           failed(line);
           break;
         }
@@ -334,10 +334,10 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
         }
         // Literal `\n` back into real line breaks (multi-line notes).
         const textPart = decodeName((split ? split.name : col.rest).trim());
-        const id = ids.alloc('note', textPart || 'note');
+        const id = ids.alloc("note", textPart || "note");
         const note: NoteElement = compact({
           id,
-          elementType: 'note',
+          elementType: "note",
           label: textPart,
           position: split ? pos(split.coords.a, split.coords.b) : pos(0, 0),
           color: col.color,
@@ -351,7 +351,7 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
         break;
       }
 
-      case 'line': {
+      case "line": {
         // Project extension (freeform drawing): `line [[x,y], [x,y], …] (closed) (dashed) (color x)`.
         const col = parseColor(after);
         const multi = parseMultiCoords(col.rest);
@@ -376,19 +376,19 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
           diag("A drawing can't have an id. Only a sticky takes (id …).");
         }
         const flags = onDrawing.rest.toLowerCase();
-        const strokeStyle: DrawingStrokeStyle | undefined = flags.includes('(dashed)')
-          ? 'dashed'
-          : flags.includes('(dotted)')
-            ? 'dotted'
+        const strokeStyle: DrawingStrokeStyle | undefined = flags.includes("(dashed)")
+          ? "dashed"
+          : flags.includes("(dotted)")
+            ? "dotted"
             : undefined;
         const points = multi.tuples.map((t) => pos(t.a, t.b));
         const drawing: DrawingElement = {
-          id: ids.alloc('draw', 'line'),
-          elementType: 'drawing',
-          label: '',
+          id: ids.alloc("draw", "line"),
+          elementType: "drawing",
+          label: "",
           position: points[0]!,
           points,
-          ...(flags.includes('(closed)') ? { closed: true } : {}),
+          ...(flags.includes("(closed)") ? { closed: true } : {}),
           ...(strokeStyle ? { strokeStyle } : {}),
           ...(col.color ? { color: col.color } : {}),
         };
@@ -407,7 +407,7 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
   // reference (ids exist for EVERY element, not only those declared with `(id …)`); anything
   // else stays a label lookup. No fallback across the two — `#` always means id.
   const resolve = (token: string): BoardElement | undefined => {
-    if (token.startsWith('#')) {
+    if (token.startsWith("#")) {
       const id = token.slice(1);
       return elements.find((e) => e.id === id);
     }
@@ -478,7 +478,7 @@ export function parseDSLWithDiagnostics(text: string): ParseResult {
     edges.push(
       compact({
         id: nextArrowId(),
-        edgeType: 'arrow',
+        edgeType: "arrow",
         from: from.id,
         to: to.id,
         label: arrow.label,
@@ -542,7 +542,7 @@ function parseSticky(after: string): ParsedSticky | null {
       alignSuffix: al.align || al.invalid ? true : undefined,
     }) as ParsedSticky;
   }
-  if (after.includes('[')) return null;
+  if (after.includes("[")) return null;
   const on = parseOn(after);
   const idp = parseId(on.rest);
   const al = parseAlign(idp.rest);

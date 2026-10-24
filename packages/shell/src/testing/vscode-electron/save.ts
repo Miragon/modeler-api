@@ -50,7 +50,9 @@ async function sampleFile(path: string): Promise<FileSample | undefined> {
       size: after.size,
       mtimeMs: after.mtimeMs,
       consistent:
-        before.size === after.size && before.mtimeMs === after.mtimeMs && bytes.length === after.size,
+        before.size === after.size &&
+        before.mtimeMs === after.mtimeMs &&
+        bytes.length === after.size,
     };
   } catch {
     // between the removal and the creation of a file that is written by replacing it
@@ -82,7 +84,9 @@ function sameSample(a: FileSample | undefined, b: FileSample | undefined): a is 
  * `readSaveOnceClean` waits for; the two reads after it are a margin for a save that reports
  * success before its write is visible.
  */
-export async function waitForSavedText<T>(options: SavedTextOptions<T>): Promise<SavedTextOutcome<T>> {
+export async function waitForSavedText<T>(
+  options: SavedTextOptions<T>,
+): Promise<SavedTextOutcome<T>> {
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
   const settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
   const started = performance.now();
@@ -156,7 +160,9 @@ export interface SaveReadBack<T> {
  * that stays dirty most likely saved nothing, so the disk then gets `settleMs`, not another
  * `timeoutMs`.
  */
-export async function readSaveOnceClean<T>(options: SaveReadBackOptions<T>): Promise<SaveReadBack<T>> {
+export async function readSaveOnceClean<T>(
+  options: SaveReadBackOptions<T>,
+): Promise<SaveReadBack<T>> {
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
   const settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
   const deadline = performance.now() + options.timeoutMs;

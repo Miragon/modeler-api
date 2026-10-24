@@ -3,7 +3,7 @@
  * The DSL is line-based; a full tokenizer/generator is not needed.
  */
 
-import { LARGEST_DRAWABLE_NUMBER } from '@miragon/event-storming-schema-model';
+import { LARGEST_DRAWABLE_NUMBER } from "@miragon/event-storming-schema-model";
 
 export interface ParsedCoords {
   readonly a: number;
@@ -71,7 +71,7 @@ export function parseMultiCoords(line: string): { tuples: ParsedCoords[]; rest: 
     tuples.push({ a, b });
   }
   if (!tuples.length) return null;
-  return { tuples, rest: line.replace(MULTI_COORDS_RE, ' ') };
+  return { tuples, rest: line.replace(MULTI_COORDS_RE, " ") };
 }
 
 /**
@@ -83,7 +83,7 @@ export function splitLineComment(line: string): { code: string; comment: string 
   for (let i = 0; i < line.length - 1; i++) {
     const ch = line[i];
     if (ch === "'") inQuote = !inQuote;
-    else if (!inQuote && ch === '/' && line[i + 1] === '/' && line[i - 1] !== ':') {
+    else if (!inQuote && ch === "/" && line[i + 1] === "/" && line[i - 1] !== ":") {
       return { code: line.slice(0, i), comment: line.slice(i) };
     }
   }
@@ -112,7 +112,7 @@ const COLOR_RE = /\(\s*color\s+(#[0-9a-fA-F]{3,8}|[a-zA-Z][\w-]*)\s*\)/i;
 export function parseColor(line: string): { color?: string; rest: string } {
   const m = COLOR_RE.exec(line);
   if (!m || !m[1]) return { rest: line };
-  return { color: m[1], rest: line.replace(COLOR_RE, ' ') };
+  return { color: m[1], rest: line.replace(COLOR_RE, " ") };
 }
 
 // Attachment extension: `(on <Host Name>)` — canonically the LAST suffix. The host name runs
@@ -125,7 +125,7 @@ export function parseOn(line: string): { host?: string; rest: string } {
   const m = ON_RE.exec(line);
   if (!m) return { rest: line };
   const start = m.index + m[0].length;
-  const close = line.lastIndexOf(')');
+  const close = line.lastIndexOf(")");
   if (close < start) return { rest: line };
   const host = line.slice(start, close).trim();
   if (!host) return { rest: line };
@@ -149,10 +149,10 @@ export function parseId(line: string): {
   rest: string;
 } {
   const m = ID_RE.exec(line);
-  if (m?.[1]) return { id: m[1], rest: line.replace(ID_RE, ' ') };
+  if (m?.[1]) return { id: m[1], rest: line.replace(ID_RE, " ") };
   const p = ID_PRESENT_RE.exec(line);
   if (!p) return { rest: line };
-  return { invalid: p[0], rest: line.replace(ID_PRESENT_RE, ' ') };
+  return { invalid: p[0], rest: line.replace(ID_PRESENT_RE, " ") };
 }
 
 // Resize extension: `(size <w>x<h>)` — canonically the last suffix before `(on …)` on note
@@ -175,12 +175,12 @@ export function parseSize(line: string): {
     const height = Number(m[2]);
     // Non-positive, NaN (`1.2.3`) or beyond the canvas falls through to the malformed branch.
     if (width > 0 && height > 0 && isDrawable(width) && isDrawable(height)) {
-      return { size: { width, height }, rest: line.replace(SIZE_RE, ' ') };
+      return { size: { width, height }, rest: line.replace(SIZE_RE, " ") };
     }
   }
   const p = SIZE_PRESENT_RE.exec(line);
   if (!p) return { rest: line };
-  return { invalid: p[0], rest: line.replace(SIZE_PRESENT_RE, ' ') };
+  return { invalid: p[0], rest: line.replace(SIZE_PRESENT_RE, " ") };
 }
 
 // Alignment extension: `(align <horizontal> <vertical>)` — canonically between `(size …)` and
@@ -194,8 +194,8 @@ const ALIGN_PRESENT_RE = /\(\s*align\b[^)]*\)/i;
 
 export function parseAlign(line: string): {
   align?: {
-    horizontal: 'left' | 'center' | 'right';
-    vertical: 'top' | 'middle' | 'bottom';
+    horizontal: "left" | "center" | "right";
+    vertical: "top" | "middle" | "bottom";
   };
   /** The matched `(align …)` text when present but unreadable (unknown/missing axis words). */
   invalid?: string;
@@ -205,26 +205,26 @@ export function parseAlign(line: string): {
   if (m) {
     return {
       align: {
-        horizontal: m[1]!.toLowerCase() as 'left' | 'center' | 'right',
-        vertical: m[2]!.toLowerCase() as 'top' | 'middle' | 'bottom',
+        horizontal: m[1]!.toLowerCase() as "left" | "center" | "right",
+        vertical: m[2]!.toLowerCase() as "top" | "middle" | "bottom",
       },
-      rest: line.replace(ALIGN_RE, ' '),
+      rest: line.replace(ALIGN_RE, " "),
     };
   }
   const p = ALIGN_PRESENT_RE.exec(line);
   if (!p) return { rest: line };
-  return { invalid: p[0], rest: line.replace(ALIGN_PRESENT_RE, ' ') };
+  return { invalid: p[0], rest: line.replace(ALIGN_PRESENT_RE, " ") };
 }
 
 /** Undoes the serializer's `\n` name escaping (line-based DSL, multi-line labels). */
 export function decodeName(name: string): string {
-  return name.replace(/\\n/g, '\n');
+  return name.replace(/\\n/g, "\n");
 }
 
 /** First word (keyword) of a line, lowercased. */
 export function keywordOf(line: string): string {
   const m = /^\s*([A-Za-z][\w-]*)/.exec(line);
-  return m ? m[1]!.toLowerCase() : '';
+  return m ? m[1]!.toLowerCase() : "";
 }
 
 export function slug(label: string): string {
@@ -232,8 +232,8 @@ export function slug(label: string): string {
     label
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_/, '')
-      .replace(/_$/, '') || 'x'
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_/, "")
+      .replace(/_$/, "") || "x"
   );
 }

@@ -111,7 +111,9 @@ function entry(diagram: Diagram, actionName: string): HTMLElement {
 }
 
 function entries(diagram: Diagram): HTMLElement[] {
-  return Array.from(paletteOf(diagram).querySelectorAll<HTMLElement>(".djs-palette-entries .entry"));
+  return Array.from(
+    paletteOf(diagram).querySelectorAll<HTMLElement>(".djs-palette-entries .entry"),
+  );
 }
 
 function eventBus(diagram: Diagram): EventBusService {
@@ -196,7 +198,9 @@ describe("palette skin", () => {
     expect(toolbar?.getAttribute("role")).toBe("toolbar");
     expect(toolbar?.getAttribute("aria-label")).toBe("Tools");
     expect(entries(diagram).map((element) => element.tabIndex)).toEqual([0, -1, -1, -1, -1]);
-    expect(entries(diagram).every((element) => element.getAttribute("role") === "button")).toBe(true);
+    expect(entries(diagram).every((element) => element.getAttribute("role") === "button")).toBe(
+      true,
+    );
     expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("false");
     expect(entry(diagram, "create.box").hasAttribute("aria-pressed")).toBe(false);
   });
@@ -215,9 +219,9 @@ describe("palette skin", () => {
     expect(hand).not.toBe(before);
     expect(hand.getAttribute("aria-pressed")).toBe("true");
     expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("false");
-    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
-      "Werkzeuge",
-    );
+    expect(
+      paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label"),
+    ).toBe("Werkzeuge");
     expect(entries(diagram).filter((element) => element.tabIndex === 0)).toEqual([
       entry(diagram, "create.box"),
     ]);
@@ -228,7 +232,9 @@ describe("palette skin", () => {
     expect(entry(diagram, "lasso-tool").getAttribute("aria-pressed")).toBe("true");
     expect(entry(diagram, "hand-tool").getAttribute("aria-pressed")).toBe("false");
     eventBus(diagram).fire("tool-manager.update", { tool: null });
-    expect(entries(diagram).filter((element) => element.getAttribute("aria-pressed") === "true")).toEqual([]);
+    expect(
+      entries(diagram).filter((element) => element.getAttribute("aria-pressed") === "true"),
+    ).toEqual([]);
   });
 
   it("moves the tab stop with ← → Home End and wraps", () => {
@@ -352,7 +358,10 @@ describe("read-only", () => {
   it("keeps Lasso and Hand active, marks every other entry aria-disabled and vetoes it on palette.trigger", () => {
     const diagram = createDiagram([
       PaletteModule,
-      providerModule({ ...ENTRIES, "draw-tool": { group: "tools", title: "Draw", action: action("draw") } }),
+      providerModule({
+        ...ENTRIES,
+        "draw-tool": { group: "tools", title: "Draw", action: action("draw") },
+      }),
       shellModule,
     ]);
     const shell = fakeShell();
@@ -465,7 +474,12 @@ describe("keyboard", () => {
   });
 
   it("keeps diagram-js's keyboard bindings from acting on chrome keys", () => {
-    const withShell = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule, shellModule]);
+    const withShell = createDiagram([
+      ZoomScrollModule,
+      KeyboardModule,
+      EditorActionsModule,
+      shellModule,
+    ]);
     const withoutShell = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule]);
     const spies = [withShell, withoutShell].map((diagram) =>
       vi
@@ -498,7 +512,12 @@ describe("keyboard", () => {
     const diagram = createDiagram([KeyboardModule, shellModule]);
     const field = document.createElement("textarea");
     svgOf(diagram).append(field);
-    const typed = new KeyboardEvent("keydown", { key: "!", code: "Digit1", shiftKey: true, bubbles: true });
+    const typed = new KeyboardEvent("keydown", {
+      key: "!",
+      code: "Digit1",
+      shiftKey: true,
+      bubbles: true,
+    });
     Object.defineProperty(typed, "target", { value: field });
     expect(eventBus(diagram).fire("keyboard.keydown", { keyEvent: typed })).toBe(false);
     const native = new KeyboardEvent("keydown", {
@@ -513,7 +532,12 @@ describe("keyboard", () => {
   });
 
   it("behind the web app's start screen leaves a chrome key to the browser: no zoom, not prevented", () => {
-    const diagram = createDiagram([ZoomScrollModule, KeyboardModule, EditorActionsModule, shellModule]);
+    const diagram = createDiagram([
+      ZoomScrollModule,
+      KeyboardModule,
+      EditorActionsModule,
+      shellModule,
+    ]);
     const shell = fakeShell("Tools", "web");
     let startScreen = true;
     Object.assign(shell.handle, { isEmptyStateShown: () => startScreen });
@@ -560,14 +584,21 @@ describe("keyboard", () => {
     const web = createDiagram(modules);
     connect(web, fakeShell("Tools", "web"));
     const webUndo = undo(web);
-    const event = new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true });
+    const event = new KeyboardEvent("keydown", {
+      key: "z",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     svgOf(web).dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
     expect(webUndo).toHaveBeenCalledTimes(1);
   });
 
   it("is a no-op without a keyboard service (viewer)", () => {
-    expect(() => createDiagram([PaletteModule, providerModule(ENTRIES), shellModule])).not.toThrow();
+    expect(() =>
+      createDiagram([PaletteModule, providerModule(ENTRIES), shellModule]),
+    ).not.toThrow();
   });
 });
 
@@ -585,16 +616,16 @@ describe("module", () => {
 
   it("buffers the palette until connectDiagramJs hands it to the shell", () => {
     const diagram = createDiagram();
-    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
-      "Tools",
-    );
+    expect(
+      paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label"),
+    ).toBe("Tools");
     const shell = fakeShell("Werkzeuge");
     connect(diagram, shell);
     expect(shell.registrations).toHaveLength(1);
     expect(shell.registrations[0]?.element).toBe(paletteOf(diagram));
-    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
-      "Werkzeuge",
-    );
+    expect(
+      paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label"),
+    ).toBe("Werkzeuge");
   });
 
   it("registers a palette diagram-js creates after the connection", () => {
@@ -608,7 +639,12 @@ describe("module", () => {
   });
 
   it("cleans up on diagram.destroy", () => {
-    const diagram = createDiagram([KeyboardModule, PaletteModule, providerModule(ENTRIES), shellModule]);
+    const diagram = createDiagram([
+      KeyboardModule,
+      PaletteModule,
+      providerModule(ENTRIES),
+      shellModule,
+    ]);
     const shell = fakeShell();
     connect(diagram, shell);
     const bus = eventBus(diagram);
@@ -644,7 +680,10 @@ describe("connectDiagramJs", () => {
     const diagram = createDiagram();
     const shell = fakeShell();
     let empty = true;
-    connectDiagramJs(shell.handle, diagram, { contentBounds: () => undefined, isEmpty: () => empty });
+    connectDiagramJs(shell.handle, diagram, {
+      contentBounds: () => undefined,
+      isEmpty: () => empty,
+    });
     expect(shell.setEmptyHint).not.toHaveBeenCalled();
     eventBus(diagram).fire("import.done", {});
     expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
@@ -706,7 +745,10 @@ describe("connectDiagramJs", () => {
     const diagram = createDiagram();
     const shell = fakeShell();
     const modeler = { contentBounds: vi.fn(() => ({ x: 0, y: 0, width: 120, height: 80 })) };
-    const connection = connectDiagramJs(shell.handle, diagram, { modeler, contentBounds: () => undefined });
+    const connection = connectDiagramJs(shell.handle, diagram, {
+      modeler,
+      contentBounds: () => undefined,
+    });
     eventBus(diagram).fire("import.done", {});
     expect(shell.setEmptyHint).toHaveBeenLastCalledWith(true);
     expect(connection.viewport.canFit()).toBe(false);
@@ -729,7 +771,10 @@ describe("connectDiagramJs", () => {
     const shell = fakeShell();
     const hostBounds = vi.fn(() => ({ x: 0, y: 0, width: 120, height: 80 }));
     const modeler = new ContractInstanceBefore13();
-    const connection = connectDiagramJs(shell.handle, diagram, { modeler, contentBounds: hostBounds });
+    const connection = connectDiagramJs(shell.handle, diagram, {
+      modeler,
+      contentBounds: hostBounds,
+    });
     eventBus(diagram).fire("import.done", {});
     expect(hostBounds).toHaveBeenCalled();
     expect(shell.setEmptyHint).toHaveBeenLastCalledWith(false);
@@ -781,9 +826,9 @@ describe("connectDiagramJs", () => {
     connection.destroy();
     expect(shell.unregister).toHaveBeenCalledTimes(1);
     expect(shell.setZoomTarget).toHaveBeenLastCalledWith(null);
-    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe(
-      "Tools",
-    );
+    expect(
+      paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label"),
+    ).toBe("Tools");
     expect(entry(diagram, "create.box").hasAttribute("aria-disabled")).toBe(false);
   });
 
@@ -797,7 +842,9 @@ describe("connectDiagramJs", () => {
     expect(second.registrations).toHaveLength(1);
     firstConnection.destroy();
     expect(second.unregister).not.toHaveBeenCalled();
-    expect(paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label")).toBe("Zwei");
+    expect(
+      paletteOf(diagram).querySelector(".djs-palette-entries")?.getAttribute("aria-label"),
+    ).toBe("Zwei");
   });
 });
 
@@ -808,7 +855,12 @@ describe("focus after a pointer click (guide §5.8), with a mounted shell", () =
   });
 
   function mounted() {
-    const diagram = createDiagram([ZoomScrollModule, PaletteModule, providerModule(ENTRIES), shellModule]);
+    const diagram = createDiagram([
+      ZoomScrollModule,
+      PaletteModule,
+      providerModule(ENTRIES),
+      shellModule,
+    ]);
     const canvas = diagram.get<{ getContainer(): HTMLElement; zoom(): number }>("canvas");
     // happy-dom has no SVG transform list, which the zoom getter reads.
     vi.spyOn(canvas, "zoom").mockReturnValue(1);
@@ -818,9 +870,10 @@ describe("focus after a pointer click (guide §5.8), with a mounted shell", () =
     const shell = mountShell(root, { host: "ide", platform: "mac", lang: "en", canvas: container });
     shells.push(shell);
     const connection = connectDiagramJs(shell, diagram, { contentBounds: () => undefined });
-    vi.spyOn(diagram.get<{ stepZoom(delta: number): void }>("zoomScroll"), "stepZoom").mockImplementation(
-      () => {},
-    );
+    vi.spyOn(
+      diagram.get<{ stepZoom(delta: number): void }>("zoomScroll"),
+      "stepZoom",
+    ).mockImplementation(() => {});
     const zoomIn = root.querySelector<HTMLButtonElement>('[data-zoom="in"]')!;
     return { diagram, shell, connection, svg: svgOf(diagram), zoomIn };
   }

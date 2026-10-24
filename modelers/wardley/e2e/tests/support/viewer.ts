@@ -1,6 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
-import type { ShellHandle } from '@miragon/modeler-shell';
-import type { DiagramJsConnection } from '@miragon/modeler-shell/diagram-js';
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { ShellHandle } from "@miragon/modeler-shell";
+import type { DiagramJsConnection } from "@miragon/modeler-shell/diagram-js";
 
 /**
  * Structural handle to the app's debug surface (exposed in apps/webapp/src/main.ts). We never import
@@ -66,22 +66,22 @@ export function startScreen(page: Page): Locator {
 
 /** Open the app and leave the start screen with an empty canvas and the working chrome. */
 export async function startNewMap(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto("/");
   await waitForViewer(page);
-  await startScreen(page).getByRole('button', { name: 'New diagram' }).click();
-  await expect(page.locator('.djs-palette')).toBeVisible();
+  await startScreen(page).getByRole("button", { name: "New diagram" }).click();
+  await expect(page.locator(".djs-palette")).toBeVisible();
 }
 
 /** Load the Tea Shop example from the start screen of a page that has just opened. */
 export async function openExample(page: Page): Promise<void> {
-  await startScreen(page).getByRole('button', { name: 'Show example' }).click();
-  await expect.poll(async () => (await exportMap(page)).config.title).toBe('Tea Shop');
+  await startScreen(page).getByRole("button", { name: "Show example" }).click();
+  await expect.poll(async () => (await exportMap(page)).config.title).toBe("Tea Shop");
 }
 
 /** Opens the chrome's menu and returns its dropdown. */
 export async function openMenu(page: Page): Promise<Locator> {
   const trigger = page.locator('[data-chrome="menu"]');
-  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
   const dropdown = page.locator('.cd-shell-menu[role="menu"]');
   await expect(dropdown).toBeVisible();
   return dropdown;
@@ -94,7 +94,7 @@ export async function menuEntry(page: Page, id: string): Promise<void> {
 
 /** The shell's canvas slot: diagram-js's container. */
 export function canvasSlot(page: Page): Locator {
-  return page.locator('.cd-shell-canvas');
+  return page.locator(".cd-shell-canvas");
 }
 
 export function exportMap(page: Page): Promise<WardleyMapExport> {
@@ -110,19 +110,19 @@ export function exportSvg(page: Page): Promise<string> {
 /** Absolute page coordinate at the given fraction of the canvas slot's bounding box. */
 async function canvasPoint(page: Page, fractionX: number, fractionY: number): Promise<Point> {
   const box = await canvasSlot(page).boundingBox();
-  if (!box) throw new Error('the canvas slot has no bounding box');
+  if (!box) throw new Error("the canvas slot has no bounding box");
   return { x: box.x + box.width * fractionX, y: box.y + box.height * fractionY };
 }
 
 /** Absolute page coordinate of a point in diagram coordinates, for the current viewbox. */
 async function diagramPoint(page: Page, x: number, y: number): Promise<Point> {
   const box = await canvasSlot(page).boundingBox();
-  if (!box) throw new Error('the canvas slot has no bounding box');
+  if (!box) throw new Error("the canvas slot has no bounding box");
   const viewbox = await page.evaluate(() => {
     const viewer = window.__wardleyViewer as unknown as {
       get(name: string): { viewbox(): { x: number; y: number; scale: number } };
     };
-    return viewer.get('canvas').viewbox();
+    return viewer.get("canvas").viewbox();
   });
   return {
     x: box.x + (x - viewbox.x) * viewbox.scale,
@@ -144,12 +144,12 @@ export function elementGfx(page: Page, id: string): Locator {
  * (a naive element-center click would land on the label and miss the shape).
  */
 function shapeHit(page: Page, id: string): Locator {
-  return elementGfx(page, id).locator('.djs-hit');
+  return elementGfx(page, id).locator(".djs-hit");
 }
 
 async function centerOf(locator: Locator): Promise<Point> {
   const box = await locator.boundingBox();
-  if (!box) throw new Error('locator has no bounding box');
+  if (!box) throw new Error("locator has no bounding box");
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
@@ -175,7 +175,7 @@ export async function deselectAll(page: Page): Promise<void> {
     const viewer = window.__wardleyViewer as unknown as {
       get(name: string): { select(element: unknown): void };
     };
-    viewer.get('selection').select(null);
+    viewer.get("selection").select(null);
   });
 }
 
@@ -188,7 +188,7 @@ export async function settleForSnapshot(page: Page): Promise<void> {
   // Park the pointer on the menu button (HTML chrome outside the canvas SVG) so the canvas root and
   // every element fire `element.out` — no `hover` class survives into the exported markup.
   await page.locator('[data-chrome="menu"]').hover();
-  await expect(canvasSlot(page).locator('.hover')).toHaveCount(0);
+  await expect(canvasSlot(page).locator(".hover")).toHaveCount(0);
 }
 
 /**
@@ -215,7 +215,7 @@ export async function showDiagramOrigin(page: Page): Promise<void> {
         viewbox(box: { x: number; y: number; width: number; height: number }): void;
       };
     };
-    const canvas = viewer.get('canvas');
+    const canvas = viewer.get("canvas");
     canvas.viewbox({ x: 0, y: 0, ...canvas.getSize() });
   });
 }
@@ -238,7 +238,7 @@ async function createComponentAtPoint(page: Page, point: Point): Promise<string>
   await dropAtPoint(page, point);
   await expect.poll(async () => (await exportMap(page)).elements.length).toBe(before.size + 1);
   const created = (await exportMap(page)).elements.find((element) => !before.has(element.id));
-  if (!created) throw new Error('no new element after create');
+  if (!created) throw new Error("no new element after create");
   return created.id;
 }
 
@@ -249,7 +249,7 @@ async function createComponentAtPoint(page: Page, point: Point): Promise<string>
 export async function selectShape(page: Page, id: string): Promise<void> {
   await deselectAll(page);
   await shapeHit(page, id).click();
-  await expect(page.locator('.djs-context-pad')).toBeVisible();
+  await expect(page.locator(".djs-context-pad")).toBeVisible();
 }
 
 /**
@@ -280,9 +280,9 @@ export async function dragShape(
 /** Rename a shape inline: double-click, replace the text in the overlay input, commit with Enter. */
 export async function renameShape(page: Page, id: string, newLabel: string): Promise<void> {
   await shapeHit(page, id).dblclick();
-  const input = page.locator('.wardley-label-input');
+  const input = page.locator(".wardley-label-input");
   await expect(input).toBeVisible();
   await input.fill(newLabel);
-  await input.press('Enter');
+  await input.press("Enter");
   await expect(input).toBeHidden();
 }

@@ -1,4 +1,4 @@
-import { COLORS } from '../draw/styles.js';
+import { COLORS } from "../draw/styles.js";
 
 export interface SvgToPngOptions {
   /**
@@ -30,29 +30,29 @@ export async function svgToPng(svg: string, options: SvgToPngOptions = {}): Prom
     throw new RangeError(`PNG scale must be a positive number, got ${scale}.`);
   }
   const { width, height } = svgSize(svg);
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const image = new Image();
     image.width = width;
     image.height = height;
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () => reject(new Error('Could not render the SVG.'));
+      image.onerror = () => reject(new Error("Could not render the SVG."));
       image.src = url;
     });
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     const pixels = rasterSize(width, height, scale);
     canvas.width = pixels.width;
     canvas.height = pixels.height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas 2D context not available.');
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas 2D context not available.");
     if (!options.transparent) {
       context.fillStyle = COLORS.paper;
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!png) throw new Error('PNG generation failed.');
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!png) throw new Error("PNG generation failed.");
     return png;
   } finally {
     URL.revokeObjectURL(url);
@@ -84,8 +84,8 @@ export function rasterSize(
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
-    reader.onerror = () => reject(new Error('Could not read the export blob.'));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(new Error("Could not read the export blob."));
     reader.readAsDataURL(blob);
   });
 }
@@ -95,12 +95,12 @@ export function blobToBase64(blob: Blob): Promise<string> {
  * width of the first nested rect when the root has a relative size such as `100%`.
  */
 function svgSize(svg: string): { width: number; height: number } {
-  const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
-  const width = absoluteLength(root.getAttribute('width'));
-  const height = absoluteLength(root.getAttribute('height'));
+  const root = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement;
+  const width = absoluteLength(root.getAttribute("width"));
+  const height = absoluteLength(root.getAttribute("height"));
   if (width && height) return { width, height };
 
-  const viewBox = (root.getAttribute('viewBox') ?? '')
+  const viewBox = (root.getAttribute("viewBox") ?? "")
     .trim()
     .split(/[\s,]+/)
     .map(Number);
@@ -118,7 +118,7 @@ function svgSize(svg: string): { width: number; height: number } {
 }
 
 function absoluteLength(value: string | null): number | undefined {
-  const match = /^\s*(\d+(?:\.\d+)?)\s*(?:px)?\s*$/.exec(value ?? '');
+  const match = /^\s*(\d+(?:\.\d+)?)\s*(?:px)?\s*$/.exec(value ?? "");
   const length = match ? Number(match[1]) : NaN;
   return length > 0 ? length : undefined;
 }

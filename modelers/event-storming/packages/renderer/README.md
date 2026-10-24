@@ -16,10 +16,10 @@ npm install @miragon/event-storming-renderer
 ## Usage
 
 ```ts
-import { NavigatedViewer } from '@miragon/event-storming-renderer';
-import '@miragon/event-storming-renderer/assets/event-storming.css';
+import { NavigatedViewer } from "@miragon/event-storming-renderer";
+import "@miragon/event-storming-renderer/assets/event-storming.css";
 
-const viewer = new NavigatedViewer({ container: document.querySelector('#canvas')! });
+const viewer = new NavigatedViewer({ container: document.querySelector("#canvas")! });
 
 await viewer.importDSL(`title Order Checkout
 actor Customer [80, 300]
@@ -114,7 +114,7 @@ The package implements the collaborative-modeler contract 1.3 of
 import {
   createCollaborativeModeler,
   createCollaborativeViewer,
-} from '@miragon/event-storming-renderer';
+} from "@miragon/event-storming-renderer";
 
 const modeler = createCollaborativeModeler(); // meta.editable: true
 modeler.attachTo(host); // in the document, with a size
@@ -187,7 +187,7 @@ identity); provide it yourself — recommended self-hosted via [`@fontsource`](h
 (one variable file covers all weights):
 
 ```ts
-import '@fontsource-variable/geist/wght.css';
+import "@fontsource-variable/geist/wght.css";
 ```
 
 Part of the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler) monorepo.

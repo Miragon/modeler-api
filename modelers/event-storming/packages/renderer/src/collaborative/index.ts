@@ -5,4 +5,4 @@ export {
   type CollaborativeEventStormingModeler,
   type CollaborativeEventStormingOptions,
   type EventStormingElementsSurface,
-} from './CollaborativeEventStorming.js';
+} from "./CollaborativeEventStorming.js";

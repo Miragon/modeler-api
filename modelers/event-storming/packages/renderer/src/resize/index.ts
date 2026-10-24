@@ -1,6 +1,6 @@
-import type { ModuleDeclaration } from 'didi';
-import ResizeModule from 'diagram-js/lib/features/resize';
-import EventStormingResizeBehavior from './EventStormingResizeBehavior.js';
+import type { ModuleDeclaration } from "didi";
+import ResizeModule from "diagram-js/lib/features/resize";
+import EventStormingResizeBehavior from "./EventStormingResizeBehavior.js";
 
 /**
  * Free note resizing: the stock diagram-js Resize feature (handles, preview, rules check,
@@ -9,8 +9,8 @@ import EventStormingResizeBehavior from './EventStormingResizeBehavior.js';
  */
 export const eventStormingResizeModule: ModuleDeclaration = {
   __depends__: [ResizeModule],
-  __init__: ['eventStormingResizeBehavior'],
-  eventStormingResizeBehavior: ['type', EventStormingResizeBehavior],
+  __init__: ["eventStormingResizeBehavior"],
+  eventStormingResizeBehavior: ["type", EventStormingResizeBehavior],
 };
 
-export { default as EventStormingResizeBehavior } from './EventStormingResizeBehavior.js';
+export { default as EventStormingResizeBehavior } from "./EventStormingResizeBehavior.js";

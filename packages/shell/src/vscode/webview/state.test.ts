@@ -43,7 +43,10 @@ describe("readShellState", () => {
 
   it("drops malformed values and keeps the valid ones", () => {
     const api = memoryApi({
-      [SHELL_STATE_KEY]: { legendOpen: "yes", view: { viewbox: { x: 0, y: 0, width: 10 }, userMoved: true } },
+      [SHELL_STATE_KEY]: {
+        legendOpen: "yes",
+        view: { viewbox: { x: 0, y: 0, width: 10 }, userMoved: true },
+      },
     });
     expect(readShellState(api)).toEqual({});
 
@@ -59,9 +62,9 @@ describe("readShellState", () => {
     ["a non-finite coordinate", { ...VIEW.viewbox, x: Number.POSITIVE_INFINITY }],
     ["a string coordinate", { ...VIEW.viewbox, y: "12" }],
   ])("ignores a view with %s", (_name, viewbox) => {
-    expect(readShellState(memoryApi({ [SHELL_STATE_KEY]: { view: { viewbox, userMoved: false } } }))).toEqual(
-      {},
-    );
+    expect(
+      readShellState(memoryApi({ [SHELL_STATE_KEY]: { view: { viewbox, userMoved: false } } })),
+    ).toEqual({});
   });
 
   it("returns only the known fields", () => {
@@ -109,7 +112,9 @@ describe("writeShellState", () => {
   it("leaves a stored value alone for undefined or malformed patch values", () => {
     const api = memoryApi({ [SHELL_STATE_KEY]: { legendOpen: true, view: VIEW } });
     writeShellState(api, { view: undefined, legendOpen: undefined });
-    writeShellState(api, { view: { viewbox: { x: 0, y: 0, width: 0, height: 0 }, userMoved: false } });
+    writeShellState(api, {
+      view: { viewbox: { x: 0, y: 0, width: 0, height: 0 }, userMoved: false },
+    });
     expect(api.state).toEqual({ [SHELL_STATE_KEY]: { legendOpen: true, view: VIEW } });
     expect(api.setState).not.toHaveBeenCalled();
   });
@@ -118,7 +123,9 @@ describe("writeShellState", () => {
     const api = memoryApi();
     const view = { viewbox: { ...VIEW.viewbox, scale: 1.5 }, userMoved: false, extra: () => 1 };
     writeShellState(api, { view });
-    expect(api.state).toEqual({ [SHELL_STATE_KEY]: { view: { viewbox: VIEW.viewbox, userMoved: false } } });
+    expect(api.state).toEqual({
+      [SHELL_STATE_KEY]: { view: { viewbox: VIEW.viewbox, userMoved: false } },
+    });
     expect(JSON.parse(JSON.stringify(api.state))).toEqual(api.state);
   });
 

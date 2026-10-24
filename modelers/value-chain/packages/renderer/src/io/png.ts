@@ -1,4 +1,4 @@
-import { COLORS } from '../draw/styles.js';
+import { COLORS } from "../draw/styles.js";
 
 /**
  * Rasterizes an exported SVG (`saveSVG`) to a PNG at `scale` × its size, on the diagram's white
@@ -6,26 +6,26 @@ import { COLORS } from '../draw/styles.js';
  */
 export async function svgToPng(svg: string, scale = 2): Promise<Blob> {
   const { width, height } = svgSize(svg);
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const image = new Image();
     image.width = width;
     image.height = height;
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () => reject(new Error('Could not render the SVG.'));
+      image.onerror = () => reject(new Error("Could not render the SVG."));
       image.src = url;
     });
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas 2D context not available.');
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas 2D context not available.");
     context.fillStyle = COLORS.fill;
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('PNG generation failed.');
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("PNG generation failed.");
     return blob;
   } finally {
     URL.revokeObjectURL(url);
@@ -42,8 +42,8 @@ function svgSize(svg: string): { width: number; height: number } {
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
-    reader.onerror = () => reject(new Error('Could not read the export blob.'));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(new Error("Could not read the export blob."));
     reader.readAsDataURL(blob);
   });
 }

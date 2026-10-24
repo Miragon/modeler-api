@@ -1,17 +1,17 @@
-import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { ElementLike } from 'diagram-js/lib/core/Types';
-import type { MapConfig } from '@miragon/wardley-schema-model';
-import type EvolutionGrid from '../../evolution-grid/EvolutionGrid.js';
-import { wardleyRootOf } from '../../map-resize/index.js';
+import type CommandHandler from "diagram-js/lib/command/CommandHandler";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { ElementLike } from "diagram-js/lib/core/Types";
+import type { MapConfig } from "@miragon/wardley-schema-model";
+import type EvolutionGrid from "../../evolution-grid/EvolutionGrid.js";
+import { wardleyRootOf } from "../../map-resize/index.js";
 
 /**
  * Config fields a `wardley.config.update` may change; `undefined` removes the field. The size is
  * excluded on purpose: it needs the re-projection of `wardley.map.resize`.
  */
 export type MapConfigUpdate = {
-  -readonly [Key in Exclude<keyof MapConfig, 'size'>]?: MapConfig[Key] | undefined;
+  -readonly [Key in Exclude<keyof MapConfig, "size">]?: MapConfig[Key] | undefined;
 };
 
 export interface UpdateConfigContext {
@@ -38,7 +38,7 @@ export function applyConfigUpdate(
   const previous: Record<string, unknown> = {};
   const config: Record<string, unknown> = { ...root.businessObject.config };
   for (const [key, value] of Object.entries(update)) {
-    if (key === 'size') continue;
+    if (key === "size") continue;
     previous[key] = config[key];
     if (value === undefined) delete config[key];
     else config[key] = value;
@@ -47,7 +47,7 @@ export function applyConfigUpdate(
   root.businessObject = { ...root.businessObject, config: nextConfig };
   grid.configure(nextConfig);
   grid.render();
-  eventBus.fire('wardley.config.changed', {
+  eventBus.fire("wardley.config.changed", {
     config: nextConfig,
     ...(options.transient ? { transient: true } : {}),
   });
@@ -59,7 +59,7 @@ export function applyConfigUpdate(
  * swapped, so it composes with any other config change in the undo history.
  */
 export default class UpdateConfigHandler implements CommandHandler {
-  static $inject = ['canvas', 'evolutionGrid', 'eventBus'];
+  static $inject = ["canvas", "evolutionGrid", "eventBus"];
 
   constructor(
     private readonly canvas: Canvas,

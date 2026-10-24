@@ -189,7 +189,10 @@ describe("the container script", () => {
         `#!/bin/sh\nif [ "$1" = "-v" ]; then echo 10.0.0; else echo "$@" >> "${base}/npm-calls"; fi\n`,
       );
       write(join(bin, "node"), "#!/bin/sh\necho v22.22.2\n");
-      write(join(bin, "xvfb-run"), `#!/bin/sh\necho "$@" > "${base}/xvfb-args"\nshift 3\nexec "$@"\n`);
+      write(
+        join(bin, "xvfb-run"),
+        `#!/bin/sh\necho "$@" > "${base}/xvfb-args"\nshift 3\nexec "$@"\n`,
+      );
       for (const tool of ["npm", "node", "xvfb-run"]) chmodSync(join(bin, tool), 0o755);
       const command = [
         "sh",
@@ -197,25 +200,31 @@ describe("the container script", () => {
         `ls -A > "${base}/seen"; mkdir -p ../../test-results/vscode-smoke; echo png > ../../test-results/vscode-smoke/tool-light.png; ` +
           `mkdir -p "$TMPDIR/modeler-shell-vscode-1/user-data/logs/s/window1"; echo log > "$TMPDIR/modeler-shell-vscode-1/user-data/logs/s/window1/exthost.log"; exit 3`,
       ];
-      const ran = spawnSync("bash", ["-c", VSCODE_SMOKE_CONTAINER_SCRIPT, "vscode-smoke", ...command], {
-        encoding: "utf8",
-        env: {
-          PATH: `${bin}:${process.env.PATH ?? ""}`,
-          SMOKE_REPO: repo,
-          SMOKE_WORK: work,
-          SMOKE_OUT: out,
-          SMOKE_RESULTS: "test-results/vscode-smoke",
-          SMOKE_WORKDIR: "apps/vscode",
-          HOST_UID: "",
-          HOST_GID: "",
-          TMPDIR: temp,
+      const ran = spawnSync(
+        "bash",
+        ["-c", VSCODE_SMOKE_CONTAINER_SCRIPT, "vscode-smoke", ...command],
+        {
+          encoding: "utf8",
+          env: {
+            PATH: `${bin}:${process.env.PATH ?? ""}`,
+            SMOKE_REPO: repo,
+            SMOKE_WORK: work,
+            SMOKE_OUT: out,
+            SMOKE_RESULTS: "test-results/vscode-smoke",
+            SMOKE_WORKDIR: "apps/vscode",
+            HOST_UID: "",
+            HOST_GID: "",
+            TMPDIR: temp,
+          },
         },
-      });
+      );
       expect(ran.status, ran.stderr).toBe(3);
       expect(ran.stdout).toContain("[vscode-docker] npm ci in");
       expect(ran.stdout).toContain("[vscode-docker] the command exited with code 3 after");
       expect(readFileSync(join(base, "npm-calls"), "utf8")).toBe("ci --no-audit --no-fund\n");
-      expect(readFileSync(join(base, "xvfb-args"), "utf8")).toMatch(/^-a -s -screen 0 1920x1200x24 sh -c /);
+      expect(readFileSync(join(base, "xvfb-args"), "utf8")).toMatch(
+        /^-a -s -screen 0 1920x1200x24 sh -c /,
+      );
       // the command ran in the workdir of the copy, which has the sources and none of the excluded
       expect(readFileSync(join(base, "seen"), "utf8").split("\n")).toEqual(["src", ""]);
       expect(existsSync(join(work, "package.json"))).toBe(true);
@@ -328,7 +337,15 @@ describe("parseVsCodeSmokeDockerArguments", () => {
 
   it("passes variables with a value, takes the rest from the environment and skips unset ones", () => {
     const parsed = parseVsCodeSmokeDockerArguments(
-      ["--env", "VSCODE_SMOKE_VERSION=1.96.0", "--env", "VSCODE_SMOKE_KEEP", "--env", "UNSET", "--env=A=b=c"],
+      [
+        "--env",
+        "VSCODE_SMOKE_VERSION=1.96.0",
+        "--env",
+        "VSCODE_SMOKE_KEEP",
+        "--env",
+        "UNSET",
+        "--env=A=b=c",
+      ],
       { VSCODE_SMOKE_KEEP: "1" },
     );
     expect(parsed).toEqual({
@@ -352,8 +369,12 @@ describe("parseVsCodeSmokeDockerArguments", () => {
     expect(() => parseVsCodeSmokeDockerArguments(["--bogus"], {})).toThrow(
       /unknown option --bogus[\s\S]*Usage/,
     );
-    expect(() => parseVsCodeSmokeDockerArguments(["--script"], {})).toThrow("--script needs a value");
-    expect(() => parseVsCodeSmokeDockerArguments(["--env", "1X=2"], {})).toThrow("not a variable name");
+    expect(() => parseVsCodeSmokeDockerArguments(["--script"], {})).toThrow(
+      "--script needs a value",
+    );
+    expect(() => parseVsCodeSmokeDockerArguments(["--env", "1X=2"], {})).toThrow(
+      "not a variable name",
+    );
     expect(() => parseVsCodeSmokeDockerArguments(["--script", "a", "--", "b"], {})).toThrow(
       "exclude each other",
     );
@@ -384,7 +405,8 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
   chmodSync(stub, 0o755);
   const saved = { ...process.env };
   afterEach(() => {
-    for (const name of ["STUB_NO_DOCKER", "STUB_IMAGE_EXISTS", "STUB_RUN_EXIT"]) delete process.env[name];
+    for (const name of ["STUB_NO_DOCKER", "STUB_IMAGE_EXISTS", "STUB_RUN_EXIT"])
+      delete process.env[name];
     Object.assign(process.env, saved);
     rmSync(calls, { force: true });
     rmSync(stdinCopy, { force: true });
@@ -438,7 +460,9 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
     write(join(root, "test-results", "vscode-smoke", "wardley-open-failure.png"));
     write(join(root, "docs", "images", "map.png"));
     await runVsCodeSmokeInDocker({ cwd: root, docker: stub, nodeVersion: "22.22.2", log });
-    expect(readdirSync(join(root, "test-results", "vscode-smoke"))).toEqual([DOCKER_RESULTS_MARKER]);
+    expect(readdirSync(join(root, "test-results", "vscode-smoke"))).toEqual([
+      DOCKER_RESULTS_MARKER,
+    ]);
     const logged = lines.length;
     await runVsCodeSmokeInDocker({
       cwd: root,
@@ -448,7 +472,9 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
       log,
     });
     expect(readdirSync(join(root, "docs", "images"))).toEqual(["map.png"]);
-    expect(lines.slice(logged).filter((line) => line.includes("has files of its own"))).toHaveLength(1);
+    expect(
+      lines.slice(logged).filter((line) => line.includes("has files of its own")),
+    ).toHaveLength(1);
   });
 
   it("reuses an existing image, builds none for an image of one's own, and runs the given command", async () => {
@@ -538,11 +564,11 @@ describe("runVsCodeSmokeInDocker", { skip: process.platform === "win32" }, () =>
     await expect(runVsCodeSmokeInDocker({ cwd: "/", docker: stub, log })).rejects.toThrow(
       "no package-lock.json in / or above",
     );
-    await expect(runVsCodeSmokeInDocker({ cwd: root, docker: stub, results: "..", log })).rejects.toThrow(
-      "has to be a directory inside",
-    );
-    await expect(runVsCodeSmokeInDocker({ cwd: root, docker: stub, results: ".", log })).rejects.toThrow(
-      "not the root",
-    );
+    await expect(
+      runVsCodeSmokeInDocker({ cwd: root, docker: stub, results: "..", log }),
+    ).rejects.toThrow("has to be a directory inside");
+    await expect(
+      runVsCodeSmokeInDocker({ cwd: root, docker: stub, results: ".", log }),
+    ).rejects.toThrow("not the root");
   });
 });

@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import EventBus from 'diagram-js/lib/core/EventBus';
-import type { HoverTooltipConfig } from 'diagram-js/lib/features/hover-tooltip/HoverTooltip';
-import type { PaletteEntries } from 'diagram-js/lib/features/palette/PaletteProvider';
+import { describe, it, expect, vi } from "vitest";
+import EventBus from "diagram-js/lib/core/EventBus";
+import type { HoverTooltipConfig } from "diagram-js/lib/features/hover-tooltip/HoverTooltip";
+import type { PaletteEntries } from "diagram-js/lib/features/palette/PaletteProvider";
 import EventStormingPaletteTooltip, {
   PALETTE_TOOLTIP_GAP,
-} from '../src/palette/EventStormingPaletteTooltip.js';
+} from "../src/palette/EventStormingPaletteTooltip.js";
 
 function tooltipHarness(initialEntries: PaletteEntries) {
   const eventBus = new EventBus();
@@ -14,7 +14,7 @@ function tooltipHarness(initialEntries: PaletteEntries) {
   new EventStormingPaletteTooltip(eventBus, palette as never, hoverTooltip as never);
 
   const container = {} as HTMLElement;
-  eventBus.fire('palette.create', { container });
+  eventBus.fire("palette.create", { container });
   const config = hoverTooltip.add.mock.calls[0]?.[0] as HoverTooltipConfig;
   return {
     eventBus,
@@ -29,7 +29,7 @@ function tooltipHarness(initialEntries: PaletteEntries) {
 
 function paletteEntryElement(action: string, rect: Partial<DOMRect> = {}): HTMLElement {
   return {
-    getAttribute: (name: string) => (name === 'data-action' ? action : null),
+    getAttribute: (name: string) => (name === "data-action" ? action : null),
     getBoundingClientRect: () => rect,
   } as unknown as HTMLElement;
 }
@@ -37,25 +37,25 @@ function paletteEntryElement(action: string, rect: Partial<DOMRect> = {}): HTMLE
 const NO_ACTION = {};
 
 const ENTRIES: PaletteEntries = {
-  'create.event': { title: 'Domain event', shortcut: 'E', action: NO_ACTION },
-  'lasso-tool': { title: 'Lasso', shortcut: 'L', action: NO_ACTION },
-  'draw-tool': { title: 'Draw', action: NO_ACTION },
+  "create.event": { title: "Domain event", shortcut: "E", action: NO_ACTION },
+  "lasso-tool": { title: "Lasso", shortcut: "L", action: NO_ACTION },
+  "draw-tool": { title: "Draw", action: NO_ACTION },
   untitled: { action: NO_ACTION },
 };
 
-describe('EventStormingPaletteTooltip', () => {
-  it('registers one hover source on the palette container for its entries', () => {
+describe("EventStormingPaletteTooltip", () => {
+  it("registers one hover source on the palette container for its entries", () => {
     const { hoverTooltip, container, config } = tooltipHarness(ENTRIES);
     expect(hoverTooltip.add).toHaveBeenCalledTimes(1);
     expect(config.container).toBe(container);
-    expect(config.selector).toBe('.djs-palette-entries .entry');
+    expect(config.selector).toBe(".djs-palette-entries .entry");
   });
 
   // The palette is a horizontal bar: diagram-js' default right-hand placement would cover the
   // neighbouring entry, so the tooltip hangs below, centred on the hovered entry.
-  it('places the tooltip below the hovered entry, horizontally centred', () => {
+  it("places the tooltip below the hovered entry, horizontally centred", () => {
     const { config } = tooltipHarness(ENTRIES);
-    const entry = paletteEntryElement('create.event', {
+    const entry = paletteEntryElement("create.event", {
       left: 100,
       width: 40,
       top: 12,
@@ -65,33 +65,33 @@ describe('EventStormingPaletteTooltip', () => {
     expect(config.getPosition(entry)).toEqual({
       x: 120,
       y: 52 + PALETTE_TOOLTIP_GAP,
-      placement: 'bottom',
+      placement: "bottom",
     });
   });
 
-  it('renders title and shortcut of the hovered entry, nothing for entries without a title', () => {
+  it("renders title and shortcut of the hovered entry, nothing for entries without a title", () => {
     const { config } = tooltipHarness(ENTRIES);
-    const content = config.getContent(paletteEntryElement('lasso-tool'));
-    expect(content?.props).toMatchObject({ title: 'Lasso', shortcut: 'L' });
-    expect(config.getContent(paletteEntryElement('create.event'))?.props).toMatchObject({
-      title: 'Domain event',
-      shortcut: 'E',
+    const content = config.getContent(paletteEntryElement("lasso-tool"));
+    expect(content?.props).toMatchObject({ title: "Lasso", shortcut: "L" });
+    expect(config.getContent(paletteEntryElement("create.event"))?.props).toMatchObject({
+      title: "Domain event",
+      shortcut: "E",
     });
-    expect(config.getContent(paletteEntryElement('draw-tool'))?.props).toMatchObject({
-      title: 'Draw',
+    expect(config.getContent(paletteEntryElement("draw-tool"))?.props).toMatchObject({
+      title: "Draw",
       shortcut: undefined,
     });
-    expect(config.getContent(paletteEntryElement('untitled'))).toBeNull();
-    expect(config.getContent(paletteEntryElement('unknown'))).toBeNull();
+    expect(config.getContent(paletteEntryElement("untitled"))).toBeNull();
+    expect(config.getContent(paletteEntryElement("unknown"))).toBeNull();
   });
 
-  it('follows palette rebuilds (level switch) via palette.changed', () => {
+  it("follows palette rebuilds (level switch) via palette.changed", () => {
     const { config, eventBus, replaceEntries } = tooltipHarness(ENTRIES);
-    replaceEntries({ 'create.hotspot': { title: 'Hotspot', action: NO_ACTION } });
-    eventBus.fire('palette.changed');
-    expect(config.getContent(paletteEntryElement('create.hotspot'))?.props).toMatchObject({
-      title: 'Hotspot',
+    replaceEntries({ "create.hotspot": { title: "Hotspot", action: NO_ACTION } });
+    eventBus.fire("palette.changed");
+    expect(config.getContent(paletteEntryElement("create.hotspot"))?.props).toMatchObject({
+      title: "Hotspot",
     });
-    expect(config.getContent(paletteEntryElement('create.event'))).toBeNull();
+    expect(config.getContent(paletteEntryElement("create.event"))).toBeNull();
   });
 });

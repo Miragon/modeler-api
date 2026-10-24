@@ -8,7 +8,11 @@ import { webDemoHarness } from "./web-harness.js";
 // The kit against the demo pages, as a modeler's e2e suite runs it against its webview or its web
 // app: the IDE and embedded hosts on the 0.1 demo, the web host on the web demo (/web.html, the
 // whole web column). The demos feed every hook or declare it absent, so a skip is a failure here.
-const suites: ReadonlyArray<{ title: string; host: ShellHost; harness: ShellConformanceHarness<Page> }> = [
+const suites: ReadonlyArray<{
+  title: string;
+  host: ShellHost;
+  harness: ShellConformanceHarness<Page>;
+}> = [
   { title: "ide host", host: "ide", harness: demoHarness("ide") },
   { title: "web host", host: "web", harness: webDemoHarness() },
   { title: "embedded host", host: "embedded", harness: demoHarness("embedded") },
@@ -37,7 +41,9 @@ for (const { title, host, harness } of suites) {
     registerShellConformance(harness, test, {
       onSkip(caseName, skips) {
         const reasons = skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
-        throw new Error(`the demo harness left "${caseName}" (${host} host) unverified: ${reasons}`);
+        throw new Error(
+          `the demo harness left "${caseName}" (${host} host) unverified: ${reasons}`,
+        );
       },
     });
   });

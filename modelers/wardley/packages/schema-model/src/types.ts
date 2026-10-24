@@ -18,17 +18,17 @@ export interface Coordinate {
 }
 
 export type ElementType =
-  | 'anchor'
-  | 'component'
-  | 'pipeline'
-  | 'note'
-  | 'annotation'
-  | 'accelerator'
-  | 'attitude'
-  | 'submap'
-  | 'drawing';
+  | "anchor"
+  | "component"
+  | "pipeline"
+  | "note"
+  | "annotation"
+  | "accelerator"
+  | "attitude"
+  | "submap"
+  | "drawing";
 
-export type Method = 'build' | 'buy' | 'outsource';
+export type Method = "build" | "buy" | "outsource";
 
 /** Decorator flags; market/ecosystem as flags rather than dedicated types (modernized OWM syntax). */
 export interface ComponentDecorators {
@@ -65,11 +65,11 @@ export interface MapElementBase {
 }
 
 export interface AnchorElement extends MapElementBase {
-  readonly elementType: 'anchor';
+  readonly elementType: "anchor";
 }
 
 export interface ComponentElement extends MapElementBase {
-  readonly elementType: 'component';
+  readonly elementType: "component";
   readonly decorators?: ComponentDecorators;
   readonly movement?: Movement;
   /** Membership in a pipeline (shares its visibility). */
@@ -79,7 +79,7 @@ export interface ComponentElement extends MapElementBase {
 }
 
 export interface PipelineElement extends MapElementBase {
-  readonly elementType: 'pipeline';
+  readonly elementType: "pipeline";
   /** DSL brackets for `pipeline` = [evolutionStart, evolutionEnd] (see §7.4). */
   readonly evolutionStart: number;
   readonly evolutionEnd: number;
@@ -88,33 +88,33 @@ export interface PipelineElement extends MapElementBase {
 }
 
 export type ClimaticPattern =
-  | 'everythingEvolves'
-  | 'characteristicsChange'
-  | 'noOneSizeFitsAll'
-  | 'efficiencyEnablesInnovation'
-  | 'pastSuccessBreedsInertia'
-  | 'capitalFlowsToNewValue';
+  | "everythingEvolves"
+  | "characteristicsChange"
+  | "noOneSizeFitsAll"
+  | "efficiencyEnablesInnovation"
+  | "pastSuccessBreedsInertia"
+  | "capitalFlowsToNewValue";
 
 export interface NoteElement extends MapElementBase {
-  readonly elementType: 'note';
+  readonly elementType: "note";
   readonly patternType?: ClimaticPattern;
 }
 
 export interface AnnotationElement extends MapElementBase {
-  readonly elementType: 'annotation';
+  readonly elementType: "annotation";
   readonly number: number;
   readonly positions: readonly Coordinate[];
   readonly text: string;
 }
 
-export type AcceleratorDirection = 'accelerate' | 'deaccelerate';
+export type AcceleratorDirection = "accelerate" | "deaccelerate";
 
 export interface AcceleratorElement extends MapElementBase {
-  readonly elementType: 'accelerator';
+  readonly elementType: "accelerator";
   readonly direction: AcceleratorDirection;
 }
 
-export type AttitudeKind = 'pioneers' | 'settlers' | 'townplanners';
+export type AttitudeKind = "pioneers" | "settlers" | "townplanners";
 
 export interface AttitudeElement extends MapElementBase {
   /**
@@ -122,24 +122,24 @@ export interface AttitudeElement extends MapElementBase {
    *  `position` = anchor point at the top left (higher visibility, lower evolution),
    *  `corner2` = opposite corner at the bottom right.
    */
-  readonly elementType: 'attitude';
+  readonly elementType: "attitude";
   readonly kind: AttitudeKind;
   readonly corner2: Coordinate;
 }
 
 export interface SubmapElement extends MapElementBase {
-  readonly elementType: 'submap';
+  readonly elementType: "submap";
   readonly urlRef?: string;
 }
 
-export type DrawingStrokeStyle = 'solid' | 'dashed' | 'dotted';
+export type DrawingStrokeStyle = "solid" | "dashed" | "dotted";
 
 /**
  * Freeform polyline/polygon (project extension, Excalidraw-style annotation drawing).
  *  `position` mirrors the first point; `points` are absolute normalized coordinates.
  */
 export interface DrawingElement extends MapElementBase {
-  readonly elementType: 'drawing';
+  readonly elementType: "drawing";
   readonly points: readonly Coordinate[];
   /** true = closed polygon, false/absent = open polyline. */
   readonly closed?: boolean;
@@ -157,11 +157,11 @@ export type MapElement =
   | SubmapElement
   | DrawingElement;
 
-export type EdgeType = 'dependency' | 'flow';
+export type EdgeType = "dependency" | "flow";
 
 export interface DependencyLink {
   readonly id: string;
-  readonly edgeType: 'dependency';
+  readonly edgeType: "dependency";
   /** MapElement.id of the more visible/higher node. */
   readonly from: string;
   /** MapElement.id of the dependency. */
@@ -171,7 +171,7 @@ export interface DependencyLink {
 
 export interface FlowLink {
   readonly id: string;
-  readonly edgeType: 'flow';
+  readonly edgeType: "flow";
   readonly from: string;
   readonly to: string;
   /** Value on the flow: `+'120ms'>`. */
@@ -184,7 +184,7 @@ export interface FlowLink {
 
 export type MapEdge = DependencyLink | FlowLink;
 
-export type MapStyle = 'wardley' | 'handwritten' | 'colour' | 'dark';
+export type MapStyle = "wardley" | "handwritten" | "colour" | "dark";
 
 export interface MapConfig {
   readonly title: string;
@@ -208,7 +208,7 @@ export interface MapConfig {
 export const DEFAULT_PLOT_SIZE = { width: 1080, height: 680 } as const;
 
 /** Title of a map that names none (parser default, new maps, a cleared title). */
-export const DEFAULT_MAP_TITLE = 'Untitled Map';
+export const DEFAULT_MAP_TITLE = "Untitled Map";
 
 /** Root object. Domain and layout are separated logically (not physically). */
 export interface WardleyMap {

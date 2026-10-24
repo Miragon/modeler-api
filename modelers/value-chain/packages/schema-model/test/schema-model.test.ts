@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   connectionExtensions,
   COORDINATE_LIMIT,
@@ -14,32 +14,32 @@ import {
   serializeDocument,
   validateDocument,
   type ValueChainDocument,
-} from '../src/index.js';
+} from "../src/index.js";
 
 const doc: ValueChainDocument = {
   schemaVersion: 1,
-  meta: { name: 'Order to Cash' },
+  meta: { name: "Order to Cash" },
   elements: [
     {
-      id: 's2',
-      elementType: 'step',
-      name: 'Operations',
+      id: "s2",
+      elementType: "step",
+      name: "Operations",
       bounds: { x: 208, y: 80, width: 160, height: 60 },
     },
     {
-      id: 's1',
-      elementType: 'step',
-      name: 'Inbound Logistics',
+      id: "s1",
+      elementType: "step",
+      name: "Inbound Logistics",
       bounds: { x: 40, y: 80, width: 160, height: 60 },
-      color: '#8f4f9f',
+      color: "#8f4f9f",
     },
   ],
   connections: [
     {
-      id: 'c1',
-      connectionType: 'sequence',
-      source: 's1',
-      target: 's2',
+      id: "c1",
+      connectionType: "sequence",
+      source: "s1",
+      target: "s2",
       waypoints: [
         { x: 200, y: 110 },
         { x: 208, y: 110 },
@@ -48,41 +48,41 @@ const doc: ValueChainDocument = {
   ],
 };
 
-describe('validateDocument', () => {
-  it('accepts a valid document', () => {
+describe("validateDocument", () => {
+  it("accepts a valid document", () => {
     expect(validateDocument(doc)).toEqual(doc);
   });
 
-  it('rejects duplicate ids', () => {
-    const broken = { ...doc, elements: [doc.elements[0]!, { ...doc.elements[1]!, id: 's2' }] };
+  it("rejects duplicate ids", () => {
+    const broken = { ...doc, elements: [doc.elements[0]!, { ...doc.elements[1]!, id: "s2" }] };
     expect(() => validateDocument(broken)).toThrow(/Duplicate id/);
   });
 
-  it('rejects unresolvable connection endpoints', () => {
+  it("rejects unresolvable connection endpoints", () => {
     const broken = {
       ...doc,
-      connections: [{ ...doc.connections[0]!, target: 'missing' }],
+      connections: [{ ...doc.connections[0]!, target: "missing" }],
     };
     expect(() => validateDocument(broken)).toThrow(/unknown element/);
   });
 
-  it('rejects self connections', () => {
+  it("rejects self connections", () => {
     const broken = {
       ...doc,
-      connections: [{ ...doc.connections[0]!, target: 's1' }],
+      connections: [{ ...doc.connections[0]!, target: "s1" }],
     };
     expect(() => validateDocument(broken)).toThrow(/itself/);
   });
 });
 
-describe('serializeDocument', () => {
-  it('round-trips through JSON', () => {
+describe("serializeDocument", () => {
+  it("round-trips through JSON", () => {
     const json = serializeDocument(doc);
     const reloaded = parseDocumentJSON(json);
     expect(serializeDocument(reloaded)).toBe(json);
   });
 
-  it('is deterministic regardless of input order', () => {
+  it("is deterministic regardless of input order", () => {
     const shuffled: ValueChainDocument = {
       ...doc,
       elements: [...doc.elements].reverse(),
@@ -90,7 +90,7 @@ describe('serializeDocument', () => {
     expect(serializeDocument(shuffled)).toBe(serializeDocument(doc));
   });
 
-  it('rounds coordinates to 3 decimals', () => {
+  it("rounds coordinates to 3 decimals", () => {
     const noisy: ValueChainDocument = {
       ...doc,
       elements: [
@@ -107,37 +107,37 @@ describe('serializeDocument', () => {
   });
 });
 
-describe('loadDocument', () => {
-  it('rejects documents from a newer tool version', () => {
+describe("loadDocument", () => {
+  it("rejects documents from a newer tool version", () => {
     expect(() => loadDocument({ ...doc, schemaVersion: CURRENT_SCHEMA_VERSION + 1 })).toThrow(
       /update the tool/,
     );
   });
 
-  it('creates a valid empty document', () => {
+  it("creates a valid empty document", () => {
     expect(() => validateDocument(createEmptyDocument())).not.toThrow();
   });
 });
 
-describe('org units and assignments', () => {
+describe("org units and assignments", () => {
   const withOrgUnit: ValueChainDocument = {
     ...doc,
     elements: [
       ...doc.elements,
       {
-        id: 'o1',
-        elementType: 'orgUnit',
-        name: 'Entwicklung',
+        id: "o1",
+        elementType: "orgUnit",
+        name: "Entwicklung",
         bounds: { x: 100, y: 200, width: 130, height: 60 },
       },
     ],
     connections: [
       ...doc.connections,
       {
-        id: 'a1',
-        connectionType: 'assignment',
-        source: 's1',
-        target: 'o1',
+        id: "a1",
+        connectionType: "assignment",
+        source: "s1",
+        target: "o1",
         waypoints: [
           { x: 120, y: 140 },
           { x: 160, y: 200 },
@@ -146,79 +146,79 @@ describe('org units and assignments', () => {
     ],
   };
 
-  it('round-trips org units and assignments', () => {
+  it("round-trips org units and assignments", () => {
     const json = serializeDocument(withOrgUnit);
     expect(serializeDocument(parseDocumentJSON(json))).toBe(json);
   });
 
-  it('rejects assignments between two steps', () => {
+  it("rejects assignments between two steps", () => {
     const broken = {
       ...doc,
-      connections: [{ ...withOrgUnit.connections[1]!, target: 's2' }],
+      connections: [{ ...withOrgUnit.connections[1]!, target: "s2" }],
     };
     expect(() => validateDocument(broken)).toThrow(/must not connect step to step/);
   });
 
-  it('rejects sequence flows to org units', () => {
+  it("rejects sequence flows to org units", () => {
     const broken = {
       ...withOrgUnit,
-      connections: [{ ...withOrgUnit.connections[1]!, connectionType: 'sequence' }],
+      connections: [{ ...withOrgUnit.connections[1]!, connectionType: "sequence" }],
     };
     expect(() => validateDocument(broken)).toThrow(/must not connect/);
   });
 });
 
-describe('unknown keys', () => {
+describe("unknown keys", () => {
   const foreign = {
     ...doc,
-    'x-vendor': { revision: 7, tags: ['b', 'a'] },
-    meta: { name: 'Order to Cash', 'x-owner': 'team-a' },
+    "x-vendor": { revision: 7, tags: ["b", "a"] },
+    meta: { name: "Order to Cash", "x-owner": "team-a" },
     elements: [
-      { ...doc.elements[0]!, 'x-vendor': 'keep-element' },
+      { ...doc.elements[0]!, "x-vendor": "keep-element" },
       { ...doc.elements[1]!, notes: { reviewed: true } },
     ],
-    connections: [{ ...doc.connections[0]!, 'x-vendor': 'keep-connection' }],
+    connections: [{ ...doc.connections[0]!, "x-vendor": "keep-connection" }],
   };
 
-  it('keeps them on the document, its meta, its elements and its connections', () => {
+  it("keeps them on the document, its meta, its elements and its connections", () => {
     const json = serializeDocument(validateDocument(foreign));
     expect(json).toContain('"x-owner": "team-a"');
     expect(json).toContain('"x-vendor": "keep-element"');
     expect(json).toContain('"x-vendor": "keep-connection"');
     expect(json).toContain('"reviewed": true');
-    expect(JSON.parse(json)['x-vendor']).toEqual({ revision: 7, tags: ['b', 'a'] });
+    expect(JSON.parse(json)["x-vendor"]).toEqual({ revision: 7, tags: ["b", "a"] });
     expect(serializeDocument(parseDocumentJSON(json))).toBe(json);
   });
 
-  it('writes the values of unknown keys without rounding', () => {
+  it("writes the values of unknown keys without rounding", () => {
     const json = serializeDocument(
-      validateDocument({ ...doc, 'x-scale': 1.23456789, 'x-big': 1e300 }),
+      validateDocument({ ...doc, "x-scale": 1.23456789, "x-big": 1e300 }),
     );
-    expect(JSON.parse(json)).toMatchObject({ 'x-scale': 1.23456789, 'x-big': 1e300 });
+    expect(JSON.parse(json)).toMatchObject({ "x-scale": 1.23456789, "x-big": 1e300 });
   });
 
-  it('keeps an org unit link as an unknown key, since only steps define one', () => {
+  it("keeps an org unit link as an unknown key, since only steps define one", () => {
     const orgUnit = {
-      id: 'o1',
-      elementType: 'orgUnit',
-      name: 'Sales',
+      id: "o1",
+      elementType: "orgUnit",
+      name: "Sales",
       bounds: { x: 0, y: 200, width: 130, height: 60 },
-      link: 'sales-detail',
+      link: "sales-detail",
     };
     const loaded = validateDocument({ ...doc, elements: [...doc.elements, orgUnit] });
-    const element = loaded.elements.find((candidate) => candidate.id === 'o1')!;
-    expect(elementExtensions(element)).toEqual({ link: 'sales-detail' });
+    const element = loaded.elements.find((candidate) => candidate.id === "o1")!;
+    expect(elementExtensions(element)).toEqual({ link: "sales-detail" });
   });
 
-  it('separates the unknown fields of every level', () => {
+  it("separates the unknown fields of every level", () => {
     const loaded = validateDocument(foreign);
-    expect(documentExtensions(loaded)).toEqual({ 'x-vendor': { revision: 7, tags: ['b', 'a'] } });
-    expect(metaExtensions(loaded.meta)).toEqual({ 'x-owner': 'team-a' });
-    expect(elementExtensions(loaded.elements[0]!)).toEqual({ 'x-vendor': 'keep-element' });
-    expect(connectionExtensions(loaded.connections[0]!)).toEqual({ 'x-vendor': 'keep-connection' });
+    expect(documentExtensions(loaded)).toEqual({ "x-vendor": { revision: 7, tags: ["b", "a"] } });
+    expect(metaExtensions(loaded.meta)).toEqual({ "x-owner": "team-a" });
+    expect(elementExtensions(loaded.elements[0]!)).toEqual({ "x-vendor": "keep-element" });
+    expect(connectionExtensions(loaded.connections[0]!)).toEqual({ "x-vendor": "keep-connection" });
   });
 
-  it('rejects unknown keys inside bounds and waypoints instead of dropping them', () => {
+  it("rejects unknown keys inside bounds and waypoints instead of dropping them", () => {
     const inBounds = {
       ...doc,
       elements: [{ ...doc.elements[0]!, bounds: { ...doc.elements[0]!.bounds, depth: 3 } }],
@@ -240,17 +240,17 @@ describe('unknown keys', () => {
     expect(() => validateDocument(inPoint)).toThrow(/Unrecognized key/);
   });
 
-  it('rejects an unknown element or connection type', () => {
-    const element = { ...doc, elements: [{ ...doc.elements[0]!, elementType: 'lane' }] };
+  it("rejects an unknown element or connection type", () => {
+    const element = { ...doc, elements: [{ ...doc.elements[0]!, elementType: "lane" }] };
     expect(() => validateDocument(element)).toThrow();
     const connection = {
       ...doc,
-      connections: [{ ...doc.connections[0]!, connectionType: 'flow' }],
+      connections: [{ ...doc.connections[0]!, connectionType: "flow" }],
     };
     expect(() => validateDocument(connection)).toThrow();
   });
 
-  it('rejects a __proto__ key, which validation could not keep', () => {
+  it("rejects a __proto__ key, which validation could not keep", () => {
     const text = serializeDocument(doc).replace(
       '"meta": {',
       '"meta": {\n    "__proto__": {"x": 1},',
@@ -259,29 +259,29 @@ describe('unknown keys', () => {
   });
 });
 
-describe('reserved ids and coordinate limits', () => {
-  it('rejects the reserved id vc-root on an element and on a connection', () => {
-    const element = { ...doc, elements: [{ ...doc.elements[0]!, id: 'vc-root' }], connections: [] };
+describe("reserved ids and coordinate limits", () => {
+  it("rejects the reserved id vc-root on an element and on a connection", () => {
+    const element = { ...doc, elements: [{ ...doc.elements[0]!, id: "vc-root" }], connections: [] };
     expect(() => validateDocument(element)).toThrow(/reserved/);
-    const connection = { ...doc, connections: [{ ...doc.connections[0]!, id: 'vc-root' }] };
+    const connection = { ...doc, connections: [{ ...doc.connections[0]!, id: "vc-root" }] };
     expect(() => validateDocument(connection)).toThrow(/reserved/);
   });
 
-  it.each(['constructor', 'toString', 'hasOwnProperty', '__proto__', '__implicitroot_0'])(
-    'rejects the id %s, which the editor cannot hold',
+  it.each(["constructor", "toString", "hasOwnProperty", "__proto__", "__implicitroot_0"])(
+    "rejects the id %s, which the editor cannot hold",
     (id) => {
       const element = { ...doc, elements: [{ ...doc.elements[0]!, id }], connections: [] };
       expect(() => validateDocument(element)).toThrow(/reserved/);
       const connection = { ...doc, connections: [{ ...doc.connections[0]!, id }] };
       expect(() => validateDocument(connection)).toThrow(/reserved/);
       expect(documentIssues(element)).toEqual([
-        expect.objectContaining({ path: ['elements', 0, 'id'] }),
+        expect.objectContaining({ path: ["elements", 0, "id"] }),
       ]);
     },
   );
 
-  it('accepts ids that only resemble a reserved one', () => {
-    const ids = ['Constructor', 'vc-root-2', 'implicitroot', 'proto'];
+  it("accepts ids that only resemble a reserved one", () => {
+    const ids = ["Constructor", "vc-root-2", "implicitroot", "proto"];
     const elements = ids.map((id) => ({ ...doc.elements[0]!, id }));
     expect(() => validateDocument({ ...doc, elements, connections: [] })).not.toThrow();
   });
@@ -313,88 +313,88 @@ describe('reserved ids and coordinate limits', () => {
   });
 });
 
-describe('documentIssues', () => {
-  it('is empty for a valid document', () => {
+describe("documentIssues", () => {
+  it("is empty for a valid document", () => {
     expect(documentIssues(doc)).toEqual([]);
   });
 
-  it('locates schema findings by their path', () => {
+  it("locates schema findings by their path", () => {
     const broken = {
       ...doc,
       elements: [{ ...doc.elements[0]!, bounds: { ...doc.elements[0]!.bounds, width: 0 } }],
     };
     expect(documentIssues(broken)).toEqual([
-      expect.objectContaining({ path: ['elements', 0, 'bounds', 'width'] }),
+      expect.objectContaining({ path: ["elements", 0, "bounds", "width"] }),
     ]);
   });
 
-  it('locates the invariants: duplicate and reserved ids, endpoints, the relation matrix', () => {
+  it("locates the invariants: duplicate and reserved ids, endpoints, the relation matrix", () => {
     const issues = documentIssues({
       ...doc,
       elements: [
         ...doc.elements,
-        { ...doc.elements[0]!, name: 'Copy' },
+        { ...doc.elements[0]!, name: "Copy" },
         {
-          id: 'vc-root',
-          elementType: 'orgUnit',
-          name: 'Root',
+          id: "vc-root",
+          elementType: "orgUnit",
+          name: "Root",
           bounds: { x: 0, y: 0, width: 130, height: 60 },
         },
       ],
       connections: [
-        { ...doc.connections[0]!, target: 'missing' },
-        { ...doc.connections[0]!, id: 'c2', source: 's2', target: 's2' },
+        { ...doc.connections[0]!, target: "missing" },
+        { ...doc.connections[0]!, id: "c2", source: "s2", target: "s2" },
       ],
     });
     expect(issues.map((issue) => issue.path)).toEqual([
-      ['elements', 2, 'id'],
-      ['elements', 3, 'id'],
-      ['connections', 0, 'target'],
-      ['connections', 1, 'target'],
+      ["elements", 2, "id"],
+      ["elements", 3, "id"],
+      ["connections", 0, "target"],
+      ["connections", 1, "target"],
     ]);
     expect(issues[0]!.message).toMatch(/Duplicate id/);
     expect(issues[1]!.message).toMatch(/reserved/);
   });
 
-  it('reports a newer schema version at schemaVersion', () => {
+  it("reports a newer schema version at schemaVersion", () => {
     expect(documentIssues({ ...doc, schemaVersion: CURRENT_SCHEMA_VERSION + 1 })).toEqual([
-      { message: expect.stringMatching(/update the tool/) as unknown, path: ['schemaVersion'] },
+      { message: expect.stringMatching(/update the tool/) as unknown, path: ["schemaVersion"] },
     ]);
   });
 
-  it('reports a value that is no document at the root', () => {
+  it("reports a value that is no document at the root", () => {
     expect(documentIssues(null)).toEqual([expect.objectContaining({ path: [] })]);
   });
 
-  it('reports the hole of a sparse array at its index instead of throwing', () => {
+  it("reports the hole of a sparse array at its index instead of throwing", () => {
     const elements: unknown[] = [];
     elements[1] = doc.elements[1];
     const sparse = { ...doc, elements, connections: [] };
     expect(documentIssues(sparse)).toEqual([
-      { message: expect.stringMatching(/expected object/) as unknown, path: ['elements', 0] },
+      { message: expect.stringMatching(/expected object/) as unknown, path: ["elements", 0] },
     ]);
     expect(() => validateDocument(sparse)).toThrow(/expected object/);
   });
 
-  it('reports __proto__ keys in document order', () => {
+  it("reports __proto__ keys in document order", () => {
     const text = serializeDocument(doc)
       .replace('"meta": {', '"meta": {\n    "__proto__": 1,')
       .replace('"source": "s1",', '"source": "s1",\n      "x-vendor": [{ "__proto__": {} }],');
     expect(documentIssues(JSON.parse(text)).map((issue) => issue.path)).toEqual([
-      ['connections', 0, 'x-vendor', 0, '__proto__'],
-      ['meta', '__proto__'],
+      ["connections", 0, "x-vendor", 0, "__proto__"],
+      ["meta", "__proto__"],
     ]);
   });
 });
 
-describe('nesting depth', () => {
+describe("nesting depth", () => {
   /** `doc` with an extension of `levels` objects and arrays, nested without recursion. */
   const withNesting = (levels: number): Record<string, unknown> => {
     let value: unknown = 0;
     for (let level = levels - 1; level >= 0; level--) {
       value = level % 2 ? [value] : { a: value };
     }
-    return { ...doc, 'x-deep': value };
+    return { ...doc, "x-deep": value };
   };
 
   it(`loads and serializes ${MAX_NESTING_DEPTH} levels`, () => {
@@ -405,15 +405,15 @@ describe('nesting depth', () => {
     expect(serializeDocument(parseDocumentJSON(text))).toBe(text);
   });
 
-  it('reports the first level beyond the limit instead of overflowing the stack', () => {
+  it("reports the first level beyond the limit instead of overflowing the stack", () => {
     const tooDeep = withNesting(50_000);
     const keysToLimit = Array.from({ length: MAX_NESTING_DEPTH - 1 }, (_, level) =>
-      level % 2 ? 0 : 'a',
+      level % 2 ? 0 : "a",
     );
     expect(documentIssues(tooDeep)).toEqual([
       {
         message: `Objects and arrays may nest at most ${MAX_NESTING_DEPTH} levels deep.`,
-        path: ['x-deep', ...keysToLimit],
+        path: ["x-deep", ...keysToLimit],
       },
     ]);
     expect(() => validateDocument(tooDeep)).toThrow(/nest at most/);

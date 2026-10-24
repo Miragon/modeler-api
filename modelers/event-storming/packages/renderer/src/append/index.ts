@@ -1,6 +1,6 @@
-import type { ModuleDeclaration } from 'didi';
-import ConnectionPreviewModule from 'diagram-js/lib/features/connection-preview';
-import EventStormingAppendBehavior from './EventStormingAppendBehavior.js';
+import type { ModuleDeclaration } from "didi";
+import ConnectionPreviewModule from "diagram-js/lib/features/connection-preview";
+import EventStormingAppendBehavior from "./EventStormingAppendBehavior.js";
 
 /**
  * "Append sticky": pulls in the `connectionPreview` service (thereby also enabling the connect
@@ -9,8 +9,8 @@ import EventStormingAppendBehavior from './EventStormingAppendBehavior.js';
  */
 export const eventStormingAppendModule: ModuleDeclaration = {
   __depends__: [ConnectionPreviewModule],
-  __init__: ['eventStormingAppendBehavior'],
-  eventStormingAppendBehavior: ['type', EventStormingAppendBehavior],
+  __init__: ["eventStormingAppendBehavior"],
+  eventStormingAppendBehavior: ["type", EventStormingAppendBehavior],
 };
 
-export { default as EventStormingAppendBehavior } from './EventStormingAppendBehavior.js';
+export { default as EventStormingAppendBehavior } from "./EventStormingAppendBehavior.js";

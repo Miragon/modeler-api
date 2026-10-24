@@ -1,4 +1,4 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
+import type Canvas from "diagram-js/lib/core/Canvas";
 
 /** What a host's chrome covers along the container's edges, in px (Miragon guide §5.9). */
 export interface FreeRectInsets {
@@ -22,7 +22,7 @@ export interface FreeRectConfig {
  * a host that fits the map into the same rectangle.
  */
 export default class FreeRect {
-  static $inject = ['canvas', 'config.wardleyFreeRect'];
+  static $inject = ["canvas", "config.wardleyFreeRect"];
 
   constructor(
     private readonly canvas: Canvas,

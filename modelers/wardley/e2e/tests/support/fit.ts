@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page } from "@playwright/test";
 
 interface Insets {
   top: number;
@@ -7,7 +7,7 @@ interface Insets {
   left: number;
 }
 
-const LONG_NAME = 'A commodity whose name runs on for many words and far beyond the plot';
+const LONG_NAME = "A commodity whose name runs on for many words and far beyond the plot";
 
 /** A commodity whose name runs far past the plot's right edge: the content is wider than the plot. */
 export const LONG_NAME_MAP = `title Long name
@@ -34,7 +34,7 @@ export const LONG_NAME_DRAWING = '.djs-shape[data-element-id^="cmp_a_commodity"]
 export function overhang(page: Page, selector: string, insets: Insets): Promise<number> {
   return page.evaluate(
     ({ selector, insets }) => {
-      const canvas = document.querySelector('.djs-container')!.getBoundingClientRect();
+      const canvas = document.querySelector(".djs-container")!.getBoundingClientRect();
       const drawn = document.querySelector(selector)!.getBoundingClientRect();
       return Math.max(
         0,

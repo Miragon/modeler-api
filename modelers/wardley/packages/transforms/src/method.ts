@@ -1,5 +1,5 @@
-import type { ComponentDecorators, Method, WardleyMap } from '@miragon/wardley-schema-model';
-import { updateElement, compact } from './util.js';
+import type { ComponentDecorators, Method, WardleyMap } from "@miragon/wardley-schema-model";
+import { updateElement, compact } from "./util.js";
 
 /** Sets (or clears with `undefined`) the sourcing method build/buy/outsource. */
 export function setMethod(
@@ -8,7 +8,7 @@ export function setMethod(
   method: Method | undefined,
 ): WardleyMap {
   return updateElement(map, componentId, (el) => {
-    if (el.elementType !== 'component') {
+    if (el.elementType !== "component") {
       throw new Error(
         `setMethod only applies to components; "${componentId}" is ${el.elementType}.`,
       );

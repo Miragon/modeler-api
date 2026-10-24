@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
-import { fakeTestElectron, readInstall, type InstallContent } from "../../../test/support/test-electron.js";
+import {
+  fakeTestElectron,
+  readInstall,
+  type InstallContent,
+} from "../../../test/support/test-electron.js";
 import { runVsCodeSmoke } from "./driver.js";
 
 const peers = vi.hoisted(() => ({

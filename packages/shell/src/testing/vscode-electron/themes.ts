@@ -61,7 +61,10 @@ export function webviewBodyClasses(kind: ColorThemeKind): readonly string[] {
  * What the shell's theme bridge shows in the webview under a theme of `kind`, for a modeler that
  * declares `themes` (without a `colorTheme` setting): `["light"]` stays light, high contrast passes.
  */
-export function expectedWebviewAppearance(kind: ColorThemeKind, themes: readonly Theme[]): Appearance {
+export function expectedWebviewAppearance(
+  kind: ColorThemeKind,
+  themes: readonly Theme[],
+): Appearance {
   return resolveAppearance(appearanceFromColorThemeKind(kind), themes);
 }
 

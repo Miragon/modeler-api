@@ -1,14 +1,14 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element } from 'diagram-js/lib/model/Types';
-import type { Modeler } from './Modeler.js';
-import type WardleyLabelEditing from './label-editing/WardleyLabelEditing.js';
-import type { FieldSelection } from './label-editing/WardleyLabelEditing.js';
-import type WardleyLinkEditing from './link-editing/WardleyLinkEditing.js';
-import { isWardleyConnection, isWardleyShape, type WardleyConnection } from './model/di-types.js';
-import { focusCanvasWithoutRing } from './a11y/index.js';
-import { readBackIds } from '@miragon/wardley-dsl';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element } from "diagram-js/lib/model/Types";
+import type { Modeler } from "./Modeler.js";
+import type WardleyLabelEditing from "./label-editing/WardleyLabelEditing.js";
+import type { FieldSelection } from "./label-editing/WardleyLabelEditing.js";
+import type WardleyLinkEditing from "./link-editing/WardleyLinkEditing.js";
+import { isWardleyConnection, isWardleyShape, type WardleyConnection } from "./model/di-types.js";
+import { focusCanvasWithoutRing } from "./a11y/index.js";
+import { readBackIds } from "@miragon/wardley-dsl";
 
 /**
  * A connection by what it joins: dependency ids are positional (`dep_3`), so after a re-import the
@@ -21,9 +21,9 @@ interface ConnectionKey {
 }
 
 type OpenEdit =
-  | { kind: 'name'; elementId: string; value: string; selection?: FieldSelection }
-  | { kind: 'connection'; key: ConnectionKey; value: string; selection?: FieldSelection }
-  | { kind: 'link'; elementId: string; value: string };
+  | { kind: "name"; elementId: string; value: string; selection?: FieldSelection }
+  | { kind: "connection"; key: ConnectionKey; value: string; selection?: FieldSelection }
+  | { kind: "link"; elementId: string; value: string };
 
 /**
  * What the user had selected and was typing, put aside across a re-import. Element ids are the
@@ -59,8 +59,8 @@ function keyOf(
   documentId: (canvasId: string) => string = (id) => id,
 ): ConnectionKey {
   return {
-    sourceId: documentId(connection.source?.id ?? ''),
-    targetId: documentId(connection.target?.id ?? ''),
+    sourceId: documentId(connection.source?.id ?? ""),
+    targetId: documentId(connection.target?.id ?? ""),
     wardleyType: connection.wardleyType,
   };
 }
@@ -84,10 +84,10 @@ function findConnection(
  * that changed outside the editor, then `restoreEditorState` afterwards.
  */
 export function setAsideEditorState(modeler: Modeler): EditorState {
-  const selected = modeler.get<Selection>('selection').get() as unknown[];
-  const registry = modeler.get<ElementRegistry>('elementRegistry');
-  const labelEditing = modeler.get<WardleyLabelEditing>('wardleyLabelEditing');
-  const linkEditing = modeler.get<WardleyLinkEditing>('wardleyLinkEditing');
+  const selected = modeler.get<Selection>("selection").get() as unknown[];
+  const registry = modeler.get<ElementRegistry>("elementRegistry");
+  const labelEditing = modeler.get<WardleyLabelEditing>("wardleyLabelEditing");
+  const linkEditing = modeler.get<WardleyLinkEditing>("wardleyLinkEditing");
   const canvasIds = new Map<string, string>();
   const readBack = documentIdsOf(modeler);
   const documentId = (canvasId: string) => {
@@ -103,7 +103,7 @@ export function setAsideEditorState(modeler: Modeler): EditorState {
     const connection = registry.get(nameEdit.elementId);
     if (isWardleyConnection(connection)) {
       edit = {
-        kind: 'connection',
+        kind: "connection",
         key: keyOf(connection, documentId),
         value: nameEdit.value,
         ...(nameEdit.selection ? { selection: nameEdit.selection } : {}),
@@ -111,13 +111,13 @@ export function setAsideEditorState(modeler: Modeler): EditorState {
     }
   } else if (nameEdit) {
     edit = {
-      kind: 'name',
+      kind: "name",
       elementId: documentId(nameEdit.elementId),
       value: nameEdit.value,
       ...(nameEdit.selection ? { selection: nameEdit.selection } : {}),
     };
   } else if (linkEdit) {
-    edit = { kind: 'link', elementId: documentId(linkEdit.elementId), value: linkEdit.value };
+    edit = { kind: "link", elementId: documentId(linkEdit.elementId), value: linkEdit.value };
   }
   labelEditing.cancel();
   linkEditing.cancel();
@@ -142,7 +142,7 @@ export function restoreEditorState(
   state: EditorState,
   options: RestoreOptions = {},
 ): void {
-  const registry = modeler.get<ElementRegistry>('elementRegistry');
+  const registry = modeler.get<ElementRegistry>("elementRegistry");
   const canvasId = (id: string) => (options.importRejected ? (state.canvasIds?.get(id) ?? id) : id);
   const lookup = (id: string) => registry.get(canvasId(id));
   const connectionOf = (key: ConnectionKey) =>
@@ -156,13 +156,13 @@ export function restoreEditorState(
     .map(connectionOf)
     .filter((connection): connection is WardleyConnection => connection !== undefined);
   const reselected = [...shapes, ...connections] as unknown as Element[];
-  if (reselected.length) modeler.get<Selection>('selection').select(reselected);
+  if (reselected.length) modeler.get<Selection>("selection").select(reselected);
 
   const { edit } = state;
   if (!edit) return;
-  const labelEditing = modeler.get<WardleyLabelEditing>('wardleyLabelEditing');
+  const labelEditing = modeler.get<WardleyLabelEditing>("wardleyLabelEditing");
   const restored = (() => {
-    if (edit.kind === 'connection') {
+    if (edit.kind === "connection") {
       const connection = connectionOf(edit.key);
       if (!connection) return false;
       labelEditing.activateConnection(connection, {
@@ -173,8 +173,8 @@ export function restoreEditorState(
     }
     const shape = lookup(edit.elementId);
     if (!isWardleyShape(shape)) return false;
-    if (edit.kind === 'link') {
-      modeler.get<WardleyLinkEditing>('wardleyLinkEditing').activate(shape, { value: edit.value });
+    if (edit.kind === "link") {
+      modeler.get<WardleyLinkEditing>("wardleyLinkEditing").activate(shape, { value: edit.value });
     } else {
       labelEditing.activate(shape, {
         value: edit.value,
@@ -183,5 +183,5 @@ export function restoreEditorState(
     }
     return true;
   })();
-  if (!restored) focusCanvasWithoutRing(modeler.get<Canvas>('canvas'));
+  if (!restored) focusCanvasWithoutRing(modeler.get<Canvas>("canvas"));
 }

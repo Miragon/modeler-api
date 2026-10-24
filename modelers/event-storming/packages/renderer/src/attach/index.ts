@@ -1,6 +1,6 @@
-import type { ModuleDeclaration } from 'didi';
-import AttachSupportModule from 'diagram-js/lib/features/attach-support';
-import EventStormingAttachBehavior from './EventStormingAttachBehavior.js';
+import type { ModuleDeclaration } from "didi";
+import AttachSupportModule from "diagram-js/lib/features/attach-support";
+import EventStormingAttachBehavior from "./EventStormingAttachBehavior.js";
 
 /**
  * Pinning of actor/hotspot stickies and notes: the stock diagram-js AttachSupport
@@ -9,8 +9,8 @@ import EventStormingAttachBehavior from './EventStormingAttachBehavior.js';
  */
 export const eventStormingAttachModule: ModuleDeclaration = {
   __depends__: [AttachSupportModule],
-  __init__: ['eventStormingAttachBehavior'],
-  eventStormingAttachBehavior: ['type', EventStormingAttachBehavior],
+  __init__: ["eventStormingAttachBehavior"],
+  eventStormingAttachBehavior: ["type", EventStormingAttachBehavior],
 };
 
-export { default as EventStormingAttachBehavior } from './EventStormingAttachBehavior.js';
+export { default as EventStormingAttachBehavior } from "./EventStormingAttachBehavior.js";

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
-import EvolutionGrid from '../src/evolution-grid/EvolutionGrid.js';
-import PanConstraint from '../src/pan-constraint/PanConstraint.js';
+import { describe, it, expect } from "vitest";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
+import EvolutionGrid from "../src/evolution-grid/EvolutionGrid.js";
+import PanConstraint from "../src/pan-constraint/PanConstraint.js";
 
 type ViewBox = { x: number; y: number; width: number; height: number };
 type Handler = (event: Record<string, unknown>) => void;
@@ -37,13 +37,13 @@ interface Insets {
 
 function injectorWith(insets: Insets): Injector {
   const freeRect = { insets: () => insets };
-  return { get: (name: string) => (name === 'wardleyFreeRect' ? freeRect : null) } as Injector;
+  return { get: (name: string) => (name === "wardleyFreeRect" ? freeRect : null) } as Injector;
 }
 
 function setup(initial: ViewBox, contentBox?: ViewBox, injector: Injector = noInjector) {
   const handlers = new Map<string, Handler[]>();
   const on = (events: string | string[], priorityOrHandler: number | Handler, maybe?: Handler) => {
-    const handler = typeof priorityOrHandler === 'function' ? priorityOrHandler : maybe!;
+    const handler = typeof priorityOrHandler === "function" ? priorityOrHandler : maybe!;
     for (const name of Array.isArray(events) ? events : [events]) {
       handlers.set(name, [...(handlers.get(name) ?? []), handler]);
     }
@@ -60,7 +60,7 @@ function setup(initial: ViewBox, contentBox?: ViewBox, injector: Injector = noIn
       if (box) {
         setCalls.push(box);
         current = box;
-        emit('canvas.viewbox.changed', { viewbox: box });
+        emit("canvas.viewbox.changed", { viewbox: box });
         return box;
       }
       return current;
@@ -72,7 +72,7 @@ function setup(initial: ViewBox, contentBox?: ViewBox, injector: Injector = noIn
   const grid = new EvolutionGrid(undefined as unknown as Canvas);
   new PanConstraint(eventBus, canvas, grid, injector);
   return {
-    fire: (vb: ViewBox) => emit('canvas.viewbox.changed', { viewbox: vb }),
+    fire: (vb: ViewBox) => emit("canvas.viewbox.changed", { viewbox: vb }),
     emit,
     grid,
     setCalls,
@@ -82,34 +82,34 @@ function setup(initial: ViewBox, contentBox?: ViewBox, injector: Injector = noIn
   };
 }
 
-describe('PanConstraint', () => {
-  it('clamps a panned-away viewbox back into the padded bounds', () => {
+describe("PanConstraint", () => {
+  it("clamps a panned-away viewbox back into the padded bounds", () => {
     const { fire, setCalls } = setup({ x: 5000, y: 5000, width: 400, height: 300 });
     fire({ x: 5000, y: 5000, width: 400, height: 300 });
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({ x: 910, y: 556, width: 400, height: 300 });
   });
 
-  it('centers the map when the viewbox is larger than the padded bounds', () => {
+  it("centers the map when the viewbox is larger than the padded bounds", () => {
     const { fire, setCalls } = setup({ x: 9000, y: 9000, width: 2000, height: 1500 });
     fire({ x: 9000, y: 9000, width: 2000, height: 1500 });
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({ x: -405, y: -412 });
   });
 
-  it('leaves a viewbox within the bounds untouched', () => {
+  it("leaves a viewbox within the bounds untouched", () => {
     const { fire, setCalls } = setup({ x: 100, y: 100, width: 400, height: 300 });
     fire({ x: 100, y: 100, width: 400, height: 300 });
     expect(setCalls).toHaveLength(0);
   });
 
-  it('intervenes only once — its own setter does not cause recursion', () => {
+  it("intervenes only once — its own setter does not cause recursion", () => {
     const { fire, setCalls } = setup({ x: 5000, y: 5000, width: 400, height: 300 });
     fire({ x: 5000, y: 5000, width: 400, height: 300 });
     expect(setCalls).toHaveLength(1);
   });
 
-  it('lets the view reach content that sticks out beyond the plot', () => {
+  it("lets the view reach content that sticks out beyond the plot", () => {
     // A long label at the commodity edge ends at x = 1600, far right of the plot's outer bounds.
     const content = { x: 60, y: 30, width: 1540, height: 700 };
     const { fire, setCalls } = setup({ x: 1300, y: 100, width: 400, height: 300 }, content);
@@ -121,46 +121,46 @@ describe('PanConstraint', () => {
     expect(plotOnly.setCalls[0]).toMatchObject({ x: 910 });
   });
 
-  it('re-clamps the view when a resize shrinks the plot under it', () => {
+  it("re-clamps the view when a resize shrinks the plot under it", () => {
     const { emit, grid, setCalls, setViewbox } = setup({ x: 0, y: 0, width: 400, height: 300 });
-    grid.configure({ title: 'T', size: { width: 5000, height: 3000 } });
+    grid.configure({ title: "T", size: { width: 5000, height: 3000 } });
     setViewbox({ x: 4500, y: 2800, width: 400, height: 300 });
-    grid.configure({ title: 'T', size: { width: 720, height: 460 } });
-    emit('wardley.config.changed', { config: { title: 'T' } });
+    grid.configure({ title: "T", size: { width: 720, height: 460 } });
+    emit("wardley.config.changed", { config: { title: "T" } });
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({ x: 550, y: 336 });
   });
 
-  it('leaves the view alone during a transient (live preview) config change', () => {
+  it("leaves the view alone during a transient (live preview) config change", () => {
     const { emit, grid, setCalls, setViewbox } = setup({ x: 0, y: 0, width: 400, height: 300 });
     setViewbox({ x: 4500, y: 2800, width: 400, height: 300 });
-    grid.configure({ title: 'T', size: { width: 720, height: 460 } });
-    emit('wardley.config.changed', { config: { title: 'T' }, transient: true });
+    grid.configure({ title: "T", size: { width: 720, height: 460 } });
+    emit("wardley.config.changed", { config: { title: "T" }, transient: true });
     expect(setCalls).toHaveLength(0);
   });
 
-  it('checks the view again once the resize command has redrawn its elements', () => {
+  it("checks the view again once the resize command has redrawn its elements", () => {
     const { emit, grid, setCalls, setViewbox } = setup({ x: 0, y: 0, width: 400, height: 300 });
-    emit('wardley.config.changed', { config: { title: 'T' } });
+    emit("wardley.config.changed", { config: { title: "T" } });
     expect(setCalls).toHaveLength(0);
     setViewbox({ x: 4500, y: 2800, width: 400, height: 300 });
-    grid.configure({ title: 'T', size: { width: 720, height: 460 } });
-    emit('commandStack.changed');
+    grid.configure({ title: "T", size: { width: 720, height: 460 } });
+    emit("commandStack.changed");
     expect(setCalls).toHaveLength(1);
-    emit('commandStack.changed');
+    emit("commandStack.changed");
     expect(setCalls).toHaveLength(1);
   });
 
-  it('keeps the view where it is when a resize leaves the smaller plot fully visible', () => {
+  it("keeps the view where it is when a resize leaves the smaller plot fully visible", () => {
     const { emit, grid, setCalls, setViewbox } = setup({ x: 0, y: 0, width: 400, height: 300 });
     setViewbox({ x: -125, y: -92, width: 1440, height: 900 });
-    grid.configure({ title: 'T', size: { width: 830, height: 560 } });
-    emit('wardley.config.changed', { config: { title: 'T' } });
-    emit('commandStack.changed');
+    grid.configure({ title: "T", size: { width: 830, height: 560 } });
+    emit("wardley.config.changed", { config: { title: "T" } });
+    emit("commandStack.changed");
     expect(setCalls).toHaveLength(0);
   });
 
-  describe('with the insets of a host chrome', () => {
+  describe("with the insets of a host chrome", () => {
     const INSETS = { top: 88, right: 24, bottom: 64, left: 24 };
 
     /** The view a host fits: the bounds centred in the free rectangle, never above 100 %. */
@@ -180,7 +180,7 @@ describe('PanConstraint', () => {
       [1280, 900],
       [2560, 1600],
       [720, 700],
-    ])('never pulls a view the host fitted into a %ix%i container', (width, height) => {
+    ])("never pulls a view the host fitted into a %ix%i container", (width, height) => {
       const grid = new EvolutionGrid(undefined as unknown as Canvas);
       const view = fitted(grid.outerBounds(), width, height);
       const { fire, setCalls } = setup(view, undefined, injectorWith(INSETS));
@@ -208,13 +208,13 @@ describe('PanConstraint', () => {
     }
 
     it.each([
-      ['the shell', INSETS, 1440, 790],
-      ['the shell', INSETS, 2560, 1600],
-      ['an inspector', INSPECTOR, 1600, 1000],
-      ['an embedded chrome', EMBEDDED, 1000, 640],
-      ['an embedded chrome', EMBEDDED, 1440, 790],
+      ["the shell", INSETS, 1440, 790],
+      ["the shell", INSETS, 2560, 1600],
+      ["an inspector", INSPECTOR, 1600, 1000],
+      ["an embedded chrome", EMBEDDED, 1000, 640],
+      ["an embedded chrome", EMBEDDED, 1440, 790],
     ])(
-      'never pulls a view %s fitted to the plot while a long label reaches beyond it (%#)',
+      "never pulls a view %s fitted to the plot while a long label reaches beyond it (%#)",
       (_host, insets, width, height) => {
         const grid = new EvolutionGrid(undefined as unknown as Canvas);
         const plot = grid.outerBounds();
@@ -232,12 +232,12 @@ describe('PanConstraint', () => {
 
     // Wide and low: the fit is limited by the height and leaves room beside the plot.
     it.each([
-      ['the shell', INSETS, 1440, 790],
-      ['the shell', INSETS, 1680, 860],
-      ['an inspector', INSPECTOR, 1800, 800],
-      ['an embedded chrome', EMBEDDED, 1440, 790],
+      ["the shell", INSETS, 1440, 790],
+      ["the shell", INSETS, 1680, 860],
+      ["an inspector", INSPECTOR, 1800, 800],
+      ["an embedded chrome", EMBEDDED, 1440, 790],
     ])(
-      'never pulls a view %s fitted to the plot while a label makes the content wider than the free rectangle (%#)',
+      "never pulls a view %s fitted to the plot while a label makes the content wider than the free rectangle (%#)",
       (_host, insets, width, height) => {
         const plot = new EvolutionGrid(undefined as unknown as Canvas).outerBounds();
         const content = withLongLabel(plot);
@@ -249,7 +249,7 @@ describe('PanConstraint', () => {
       },
     );
 
-    it('lets the view follow a label wider than the free rectangle to its end, and no further', () => {
+    it("lets the view follow a label wider than the free rectangle to its end, and no further", () => {
       const plot = new EvolutionGrid(undefined as unknown as Canvas).outerBounds();
       const content = withLongLabel(plot);
       const fitted = fittedInto(INSETS, plot, 1440, 790);
@@ -264,7 +264,7 @@ describe('PanConstraint', () => {
       expect((setCalls[0]!.x - atLabelEnd.x) * fitted.scale).toBeCloseTo(96, 6);
     });
 
-    it('lets a zoomed-out map rest anywhere inside the free rectangle', () => {
+    it("lets a zoomed-out map rest anywhere inside the free rectangle", () => {
       // 1600 × 1000 at 25 %: the free rectangle is 5008 × 3392 diagram px, the plot 1190 × 776.
       const view = {
         x: -24 / 0.25 - 600,
@@ -278,7 +278,7 @@ describe('PanConstraint', () => {
       expect(setCalls).toHaveLength(0);
     });
 
-    it('pulls a zoomed-out map back from under the inspector', () => {
+    it("pulls a zoomed-out map back from under the inspector", () => {
       // The plot's right edge would sit 400 screen px inside the 324px inspector.
       const scale = 0.25;
       const width = 1600;
@@ -291,7 +291,7 @@ describe('PanConstraint', () => {
       expect(rightEdgeOnScreen).toBeCloseTo(width - 324 + 96, 6);
     });
 
-    it('treats an axis without free room as free across the whole container', () => {
+    it("treats an axis without free room as free across the whole container", () => {
       const short = { top: 300, right: 24, bottom: 300, left: 24 };
       const view = fittedInto(
         { ...short, top: 0, bottom: 0 },
@@ -304,7 +304,7 @@ describe('PanConstraint', () => {
       expect(setCalls).toHaveLength(0);
     });
 
-    it('still pulls a view panned far away back towards the map', () => {
+    it("still pulls a view panned far away back towards the map", () => {
       const { fire, setCalls } = setup(
         { x: 5000, y: 5000, width: 400, height: 300, scale: 1 } as ViewBox,
         undefined,

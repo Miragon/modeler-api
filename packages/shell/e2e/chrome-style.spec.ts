@@ -18,7 +18,9 @@ function styleOf(page: Page, selector: string, properties: readonly string[]) {
       const element = document.querySelector(selector);
       if (!element) throw new Error(`no ${selector}`);
       const style = getComputedStyle(element);
-      return Object.fromEntries(properties.map((property) => [property, style.getPropertyValue(property)]));
+      return Object.fromEntries(
+        properties.map((property) => [property, style.getPropertyValue(property)]),
+      );
     },
     { selector, properties },
   );
@@ -30,7 +32,12 @@ const GEIST_MONO = /^"Geist Mono Variable"/;
 test.describe("chrome typography and host hygiene", () => {
   test("the own-document reset beats VS Code's default webview styles", async ({ page }) => {
     await open(page);
-    const body = await styleOf(page, "body", ["padding-left", "margin-left", "font-family", "font-size"]);
+    const body = await styleOf(page, "body", [
+      "padding-left",
+      "margin-left",
+      "font-family",
+      "font-size",
+    ]);
     expect(body["padding-left"]).toBe("0px");
     expect(body["margin-left"]).toBe("0px");
     expect(body["font-family"]).toMatch(GEIST);
@@ -61,7 +68,11 @@ test.describe("chrome typography and host hygiene", () => {
   test("menu entries are 13px/400 and at least 36px high", async ({ page }) => {
     await open(page);
     await page.locator('[data-chrome="menu"]').click();
-    const entry = await styleOf(page, ".cd-shell-menu-item", ["font-size", "font-weight", "min-height"]);
+    const entry = await styleOf(page, ".cd-shell-menu-item", [
+      "font-size",
+      "font-weight",
+      "min-height",
+    ]);
     expect(entry).toEqual({ "font-size": "13px", "font-weight": "400", "min-height": "36px" });
   });
 
@@ -69,7 +80,11 @@ test.describe("chrome typography and host hygiene", () => {
     await open(page);
     await page.locator('[data-zoom="in"]').hover();
     await expect(page.locator(".cd-shell-tooltip")).toBeVisible();
-    const tooltip = await styleOf(page, ".cd-shell-tooltip", ["font-size", "line-height", "font-weight"]);
+    const tooltip = await styleOf(page, ".cd-shell-tooltip", [
+      "font-size",
+      "line-height",
+      "font-weight",
+    ]);
     expect(tooltip).toEqual({ "font-size": "13px", "line-height": "20px", "font-weight": "400" });
     const chip = await styleOf(page, ".cd-shell-tooltip .cd-shell-kbd", [
       "font-family",
@@ -87,7 +102,11 @@ test.describe("chrome typography and host hygiene", () => {
 
   test("the empty-file hint's Insert example is a 36px ghost button at 600", async ({ page }) => {
     await open(page, "&empty");
-    const action = await styleOf(page, ".cd-shell-hint-action", ["font-weight", "height", "font-family"]);
+    const action = await styleOf(page, ".cd-shell-hint-action", [
+      "font-weight",
+      "height",
+      "font-family",
+    ]);
     expect(action["font-weight"]).toBe("600");
     expect(action.height).toBe("36px");
     expect(action["font-family"]).toMatch(GEIST);
@@ -129,8 +148,15 @@ test.describe("the chrome in a foreign page", () => {
       "letter-spacing": "normal",
     });
     const trigger = await styleOf(page, '[data-chrome="menu"]', ["font-family", "line-height"]);
-    expect(trigger).toEqual({ "font-family": expect.stringMatching(GEIST), "line-height": "19.5px" });
-    const status = await styleOf(page, ".cd-shell-status-text", ["font-size", "line-height", "color"]);
+    expect(trigger).toEqual({
+      "font-family": expect.stringMatching(GEIST),
+      "line-height": "19.5px",
+    });
+    const status = await styleOf(page, ".cd-shell-status-text", [
+      "font-size",
+      "line-height",
+      "color",
+    ]);
     expect(status["font-size"]).toBe("13px");
     expect(status["line-height"]).toBe("19.5px");
     expect(status.color).not.toBe("rgb(255, 0, 0)");
@@ -145,7 +171,10 @@ test.describe("the chrome in a foreign page", () => {
       "font-family": expect.stringMatching(GEIST),
     });
     const legendTitle = await styleOf(page, ".cd-shell-legend-title", ["font-family", "font-size"]);
-    expect(legendTitle).toEqual({ "font-family": expect.stringMatching(GEIST), "font-size": "13px" });
+    expect(legendTitle).toEqual({
+      "font-family": expect.stringMatching(GEIST),
+      "font-size": "13px",
+    });
 
     await page.locator('[data-zoom="in"]').hover();
     await expect(page.locator(".cd-shell-tooltip")).toBeVisible();
@@ -169,7 +198,9 @@ test.describe("the chrome in a foreign page", () => {
 });
 
 test.describe("the canvas slot", () => {
-  test("keeps its layout over a renderer's container class, and the renderer's paper", async ({ page }) => {
+  test("keeps its layout over a renderer's container class, and the renderer's paper", async ({
+    page,
+  }) => {
     await open(page);
     const style = await page.evaluate(() => {
       // a renderer stylesheet, loaded before shell.css as the stylesheet order says
@@ -207,7 +238,9 @@ test.describe("the canvas slot", () => {
         const svg = document.activeElement;
         if (!svg?.matches(".djs-container > svg")) return null;
         const style = getComputedStyle(svg);
-        const fokus = getComputedStyle(document.documentElement).getPropertyValue("--cd-ui-fokus").trim();
+        const fokus = getComputedStyle(document.documentElement)
+          .getPropertyValue("--cd-ui-fokus")
+          .trim();
         const probe = document.createElement("span");
         probe.style.color = fokus;
         document.body.append(probe);

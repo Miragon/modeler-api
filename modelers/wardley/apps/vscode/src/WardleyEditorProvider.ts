@@ -1,19 +1,19 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 import {
   connectThemeBridge,
   currentAppearance,
   renderWebviewHtml,
-} from '@miragon/modeler-shell/vscode/extension';
-import { exportImageToFile } from './exportImage.js';
-import { withExampleInserted } from './examples.js';
-import { minimalLineEdit } from './minimalEdit.js';
-import type { WardleyDiagnostics } from './diagnostics.js';
-import type { HostToWebview, WebviewCommand, WebviewToHost } from './protocol.js';
-import { WEBVIEW_THEMES } from './themes.js';
+} from "@miragon/modeler-shell/vscode/extension";
+import { exportImageToFile } from "./exportImage.js";
+import { withExampleInserted } from "./examples.js";
+import { minimalLineEdit } from "./minimalEdit.js";
+import type { WardleyDiagnostics } from "./diagnostics.js";
+import type { HostToWebview, WebviewCommand, WebviewToHost } from "./protocol.js";
+import { WEBVIEW_THEMES } from "./themes.js";
 
 /** Echo keys ignore the line break style: VS Code writes inserted '\n' as the document's EOL. */
 function echoKey(text: string): string {
-  return text.replace(/\r\n/g, '\n');
+  return text.replace(/\r\n/g, "\n");
 }
 
 /**
@@ -22,7 +22,7 @@ function echoKey(text: string): string {
  * map (diagram-js modeler) and mirrors graphical changes back into the document via WorkspaceEdit.
  */
 export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
-  public static readonly viewType = 'wardley.mapEditor';
+  public static readonly viewType = "wardley.mapEditor";
 
   public static register(
     context: vscode.ExtensionContext,
@@ -63,7 +63,7 @@ export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
     const key = uri?.toString() ?? this.activePanelKey;
     const panel = key ? this.panels.get(key) : undefined;
     if (!panel) return false;
-    void panel.webview.postMessage({ type: 'command', name } satisfies HostToWebview);
+    void panel.webview.postMessage({ type: "command", name } satisfies HostToWebview);
     return true;
   }
 
@@ -73,17 +73,17 @@ export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
     _token: vscode.CancellationToken,
   ): Promise<void> {
     const webview = webviewPanel.webview;
-    const dist = vscode.Uri.joinPath(this.context.extensionUri, 'dist');
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     // dist/ holds webview.js, webview.css and the font files the CSS loads.
     webview.options = { enableScripts: true, localResourceRoots: [dist] };
     const asset = (file: string): string =>
       webview.asWebviewUri(vscode.Uri.joinPath(dist, file)).toString();
     webview.html = renderWebviewHtml({
       cspSource: webview.cspSource,
-      scriptUri: asset('webview.js'),
-      styleUris: [asset('webview.css')],
-      title: 'Wardley Map',
-      lang: 'en',
+      scriptUri: asset("webview.js"),
+      styleUris: [asset("webview.css")],
+      title: "Wardley Map",
+      lang: "en",
       appearance: currentAppearance(vscode, { themes: WEBVIEW_THEMES }),
       body: '<div id="app"></div>',
     });
@@ -116,7 +116,7 @@ export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
         // The canvas already shows the change; when the document refused it (read-only), show the
         // document again — unless a newer edit is queued, whose outcome decides instead.
         if (!written && queuedText === undefined) {
-          void post({ type: 'update', text: document.getText() });
+          void post({ type: "update", text: document.getText() });
         }
       });
       return writes;
@@ -133,7 +133,7 @@ export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.document.uri.toString() !== key) return;
       const text = document.getText();
       if (suppressEcho.delete(echoKey(text))) return;
-      void post({ type: 'update', text });
+      void post({ type: "update", text });
     });
 
     const viewStateSub = webviewPanel.onDidChangeViewState(() => {
@@ -143,31 +143,31 @@ export class WardleyEditorProvider implements vscode.CustomTextEditorProvider {
 
     // The parser's findings are warnings: the map stays editable (guide §13.5), so no errors.
     const diagnosticsSub = this.diagnostics?.onDidChange(({ uri, count }) => {
-      if (uri.toString() === key) void post({ type: 'problems', count, errors: 0 });
+      if (uri.toString() === key) void post({ type: "problems", count, errors: 0 });
     });
 
     const messageSub = webview.onDidReceiveMessage(async (msg: WebviewToHost) => {
       switch (msg.type) {
-        case 'ready':
-          await post({ type: 'init', text: document.getText() });
+        case "ready":
+          await post({ type: "init", text: document.getText() });
           this.diagnostics?.refresh(document);
           break;
-        case 'edit':
+        case "edit":
           await queueEdit(msg.text);
           break;
-        case 'insertExample':
+        case "insertExample":
           await insertExample();
           break;
-        case 'export':
+        case "export":
           await exportImageToFile(document.uri, msg.format, msg.data);
           break;
-        case 'showProblems':
-          void vscode.commands.executeCommand('workbench.actions.view.problems');
+        case "showProblems":
+          void vscode.commands.executeCommand("workbench.actions.view.problems");
           break;
-        case 'info':
+        case "info":
           void vscode.window.showInformationMessage(msg.message);
           break;
-        case 'error':
+        case "error":
           void vscode.window.showErrorMessage(msg.message);
           break;
       }

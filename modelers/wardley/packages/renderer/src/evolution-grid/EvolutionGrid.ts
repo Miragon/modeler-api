@@ -3,7 +3,7 @@ import {
   create as svgCreate,
   attr as svgAttr,
   clear as svgClear,
-} from 'tiny-svg';
+} from "tiny-svg";
 import {
   drawnPlotLength,
   evolutionStage,
@@ -12,17 +12,17 @@ import {
   type Coordinate,
   type EvolutionStage,
   type MapConfig,
-} from '@miragon/wardley-schema-model';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Point } from 'diagram-js/lib/util/Types';
-import { PLOT, COLORS, FONT } from '../draw/styles.js';
+} from "@miragon/wardley-schema-model";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Point } from "diagram-js/lib/util/Types";
+import { PLOT, COLORS, FONT } from "../draw/styles.js";
 
-const AXES_LAYER = 'wardley-axes';
+const AXES_LAYER = "wardley-axes";
 /** Value-chain end labels [bottom, top] unless the map sets `y-axis Label->Bottom->Top`. */
-export const DEFAULT_Y_AXIS_END_LABELS: readonly [string, string] = ['Invisible', 'Visible'];
+export const DEFAULT_Y_AXIS_END_LABELS: readonly [string, string] = ["Invisible", "Visible"];
 /** Axis lines/arrowheads and margin texts — styling hooks, kept in the export's markup. */
-const AXIS_CLASS = 'wardley-axis';
-const AXIS_TEXT_CLASS = 'wardley-axis-text';
+const AXIS_CLASS = "wardley-axis";
+const AXIS_TEXT_CLASS = "wardley-axis-text";
 
 function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
@@ -34,11 +34,11 @@ function clamp01(n: number): number {
  * elements). The plot size is changeable at runtime via `config.size` ("scale map").
  */
 export default class EvolutionGrid {
-  static $inject = ['canvas'];
+  static $inject = ["canvas"];
 
   private boundaries: readonly [number, number, number] = DEFAULT_STAGE_BOUNDARIES;
   private labels: readonly [string, string, string, string] = DEFAULT_EVOLUTION_LABELS;
-  private yAxisLabel = 'Value Chain';
+  private yAxisLabel = "Value Chain";
   private yAxisEndLabels: readonly [string, string] = DEFAULT_Y_AXIS_END_LABELS;
   private plotWidth: number = PLOT.width;
   private plotHeight: number = PLOT.height;
@@ -48,11 +48,11 @@ export default class EvolutionGrid {
   configure(config: MapConfig): void {
     this.boundaries = config.stageBoundaries ?? DEFAULT_STAGE_BOUNDARIES;
     this.labels = config.evolutionLabels ?? DEFAULT_EVOLUTION_LABELS;
-    this.yAxisLabel = config.yAxisLabel ?? 'Value Chain';
+    this.yAxisLabel = config.yAxisLabel ?? "Value Chain";
     this.yAxisEndLabels = config.yAxisEndLabels ?? DEFAULT_Y_AXIS_END_LABELS;
     // A written size stays in the config as is; the grid draws it within the limits (NaN-safe).
-    this.plotWidth = drawnPlotLength(config.size?.width, 'width');
-    this.plotHeight = drawnPlotLength(config.size?.height, 'height');
+    this.plotWidth = drawnPlotLength(config.size?.width, "width");
+    this.plotHeight = drawnPlotLength(config.size?.height, "height");
   }
 
   /** Normalized -> diagram px (center of the node). */
@@ -119,22 +119,22 @@ export default class EvolutionGrid {
       if (i % 2 === 1) {
         svgAppend(
           layer,
-          rect(x0, top, x1 - x0, this.plotHeight, { fill: COLORS.band, stroke: 'none' }),
+          rect(x0, top, x1 - x0, this.plotHeight, { fill: COLORS.band, stroke: "none" }),
         );
       }
       if (i > 0) {
         svgAppend(
           layer,
-          line(x0, top, x0, bottom, { stroke: COLORS.grid, 'stroke-dasharray': '3 5' }),
+          line(x0, top, x0, bottom, { stroke: COLORS.grid, "stroke-dasharray": "3 5" }),
         );
       }
       const midX = (x0 + x1) / 2;
       svgAppend(
         layer,
         text(this.labels[i]!.toUpperCase(), midX, bottom + 18, {
-          'text-anchor': 'middle',
-          'font-size': FONT.stage,
-          'letter-spacing': '0.08em',
+          "text-anchor": "middle",
+          "font-size": FONT.stage,
+          "letter-spacing": "0.08em",
           fill: COLORS.axisText,
         }),
       );
@@ -144,14 +144,14 @@ export default class EvolutionGrid {
       layer,
       line(left, bottom, right + 10, bottom, { stroke: COLORS.axis, class: AXIS_CLASS }),
     );
-    svgAppend(layer, arrowHead(right + 10, bottom, 'right'));
+    svgAppend(layer, arrowHead(right + 10, bottom, "right"));
     svgAppend(
       layer,
-      text('Evolution', right + 6, bottom + 38, {
-        'text-anchor': 'end',
-        'font-size': FONT.axis,
+      text("Evolution", right + 6, bottom + 38, {
+        "text-anchor": "end",
+        "font-size": FONT.axis,
         fill: COLORS.axisText,
-        'font-style': 'italic',
+        "font-style": "italic",
       }),
     );
 
@@ -159,12 +159,12 @@ export default class EvolutionGrid {
       layer,
       line(left, bottom, left, top - 10, { stroke: COLORS.axis, class: AXIS_CLASS }),
     );
-    svgAppend(layer, arrowHead(left, top - 10, 'up'));
+    svgAppend(layer, arrowHead(left, top - 10, "up"));
     const yLabel = text(this.yAxisLabel, 0, 0, {
-      'text-anchor': 'middle',
-      'font-size': FONT.axis,
+      "text-anchor": "middle",
+      "font-size": FONT.axis,
       fill: COLORS.axisText,
-      'font-style': 'italic',
+      "font-style": "italic",
     });
     svgAttr(yLabel, { transform: `translate(${left - 46}, ${(top + bottom) / 2}) rotate(-90)` });
     svgAppend(layer, yLabel);
@@ -173,16 +173,16 @@ export default class EvolutionGrid {
     svgAppend(
       layer,
       text(this.yAxisEndLabels[1], left - 10, top + 11, {
-        'text-anchor': 'end',
-        'font-size': FONT.stage,
+        "text-anchor": "end",
+        "font-size": FONT.stage,
         fill: COLORS.axisText,
       }),
     );
     svgAppend(
       layer,
       text(this.yAxisEndLabels[0], left - 10, bottom - 2, {
-        'text-anchor': 'end',
-        'font-size': FONT.stage,
+        "text-anchor": "end",
+        "font-size": FONT.stage,
         fill: COLORS.axisText,
       }),
     );
@@ -192,18 +192,18 @@ export default class EvolutionGrid {
 type Attrs = Record<string, string | number>;
 
 function rect(x: number, y: number, w: number, h: number, attrs: Attrs): SVGElement {
-  return svgAttr(svgCreate('rect'), { x, y, width: w, height: h, 'stroke-width': 1, ...attrs });
+  return svgAttr(svgCreate("rect"), { x, y, width: w, height: h, "stroke-width": 1, ...attrs });
 }
 
 function line(x1: number, y1: number, x2: number, y2: number, attrs: Attrs): SVGElement {
-  return svgAttr(svgCreate('line'), { x1, y1, x2, y2, 'stroke-width': 1, ...attrs });
+  return svgAttr(svgCreate("line"), { x1, y1, x2, y2, "stroke-width": 1, ...attrs });
 }
 
 function text(content: string, x: number, y: number, attrs: Attrs): SVGElement {
-  const el = svgAttr(svgCreate('text'), {
+  const el = svgAttr(svgCreate("text"), {
     x,
     y,
-    'font-family': FONT.family,
+    "font-family": FONT.family,
     class: AXIS_TEXT_CLASS,
     ...attrs,
   });
@@ -211,11 +211,11 @@ function text(content: string, x: number, y: number, attrs: Attrs): SVGElement {
   return el;
 }
 
-function arrowHead(x: number, y: number, dir: 'right' | 'up'): SVGElement {
+function arrowHead(x: number, y: number, dir: "right" | "up"): SVGElement {
   const s = 5;
   const points =
-    dir === 'right'
+    dir === "right"
       ? `${x - s},${y - s} ${x + 2},${y} ${x - s},${y + s}`
       : `${x - s},${y + s} ${x},${y - 2} ${x + s},${y + s}`;
-  return svgAttr(svgCreate('polygon'), { points, fill: COLORS.axis, class: AXIS_CLASS });
+  return svgAttr(svgCreate("polygon"), { points, fill: COLORS.axis, class: AXIS_CLASS });
 }

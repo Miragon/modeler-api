@@ -35,7 +35,9 @@ describe("toastLifetime", () => {
 
   it("ignores a duration setTimeout cannot take", () => {
     expect(toastLifetime({ status: "info", text: "x", durationMs: Number.NaN })).toBe(2800);
-    expect(toastLifetime({ status: "info", text: "x", durationMs: Number.POSITIVE_INFINITY })).toBe(2800);
+    expect(toastLifetime({ status: "info", text: "x", durationMs: Number.POSITIVE_INFINITY })).toBe(
+      2800,
+    );
   });
 
   it("is undefined with an action, whatever durationMs says (it never closes by itself)", () => {
@@ -66,12 +68,18 @@ describe("toastToEvict", () => {
 
   it("prefers the oldest that is neither engaged nor has an action", () => {
     expect(toastToEvict([slot(1, { hasAction: true }), slot(2), slot(3)])).toBe(2);
-    expect(toastToEvict([slot(1, { engaged: true }), slot(2, { hasAction: true }), slot(3)])).toBe(3);
+    expect(toastToEvict([slot(1, { engaged: true }), slot(2, { hasAction: true }), slot(3)])).toBe(
+      3,
+    );
   });
 
   it("then the oldest that is not engaged, an action toast included", () => {
     expect(
-      toastToEvict([slot(1, { engaged: true }), slot(2, { hasAction: true }), slot(3, { hasAction: true })]),
+      toastToEvict([
+        slot(1, { engaged: true }),
+        slot(2, { hasAction: true }),
+        slot(3, { hasAction: true }),
+      ]),
     ).toBe(2);
   });
 
@@ -118,19 +126,27 @@ describe("toastStackBottom", () => {
 
   it("1280: the centred column clears the whole bottom row", () => {
     // Column 400…880.
-    expect(toastStackBottom({ containerWidth: 1280, obstacles: [legal(), webPill(), zoom(1280)] })).toBe(12);
+    expect(
+      toastStackBottom({ containerWidth: 1280, obstacles: [legal(), webPill(), zoom(1280)] }),
+    ).toBe(12);
   });
 
   it("1000: stands 8px above the legal line it would touch", () => {
     // Column 260…740; the legal line ends at 342, the zoom panel starts at 815.
-    expect(toastStackBottom({ containerWidth: 1000, obstacles: [legal(), webPill(), zoom(1000)] })).toBe(40);
+    expect(
+      toastStackBottom({ containerWidth: 1000, obstacles: [legal(), webPill(), zoom(1000)] }),
+    ).toBe(40);
   });
 
   it("420: stands 8px above the highest of the bottom row", () => {
     // Column 12…408 spans the whole row.
     expect(toastStackBottom({ containerWidth: 420, obstacles: [legal(), zoom(420)] })).toBe(60);
-    expect(toastStackBottom({ containerWidth: 420, obstacles: [legal(), zoom(420, true)] })).toBe(88);
-    expect(toastStackBottom({ containerWidth: 420, obstacles: [legal(), webPill(), zoom(420)] })).toBe(88);
+    expect(toastStackBottom({ containerWidth: 420, obstacles: [legal(), zoom(420, true)] })).toBe(
+      88,
+    );
+    expect(
+      toastStackBottom({ containerWidth: 420, obstacles: [legal(), webPill(), zoom(420)] }),
+    ).toBe(88);
   });
 
   it("420 in the IDE column: above the zoom panel and the pill at 12", () => {
@@ -142,12 +158,12 @@ describe("toastStackBottom", () => {
     // Column 400…880 at 1280.
     expect(toastStackBottom({ containerWidth: 1280, obstacles: [legal(392)] })).toBe(12);
     expect(toastStackBottom({ containerWidth: 1280, obstacles: [legal(393)] })).toBe(40);
-    expect(toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 888, right: 900, top: 52 }] })).toBe(
-      12,
-    );
-    expect(toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 887, right: 900, top: 52 }] })).toBe(
-      60,
-    );
+    expect(
+      toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 888, right: 900, top: 52 }] }),
+    ).toBe(12);
+    expect(
+      toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 887, right: 900, top: 52 }] }),
+    ).toBe(60);
   });
 
   it("tests the column of the widest card, not the whole stack", () => {
@@ -170,13 +186,16 @@ describe("toastStackBottom", () => {
 
   it("ignores obstacles off to the side, however high", () => {
     expect(
-      toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 12, right: 200, top: 400 }, zoom(1280)] }),
+      toastStackBottom({
+        containerWidth: 1280,
+        obstacles: [{ left: 12, right: 200, top: 400 }, zoom(1280)],
+      }),
     ).toBe(12);
   });
 
   it("never sinks below 12px", () => {
-    expect(toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 500, right: 600, top: 0 }] })).toBe(
-      12,
-    );
+    expect(
+      toastStackBottom({ containerWidth: 1280, obstacles: [{ left: 500, right: 600, top: 0 }] }),
+    ).toBe(12);
   });
 });

@@ -15,7 +15,9 @@
  */
 
 /** One Lucide icon: its SVG child elements on the 24 × 24 grid. */
-export type IconNode = ReadonlyArray<readonly [tag: string, attributes: Readonly<Record<string, string>>]>;
+export type IconNode = ReadonlyArray<
+  readonly [tag: string, attributes: Readonly<Record<string, string>>]
+>;
 
 export type ShellIconName =
   | "menu"
@@ -291,7 +293,9 @@ function attributeList(attributes: readonly [string, string][]): string {
  */
 export function iconMarkup(icon: ShellIconName | IconNode, options?: IconOptions): string {
   const { root, children } = sanitize(icon, options);
-  const content = children.map(([tag, attributes]) => `<${tag}${attributeList(attributes)}/>`).join("");
+  const content = children
+    .map(([tag, attributes]) => `<${tag}${attributeList(attributes)}/>`)
+    .join("");
   return `<svg xmlns="${SVG_NAMESPACE}"${attributeList(root)}>${content}</svg>`;
 }
 

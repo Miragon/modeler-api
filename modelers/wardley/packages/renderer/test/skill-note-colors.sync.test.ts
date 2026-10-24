@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { NOTE_COLORS } from '../src/draw/styles.js';
+import { describe, it, expect } from "vitest";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { NOTE_COLORS } from "../src/draw/styles.js";
 
 /**
  * Drift guard: the Claude Code plugin teaches Claude which colour to give a review note, and Claude
@@ -11,14 +11,14 @@ import { NOTE_COLORS } from '../src/draw/styles.js';
  * colour picker. `NOTE_COLORS` in `draw/styles.ts` is the source of truth.
  */
 const pluginRoot = fileURLToPath(
-  new URL('../../../plugins/wardley-maps-modeler/', import.meta.url),
+  new URL("../../../plugins/wardley-maps-modeler/", import.meta.url),
 );
 
 const COLOR_LEGEND_FILES = [
-  'skills/wardley-mapping/SKILL.md',
-  'skills/owm-dsl/reference/layout.md',
+  "skills/wardley-mapping/SKILL.md",
+  "skills/owm-dsl/reference/layout.md",
 ];
-const MEANING_COLOR_IDS = ['green', 'amber', 'red', 'blue', 'purple'] as const;
+const MEANING_COLOR_IDS = ["green", "amber", "red", "blue", "purple"] as const;
 const MINIMUM_LEGEND_COLORS = 4;
 
 const NOTE_KEYWORD = /^\s*note\s/i;
@@ -49,7 +49,7 @@ function normalizeHex(hex: string): string {
 function readPluginFile(relativePath: string): string {
   const filePath = join(pluginRoot, relativePath);
   expect(existsSync(filePath), `${relativePath} exists in the plugin`).toBe(true);
-  return readFileSync(filePath, 'utf8');
+  return readFileSync(filePath, "utf8");
 }
 
 /**
@@ -61,14 +61,14 @@ function readPluginFile(relativePath: string): string {
 function readLegendRows(markdown: string): LegendRow[] {
   const tables: string[][] = [[]];
   for (const line of markdown.split(/\r?\n/)) {
-    if (line.trim().startsWith('|')) tables[tables.length - 1]!.push(line.trim());
+    if (line.trim().startsWith("|")) tables[tables.length - 1]!.push(line.trim());
     else if (tables[tables.length - 1]!.length > 0) tables.push([]);
   }
   return tables.flatMap((table) => {
     const rows = table
       .map((row) => ({
         row,
-        namedColors: NOTE_COLORS.filter((color) => new RegExp(`\\b${color.id}\\b`, 'i').test(row)),
+        namedColors: NOTE_COLORS.filter((color) => new RegExp(`\\b${color.id}\\b`, "i").test(row)),
         hexes: [...row.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((match) => normalizeHex(match[0])),
       }))
       .filter((legendRow) => legendRow.namedColors.length > 0 && legendRow.hexes.length > 0);
@@ -78,7 +78,7 @@ function readLegendRows(markdown: string): LegendRow[] {
 }
 
 function listNoteSources(): string[] {
-  const pluginFiles = readdirSync(pluginRoot, { recursive: true, encoding: 'utf8' }).filter(
+  const pluginFiles = readdirSync(pluginRoot, { recursive: true, encoding: "utf8" }).filter(
     (relativePath) => /\.(md|wmap|owm)$/.test(relativePath),
   );
   return [...new Set([...COLOR_LEGEND_FILES, ...pluginFiles])].sort();
@@ -104,9 +104,9 @@ function readNoteColors(source: string): NoteColorUsage[] {
   });
 }
 
-describe('skill-note-colors.sync — the plugin quotes the editor note palette', () => {
+describe("skill-note-colors.sync — the plugin quotes the editor note palette", () => {
   it.each(COLOR_LEGEND_FILES)(
-    '%s: every legend hex is the NOTE_COLORS value of its colour',
+    "%s: every legend hex is the NOTE_COLORS value of its colour",
     (file) => {
       const rows = readLegendRows(readPluginFile(file));
       expect(rows.length, `${file} has a note colour legend table`).toBeGreaterThan(0);
@@ -118,7 +118,7 @@ describe('skill-note-colors.sync — the plugin quotes the editor note palette',
     },
   );
 
-  it.each(COLOR_LEGEND_FILES)('%s: lists every meaning colour with its exact hex', (file) => {
+  it.each(COLOR_LEGEND_FILES)("%s: lists every meaning colour with its exact hex", (file) => {
     const rows = readLegendRows(readPluginFile(file));
     const missing = MEANING_COLOR_IDS.map((id) =>
       NOTE_COLORS.find((candidate) => candidate.id === id)!,
@@ -134,9 +134,9 @@ describe('skill-note-colors.sync — the plugin quotes the editor note palette',
     expect(missing).toEqual([]);
   });
 
-  it('every note colour anywhere in the plugin is a NOTE_COLORS hex', () => {
+  it("every note colour anywhere in the plugin is a NOTE_COLORS hex", () => {
     const sources = listNoteSources();
-    expect(sources).toContain('README.md');
+    expect(sources).toContain("README.md");
     const offPalette = sources.flatMap((file) =>
       readNoteColors(readPluginFile(file))
         .filter(({ color }) => !PALETTE_HEXES.has(normalizeHex(color)))

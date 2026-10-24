@@ -17,8 +17,20 @@ import {
 import { defaultMessages } from "./messages.js";
 import type { ShellHost } from "./types.js";
 
-function press(key: string, code: string, modifiers: Partial<Omit<KeyLike, "key" | "code">> = {}): KeyLike {
-  return { key, code, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...modifiers };
+function press(
+  key: string,
+  code: string,
+  modifiers: Partial<Omit<KeyLike, "key" | "code">> = {},
+): KeyLike {
+  return {
+    key,
+    code,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    ...modifiers,
+  };
 }
 
 const meta = { metaKey: true };
@@ -32,7 +44,11 @@ describe("matchChromeKey (guide §5.8)", () => {
   ] as const) {
     commandCases.push(
       [`${name} + =`, press("=", "Equal", modifier), "zoomIn"],
-      [`${name} + Shift + = (key "+")`, press("+", "Equal", { ...modifier, shiftKey: true }), "zoomIn"],
+      [
+        `${name} + Shift + = (key "+")`,
+        press("+", "Equal", { ...modifier, shiftKey: true }),
+        "zoomIn",
+      ],
       [`${name} + "+" (German plus key)`, press("+", "BracketRight", modifier), "zoomIn"],
       [
         `${name} + Shift + "=" (key stays "=")`,
@@ -41,7 +57,11 @@ describe("matchChromeKey (guide §5.8)", () => {
       ],
       [`${name} + NumpadAdd`, press("+", "NumpadAdd", modifier), "zoomIn"],
       [`${name} + -`, press("-", "Minus", modifier), "zoomOut"],
-      [`${name} + Shift + - (key "_")`, press("_", "Minus", { ...modifier, shiftKey: true }), "zoomOut"],
+      [
+        `${name} + Shift + - (key "_")`,
+        press("_", "Minus", { ...modifier, shiftKey: true }),
+        "zoomOut",
+      ],
       [`${name} + "-" (German minus key)`, press("-", "Slash", modifier), "zoomOut"],
       [`${name} + NumpadSubtract`, press("-", "NumpadSubtract", modifier), "zoomOut"],
       [`${name} + 0`, press("0", "Digit0", modifier), "zoomToActual"],
@@ -116,7 +136,10 @@ describe("isUndoRedoKey", () => {
     ["Z alone", press("z", "KeyZ")],
     ["Shift + Z", press("Z", "KeyZ", { shiftKey: true })],
     ["Ctrl + Alt + Z", press("z", "KeyZ", { ctrlKey: true, altKey: true })],
-    ["Ctrl + Shift + Y (VS Code: Debug Console)", press("Y", "KeyY", { ctrlKey: true, shiftKey: true })],
+    [
+      "Ctrl + Shift + Y (VS Code: Debug Console)",
+      press("Y", "KeyY", { ctrlKey: true, shiftKey: true }),
+    ],
     ["Ctrl + A", press("a", "KeyA", ctrl)],
     ["Dvorak Ctrl + ; (physical KeyZ)", press(";", "KeyZ", ctrl)],
     ["Ctrl + =", press("=", "Equal", ctrl)],
@@ -301,7 +324,12 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       preventDefault: false,
       stopInIde: true,
     },
-    { name: "zoom key while composing", event: composing(zoomIn), preventDefault: false, stopInIde: true },
+    {
+      name: "zoom key while composing",
+      event: composing(zoomIn),
+      preventDefault: false,
+      stopInIde: true,
+    },
     {
       name: "zoom key with a modal dialog",
       event: zoomIn,
@@ -356,7 +384,12 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       preventDefault: false,
       stopInIde: false,
     },
-    { name: "Shift + 1 while composing", event: composing(fit), preventDefault: false, stopInIde: false },
+    {
+      name: "Shift + 1 while composing",
+      event: composing(fit),
+      preventDefault: false,
+      stopInIde: false,
+    },
     {
       name: "Shift + 1 with a modal dialog",
       event: fit,
@@ -416,7 +449,12 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       preventDefault: false,
       stopInIde: true,
     },
-    { name: "Meta + A unhandled", event: press("a", "KeyA", meta), preventDefault: false, stopInIde: false },
+    {
+      name: "Meta + A unhandled",
+      event: press("a", "KeyA", meta),
+      preventDefault: false,
+      stopInIde: false,
+    },
     { name: "Meta + S", event: press("s", "KeyS", meta), preventDefault: false, stopInIde: false },
     { name: "F1", event: press("F1", "F1"), preventDefault: false, stopInIde: false },
     {
@@ -462,7 +500,10 @@ describe("decideKey (guide §5.8, §13.5)", () => {
   it("leaves the zoom keys and Shift + 1 to the browser behind the web app's start screen", () => {
     const startScreen: KeyContext = { ...nothingOpen, host: "web", startScreen: true };
     for (const event of [zoomIn, press("-", "Minus", meta), press("0", "Digit0", meta), fit]) {
-      expect(decideKey(event, startScreen)).toEqual({ preventDefault: false, stopPropagation: false });
+      expect(decideKey(event, startScreen)).toEqual({
+        preventDefault: false,
+        stopPropagation: false,
+      });
     }
     expect(decideKey(escape, { ...startScreen, menuOpen: true })).toEqual({
       action: "closeMenu",
@@ -475,7 +516,9 @@ describe("decideKey (guide §5.8, §13.5)", () => {
       stopPropagation: false,
     });
     // The IDE host has no start screen; its zoom keys never reach VS Code.
-    expect(decideKey(zoomIn, { ...nothingOpen, startScreen: true })).toMatchObject({ stopPropagation: true });
+    expect(decideKey(zoomIn, { ...nothingOpen, startScreen: true })).toMatchObject({
+      stopPropagation: true,
+    });
   });
 });
 
@@ -487,7 +530,9 @@ describe("commandKeyLabel", () => {
   });
 
   it("gives labels that name the same keys for aria-keyshortcuts", () => {
-    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("O", "mac", defaultMessages.keyNames))).toBe("Meta+O");
+    expect(ariaKeyShortcutsFromLabel(commandKeyLabel("O", "mac", defaultMessages.keyNames))).toBe(
+      "Meta+O",
+    );
     expect(ariaKeyShortcutsFromLabel(commandKeyLabel("S", "other", defaultMessages.keyNames))).toBe(
       "Control+S",
     );
@@ -508,7 +553,9 @@ describe("detectPlatform", () => {
 
   it("prefers userAgentData", () => {
     expect(detectPlatform({ userAgentData: { platform: "macOS" }, platform: "Win32" })).toBe("mac");
-    expect(detectPlatform({ userAgentData: { platform: "Windows" }, platform: "MacIntel" })).toBe("other");
+    expect(detectPlatform({ userAgentData: { platform: "Windows" }, platform: "MacIntel" })).toBe(
+      "other",
+    );
   });
 
   it("falls back to navigator.platform when userAgentData does not know", () => {
@@ -580,7 +627,10 @@ describe("ariaKeyShortcutsFromLabel", () => {
     expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
   });
 
-  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+"])("gives nothing for %j", (label) => {
-    expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
-  });
+  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+"])(
+    "gives nothing for %j",
+    (label) => {
+      expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
+    },
+  );
 });

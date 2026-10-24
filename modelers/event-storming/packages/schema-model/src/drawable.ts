@@ -1,4 +1,4 @@
-import type { EventStormingBoard } from './types.js';
+import type { EventStormingBoard } from "./types.js";
 
 /**
  * The canvas places shapes with 32-bit SVG transforms, which overflow near 3.4e38 and would make
@@ -6,11 +6,11 @@ import type { EventStormingBoard } from './types.js';
  */
 export const LARGEST_DRAWABLE_NUMBER = 1e38;
 
-const DRAWABLE_RANGE = `±${LARGEST_DRAWABLE_NUMBER.toExponential().replace('e+', 'e')}`;
+const DRAWABLE_RANGE = `±${LARGEST_DRAWABLE_NUMBER.toExponential().replace("e+", "e")}`;
 
 /** A board with a coordinate or size the canvas cannot draw (beyond ±1e38). */
 export class UndrawableBoardError extends RangeError {
-  override readonly name = 'UndrawableBoardError';
+  override readonly name = "UndrawableBoardError";
 
   constructor(
     readonly elementId: string,
@@ -27,7 +27,7 @@ export class UndrawableBoardError extends RangeError {
 type Fields = Readonly<Record<string, unknown>>;
 
 function isFields(value: unknown): value is Fields {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function* pairOf(
@@ -41,14 +41,14 @@ function* pairOf(
 
 function* numbersOf(element: Fields): Generator<readonly [string, unknown]> {
   const { elementType, position, points, size } = element;
-  yield* pairOf('position', position, ['x', 'y']);
-  if (elementType === 'drawing' && Array.isArray(points)) {
+  yield* pairOf("position", position, ["x", "y"]);
+  if (elementType === "drawing" && Array.isArray(points)) {
     const pointList: readonly unknown[] = points;
     for (const [index, point] of pointList.entries()) {
-      yield* pairOf(`points[${index}]`, point, ['x', 'y']);
+      yield* pairOf(`points[${index}]`, point, ["x", "y"]);
     }
   }
-  if (elementType === 'note') yield* pairOf('size', size, ['width', 'height']);
+  if (elementType === "note") yield* pairOf("size", size, ["width", "height"]);
 }
 
 /**
@@ -61,10 +61,10 @@ export function assertElementsDrawable(elements: unknown): void {
   for (const element of elementList) {
     if (!isFields(element)) continue;
     const { id } = element;
-    if (typeof id !== 'string' || id === '') continue;
+    if (typeof id !== "string" || id === "") continue;
     for (const [field, value] of numbersOf(element)) {
       // Negated so that NaN, which a board built in code can hold, is refused as well.
-      if (typeof value === 'number' && !(Math.abs(value) <= LARGEST_DRAWABLE_NUMBER)) {
+      if (typeof value === "number" && !(Math.abs(value) <= LARGEST_DRAWABLE_NUMBER)) {
         throw new UndrawableBoardError(id, field, value);
       }
     }

@@ -1,19 +1,19 @@
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Injector } from 'didi';
-import type PreviewSupport from 'diagram-js/lib/features/preview-support/PreviewSupport';
-import type { Element, Shape } from 'diagram-js/lib/model/Types';
+import CommandInterceptor from "diagram-js/lib/command/CommandInterceptor";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Injector } from "didi";
+import type PreviewSupport from "diagram-js/lib/features/preview-support/PreviewSupport";
+import type { Element, Shape } from "diagram-js/lib/model/Types";
 import {
   append as svgAppend,
   attr as svgAttr,
   create as svgCreate,
   remove as svgRemove,
-} from 'tiny-svg';
-import { translate } from 'diagram-js/lib/util/SvgTransformUtil';
-import { isComponent, isPipeline, type WardleyShape } from '../model/di-types.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
+} from "tiny-svg";
+import { translate } from "diagram-js/lib/util/SvgTransformUtil";
+import { isComponent, isPipeline, type WardleyShape } from "../model/di-types.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
 import {
   anchorComponentOf,
   centerOf,
@@ -21,7 +21,7 @@ import {
   pipelineAnchoredBy,
   pipelineAt,
   pipelineFollowers,
-} from './pipelineMembership.js';
+} from "./pipelineMembership.js";
 
 /** After diagram-js Move collected the selection (1500), before the preview is drawn (499). */
 const COLLECT_FOLLOWERS_PRIORITY = 1400;
@@ -32,10 +32,10 @@ const DROP_TARGET_PRIORITY = 400;
 /** Before the constraint behavior clamps the delta of the extended closure (1000). */
 const EXTEND_CLOSURE_PRIORITY = 1500;
 
-const VERTICAL_PREVIEW_LAYER = 'wardley-pipeline-drag';
+const VERTICAL_PREVIEW_LAYER = "wardley-pipeline-drag";
 const VERTICAL_PREVIEW_LAYER_INDEX = 900;
 
-export const DROP_TARGET_MARKER = 'wardley-drop-target';
+export const DROP_TARGET_MARKER = "wardley-drop-target";
 
 interface MoveContext {
   shape?: unknown;
@@ -69,7 +69,7 @@ interface MoveClosureLike {
  * highlights the pipeline it would join.
  */
 export default class PipelineGroupBehavior extends CommandInterceptor {
-  static override $inject = ['eventBus', 'elementRegistry', 'canvas', 'injector'];
+  static override $inject = ["eventBus", "elementRegistry", "canvas", "injector"];
 
   constructor(
     eventBus: EventBus,
@@ -78,38 +78,38 @@ export default class PipelineGroupBehavior extends CommandInterceptor {
     injector: Injector,
   ) {
     super(eventBus);
-    const previewSupport = injector.get<PreviewSupport | null>('previewSupport', false);
+    const previewSupport = injector.get<PreviewSupport | null>("previewSupport", false);
 
     // A pipeline and its anchor component are one OWM pair, linked by their shared name: renaming
     // one renames the other in the same undo step, or the box silently stops following.
-    this.preExecute('element.updateProperties', (event: { context: RenameContext }) => {
+    this.preExecute("element.updateProperties", (event: { context: RenameContext }) => {
       const { context } = event;
       const element = context.element;
-      const label = context.properties['wardleyLabel'];
-      if (typeof label !== 'string' || label === element.wardleyLabel) return;
+      const label = context.properties["wardleyLabel"];
+      if (typeof label !== "string" || label === element.wardleyLabel) return;
       const counterpart = isPipeline(element)
         ? anchorComponentOf(this.elementRegistry, element)
         : pipelineAnchoredBy(this.elementRegistry, element);
       if (counterpart) context.renamedCounterpart = counterpart;
     });
-    this.postExecute('element.updateProperties', (event: { context: RenameContext }) => {
+    this.postExecute("element.updateProperties", (event: { context: RenameContext }) => {
       const { context } = event;
       const counterpart = context.renamedCounterpart;
-      const label = context.properties['wardleyLabel'];
-      if (!counterpart || typeof label !== 'string' || counterpart.wardleyLabel === label) return;
-      injector.get<WardleyModeling>('wardleyModeling').updateProperties(counterpart, {
+      const label = context.properties["wardleyLabel"];
+      if (!counterpart || typeof label !== "string" || counterpart.wardleyLabel === label) return;
+      injector.get<WardleyModeling>("wardleyModeling").updateProperties(counterpart, {
         wardleyLabel: label,
       });
     });
 
-    eventBus.on('shape.move.start', COLLECT_FOLLOWERS_PRIORITY, (event: MoveEvent) => {
+    eventBus.on("shape.move.start", COLLECT_FOLLOWERS_PRIORITY, (event: MoveEvent) => {
       const { context } = event;
       context.shapes = this.withFollowers(context.shapes ?? []);
     });
 
     // Keyboard nudges and API moves never pass through shape.move.start.
     this.preExecuted(
-      'elements.move',
+      "elements.move",
       EXTEND_CLOSURE_PRIORITY,
       (event: { context: { closure?: MoveClosureLike } }) => {
         const closure = event.context.closure;
@@ -125,12 +125,12 @@ export default class PipelineGroupBehavior extends CommandInterceptor {
     );
 
     if (previewSupport) {
-      eventBus.on('shape.move.start', VERTICAL_PREVIEW_PRIORITY, (event: MoveEvent) => {
+      eventBus.on("shape.move.start", VERTICAL_PREVIEW_PRIORITY, (event: MoveEvent) => {
         const { context } = event;
         const carried = this.carriedVertically(context.shapes ?? []);
         if (!carried.length) return;
-        const group = svgCreate('g');
-        svgAttr(group, { class: 'djs-drag-group' });
+        const group = svgCreate("g");
+        svgAttr(group, { class: "djs-drag-group" });
         svgAppend(
           this.canvas.getLayer(VERTICAL_PREVIEW_LAYER, VERTICAL_PREVIEW_LAYER_INDEX),
           group,
@@ -140,7 +140,7 @@ export default class PipelineGroupBehavior extends CommandInterceptor {
       });
     }
 
-    eventBus.on('shape.move.move', DROP_TARGET_PRIORITY, (event: MoveEvent) => {
+    eventBus.on("shape.move.move", DROP_TARGET_PRIORITY, (event: MoveEvent) => {
       const { context } = event;
       if (context.pipelineVerticalPreview) {
         translate(context.pipelineVerticalPreview, 0, event.dy);
@@ -148,7 +148,7 @@ export default class PipelineGroupBehavior extends CommandInterceptor {
       this.markDropTarget(context, this.dropTargetFor(context, event.dx, event.dy));
     });
 
-    eventBus.on('shape.move.cleanup', (event: MoveEvent) => {
+    eventBus.on("shape.move.cleanup", (event: MoveEvent) => {
       const { context } = event;
       if (context.pipelineVerticalPreview) {
         svgRemove(context.pipelineVerticalPreview);

@@ -1,12 +1,12 @@
-import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
-import type { ElementLike } from 'diagram-js/lib/core/Types';
-import type { MapSize } from '@miragon/wardley-schema-model';
-import type { RootBusinessObject } from '../../io/index.js';
+import type CommandHandler from "diagram-js/lib/command/CommandHandler";
+import type { ElementLike } from "diagram-js/lib/core/Types";
+import type { MapSize } from "@miragon/wardley-schema-model";
+import type { RootBusinessObject } from "../../io/index.js";
 import {
   configWithSize,
   withoutRawSizeStatements,
   type MapProjection,
-} from '../../map-resize/index.js';
+} from "../../map-resize/index.js";
 
 export interface ResizeMapContext {
   /** New explicit size; `undefined` removes the `size` line (default plot). */
@@ -22,7 +22,7 @@ export interface ResizeMapContext {
  * changes in exactly one line.
  */
 export default class ResizeMapHandler implements CommandHandler {
-  static $inject = ['wardleyMapProjection'];
+  static $inject = ["wardleyMapProjection"];
 
   constructor(private readonly projection: MapProjection) {}
 

@@ -1,4 +1,4 @@
-import { CLOSE_ICON, element, uniqueId } from './dom.js';
+import { CLOSE_ICON, element, uniqueId } from "./dom.js";
 
 /** What a dialog needs of the chrome around the map; a `@miragon/modeler-shell` handle fits. */
 export interface DialogChrome {
@@ -33,11 +33,11 @@ export interface MapDialogParts {
 /** A footer button of guide §8: primary (the confirming action), secondary or ghost. */
 export function dialogButton(
   label: string,
-  variant: 'primary' | 'secondary' | 'ghost',
+  variant: "primary" | "secondary" | "ghost",
 ): HTMLButtonElement {
-  const created = element('button', 'wardley-button', label);
-  created.type = 'button';
-  created.dataset['variant'] = variant;
+  const created = element("button", "wardley-button", label);
+  created.type = "button";
+  created.dataset["variant"] = variant;
   return created;
 }
 
@@ -47,14 +47,14 @@ function header(
   titleId: string,
   onClose: () => void,
 ): HTMLElement {
-  const head = element('header', 'wardley-dialog-header');
-  const heading = element('h3', 'wardley-dialog-title', title);
+  const head = element("header", "wardley-dialog-header");
+  const heading = element("h3", "wardley-dialog-title", title);
   heading.id = titleId;
-  const close = element('button', 'wardley-dialog-close');
-  close.type = 'button';
-  close.setAttribute('aria-label', chrome.messages.close);
+  const close = element("button", "wardley-dialog-close");
+  close.type = "button";
+  close.setAttribute("aria-label", chrome.messages.close);
   close.innerHTML = CLOSE_ICON;
-  close.addEventListener('click', onClose);
+  close.addEventListener("click", onClose);
   head.append(heading, close);
   return head;
 }
@@ -70,23 +70,23 @@ export function createMapDialog(chrome: DialogChrome, parts: MapDialogParts): Ma
 
   function build(): HTMLDialogElement {
     const titleId = uniqueId(`${parts.className}-title`);
-    const created = element('dialog', `wardley-dialog ${parts.className}`);
-    created.setAttribute('aria-labelledby', titleId);
+    const created = element("dialog", `wardley-dialog ${parts.className}`);
+    created.setAttribute("aria-labelledby", titleId);
     const close = () => created.close();
-    const panel = element('div', 'wardley-dialog-panel');
+    const panel = element("div", "wardley-dialog-panel");
     panel.append(header(chrome, parts.title, titleId, close), ...parts.content(close));
     created.append(panel);
     // A press that started on the panel (selecting text, then releasing outside) is no backdrop
     // click; the panel covers all of the dialog's own box, so the backdrop is the dialog itself.
     let pressedOnBackdrop = false;
-    created.addEventListener('pointerdown', (event) => {
+    created.addEventListener("pointerdown", (event) => {
       pressedOnBackdrop = event.target === created;
     });
-    created.addEventListener('click', (event) => {
+    created.addEventListener("click", (event) => {
       if (event.target === created && pressedOnBackdrop) created.close();
       pressedOnBackdrop = false;
     });
-    created.addEventListener('close', () => {
+    created.addEventListener("close", () => {
       parts.afterClose?.();
       if (!chrome.menu.trigger.hidden) chrome.menu.trigger.focus({ preventScroll: true });
     });

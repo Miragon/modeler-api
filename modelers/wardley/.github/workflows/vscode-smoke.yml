@@ -127,7 +127,7 @@ jobs:
       - run: xvfb-run -a npm run test:vscode
         env:
           VSCODE_VERSION: ${{ steps.vscode.outputs.version }}
-          VSCODE_SMOKE_KEEP: '1'
+          VSCODE_SMOKE_KEEP: "1"
           TMPDIR: ${{ runner.temp }}
 
       - if: always()

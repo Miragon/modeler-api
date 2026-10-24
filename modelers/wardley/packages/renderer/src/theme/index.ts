@@ -1,1 +1,1 @@
-export { MIRAGON } from './palette.js';
+export { MIRAGON } from "./palette.js";

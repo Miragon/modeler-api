@@ -23,7 +23,9 @@ test.describe("web demo wiring", () => {
     await primary.focus();
     await page.keyboard.press("Enter");
     expect(await calls(page)).toEqual(["share", "share"]);
-    await expect(page.locator('[data-chrome="toasts"] [data-status]').first()).toContainText("Link copied");
+    await expect(page.locator('[data-chrome="toasts"] [data-status]').first()).toContainText(
+      "Link copied",
+    );
   });
 
   test("the File entries run their handlers after the menu closed", async ({ page }) => {
@@ -74,7 +76,9 @@ test.describe("web demo wiring", () => {
     await expect(page.locator(".djs-shape")).toHaveCount(0);
   });
 
-  test("a dropped board leaves the start screen; a problem row selects its element", async ({ page }) => {
+  test("a dropped board leaves the start screen; a problem row selects its element", async ({
+    page,
+  }) => {
     await openWeb(page, "?empty");
     await page.evaluate(() => {
       const transfer = new DataTransfer();

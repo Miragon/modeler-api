@@ -15,7 +15,7 @@ npm install @miragon/event-storming-dsl
 ## Usage
 
 ```ts
-import { parseDSL, serializeDSL } from '@miragon/event-storming-dsl';
+import { parseDSL, serializeDSL } from "@miragon/event-storming-dsl";
 
 const board = parseDSL(`title Order Checkout
 actor Customer [80, 300]

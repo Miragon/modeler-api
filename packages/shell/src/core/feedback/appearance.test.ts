@@ -48,7 +48,11 @@ describe("documentMode (guide §13.3)", () => {
     [
       "system",
       DARK_CAPABLE,
-      { theme: "system", colorScheme: "light dark", themeColor: { light: "#335DE5", dark: "#1D1D1D" } },
+      {
+        theme: "system",
+        colorScheme: "light dark",
+        themeColor: { light: "#335DE5", dark: "#1D1D1D" },
+      },
     ],
     [
       "light",
@@ -133,7 +137,9 @@ function runOnFakePage(script: string, setup: PageSetup = {}) {
   return {
     theme: attributes.get("data-cd-theme"),
     kontrast: attributes.get("data-cd-kontrast"),
-    metas: Object.fromEntries(metas.map((meta) => [`${meta.name} ${meta.media ?? ""}`.trim(), meta.content])),
+    metas: Object.fromEntries(
+      metas.map((meta) => [`${meta.name} ${meta.media ?? ""}`.trim(), meta.content]),
+    ),
     storageReads,
   };
 }
@@ -159,7 +165,12 @@ describe("webModeScript (guide §13.3)", () => {
     expect(lightScript).not.toContain("localStorage");
     expect(lightScript).not.toContain("data-cd-theme");
     const page = runOnFakePage(lightScript, { stored: "dark", contrast: true });
-    expect(page).toEqual({ theme: "system", kontrast: "hoch", metas: SYSTEM_METAS, storageReads: [] });
+    expect(page).toEqual({
+      theme: "system",
+      kontrast: "hoch",
+      metas: SYSTEM_METAS,
+      storageReads: [],
+    });
     expect(runOnFakePage(lightScript).kontrast).toBeUndefined();
   });
 
@@ -225,7 +236,9 @@ describe("webModeScript (guide §13.3)", () => {
     expect(() => new Script(script)).not.toThrow();
     const page = runOnFakePage(script, { stored: "light" });
     expect(page.metas["color-scheme"]).toBe("light");
-    expect(page.metas["theme-color (prefers-color-scheme: dark)"]).toBe("</script><script>alert(1)//");
+    expect(page.metas["theme-color (prefers-color-scheme: dark)"]).toBe(
+      "</script><script>alert(1)//",
+    );
   });
 });
 

@@ -1,14 +1,14 @@
-import BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
-import type CroppingConnectionDocking from 'diagram-js/lib/layout/CroppingConnectionDocking';
-import { getMid } from 'diagram-js/lib/layout/LayoutUtil';
+import BaseLayouter from "diagram-js/lib/layout/BaseLayouter";
+import type CroppingConnectionDocking from "diagram-js/lib/layout/CroppingConnectionDocking";
+import { getMid } from "diagram-js/lib/layout/LayoutUtil";
 import {
   connectPoints,
   connectRectangles,
   withoutRedundantPoints,
-} from 'diagram-js/lib/layout/ManhattanLayout';
-import type { Connection, Shape } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
-import { notchDepth } from '../draw/geometry.js';
+} from "diagram-js/lib/layout/ManhattanLayout";
+import type { Connection, Shape } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import { notchDepth } from "../draw/geometry.js";
 
 /** Horizontal distance of the column trunk from the leftmost sub-step. */
 const TRUNK_MARGIN = 25;
@@ -41,7 +41,7 @@ export interface VcLayoutHints {
  * Both are cropped at the chevron contour via the renderer's getShapePath.
  */
 export default class VcLayouter extends BaseLayouter {
-  static $inject = ['connectionDocking'];
+  static $inject = ["connectionDocking"];
 
   constructor(private readonly connectionDocking: CroppingConnectionDocking) {
     super();
@@ -116,7 +116,7 @@ export default class VcLayouter extends BaseLayouter {
       const group = children.length ? children : [target];
 
       if (isRowArrangement(group, source)) {
-        return withoutRedundantPoints(connectPoints(sourceMid, targetMid, 'v:v'));
+        return withoutRedundantPoints(connectPoints(sourceMid, targetMid, "v:v"));
       }
 
       const bottom = source.y + source.height;
@@ -135,7 +135,7 @@ export default class VcLayouter extends BaseLayouter {
     }
 
     return withoutRedundantPoints(
-      connectRectangles(source, target, sourceMid, targetMid, { preferredLayouts: ['v:v'] }),
+      connectRectangles(source, target, sourceMid, targetMid, { preferredLayouts: ["v:v"] }),
     );
   }
 }
@@ -182,7 +182,7 @@ export function isRowArrangement(children: Shape[], source: Shape): boolean {
 const ROW_TOLERANCE_Y = 10;
 
 function isHierarchy(connection: Connection): boolean {
-  return (connection as { vcType?: string }).vcType === 'hierarchy';
+  return (connection as { vcType?: string }).vcType === "hierarchy";
 }
 
 function allFinite(points: Point[]): boolean {

@@ -3,8 +3,8 @@ import {
   loadDocument,
   serializeDocument,
   validateDocument,
-} from '@miragon/value-chain-schema-model';
-import exampleDocument from '../../../example/porter.vc.json' with { type: 'json' };
+} from "@miragon/value-chain-schema-model";
+import exampleDocument from "../../../example/porter.vc.json" with { type: "json" };
 
 const example = loadDocument(exampleDocument);
 
@@ -12,7 +12,7 @@ const example = loadDocument(exampleDocument);
 export const EXAMPLE_DOCUMENT = serializeDocument(example);
 
 /** A new, empty diagram, canonical. */
-export const EMPTY_DOCUMENT = serializeDocument(createEmptyDocument('New value chain'));
+export const EMPTY_DOCUMENT = serializeDocument(createEmptyDocument("New value chain"));
 
 /**
  * The document with the example's elements and connections in it, as "Insert example" of the
@@ -22,7 +22,7 @@ export const EMPTY_DOCUMENT = serializeDocument(createEmptyDocument('New value c
  * nothing of it is overwritten.
  */
 export function withExampleInserted(documentText: string): string {
-  if (documentText.trim() === '') {
+  if (documentText.trim() === "") {
     return EXAMPLE_DOCUMENT;
   }
   let current;

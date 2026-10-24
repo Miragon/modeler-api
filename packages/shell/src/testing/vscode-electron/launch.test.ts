@@ -50,7 +50,10 @@ describe("vsCodeLaunchArgs", () => {
   });
 
   it("opens the workspace and then the fixture in it, last", () => {
-    expect(args.slice(-2)).toEqual(["/scratch/run/workspace", "/scratch/run/workspace/board.storm"]);
+    expect(args.slice(-2)).toEqual([
+      "/scratch/run/workspace",
+      "/scratch/run/workspace/board.storm",
+    ]);
     expect(args.filter((arg) => !arg.startsWith("--"))).toHaveLength(2);
   });
 });
@@ -64,7 +67,9 @@ describe("vsCodeUserSettings", () => {
 
   it("sets the color theme and associates the fixture with the custom editor", () => {
     expect(settings["workbench.colorTheme"]).toBe("Default Dark Modern");
-    expect(settings["workbench.editorAssociations"]).toEqual({ "board.storm": "eventStorming.boardEditor" });
+    expect(settings["workbench.editorAssociations"]).toEqual({
+      "board.storm": "eventStorming.boardEditor",
+    });
   });
 
   it("dispatches keys by key code, so Playwright's US keys mean the same on every keyboard layout", () => {
@@ -130,9 +135,9 @@ describe("defaultVsCodeCachePath", () => {
     expect(defaultVsCodeCachePath("linux", {}, "/home/ci")).toBe(
       join("/home/ci", ".cache", "miragon-modeler-shell", "vscode-test"),
     );
-    expect(defaultVsCodeCachePath("win32", { LOCALAPPDATA: "/profiles/dev/local" }, "/home/dev")).toBe(
-      join("/profiles/dev/local", "miragon-modeler-shell", "vscode-test"),
-    );
+    expect(
+      defaultVsCodeCachePath("win32", { LOCALAPPDATA: "/profiles/dev/local" }, "/home/dev"),
+    ).toBe(join("/profiles/dev/local", "miragon-modeler-shell", "vscode-test"));
   });
 
   it("follows XDG_CACHE_HOME on Linux and falls back where a variable is empty", () => {
@@ -282,7 +287,14 @@ describe("isPlainFileName", () => {
   it("takes a file name without a path or glob characters", () => {
     expect(isPlainFileName("board.storm")).toBe(true);
     expect(isPlainFileName("teams.ttm.json")).toBe(true);
-    for (const name of ["", ".hidden", "dir/board.storm", "*.storm", "a b.storm", "../board.storm"]) {
+    for (const name of [
+      "",
+      ".hidden",
+      "dir/board.storm",
+      "*.storm",
+      "a b.storm",
+      "../board.storm",
+    ]) {
       expect(isPlainFileName(name)).toBe(false);
     }
   });

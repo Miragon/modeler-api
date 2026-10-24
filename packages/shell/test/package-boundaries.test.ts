@@ -29,7 +29,9 @@ function importSpecifiers(source: string): string[] {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const pattern =
     /(?:import|export)\s[^"';]*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)|require\(\s*["']([^"']+)["']\s*\)/g;
-  return [...code.matchAll(pattern)].map((match) => match[1] ?? match[2] ?? match[3] ?? match[4] ?? "");
+  return [...code.matchAll(pattern)].map(
+    (match) => match[1] ?? match[2] ?? match[3] ?? match[4] ?? "",
+  );
 }
 
 function moduleOf(path: string): string | undefined {
@@ -46,7 +48,9 @@ describe("package.json", () => {
   it("has no runtime dependencies; the VS Code driver's peers are optional", () => {
     expect(manifest.dependencies).toBeUndefined();
     expect(manifest.optionalDependencies).toBeUndefined();
-    expect(Object.keys(manifest.peerDependencies as Record<string, string>).sort()).toEqual(DRIVER_PEERS);
+    expect(Object.keys(manifest.peerDependencies as Record<string, string>).sort()).toEqual(
+      DRIVER_PEERS,
+    );
     expect(manifest.peerDependenciesMeta).toEqual(
       Object.fromEntries(DRIVER_PEERS.map((peer) => [peer, { optional: true }])),
     );
@@ -66,7 +70,13 @@ describe("package.json", () => {
 
   // The sourcemaps in dist point at ../src, so the sources ship with them (tests excluded).
   it("publishes dist, the sources the sourcemaps name, API.md and the notices", () => {
-    expect(manifest.files).toEqual(["dist", "src", "!src/**/*.test.ts", "API.md", "THIRD_PARTY_NOTICES.md"]);
+    expect(manifest.files).toEqual([
+      "dist",
+      "src",
+      "!src/**/*.test.ts",
+      "API.md",
+      "THIRD_PARTY_NOTICES.md",
+    ]);
   });
 
   it("has one command, the VS Code smoke test in Docker, built from a source that starts with a shebang", () => {
@@ -145,7 +155,10 @@ describe("sources", () => {
       .filter((path) => !isDriverFile(path) && path !== ownEntry)
       .flatMap((path) =>
         importSpecifiers(readFileSync(path, "utf8"))
-          .filter((specifier) => specifier.startsWith(".") && isDriverFile(join(dirname(path), specifier)))
+          .filter(
+            (specifier) =>
+              specifier.startsWith(".") && isDriverFile(join(dirname(path), specifier)),
+          )
           .map((specifier) => `${relative(packageDir, path)} → ${specifier}`),
       );
     expect(offending).toEqual([]);
@@ -180,7 +193,8 @@ describe("sources", () => {
       .flatMap((path) =>
         importSpecifiers(readFileSync(path, "utf8"))
           .filter(
-            (specifier) => !specifier.startsWith(".") || moduleOf(join(dirname(path), specifier)) !== "core",
+            (specifier) =>
+              !specifier.startsWith(".") || moduleOf(join(dirname(path), specifier)) !== "core",
           )
           .map((specifier) => `${relative(packageDir, path)} → ${specifier}`),
       );
@@ -189,7 +203,10 @@ describe("sources", () => {
 });
 
 describe("stylesheets", () => {
-  const stylesheets = [...filesUnder(sourceDir, ".css"), ...filesUnder(join(packageDir, "demo"), ".css")];
+  const stylesheets = [
+    ...filesUnder(sourceDir, ".css"),
+    ...filesUnder(join(packageDir, "demo"), ".css"),
+  ];
   const allowedTokens = /^--cd-(ui-|shell-|radius-|shadow-|motion-|ease)/;
   // Guide §8: the primary button's fill is fixed in both modes; only the button stylesheet reads it.
   const fixedButtonTokens = new Set(["--cd-blau", "--cd-blau-link", "--cd-weiss"]);
@@ -198,7 +215,8 @@ describe("stylesheets", () => {
   it("contain no colour literals", () => {
     const offending = stylesheets.flatMap((path) => {
       const css = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-      const literals = css.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/g) ?? [];
+      const literals =
+        css.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/g) ?? [];
       return literals.map((literal) => `${relative(packageDir, path)}: ${literal}`);
     });
     expect(offending).toEqual([]);
@@ -218,8 +236,8 @@ describe("stylesheets", () => {
 
   it("are all imported by shell.css", () => {
     const entry = join(sourceDir, "shell.css");
-    const imported = [...readFileSync(entry, "utf8").matchAll(/@import\s+"([^"]+)"/g)].map((match) =>
-      join(sourceDir, match[1] ?? ""),
+    const imported = [...readFileSync(entry, "utf8").matchAll(/@import\s+"([^"]+)"/g)].map(
+      (match) => join(sourceDir, match[1] ?? ""),
     );
     const parts = filesUnder(sourceDir, ".css").filter((path) => path !== entry);
     expect([...imported].sort()).toEqual([...parts].sort());
@@ -241,7 +259,10 @@ describe("token fixture", () => {
 
   it("has the same shell sizes in its CSS and JSON", () => {
     const cssSizes = Object.fromEntries(
-      [...css.matchAll(/(--cd-shell-[a-z-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2]?.trim()]),
+      [...css.matchAll(/(--cd-shell-[a-z-]+):\s*([^;]+);/g)].map((match) => [
+        match[1],
+        match[2]?.trim(),
+      ]),
     );
     expect(cssSizes).toEqual(json.shell);
   });

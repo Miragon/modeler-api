@@ -6,10 +6,10 @@ export type EvolutionStage = 0 | 1 | 2 | 3;
 export const DEFAULT_STAGE_BOUNDARIES: readonly [number, number, number] = [0.17, 0.4, 0.7];
 
 export const DEFAULT_EVOLUTION_LABELS: readonly [string, string, string, string] = [
-  'Genesis',
-  'Custom-Built',
-  'Product / Rental',
-  'Commodity / Utility',
+  "Genesis",
+  "Custom-Built",
+  "Product / Rental",
+  "Commodity / Utility",
 ];
 
 /**
@@ -22,7 +22,7 @@ export function normalizeEvolutionLabels(
 ): readonly [string, string, string, string] | undefined {
   if (!values) return undefined;
   const labels = DEFAULT_EVOLUTION_LABELS.map((fallback, index) => {
-    const value = (values[index] ?? '').replace(/->/g, '→').trim();
+    const value = (values[index] ?? "").replace(/->/g, "→").trim();
     return value || fallback;
   }) as unknown as readonly [string, string, string, string];
   return sameEvolutionLabels(labels, DEFAULT_EVOLUTION_LABELS) ? undefined : labels;
@@ -51,10 +51,10 @@ export interface EvolutionPreset {
  * data, knowledge), the X-axis evolves under different terms. `activities` matches the default.
  */
 export const EVOLUTION_PRESETS: readonly EvolutionPreset[] = [
-  { id: 'activities', name: 'Activities', labels: DEFAULT_EVOLUTION_LABELS },
-  { id: 'practices', name: 'Practices', labels: ['Novel', 'Emerging', 'Good', 'Best Practice'] },
-  { id: 'data', name: 'Data', labels: ['Unmodelled', 'Divergent', 'Convergent', 'Modelled'] },
-  { id: 'knowledge', name: 'Knowledge', labels: ['Concept', 'Hypothesis', 'Theory', 'Accepted'] },
+  { id: "activities", name: "Activities", labels: DEFAULT_EVOLUTION_LABELS },
+  { id: "practices", name: "Practices", labels: ["Novel", "Emerging", "Good", "Best Practice"] },
+  { id: "data", name: "Data", labels: ["Unmodelled", "Divergent", "Convergent", "Modelled"] },
+  { id: "knowledge", name: "Knowledge", labels: ["Concept", "Hypothesis", "Theory", "Accepted"] },
 ];
 
 /**

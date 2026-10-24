@@ -67,7 +67,10 @@ export function createZoomPanel(context: ZoomPanelContext): ZoomPanel {
     return element;
   }
 
-  const zoomOut = button("out", "zoomOut", messages.zoomOut, { label: messages.zoomOut, icon: "minus" });
+  const zoomOut = button("out", "zoomOut", messages.zoomOut, {
+    label: messages.zoomOut,
+    icon: "minus",
+  });
   const readout = button("actual", "zoomToActual", messages.zoomToActual(formatPercent(1, lang)), {
     className: "cd-shell-target cd-shell-zoom-readout",
   });

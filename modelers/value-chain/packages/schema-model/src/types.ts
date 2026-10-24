@@ -17,7 +17,7 @@ export interface Point {
   readonly y: number;
 }
 
-export type ElementType = 'step' | 'orgUnit';
+export type ElementType = "step" | "orgUnit";
 
 /**
  * A value chain step ("Wertschöpfungskette"), rendered as a right-pointing chevron
@@ -25,7 +25,7 @@ export type ElementType = 'step' | 'orgUnit';
  */
 export interface StepElement {
   readonly id: string;
-  readonly elementType: 'step';
+  readonly elementType: "step";
   readonly name: string;
   readonly bounds: Bounds;
   /** Optional stroke/accent color (CSS color string). */
@@ -37,7 +37,7 @@ export interface StepElement {
 /** An organizational unit ("Organisationseinheit"), rendered as an ellipse. */
 export interface OrgUnitElement {
   readonly id: string;
-  readonly elementType: 'orgUnit';
+  readonly elementType: "orgUnit";
   readonly name: string;
   readonly bounds: Bounds;
   /** Optional stroke/accent color (CSS color string). */
@@ -46,7 +46,7 @@ export interface OrgUnitElement {
 
 export type DiagramElement = StepElement | OrgUnitElement;
 
-export type ConnectionType = 'sequence' | 'hierarchy' | 'assignment';
+export type ConnectionType = "sequence" | "hierarchy" | "assignment";
 
 /**
  * A relation between diagram elements:

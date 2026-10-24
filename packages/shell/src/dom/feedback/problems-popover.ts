@@ -41,7 +41,13 @@ interface Row {
 const PILL_ATTRIBUTES = ["aria-haspopup", "aria-expanded", "aria-controls"] as const;
 
 function isPrintable(event: KeyboardEvent): boolean {
-  return event.key.length === 1 && /\S/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey;
+  return (
+    event.key.length === 1 &&
+    /\S/.test(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  );
 }
 
 /**
@@ -64,7 +70,10 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
   const { ownerDocument, root, layer, pill, id, titleId, messages } = context;
   const view = ownerDocument.defaultView;
 
-  const list = createElement(ownerDocument, "ul", { class: "cd-shell-problems-list", role: "list" });
+  const list = createElement(ownerDocument, "ul", {
+    class: "cd-shell-problems-list",
+    role: "list",
+  });
   const element = createElement(
     ownerDocument,
     "div",
@@ -108,12 +117,21 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
       createElement(
         ownerDocument,
         "span",
-        { class: "cd-shell-problem-icon", role: "img", "aria-label": messages.problemSeverity(severity) },
+        {
+          class: "cd-shell-problem-icon",
+          role: "img",
+          "aria-label": messages.problemSeverity(severity),
+        },
         iconElement(severity === "error" ? "circle-x" : "triangle-alert"),
       ),
       createElement(ownerDocument, "span", { class: "cd-shell-problem-message" }, item.message),
       item.location
-        ? createElement(ownerDocument, "span", { class: "cd-shell-problem-location" }, item.location)
+        ? createElement(
+            ownerDocument,
+            "span",
+            { class: "cd-shell-problem-location" },
+            item.location,
+          )
         : undefined,
     ];
     const attributes = { class: "cd-shell-problem", "data-severity": severity };
@@ -122,7 +140,12 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
       rows.push({ key: keyOf(item), element: text });
       return text;
     }
-    const button = createElement(ownerDocument, "button", { type: "button", ...attributes }, ...parts);
+    const button = createElement(
+      ownerDocument,
+      "button",
+      { type: "button", ...attributes },
+      ...parts,
+    );
     button.addEventListener("click", () => select(item));
     rows.push({ key: keyOf(item), element: button });
     return button;
@@ -136,9 +159,12 @@ export function createProblemsPopover(context: ProblemsPopoverContext): Problems
     const focusedIndex = focusedRowIndex();
     const focusedKey = rows[focusedIndex]?.key;
     rows = [];
-    list.replaceChildren(...items.map((item) => createElement(ownerDocument, "li", {}, rowElement(item))));
+    list.replaceChildren(
+      ...items.map((item) => createElement(ownerDocument, "li", {}, rowElement(item))),
+    );
     if (focusedKey === undefined || !isOpen()) return;
-    const kept = rows.find((row) => row.key === focusedKey) ?? rows[Math.min(focusedIndex, rows.length - 1)];
+    const kept =
+      rows.find((row) => row.key === focusedKey) ?? rows[Math.min(focusedIndex, rows.length - 1)];
     if (kept) focusRowElement(kept.element);
     else element.focus({ preventScroll: true });
   }

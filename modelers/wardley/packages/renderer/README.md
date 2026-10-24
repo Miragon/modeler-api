@@ -16,10 +16,10 @@ npm install @miragon/wardley-renderer
 ## Usage
 
 ```ts
-import { NavigatedViewer } from '@miragon/wardley-renderer';
-import '@miragon/wardley-renderer/assets/wardley.css';
+import { NavigatedViewer } from "@miragon/wardley-renderer";
+import "@miragon/wardley-renderer/assets/wardley.css";
 
-const viewer = new NavigatedViewer({ container: document.querySelector('#canvas')! });
+const viewer = new NavigatedViewer({ container: document.querySelector("#canvas")! });
 
 await viewer.importDSL(`title Tea Shop
 anchor Business [0.95, 0.63]
@@ -89,11 +89,11 @@ zoom, pan, select all and export stay. It fires `wardley.readOnly.changed`.
 contract (notation `wardley`), for hosts that keep the map text in a shared document:
 
 ```ts
-import { createCollaborativeModeler } from '@miragon/wardley-renderer';
-import '@miragon/wardley-renderer/assets/wardley.css';
+import { createCollaborativeModeler } from "@miragon/wardley-renderer";
+import "@miragon/wardley-renderer/assets/wardley.css";
 
 const modeler = createCollaborativeModeler();
-modeler.attachTo(document.querySelector('#canvas')!);
+modeler.attachTo(document.querySelector("#canvas")!);
 await modeler.importText(documentText);
 modeler.onContentChanged(() => save(modeler.exportText()));
 ```
@@ -151,7 +151,7 @@ identity); provide it yourself — recommended self-hosted via [`@fontsource`](h
 (one variable file covers all weights):
 
 ```ts
-import '@fontsource-variable/geist/wght.css';
+import "@fontsource-variable/geist/wght.css";
 ```
 
 That package registers the family as `'Geist Variable'`; the renderer's font stack starts with

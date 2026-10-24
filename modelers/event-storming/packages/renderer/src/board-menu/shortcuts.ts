@@ -1,4 +1,4 @@
-import { STORM_EXPORT_LABEL } from './menu.js';
+import { STORM_EXPORT_LABEL } from "./menu.js";
 
 /*
  * Every shortcut of the board for the "Keyboard shortcuts…" dialog (guide §5.4): one table per
@@ -7,7 +7,7 @@ import { STORM_EXPORT_LABEL } from './menu.js';
  * the zoom panel's tooltips say.
  */
 
-export type ShortcutPlatform = 'mac' | 'other';
+export type ShortcutPlatform = "mac" | "other";
 
 export interface ShortcutKeyNames {
   readonly ctrl: string;
@@ -48,29 +48,29 @@ export interface BoardShortcutOptions {
   readonly fileKeys?: boolean | undefined;
 }
 
-const ARROWS = ['←', '↑', '→', '↓'] as const;
+const ARROWS = ["←", "↑", "→", "↓"] as const;
 
 /** "⌘O" on macOS, "Ctrl+O" elsewhere: the chip of a Cmd/Ctrl key the app binds itself. */
 export function commandKeyLabel(
   key: string,
   platform: ShortcutPlatform,
-  keyNames: Pick<ShortcutKeyNames, 'ctrl'>,
+  keyNames: Pick<ShortcutKeyNames, "ctrl">,
 ): string {
-  return platform === 'mac' ? `⌘${key}` : `${keyNames.ctrl}+${key}`;
+  return platform === "mac" ? `⌘${key}` : `${keyNames.ctrl}+${key}`;
 }
 
 function percentOfActualSize(lang: string): string {
   try {
-    return new Intl.NumberFormat(lang, { style: 'percent' }).format(1);
+    return new Intl.NumberFormat(lang, { style: "percent" }).format(1);
   } catch {
-    return new Intl.NumberFormat('en', { style: 'percent' }).format(1);
+    return new Intl.NumberFormat("en", { style: "percent" }).format(1);
   }
 }
 
 /** The chrome's zoom and fit keys as its tooltips name them (guide §5.8). */
 function viewKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
-  if (platform === 'mac') {
-    return { zoomIn: '⌘+', zoomOut: '⌘−', zoomToActual: '⌘0', fit: '⇧1' };
+  if (platform === "mac") {
+    return { zoomIn: "⌘+", zoomOut: "⌘−", zoomToActual: "⌘0", fit: "⇧1" };
   }
   const { ctrl, shift, plus, minus } = keyNames;
   return {
@@ -82,17 +82,17 @@ function viewKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
 }
 
 function editKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
-  if (platform === 'mac') {
+  if (platform === "mac") {
     return {
-      undo: ['⌘Z'],
-      redo: ['⌘⇧Z'],
-      selectAll: ['⌘A'],
-      copy: ['⌘C'],
-      paste: ['⌘V'],
-      duplicate: ['⌘D'],
-      remove: ['⌫'],
+      undo: ["⌘Z"],
+      redo: ["⌘⇧Z"],
+      selectAll: ["⌘A"],
+      copy: ["⌘C"],
+      paste: ["⌘V"],
+      duplicate: ["⌘D"],
+      remove: ["⌫"],
       coarseMove: ARROWS.map((arrow) => `⇧${arrow}`),
-      lassoDrag: ['⇧ Drag'],
+      lassoDrag: ["⇧ Drag"],
     };
   }
   const { ctrl, shift } = keyNames;
@@ -103,7 +103,7 @@ function editKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
     copy: [`${ctrl}+C`],
     paste: [`${ctrl}+V`],
     duplicate: [`${ctrl}+D`],
-    remove: ['Del', 'Backspace'],
+    remove: ["Del", "Backspace"],
     coarseMove: ARROWS.map((arrow) => `${shift}+${arrow}`),
     lassoDrag: [`${shift}+Drag`],
   };
@@ -112,13 +112,13 @@ function editKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
 function fileGroup(chrome: ShortcutsChrome): ShortcutGroup {
   const { platform, messages } = chrome;
   return {
-    title: 'File',
+    title: "File",
     rows: [
       {
-        action: messages.openFile ?? 'Open…',
-        keys: [commandKeyLabel('O', platform, messages.keyNames)],
+        action: messages.openFile ?? "Open…",
+        keys: [commandKeyLabel("O", platform, messages.keyNames)],
       },
-      { action: STORM_EXPORT_LABEL, keys: [commandKeyLabel('S', platform, messages.keyNames)] },
+      { action: STORM_EXPORT_LABEL, keys: [commandKeyLabel("S", platform, messages.keyNames)] },
     ],
   };
 }
@@ -137,7 +137,7 @@ export function boardShortcuts(
   return [
     ...(options.fileKeys ? [fileGroup(chrome)] : []),
     {
-      title: 'View',
+      title: "View",
       rows: [
         { action: messages.zoomIn, keys: [view.zoomIn] },
         { action: messages.zoomOut, keys: [view.zoomOut] },
@@ -149,27 +149,27 @@ export function boardShortcuts(
       ],
     },
     {
-      title: 'Edit',
+      title: "Edit",
       rows: [
-        { action: 'Undo', keys: edit.undo },
-        { action: 'Redo', keys: edit.redo },
-        { action: 'Select all', keys: edit.selectAll },
-        { action: 'Copy', keys: edit.copy },
-        { action: 'Paste', keys: edit.paste },
-        { action: 'Duplicate', keys: edit.duplicate },
-        { action: 'Delete', keys: edit.remove },
-        { action: 'Move selection', keys: ARROWS },
-        { action: 'Move selection in large steps', keys: edit.coarseMove },
+        { action: "Undo", keys: edit.undo },
+        { action: "Redo", keys: edit.redo },
+        { action: "Select all", keys: edit.selectAll },
+        { action: "Copy", keys: edit.copy },
+        { action: "Paste", keys: edit.paste },
+        { action: "Duplicate", keys: edit.duplicate },
+        { action: "Delete", keys: edit.remove },
+        { action: "Move selection", keys: ARROWS },
+        { action: "Move selection in large steps", keys: edit.coarseMove },
       ],
     },
     {
-      title: 'Tools',
+      title: "Tools",
       rows: [
-        { action: 'Lasso', keys: ['L'] },
-        { action: 'Lasso by dragging', keys: edit.lassoDrag },
-        { action: 'Domain event at the pointer', keys: ['E'] },
-        { action: 'Command at the pointer', keys: ['C'] },
-        { action: 'Finish a drawing', keys: ['Enter', 'Esc', 'Double-click'] },
+        { action: "Lasso", keys: ["L"] },
+        { action: "Lasso by dragging", keys: edit.lassoDrag },
+        { action: "Domain event at the pointer", keys: ["E"] },
+        { action: "Command at the pointer", keys: ["C"] },
+        { action: "Finish a drawing", keys: ["Enter", "Esc", "Double-click"] },
       ],
     },
   ];

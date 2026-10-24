@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
 
 // Two projects so the default `npm test` stays fast and node-only, while the renderer
 // browser-integration layer runs opt-in in real Chromium via `npm run test:browser`.
@@ -9,30 +9,30 @@ export default defineConfig({
     projects: [
       {
         test: {
-          name: 'unit',
-          environment: 'node',
-          include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
-          exclude: ['packages/renderer/test/browser/**', '**/node_modules/**', '**/dist/**'],
+          name: "unit",
+          environment: "node",
+          include: ["packages/*/test/**/*.test.ts", "apps/*/test/**/*.test.ts"],
+          exclude: ["packages/renderer/test/browser/**", "**/node_modules/**", "**/dist/**"],
           // The VS Code host imports the ambient `vscode` runtime, which only exists inside the
           // editor. Point it at a thin in-repo mock so host and protocol logic is unit-testable.
           alias: {
-            vscode: new URL('./apps/vscode/test/__mocks__/vscode.ts', import.meta.url).pathname,
+            vscode: new URL("./apps/vscode/test/__mocks__/vscode.ts", import.meta.url).pathname,
           },
         },
       },
       {
         // Pre-bundled up front: discovered during the run, Vite would reload the page mid-suite.
         optimizeDeps: {
-          include: ['@miragon/modeler-api', '@miragon/modeler-api/conformance'],
+          include: ["@miragon/modeler-api", "@miragon/modeler-api/conformance"],
         },
         test: {
-          name: 'browser',
-          include: ['packages/renderer/test/browser/**/*.test.ts'],
+          name: "browser",
+          include: ["packages/renderer/test/browser/**/*.test.ts"],
           browser: {
             enabled: true,
             provider: playwright(),
             headless: true,
-            instances: [{ browser: 'chromium' }],
+            instances: [{ browser: "chromium" }],
           },
         },
       },

@@ -6,7 +6,7 @@
  */
 
 /** The icons the guide gives these entries (guide §5.14, the shell's common set). */
-export type DiagramMenuIcon = 'file-image' | 'file-code-corner' | 'keyboard';
+export type DiagramMenuIcon = "file-image" | "file-code-corner" | "keyboard";
 
 interface DiagramMenuItem {
   readonly id: string;
@@ -15,13 +15,13 @@ interface DiagramMenuItem {
 }
 
 export interface DiagramMenuAction extends DiagramMenuItem {
-  readonly kind: 'action';
+  readonly kind: "action";
   readonly shortcut?: string;
   onSelect(): void;
 }
 
 export interface DiagramMenuDialog extends DiagramMenuItem {
-  readonly kind: 'dialog';
+  readonly kind: "dialog";
   onSelect(): void;
 }
 
@@ -58,7 +58,7 @@ function exportEntry(
   icon?: DiagramMenuIcon,
 ): DiagramMenuAction {
   return {
-    kind: 'action',
+    kind: "action",
     id,
     label,
     ...(icon ? { icon } : {}),
@@ -68,23 +68,23 @@ function exportEntry(
 }
 
 /** The label of the JSON export, also its row in the shortcuts dialog's File group. */
-export const JSON_EXPORT_LABEL = 'Export as JSON';
+export const JSON_EXPORT_LABEL = "Export as JSON";
 
 /** The menu groups of the diagram (guide §5.4): Export with PNG first, Help. */
 export function diagramMenu(actions: DiagramMenuActions): DiagramMenu {
   const { exports } = actions;
   return {
     export: [
-      exportEntry('export-png', 'Export as PNG', exports.png, 'file-image'),
-      exportEntry('export-svg', 'Export as SVG', exports.svg, 'file-code-corner'),
-      ...(exports.json ? [exportEntry('export-json', JSON_EXPORT_LABEL, exports.json)] : []),
+      exportEntry("export-png", "Export as PNG", exports.png, "file-image"),
+      exportEntry("export-svg", "Export as SVG", exports.svg, "file-code-corner"),
+      ...(exports.json ? [exportEntry("export-json", JSON_EXPORT_LABEL, exports.json)] : []),
     ],
     help: [
       {
-        kind: 'dialog',
-        id: 'keyboard-shortcuts',
-        label: 'Keyboard shortcuts…',
-        icon: 'keyboard',
+        kind: "dialog",
+        id: "keyboard-shortcuts",
+        label: "Keyboard shortcuts…",
+        icon: "keyboard",
         onSelect: () => actions.showKeyboardShortcuts(),
       },
     ],

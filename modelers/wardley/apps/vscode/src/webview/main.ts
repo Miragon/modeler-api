@@ -1,9 +1,9 @@
-import './zod-jitless.js';
+import "./zod-jitless.js";
 // Geist (Miragon typeface), self-hosted variable fonts; notes and axis captions are italic, and
 // the shortcut chips are Geist Mono.
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist/wght-italic.css';
-import '@fontsource-variable/geist-mono/wght.css';
+import "@fontsource-variable/geist/wght.css";
+import "@fontsource-variable/geist/wght-italic.css";
+import "@fontsource-variable/geist-mono/wght.css";
 // The renderer brings its stylesheet (tokens, diagram-js.css, cd-canvas.css); the shell's comes
 // last.
 import {
@@ -20,30 +20,30 @@ import {
   type Modeler,
   type SvgToPngOptions,
   type WardleyReadOnly,
-} from '@miragon/wardley-renderer';
-import { patchDSL } from '@miragon/wardley-dsl';
-import type { WardleyMap } from '@miragon/wardley-schema-model';
-import '@miragon/modeler-shell/shell.css';
-import type { ShellHandle } from '@miragon/modeler-shell';
-import { INVALID_STATUS_DELAY_MS } from '@miragon/modeler-shell/core';
+} from "@miragon/wardley-renderer";
+import { patchDSL } from "@miragon/wardley-dsl";
+import type { WardleyMap } from "@miragon/wardley-schema-model";
+import "@miragon/modeler-shell/shell.css";
+import type { ShellHandle } from "@miragon/modeler-shell";
+import { INVALID_STATUS_DELAY_MS } from "@miragon/modeler-shell/core";
 import {
   connectDiagramJs,
   shellModule,
   type DiagramJsConnection,
-} from '@miragon/modeler-shell/diagram-js';
+} from "@miragon/modeler-shell/diagram-js";
 import {
   mountVsCodeShell,
   persistView,
   readShellState,
-} from '@miragon/modeler-shell/vscode/webview';
+} from "@miragon/modeler-shell/vscode/webview";
 import {
   isWebviewCommand,
   type ExportFormat,
   type HostToWebview,
   type WebviewCommand,
   type WebviewToHost,
-} from '../protocol.js';
-import { WEBVIEW_THEMES } from '../themes.js';
+} from "../protocol.js";
+import { WEBVIEW_THEMES } from "../themes.js";
 
 interface VsCodeApi {
   postMessage(message: WebviewToHost): void;
@@ -56,7 +56,7 @@ interface ElementRegistryLike {
   getAll(): unknown[];
 }
 
-const MAP_NAME = 'Wardley map';
+const MAP_NAME = "Wardley map";
 
 const vscode = acquireVsCodeApi();
 const storedShellState = readShellState(vscode);
@@ -72,13 +72,13 @@ const collaborative = createCollaborativeModeler({
   freeArea: { insets: () => shell.fitInsets() },
 });
 const modeler = collaborative.diagram as Modeler;
-modeler.get('canvas');
-const registry = modeler.get<ElementRegistryLike>('elementRegistry');
+modeler.get("canvas");
+const registry = modeler.get<ElementRegistryLike>("elementRegistry");
 // The canvas lock of an invalid file: context pad, move, resize, delete, paste, label editor.
-const canvasLock = modeler.get<WardleyReadOnly>('wardleyReadOnly');
+const canvasLock = modeler.get<WardleyReadOnly>("wardleyReadOnly");
 
-const app = document.getElementById('app');
-if (!app) throw new Error('The webview HTML has no #app root.');
+const app = document.getElementById("app");
+if (!app) throw new Error("The webview HTML has no #app root.");
 
 const shell: ShellHandle = mountVsCodeShell(app, {
   themes: WEBVIEW_THEMES,
@@ -95,14 +95,14 @@ const shell: ShellHandle = mountVsCodeShell(app, {
     },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
   }),
-  problems: { onActivate: () => post({ type: 'showProblems' }) },
-  emptyHint: { onInsertExample: () => post({ type: 'insertExample' }) },
+  problems: { onActivate: () => post({ type: "showProblems" }) },
+  emptyHint: { onInsertExample: () => post({ type: "insertExample" }) },
 });
 // The modeler's own content in the shell root; it goes with the diagram.
 const shortcutsDialog = createShortcutsDialog(shell);
 const mapSizePopover = createMapSizePopover(shell, modeler);
 const axisLabelsPopover = createAxisLabelsPopover(shell, modeler);
-modeler.on('diagram.destroy', () => {
+modeler.on("diagram.destroy", () => {
   shortcutsDialog.destroy();
   mapSizePopover.destroy();
   axisLabelsPopover.destroy();
@@ -122,7 +122,7 @@ persistView(vscode, viewport);
 // Two-way sync with the document
 // ---------------------------------------------------------------------------
 
-let lastText = ''; // text last reconciled with the host
+let lastText = ""; // text last reconciled with the host
 // The modeler's map lastText was written from: the modeler keeps the ids of its last import while
 // a re-read of lastText derives them from the current names, so this pairs the two.
 let lastMap: WardleyMap | undefined;
@@ -134,7 +134,7 @@ function post(message: WebviewToHost): void {
 
 /** Compares two DSL texts modulo line endings/trailing whitespace (= save transforms). */
 function sameMapText(a: string, b: string): boolean {
-  return a.replace(/\r\n/g, '\n').trim() === b.replace(/\r\n/g, '\n').trim();
+  return a.replace(/\r\n/g, "\n").trim() === b.replace(/\r\n/g, "\n").trim();
 }
 
 function showValidMap(): void {
@@ -149,7 +149,7 @@ function showInvalidMap(): void {
   canvasLock.setReadOnly(true);
   shell.setReadOnly(true, { delayMs: INVALID_STATUS_DELAY_MS });
   shell.setStatus(
-    { severity: 'danger', text: shell.messages.invalidFile(MAP_NAME) },
+    { severity: "danger", text: shell.messages.invalidFile(MAP_NAME) },
     { delayMs: INVALID_STATUS_DELAY_MS },
   );
 }
@@ -196,7 +196,7 @@ let importChain: Promise<void> = Promise.resolve();
 function enqueueImport(text: string): Promise<void> {
   importChain = importChain
     .then(() => importText(text))
-    .catch((error: unknown) => console.error('Wardley map import failed', error));
+    .catch((error: unknown) => console.error("Wardley map import failed", error));
   return importChain;
 }
 
@@ -213,15 +213,15 @@ function pushEdit(): void {
   lastMap = map;
   if (text === lastText) return;
   lastText = text;
-  post({ type: 'edit', text });
+  post({ type: "edit", text });
 }
 
 collaborative.onContentChanged(pushEdit);
 // The menu reads the map (size, labels): refresh after every change, undo and redo included.
-modeler.on('commandStack.changed', () => shell.menu.refresh());
-modeler.on('wardley.label.deduplicated', (event: LabelDeduplicatedEvent) => {
+modeler.on("commandStack.changed", () => shell.menu.refresh());
+modeler.on("wardley.label.deduplicated", (event: LabelDeduplicatedEvent) => {
   post({
-    type: 'info',
+    type: "info",
     message: `“${event.requested}” already exists — renamed to “${event.applied}”, because links refer to names.`,
   });
 });
@@ -238,25 +238,25 @@ function messageOf(error: unknown): string {
 async function exportSvg(): Promise<void> {
   try {
     const { svg } = await modeler.saveSVG();
-    post({ type: 'export', format: 'svg', data: svg });
+    post({ type: "export", format: "svg", data: svg });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the map as SVG: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the map as SVG: ${messageOf(error)}` });
   }
 }
 
 async function exportRaster(format: ExportFormat, options: SvgToPngOptions): Promise<void> {
   try {
     const { svg } = await modeler.saveSVG();
-    post({ type: 'export', format, data: await blobToBase64(await svgToPng(svg, options)) });
+    post({ type: "export", format, data: await blobToBase64(await svgToPng(svg, options)) });
   } catch (error) {
-    post({ type: 'error', message: `Could not export the map as PNG: ${messageOf(error)}` });
+    post({ type: "error", message: `Could not export the map as PNG: ${messageOf(error)}` });
   }
 }
 
-const exportPng = (): Promise<void> => exportRaster('png', {});
+const exportPng = (): Promise<void> => exportRaster("png", {});
 /** Four times the size, without the paper (slides, documents), as in the web app. */
 const exportPngTransparent = (): Promise<void> =>
-  exportRaster('png-transparent', { scale: 4, transparent: true });
+  exportRaster("png-transparent", { scale: 4, transparent: true });
 
 // ---------------------------------------------------------------------------
 // Messages from the extension host
@@ -271,29 +271,29 @@ const COMMANDS: Readonly<Record<WebviewCommand, () => void>> = {
 
 function isHostMessage(data: unknown): data is HostToWebview {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
-    typeof (data as { type?: unknown }).type === 'string'
+    typeof (data as { type?: unknown }).type === "string"
   );
 }
 
 let firstImportSettled: () => void = () => undefined;
 const ready = new Promise<void>((resolve) => (firstImportSettled = resolve));
 
-window.addEventListener('message', (event: MessageEvent<unknown>) => {
+window.addEventListener("message", (event: MessageEvent<unknown>) => {
   if (!isHostMessage(event.data)) return;
   const message = event.data;
   switch (message.type) {
-    case 'init':
+    case "init":
       void enqueueImport(message.text).then(firstImportSettled);
       break;
-    case 'update':
+    case "update":
       void enqueueImport(message.text);
       break;
-    case 'problems':
+    case "problems":
       shell.setProblems({ count: message.count, errors: message.errors });
       break;
-    case 'command':
+    case "command":
       // Checked against COMMANDS itself, so a name such as "constructor" never reaches
       // Object.prototype even if the protocol's list and COMMANDS drift apart.
       if (isWebviewCommand(message.name) && Object.hasOwn(COMMANDS, message.name)) {
@@ -303,7 +303,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   }
 });
 
-post({ type: 'ready' });
+post({ type: "ready" });
 
 /** For test pages: the mounted parts, and `ready` once the first `init` import settled. */
 export const webview: {

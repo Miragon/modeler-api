@@ -1,4 +1,4 @@
-export { boardMenu, BOARD_LEVELS, STORM_EXPORT_LABEL } from './menu.js';
+export { boardMenu, BOARD_LEVELS, STORM_EXPORT_LABEL } from "./menu.js";
 export type {
   BoardExport,
   BoardExports,
@@ -12,8 +12,8 @@ export type {
   BoardMenuIcon,
   BoardMenuRadioGroup,
   TypeCaptions,
-} from './menu.js';
-export { boardShortcuts, commandKeyLabel } from './shortcuts.js';
+} from "./menu.js";
+export { boardShortcuts, commandKeyLabel } from "./shortcuts.js";
 export type {
   BoardShortcutOptions,
   ShortcutGroup,
@@ -21,6 +21,6 @@ export type {
   ShortcutPlatform,
   ShortcutRow,
   ShortcutsChrome,
-} from './shortcuts.js';
-export { createShortcutsDialog } from './ShortcutsDialog.js';
-export type { ShortcutsDialog, ShortcutsDialogChrome } from './ShortcutsDialog.js';
+} from "./shortcuts.js";
+export { createShortcutsDialog } from "./ShortcutsDialog.js";
+export type { ShortcutsDialog, ShortcutsDialogChrome } from "./ShortcutsDialog.js";

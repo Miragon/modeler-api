@@ -32,8 +32,8 @@ export class EventEmitter<T> {
 
 export class CancellationError extends Error {
   constructor() {
-    super('Canceled');
-    this.name = 'CancellationError';
+    super("Canceled");
+    this.name = "CancellationError";
   }
 }
 
@@ -70,7 +70,7 @@ export class Range {
     endLine?: number,
     endCharacter?: number,
   ) {
-    if (typeof startOrLine === 'number') {
+    if (typeof startOrLine === "number") {
       this.start = new Position(startOrLine, endOrCharacter as number);
       this.end = new Position(endLine ?? startOrLine, endCharacter ?? (endOrCharacter as number));
     } else {
@@ -139,14 +139,14 @@ export class Uri {
     return this.path;
   }
   static parse(value: string): Uri {
-    const idx = value.indexOf(':');
-    return idx >= 0 ? new Uri(value.slice(0, idx), value.slice(idx + 1)) : new Uri('file', value);
+    const idx = value.indexOf(":");
+    return idx >= 0 ? new Uri(value.slice(0, idx), value.slice(idx + 1)) : new Uri("file", value);
   }
   static file(path: string): Uri {
-    return new Uri('file', path);
+    return new Uri("file", path);
   }
   static joinPath(base: Uri, ...segments: string[]): Uri {
-    const joined = [base.path.replace(/\/$/, ''), ...segments].join('/');
+    const joined = [base.path.replace(/\/$/, ""), ...segments].join("/");
     return new Uri(base.scheme, joined);
   }
   with(change: { scheme?: string; path?: string }): Uri {
@@ -298,7 +298,7 @@ export const vscodeMock = {
   /** The provider instance a `register(...)` call handed to `registerCustomEditorProvider`. */
   lastRegisteredProvider<T>(): T {
     const last = registeredEditors[registeredEditors.length - 1];
-    if (!last) throw new Error('No custom editor provider has been registered.');
+    if (!last) throw new Error("No custom editor provider has been registered.");
     return last.provider as T;
   },
   registeredEditors(): readonly RegisteredEditor[] {

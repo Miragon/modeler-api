@@ -8,7 +8,11 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/core/**/*.test.ts", "src/testing/vscode-electron/**/*.test.ts", "test/**/*.test.ts"],
+          include: [
+            "src/core/**/*.test.ts",
+            "src/testing/vscode-electron/**/*.test.ts",
+            "test/**/*.test.ts",
+          ],
         },
       },
       {

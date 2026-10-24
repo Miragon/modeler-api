@@ -1,12 +1,12 @@
-import * as vscode from 'vscode';
-import { WardleyEditorProvider } from './WardleyEditorProvider.js';
-import { WEBVIEW_COMMANDS, type WebviewCommand } from './protocol.js';
+import * as vscode from "vscode";
+import { WardleyEditorProvider } from "./WardleyEditorProvider.js";
+import { WEBVIEW_COMMANDS, type WebviewCommand } from "./protocol.js";
 
 /** The command ids `registerEditorCommands` contributes (besides the webview actions). */
-export const SHOW_SOURCE_COMMAND = 'wardley.showSource';
-export const SHOW_DIAGRAM_COMMAND = 'wardley.showDiagram';
+export const SHOW_SOURCE_COMMAND = "wardley.showSource";
+export const SHOW_DIAGRAM_COMMAND = "wardley.showDiagram";
 
-const NO_DIAGRAM_MESSAGE = 'Open a Wardley map in the diagram editor first.';
+const NO_DIAGRAM_MESSAGE = "Open a Wardley map in the diagram editor first.";
 
 /**
  * Editor title buttons pass the editor's resource; the Command Palette passes nothing, so fall back
@@ -22,9 +22,9 @@ export function registerEditorCommands(provider: WardleyEditorProvider): vscode.
     const uri = resourceArgument(argument) ?? provider.activeDocumentUri();
     if (!uri) return void vscode.window.showInformationMessage(NO_DIAGRAM_MESSAGE);
     return vscode.commands.executeCommand(
-      'vscode.openWith',
+      "vscode.openWith",
       uri,
-      'default',
+      "default",
       vscode.ViewColumn.Beside,
     );
   });
@@ -35,7 +35,7 @@ export function registerEditorCommands(provider: WardleyEditorProvider): vscode.
       const uri = resourceArgument(argument) ?? vscode.window.activeTextEditor?.document.uri;
       if (!uri) return undefined;
       return vscode.commands.executeCommand(
-        'vscode.openWith',
+        "vscode.openWith",
         uri,
         WardleyEditorProvider.viewType,
         vscode.ViewColumn.Beside,

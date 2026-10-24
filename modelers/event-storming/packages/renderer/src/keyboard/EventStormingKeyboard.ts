@@ -1,18 +1,18 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Create from 'diagram-js/lib/features/create/Create';
-import type LassoTool from 'diagram-js/lib/features/lasso-tool/LassoTool';
-import type Mouse from 'diagram-js/lib/features/mouse/Mouse';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type { Element } from 'diagram-js/lib/model/Types';
-import type EventStormingCopyPaste from '../modeling/EventStormingCopyPaste.js';
-import type EventStormingElementFactory from '../model/EventStormingElementFactory.js';
-import type EventStormingReadOnly from '../read-only/EventStormingReadOnly.js';
-import { STICKY_STYLES } from '../draw/styles.js';
-import { isEventStormingConnection, isEventStormingShape } from '../model/di-types.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Create from "diagram-js/lib/features/create/Create";
+import type LassoTool from "diagram-js/lib/features/lasso-tool/LassoTool";
+import type Mouse from "diagram-js/lib/features/mouse/Mouse";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type { Element } from "diagram-js/lib/model/Types";
+import type EventStormingCopyPaste from "../modeling/EventStormingCopyPaste.js";
+import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
+import type EventStormingReadOnly from "../read-only/EventStormingReadOnly.js";
+import { STICKY_STYLES } from "../draw/styles.js";
+import { isEventStormingConnection, isEventStormingShape } from "../model/di-types.js";
 
 /** Arrow-key nudge in diagram px (Shift = coarse). */
 const NUDGE_STEP = 2;
@@ -41,19 +41,19 @@ export interface EventStormingKeyboardConfig {
  */
 export default class EventStormingKeyboard {
   static $inject = [
-    'config.eventStormingKeyboard',
-    'canvas',
-    'commandStack',
-    'selection',
-    'modeling',
-    'eventStormingCopyPaste',
-    'eventStormingElementFactory',
-    'create',
-    'mouse',
-    'lassoTool',
-    'eventBus',
-    'elementRegistry',
-    'eventStormingReadOnly',
+    "config.eventStormingKeyboard",
+    "canvas",
+    "commandStack",
+    "selection",
+    "modeling",
+    "eventStormingCopyPaste",
+    "eventStormingElementFactory",
+    "create",
+    "mouse",
+    "lassoTool",
+    "eventBus",
+    "elementRegistry",
+    "eventStormingReadOnly",
   ];
 
   constructor(
@@ -69,7 +69,7 @@ export default class EventStormingKeyboard {
     lassoTool: LassoTool,
     eventBus: EventBus,
     elementRegistry?: ElementRegistry,
-    readOnly?: Pick<EventStormingReadOnly, 'isReadOnly'>,
+    readOnly?: Pick<EventStormingReadOnly, "isReadOnly">,
   ) {
     const container = canvas.getContainer();
     const undoRedoKeys = config?.undoRedoKeys ?? true;
@@ -95,15 +95,15 @@ export default class EventStormingKeyboard {
     const handleReadingKey = (e: KeyboardEvent): boolean => {
       const cmd = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
-      if (cmd && key === 'a' && !e.shiftKey && !e.altKey) {
+      if (cmd && key === "a" && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         const all = (elementRegistry?.getAll() ?? []).filter(
           (element) => isEventStormingShape(element) || isEventStormingConnection(element),
         );
         selection.select(all as Element[]);
-      } else if (cmd && key === 'c') {
+      } else if (cmd && key === "c") {
         if (copyPaste.copy()) e.preventDefault();
-      } else if (!cmd && !e.altKey && key === 'l') {
+      } else if (!cmd && !e.altKey && key === "l") {
         e.preventDefault();
         const lastMove = mouse.getLastMoveEvent();
         lassoTool.activateSelection((lastMove ?? e) as MouseEvent, !!lastMove);
@@ -116,34 +116,34 @@ export default class EventStormingKeyboard {
     const handleEditingKey = (e: KeyboardEvent): void => {
       const cmd = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
-      const isUndo = cmd && key === 'z' && !e.shiftKey;
-      const isRedo = (cmd && key === 'z' && e.shiftKey) || (cmd && key === 'y');
+      const isUndo = cmd && key === "z" && !e.shiftKey;
+      const isRedo = (cmd && key === "z" && e.shiftKey) || (cmd && key === "y");
 
       if (isUndo || isRedo) {
         if (!undoRedoKeys) return;
         e.preventDefault();
         if (isUndo) commandStack.undo();
         else commandStack.redo();
-      } else if (cmd && key === 'v') {
+      } else if (cmd && key === "v") {
         if (copyPaste.paste()) e.preventDefault();
-      } else if (cmd && key === 'd') {
+      } else if (cmd && key === "d") {
         e.preventDefault();
         copyPaste.duplicate();
-      } else if (key === 'delete' || key === 'backspace') {
+      } else if (key === "delete" || key === "backspace") {
         const sel = selection.get() as Element[];
         if (sel.length) {
           e.preventDefault();
           modeling.removeElements(sel);
         }
-      } else if (!cmd && !e.altKey && (key === 'e' || key === 'c')) {
+      } else if (!cmd && !e.altKey && (key === "e" || key === "c")) {
         // Quick create: the new sticky attaches to the cursor (like palette create).
         const lastMove = mouse.getLastMoveEvent();
         if (lastMove) {
           e.preventDefault();
           const shape =
-            key === 'e'
-              ? factory.createNew('event', STICKY_STYLES.event.label)
-              : factory.createNew('command', STICKY_STYLES.command.label);
+            key === "e"
+              ? factory.createNew("event", STICKY_STYLES.event.label)
+              : factory.createNew("command", STICKY_STYLES.command.label);
           create.start(lastMove, shape as unknown as Element);
         }
       } else if (key in ARROW_DELTAS && !cmd) {
@@ -157,8 +157,8 @@ export default class EventStormingKeyboard {
       }
     };
 
-    document.addEventListener('keydown', onKeydown);
-    eventBus.on('diagram.destroy', () => document.removeEventListener('keydown', onKeydown));
+    document.addEventListener("keydown", onKeydown);
+    eventBus.on("diagram.destroy", () => document.removeEventListener("keydown", onKeydown));
   }
 }
 
@@ -173,5 +173,5 @@ function isCanvasTarget(target: EventTarget | null, container: HTMLElement): boo
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
 }

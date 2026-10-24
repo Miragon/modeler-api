@@ -54,7 +54,9 @@ describe("shellSizesFromTokens", () => {
   it.each(["", "px", "abc", "12em", "1rem", "calc(12px + 4px)", "12 px"])(
     "throws on the non-numeric value %j",
     (value) => {
-      expect(() => shellSizesFromTokens(withValue("--cd-shell-zeile", value))).toThrow("--cd-shell-zeile");
+      expect(() => shellSizesFromTokens(withValue("--cd-shell-zeile", value))).toThrow(
+        "--cd-shell-zeile",
+      );
     },
   );
 

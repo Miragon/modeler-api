@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Zod schemas mirror the metamodel (types.ts) and form the runtime validation gate.
@@ -18,7 +18,7 @@ const labelOffsetSchema = z.object({
   dy: z.number(),
 });
 
-const methodSchema = z.enum(['build', 'buy', 'outsource']);
+const methodSchema = z.enum(["build", "buy", "outsource"]);
 
 const decoratorsSchema = z.object({
   market: z.boolean().optional(),
@@ -42,11 +42,11 @@ const baseFields = {
   color: z.string().optional(),
 };
 
-const anchorSchema = z.object({ ...baseFields, elementType: z.literal('anchor') });
+const anchorSchema = z.object({ ...baseFields, elementType: z.literal("anchor") });
 
 const componentSchema = z.object({
   ...baseFields,
-  elementType: z.literal('component'),
+  elementType: z.literal("component"),
   decorators: decoratorsSchema.optional(),
   movement: movementSchema.optional(),
   pipelineId: z.string().optional(),
@@ -56,34 +56,34 @@ const componentSchema = z.object({
 const pipelineSchema = z
   .object({
     ...baseFields,
-    elementType: z.literal('pipeline'),
+    elementType: z.literal("pipeline"),
     evolutionStart: norm,
     evolutionEnd: norm,
     childIds: z.array(z.string()),
   })
   .refine((p) => p.evolutionEnd > p.evolutionStart, {
-    message: 'evolutionEnd must be greater than evolutionStart',
-    path: ['evolutionEnd'],
+    message: "evolutionEnd must be greater than evolutionStart",
+    path: ["evolutionEnd"],
   });
 
 const climaticPatternSchema = z.enum([
-  'everythingEvolves',
-  'characteristicsChange',
-  'noOneSizeFitsAll',
-  'efficiencyEnablesInnovation',
-  'pastSuccessBreedsInertia',
-  'capitalFlowsToNewValue',
+  "everythingEvolves",
+  "characteristicsChange",
+  "noOneSizeFitsAll",
+  "efficiencyEnablesInnovation",
+  "pastSuccessBreedsInertia",
+  "capitalFlowsToNewValue",
 ]);
 
 const noteSchema = z.object({
   ...baseFields,
-  elementType: z.literal('note'),
+  elementType: z.literal("note"),
   patternType: climaticPatternSchema.optional(),
 });
 
 const annotationSchema = z.object({
   ...baseFields,
-  elementType: z.literal('annotation'),
+  elementType: z.literal("annotation"),
   number: z.number().int(),
   positions: z.array(coordinateSchema),
   text: z.string(),
@@ -91,33 +91,33 @@ const annotationSchema = z.object({
 
 const acceleratorSchema = z.object({
   ...baseFields,
-  elementType: z.literal('accelerator'),
-  direction: z.enum(['accelerate', 'deaccelerate']),
+  elementType: z.literal("accelerator"),
+  direction: z.enum(["accelerate", "deaccelerate"]),
 });
 
 const attitudeSchema = z.object({
   ...baseFields,
-  elementType: z.literal('attitude'),
-  kind: z.enum(['pioneers', 'settlers', 'townplanners']),
+  elementType: z.literal("attitude"),
+  kind: z.enum(["pioneers", "settlers", "townplanners"]),
   /** Opposite corner (normalized) — OWM `[vis1, mat1, vis2, mat2]`. */
   corner2: coordinateSchema,
 });
 
 const submapSchema = z.object({
   ...baseFields,
-  elementType: z.literal('submap'),
+  elementType: z.literal("submap"),
   urlRef: z.string().optional(),
 });
 
 const drawingSchema = z.object({
   ...baseFields,
-  elementType: z.literal('drawing'),
+  elementType: z.literal("drawing"),
   points: z.array(coordinateSchema).min(2),
   closed: z.boolean().optional(),
-  strokeStyle: z.enum(['solid', 'dashed', 'dotted']).optional(),
+  strokeStyle: z.enum(["solid", "dashed", "dotted"]).optional(),
 });
 
-export const mapElementSchema = z.discriminatedUnion('elementType', [
+export const mapElementSchema = z.discriminatedUnion("elementType", [
   anchorSchema,
   componentSchema,
   pipelineSchema,
@@ -131,7 +131,7 @@ export const mapElementSchema = z.discriminatedUnion('elementType', [
 
 const dependencySchema = z.object({
   id: z.string().min(1),
-  edgeType: z.literal('dependency'),
+  edgeType: z.literal("dependency"),
   from: z.string(),
   to: z.string(),
   label: z.string().optional(),
@@ -139,7 +139,7 @@ const dependencySchema = z.object({
 
 const flowSchema = z.object({
   id: z.string().min(1),
-  edgeType: z.literal('flow'),
+  edgeType: z.literal("flow"),
   from: z.string(),
   to: z.string(),
   flowValue: z.string().optional(),
@@ -147,17 +147,17 @@ const flowSchema = z.object({
   label: z.string().optional(),
 });
 
-export const mapEdgeSchema = z.discriminatedUnion('edgeType', [dependencySchema, flowSchema]);
+export const mapEdgeSchema = z.discriminatedUnion("edgeType", [dependencySchema, flowSchema]);
 
 const mapConfigSchema = z.object({
   title: z.string(),
   size: z.object({ width: z.number(), height: z.number() }).optional(),
-  style: z.enum(['wardley', 'handwritten', 'colour', 'dark']).optional(),
+  style: z.enum(["wardley", "handwritten", "colour", "dark"]).optional(),
   evolutionLabels: z.tuple([z.string(), z.string(), z.string(), z.string()]).optional(),
   stageBoundaries: z
     .tuple([norm, norm, norm])
     .refine(([g, c, p]) => g < c && c < p, {
-      message: 'stageBoundaries must be strictly ascending',
+      message: "stageBoundaries must be strictly ascending",
     })
     .optional(),
   yAxisLabel: z.string().optional(),

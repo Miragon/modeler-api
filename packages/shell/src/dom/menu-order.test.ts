@@ -66,7 +66,13 @@ describe("menu groups (guide §5.4)", () => {
   it("collapse the shell's groups without entries, separators included", () => {
     const menu = menuWith({});
     menu.open();
-    expect(rendered(menu.dropdown)).toEqual(["model:level", "|", "export:png", "|", "help:shortcuts"]);
+    expect(rendered(menu.dropdown)).toEqual([
+      "model:level",
+      "|",
+      "export:png",
+      "|",
+      "help:shortcuts",
+    ]);
   });
 
   it("lock only Model entries on a read-only canvas, never File and Appearance", () => {

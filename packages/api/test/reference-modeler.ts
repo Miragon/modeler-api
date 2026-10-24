@@ -259,14 +259,18 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
   };
   const lineOf = (entry: Entry): string => {
     const named =
-      entry.id === entry.text || flaws.idsChangeOnExport ? entry.text : `${entry.text} #${entry.id}`;
+      entry.id === entry.text || flaws.idsChangeOnExport
+        ? entry.text
+        : `${entry.text} #${entry.id}`;
     return entry.at ? `${named} @${entry.at.x},${entry.at.y}` : named;
   };
   const entryOf = (line: string): Entry => {
     const placed = AT_SUFFIX.exec(line);
     const rest = placed ? (placed[1] ?? line) : line;
     const named = ID_SUFFIX.exec(rest);
-    const entry = named ? { text: named[1] ?? rest, id: named[2] ?? rest } : { id: rest, text: rest };
+    const entry = named
+      ? { text: named[1] ?? rest, id: named[2] ?? rest }
+      : { id: rest, text: rest };
     return placed ? { ...entry, at: { x: Number(placed[2]), y: Number(placed[3]) } } : entry;
   };
   const canonical = (): string => {
@@ -279,7 +283,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     return entry.created ? "" : undefined;
   };
   const ids = (): string[] =>
-    flaws.positionalIds ? entries.map((_e, i) => `l${entries.length - i}`) : entries.map((e) => e.id);
+    flaws.positionalIds
+      ? entries.map((_e, i) => `l${entries.length - i}`)
+      : entries.map((e) => e.id);
   /** where an element is drawn: row n, moved by its offset, 8 units per character */
   const drawnBox = (e: Entry, row: number): ElementBounds => {
     const box = {
@@ -371,7 +377,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     const before = entries;
     const reported = ids();
     entries = entries.map((e, i) =>
-      reported[i] === edit.elementId ? { id: e.id, text: edit.text, ...(e.at ? { at: e.at } : {}) } : e,
+      reported[i] === edit.elementId
+        ? { id: e.id, text: edit.text, ...(e.at ? { at: e.at } : {}) }
+        : e,
     );
     const after = entries;
     undoStack.push({
@@ -486,7 +494,8 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
     },
     exportText(): string {
       touchBeforeImport();
-      if (flaws.exportThrowsAfterMutate && mutated) throw new Error("BpmnDiOrdering: cannot serialize");
+      if (flaws.exportThrowsAfterMutate && mutated)
+        throw new Error("BpmnDiOrdering: cannot serialize");
       // the broken variant stamps a footer line — a serializer that is not a
       // fixpoint of its own parser (every open/export round-trip grows the file)
       return flaws.nonCanonicalExport ? `${canonical()}# exported\n` : canonical();
@@ -504,7 +513,9 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       }
       // the diagram-js viewbox shape: the requested box plus derived keys,
       // rounded — a legitimate readback the kit must accept
-      return flaws.enrichedViewStateReadback || flaws.readbackNotSettable ? enriched(view) : { ...view };
+      return flaws.enrichedViewStateReadback || flaws.readbackNotSettable
+        ? enriched(view)
+        : { ...view };
     },
     setViewState(state) {
       if (flaws.viewStateEmits) emit();
@@ -539,7 +550,11 @@ export function createReferenceModeler(flaws: Flaws = {}, editable = true): Refe
       // the conforming id is the one the text derives on every import; the
       // counter variant writes its id back, the in-memory variant does not
       createdCount += 1;
-      const id = flaws.counterIds ? `line_${createdCount}` : flaws.idsChangeOnExport ? `tmp_${text}` : text;
+      const id = flaws.counterIds
+        ? `line_${createdCount}`
+        : flaws.idsChangeOnExport
+          ? `tmp_${text}`
+          : text;
       // snapshot-based undo, like real command stacks: undoing RESTORES the
       // pre-command document — kept across imports (staleUndo) that means
       // resurrecting the pre-import document, the exact tt drift. The delta

@@ -1,5 +1,5 @@
-import type { ElementLike } from 'diagram-js/lib/core/Types';
-import type CommandHandler from 'diagram-js/lib/command/CommandHandler';
+import type { ElementLike } from "diagram-js/lib/core/Types";
+import type CommandHandler from "diagram-js/lib/command/CommandHandler";
 
 export interface UpdatePropertiesContext {
   element: ElementLike & Record<string, unknown>;

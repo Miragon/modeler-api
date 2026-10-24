@@ -1,9 +1,9 @@
-import { append as svgAppend, attr as svgAttr, create as svgCreate } from 'tiny-svg';
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Dragging from 'diagram-js/lib/features/dragging/Dragging';
+import { append as svgAppend, attr as svgAttr, create as svgCreate } from "tiny-svg";
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
 import {
   MAP_SIZE_PRESETS,
   PLOT_MAX,
@@ -11,17 +11,17 @@ import {
   normalizeMapSize,
   type MapSize,
   type WardleyMap,
-} from '@miragon/wardley-schema-model';
-import { PLOT } from '../draw/styles.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type MapProjection from './MapProjection.js';
-import type { ProjectionSnapshot } from './MapProjection.js';
-import { COMMAND_START_EVENTS, PUT_BACK_PRIORITY } from '../live-preview/index.js';
+} from "@miragon/wardley-schema-model";
+import { PLOT } from "../draw/styles.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type MapProjection from "./MapProjection.js";
+import type { ProjectionSnapshot } from "./MapProjection.js";
+import { COMMAND_START_EVENTS, PUT_BACK_PRIORITY } from "../live-preview/index.js";
 
-export const MAP_RESIZE_PREFIX = 'wardley.mapResize';
+export const MAP_RESIZE_PREFIX = "wardley.mapResize";
 
 /** Above the axes (-1), below the element planes (0): elements at the plot edge win hit tests. */
-const LAYER_NAME = 'wardley-map-resize';
+const LAYER_NAME = "wardley-map-resize";
 const LAYER_INDEX = -0.5;
 
 const SNAP_STEP = 10;
@@ -32,12 +32,12 @@ const CORNER_HIT_SIZE = 16;
 const CORNER_VISUAL_SIZE = 10;
 const BADGE_OFFSET = 16;
 
-export type ResizeAxis = 'x' | 'y' | 'xy';
+export type ResizeAxis = "x" | "y" | "xy";
 
 const CURSORS: Record<ResizeAxis, string> = {
-  x: 'ew-resize',
-  y: 'ns-resize',
-  xy: 'nwse-resize',
+  x: "ew-resize",
+  y: "ns-resize",
+  xy: "nwse-resize",
 };
 
 interface MapResizeContext {
@@ -88,9 +88,9 @@ function clamp(value: number, min: number, max: number): number {
  * so the stylesheet still wins and shows the handles on hover.
  */
 function withoutPaint<T extends SVGElement>(element: T): T {
-  element.setAttribute('fill', 'none');
-  element.setAttribute('stroke', 'none');
-  element.setAttribute('opacity', '0');
+  element.setAttribute("fill", "none");
+  element.setAttribute("stroke", "none");
+  element.setAttribute("opacity", "0");
   return element;
 }
 
@@ -105,15 +105,15 @@ export function sizeForDrag(
   dy: number,
   keys: ModifierKeys = { keepAspectRatio: false, disableSnapping: false },
 ): MapSize {
-  let width = axis === 'y' ? start.width : start.width + dx;
-  let height = axis === 'x' ? start.height : start.height + dy;
+  let width = axis === "y" ? start.width : start.width + dx;
+  let height = axis === "x" ? start.height : start.height + dy;
   const step = keys.disableSnapping ? 1 : SNAP_STEP;
 
   if (keys.keepAspectRatio) {
     const ratio = start.width / start.height;
     const widthDrives =
-      axis === 'x' ||
-      (axis === 'xy' &&
+      axis === "x" ||
+      (axis === "xy" &&
         Math.abs(width - start.width) / start.width >=
           Math.abs(height - start.height) / start.height);
     if (widthDrives) {
@@ -135,8 +135,8 @@ export function sizeForDrag(
     if (preset) return { width: preset.width, height: preset.height };
   }
   return normalizeMapSize(
-    axis === 'y' ? width : round(width, step),
-    axis === 'x' ? height : round(height, step),
+    axis === "y" ? width : round(width, step),
+    axis === "x" ? height : round(height, step),
   );
 }
 
@@ -145,7 +145,7 @@ export function sizeLabel(size: MapSize): string {
   const preset = MAP_SIZE_PRESETS.find(
     (candidate) => candidate.width === size.width && candidate.height === size.height,
   );
-  return `${size.width} × ${size.height}${preset ? ` · ${preset.name}` : ''}`;
+  return `${size.width} × ${size.height}${preset ? ` · ${preset.name}` : ""}`;
 }
 
 /**
@@ -156,13 +156,13 @@ export function sizeLabel(size: MapSize): string {
  */
 export default class MapResizeHandles {
   static $inject = [
-    'eventBus',
-    'canvas',
-    'evolutionGrid',
-    'dragging',
-    'wardleyMapProjection',
-    'wardleyModeling',
-    'injector',
+    "eventBus",
+    "canvas",
+    "evolutionGrid",
+    "dragging",
+    "wardleyMapProjection",
+    "wardleyModeling",
+    "injector",
   ];
 
   private readonly layer: SVGGElement;
@@ -179,22 +179,22 @@ export default class MapResizeHandles {
     private readonly modeling: MapResizeModeling,
     private readonly injector: Injector,
   ) {
-    this.layer = svgCreate('g', { class: 'wardley-map-resize' }) as SVGGElement;
+    this.layer = svgCreate("g", { class: "wardley-map-resize" }) as SVGGElement;
     svgAppend(canvas.getLayer(LAYER_NAME, LAYER_INDEX), this.layer);
     this.handles = {
-      x: this.createHandle('x'),
-      y: this.createHandle('y'),
-      xy: this.createHandle('xy'),
+      x: this.createHandle("x"),
+      y: this.createHandle("y"),
+      xy: this.createHandle("xy"),
     };
-    this.handles.xy.group.addEventListener('dblclick', (event) => {
+    this.handles.xy.group.addEventListener("dblclick", (event) => {
       event.stopPropagation();
       event.preventDefault();
       if (isReadOnly(this.injector)) return;
       this.modeling.resizeMap(undefined);
     });
 
-    eventBus.on(['import.done', 'wardley.config.changed'], () => this.render());
-    eventBus.on('canvas.viewbox.changed', (event: { viewbox?: { scale?: number } }) => {
+    eventBus.on(["import.done", "wardley.config.changed"], () => this.render());
+    eventBus.on("canvas.viewbox.changed", (event: { viewbox?: { scale?: number } }) => {
       const scale = event.viewbox?.scale;
       if (scale === this.scale) return;
       this.scale = scale;
@@ -233,22 +233,22 @@ export default class MapResizeHandles {
   }
 
   private createHandle(axis: ResizeAxis): Handle {
-    const group = svgCreate('g', {
+    const group = svgCreate("g", {
       class: `wardley-map-resize-handle wardley-map-resize-${axis}`,
-      'data-axis': axis,
+      "data-axis": axis,
     }) as SVGGElement;
     const visual = withoutPaint(
-      svgCreate(axis === 'xy' ? 'rect' : 'line', { class: 'wardley-map-resize-visual' }),
+      svgCreate(axis === "xy" ? "rect" : "line", { class: "wardley-map-resize-visual" }),
     );
     const hit = withoutPaint(
-      svgCreate('rect', { class: 'wardley-map-resize-hit' }) as SVGRectElement,
+      svgCreate("rect", { class: "wardley-map-resize-hit" }) as SVGRectElement,
     );
     svgAppend(group, visual);
     svgAppend(group, hit);
     svgAppend(this.layer, group);
     // Own listener on the handle: stopping here keeps the canvas (pan, lasso, deselect) from
     // also reacting to this mousedown.
-    group.addEventListener('mousedown', (event: MouseEvent) => {
+    group.addEventListener("mousedown", (event: MouseEvent) => {
       if (event.button !== 0 || this.dragging.context()) return;
       event.stopPropagation();
       event.preventDefault();
@@ -259,7 +259,7 @@ export default class MapResizeHandles {
 
   private render(): void {
     const visible = this.projection.root() !== undefined;
-    svgAttr(this.layer, { display: visible ? 'inline' : 'none' });
+    svgAttr(this.layer, { display: visible ? "inline" : "none" });
     if (!visible) return;
 
     const { width, height } = this.grid.getPlotSize();
@@ -320,7 +320,7 @@ export default class MapResizeHandles {
     if (!snapshot) return;
     context.snapshot = snapshot;
     context.model = this.projection.captureModel();
-    this.layer.classList.add('is-dragging');
+    this.layer.classList.add("is-dragging");
   }
 
   private onMove(event: MapResizeEvent): void {
@@ -358,16 +358,16 @@ export default class MapResizeHandles {
     if (context.snapshot && !context.committed) {
       this.projection.redraw(this.projection.restore(context.snapshot, { transient: true }));
     }
-    this.layer.classList.remove('is-dragging');
+    this.layer.classList.remove("is-dragging");
     this.hideBadge();
   }
 
   private showBadge(size: MapSize, originalEvent: MouseEvent | undefined): void {
     const container = this.canvas.getContainer();
     if (!this.badge) {
-      this.badge = document.createElement('div');
-      this.badge.className = 'wardley-map-resize-badge';
-      this.badge.setAttribute('role', 'status');
+      this.badge = document.createElement("div");
+      this.badge.className = "wardley-map-resize-badge";
+      this.badge.setAttribute("role", "status");
       container.appendChild(this.badge);
     }
     this.badge.textContent = sizeLabel(size);

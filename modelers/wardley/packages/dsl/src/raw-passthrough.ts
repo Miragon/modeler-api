@@ -1,4 +1,4 @@
-import { CommentStripper, keywordOf } from './lexer.js';
+import { CommentStripper, keywordOf } from "./lexer.js";
 
 /**
  * `rawPassthrough` without the uninterpreted statements of one keyword (e.g. an unreadable `size`
@@ -22,7 +22,7 @@ export function withoutRawStatements(
       continue;
     }
     changed = true;
-    if (stripped.comments.length) kept.push(stripped.comments.join(' '));
+    if (stripped.comments.length) kept.push(stripped.comments.join(" "));
   }
   if (!changed) return rawPassthrough;
   return kept.length ? kept : undefined;

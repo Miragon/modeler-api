@@ -1,6 +1,6 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Shape } from 'diagram-js/lib/model/Types';
-import { getMid } from 'diagram-js/lib/layout/LayoutUtil';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Shape } from "diagram-js/lib/model/Types";
+import { getMid } from "diagram-js/lib/layout/LayoutUtil";
 
 interface ConnectionPreviewLike {
   drawPreview(context: object, canConnect: unknown, hints: object): void;
@@ -19,22 +19,22 @@ interface CreateEvent {
 
 /** Drag-append UX: live connection preview from the source while dragging a new step. */
 export default class VcCreatePreviewBehavior {
-  static $inject = ['injector', 'eventBus'];
+  static $inject = ["injector", "eventBus"];
 
   constructor(injector: { get<T>(name: string, strict: boolean): T | null }, eventBus: EventBus) {
-    const connectionPreview = injector.get<ConnectionPreviewLike>('connectionPreview', false);
+    const connectionPreview = injector.get<ConnectionPreviewLike>("connectionPreview", false);
     if (!connectionPreview) {
       return;
     }
 
-    eventBus.on('create.move', (event: CreateEvent) => {
+    eventBus.on("create.move", (event: CreateEvent) => {
       const { context } = event;
       const source = context.source;
       if (!source) {
         return;
       }
       const canConnect =
-        typeof context.canExecute === 'object' ? context.canExecute?.connect : false;
+        typeof context.canExecute === "object" ? context.canExecute?.connect : false;
       // noCropping: there is no positioned target shape yet, and cropping against an
       // undefined target would throw inside CroppingConnectionDocking.
       connectionPreview.drawPreview(context, canConnect ?? false, {
@@ -45,7 +45,7 @@ export default class VcCreatePreviewBehavior {
       });
     });
 
-    eventBus.on(['create.end', 'create.cancel', 'create.cleanup'], (event: CreateEvent) => {
+    eventBus.on(["create.end", "create.cancel", "create.cleanup"], (event: CreateEvent) => {
       connectionPreview.cleanUp(event.context);
     });
   }

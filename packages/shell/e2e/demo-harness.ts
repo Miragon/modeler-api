@@ -80,7 +80,10 @@ export function demoHarness(
     async open(page, { size, requested }) {
       // the embedded root sits inside a framed foreign page; grow the page so the container gets `size`
       const frame = host === "embedded" ? EMBEDDED_FRAME : { width: 0, height: 0 };
-      await page.setViewportSize({ width: size.width + frame.width, height: size.height + frame.height });
+      await page.setViewportSize({
+        width: size.width + frame.width,
+        height: size.height + frame.height,
+      });
       const initial = switchAtRuntime ? LIGHT : requested;
       const query = new URLSearchParams(vsCodeStubSearch(initial));
       query.set("host", host);
@@ -105,7 +108,9 @@ export function demoHarness(
       await page.evaluate(() => window.__demo?.destroy());
     },
     show,
-    labelEditor: demoLabelEditor((page) => page.evaluate(() => window.__demo?.documentChanges() ?? 0)),
+    labelEditor: demoLabelEditor((page) =>
+      page.evaluate(() => window.__demo?.documentChanges() ?? 0),
+    ),
     absent: without,
   };
 }

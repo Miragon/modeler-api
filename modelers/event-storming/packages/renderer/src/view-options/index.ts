@@ -1,6 +1,6 @@
-import type { ModuleDeclaration } from 'didi';
-import ChangeSupportModule from 'diagram-js/lib/features/change-support';
-import EventStormingViewOptions from './EventStormingViewOptions.js';
+import type { ModuleDeclaration } from "didi";
+import ChangeSupportModule from "diagram-js/lib/features/change-support";
+import EventStormingViewOptions from "./EventStormingViewOptions.js";
 
 /**
  * View preferences (e.g. type captions). Depends on change support so that toggling
@@ -8,8 +8,8 @@ import EventStormingViewOptions from './EventStormingViewOptions.js';
  */
 export const eventStormingViewOptionsModule: ModuleDeclaration = {
   __depends__: [ChangeSupportModule],
-  eventStormingViewOptions: ['type', EventStormingViewOptions],
+  eventStormingViewOptions: ["type", EventStormingViewOptions],
 };
 
-export { default as EventStormingViewOptions } from './EventStormingViewOptions.js';
-export { VIEW_OPTIONS_CHANGED_EVENT } from './EventStormingViewOptions.js';
+export { default as EventStormingViewOptions } from "./EventStormingViewOptions.js";
+export { VIEW_OPTIONS_CHANGED_EVENT } from "./EventStormingViewOptions.js";

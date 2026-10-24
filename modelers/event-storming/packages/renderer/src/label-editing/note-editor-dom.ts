@@ -1,6 +1,6 @@
-import type { NoteAlignHorizontal, NoteAlignVertical } from '@miragon/event-storming-schema-model';
-import { parseNoteMarkdown, serializeNoteMarkdown } from '../draw/index.js';
-import { chromeIcon, type LucideIconName } from '../draw/lucide.js';
+import type { NoteAlignHorizontal, NoteAlignVertical } from "@miragon/event-storming-schema-model";
+import { parseNoteMarkdown, serializeNoteMarkdown } from "../draw/index.js";
+import { chromeIcon, type LucideIconName } from "../draw/lucide.js";
 
 /**
  * DOM half of the WYSIWYG note editor: the model stores a note label as ONE markdown-subset
@@ -10,18 +10,18 @@ import { chromeIcon, type LucideIconName } from '../draw/lucide.js';
  */
 
 /** Class on line `<div>`s carrying the `- ` bullet marker (the '•' itself renders via CSS). */
-export const NOTE_BULLET_CLASS = 'bullet';
+export const NOTE_BULLET_CLASS = "bullet";
 
 export type NoteToolbarAction =
-  'note-bold' | 'note-italic' | 'note-bullet' | 'note-align-horizontal' | 'note-align-vertical';
+  "note-bold" | "note-italic" | "note-bullet" | "note-align-horizontal" | "note-align-vertical";
 
 export interface NoteAlignState {
   horizontal: NoteAlignHorizontal;
   vertical: NoteAlignVertical;
 }
 
-export const HORIZONTAL_CYCLE: readonly NoteAlignHorizontal[] = ['left', 'center', 'right'];
-export const VERTICAL_CYCLE: readonly NoteAlignVertical[] = ['top', 'middle', 'bottom'];
+export const HORIZONTAL_CYCLE: readonly NoteAlignHorizontal[] = ["left", "center", "right"];
+export const VERTICAL_CYCLE: readonly NoteAlignVertical[] = ["top", "middle", "bottom"];
 
 export function nextInCycle<T>(cycle: readonly T[], value: T): T {
   return cycle[(cycle.indexOf(value) + 1) % cycle.length]!;
@@ -30,19 +30,19 @@ export function nextInCycle<T>(cycle: readonly T[], value: T): T {
 /** One `<div>` per markdown line: `<b>`/`<i>` for the runs, `.bullet` rows for `- ` lines. */
 export function noteMarkdownToDom(root: HTMLElement, label: string): void {
   const doc = root.ownerDocument;
-  root.textContent = '';
+  root.textContent = "";
   for (const line of parseNoteMarkdown(label)) {
-    const div = doc.createElement('div');
+    const div = doc.createElement("div");
     if (line.bullet) div.className = NOTE_BULLET_CLASS;
     for (const run of line.runs) {
       let node: Node = doc.createTextNode(run.text);
-      if (run.italic) node = wrapIn(doc, 'i', node);
-      if (run.bold) node = wrapIn(doc, 'b', node);
+      if (run.italic) node = wrapIn(doc, "i", node);
+      if (run.bold) node = wrapIn(doc, "b", node);
       div.appendChild(node);
     }
     // An empty line div would collapse to zero height — the <br> placeholder keeps it visible
     // and editable (the same trick contenteditable browsers use themselves).
-    if (line.runs.length === 0) div.appendChild(doc.createElement('br'));
+    if (line.runs.length === 0) div.appendChild(doc.createElement("br"));
     root.appendChild(div);
   }
 }
@@ -78,7 +78,7 @@ export function domToNoteMarkdown(root: HTMLElement): string {
     if (node.nodeType === Node.TEXT_NODE) {
       // Plain-text paste can leave raw '\n' inside one text node (rendered as breaks by
       // `white-space: pre-wrap`) — every segment after a '\n' is its own line.
-      (node.nodeValue ?? '').split('\n').forEach((segment, i) => {
+      (node.nodeValue ?? "").split("\n").forEach((segment, i) => {
         if (i > 0) open(false);
         (current ?? open(false)).runs.push({ text: segment, bold, italic });
       });
@@ -86,7 +86,7 @@ export function domToNoteMarkdown(root: HTMLElement): string {
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const el = node as HTMLElement;
-    if (el.tagName === 'BR') {
+    if (el.tagName === "BR") {
       // A trailing <br> is the invisible placeholder browsers keep in lines — only a <br>
       // with content after it is a real line break.
       if (el.nextSibling) open(false);
@@ -101,7 +101,7 @@ export function domToNoteMarkdown(root: HTMLElement): string {
   };
 
   const visitBlock = (el: HTMLElement): void => {
-    open(el.classList.contains(NOTE_BULLET_CLASS) || el.tagName === 'LI');
+    open(el.classList.contains(NOTE_BULLET_CLASS) || el.tagName === "LI");
     for (const child of el.childNodes) visitInline(child, false, false);
     // Blocks always break: content after a closed block starts a fresh line.
     current = null;
@@ -112,7 +112,7 @@ export function domToNoteMarkdown(root: HTMLElement): string {
 }
 
 function isBlockTag(tag: string): boolean {
-  return tag === 'DIV' || tag === 'P' || tag === 'LI';
+  return tag === "DIV" || tag === "P" || tag === "LI";
 }
 
 /**
@@ -127,12 +127,12 @@ function styledAs(
   italic: boolean,
 ): { bold: boolean; italic: boolean } {
   const tag = el.tagName;
-  if (tag === 'B' || tag === 'STRONG') bold = true;
-  if (tag === 'I' || tag === 'EM') italic = true;
+  if (tag === "B" || tag === "STRONG") bold = true;
+  if (tag === "I" || tag === "EM") italic = true;
   const weight = el.style.fontWeight;
-  if (weight) bold = weight === 'bold' || weight === 'bolder' || Number.parseInt(weight, 10) >= 600;
+  if (weight) bold = weight === "bold" || weight === "bolder" || Number.parseInt(weight, 10) >= 600;
   const slant = el.style.fontStyle;
-  if (slant) italic = slant === 'italic' || slant === 'oblique';
+  if (slant) italic = slant === "italic" || slant === "oblique";
   return { bold, italic };
 }
 
@@ -154,7 +154,7 @@ export function selectAllContent(el: HTMLElement): void {
  */
 export function insertPlainText(root: HTMLElement, text: string): void {
   const doc = root.ownerDocument;
-  if (typeof doc.execCommand === 'function' && doc.execCommand('insertText', false, text)) return;
+  if (typeof doc.execCommand === "function" && doc.execCommand("insertText", false, text)) return;
   const selection = doc.getSelection();
   if (!selection || selection.rangeCount === 0) return;
   const range = selection.getRangeAt(0);
@@ -201,7 +201,7 @@ export function ensureLineDivs(root: HTMLElement): void {
       continue;
     }
     if (!wrapper) {
-      wrapper = doc.createElement('div');
+      wrapper = doc.createElement("div");
       root.insertBefore(wrapper, node);
     }
     wrapper.appendChild(node);
@@ -209,16 +209,16 @@ export function ensureLineDivs(root: HTMLElement): void {
 }
 
 /** The Lucide icon of each alignment value. */
-const ALIGN_ICONS: Record<'horizontal' | 'vertical', Record<string, LucideIconName>> = {
+const ALIGN_ICONS: Record<"horizontal" | "vertical", Record<string, LucideIconName>> = {
   horizontal: {
-    left: 'text-align-start',
-    center: 'text-align-center',
-    right: 'text-align-end',
+    left: "text-align-start",
+    center: "text-align-center",
+    right: "text-align-end",
   },
   vertical: {
-    top: 'align-vertical-justify-start',
-    middle: 'align-vertical-justify-center',
-    bottom: 'align-vertical-justify-end',
+    top: "align-vertical-justify-start",
+    middle: "align-vertical-justify-center",
+    bottom: "align-vertical-justify-end",
   },
 };
 
@@ -231,41 +231,41 @@ export function createNoteToolbar(
   doc: Document,
   onAction: (action: NoteToolbarAction) => void,
 ): HTMLElement {
-  const toolbar = doc.createElement('div');
-  toolbar.className = 'event-storming-note-toolbar';
+  const toolbar = doc.createElement("div");
+  toolbar.className = "event-storming-note-toolbar";
   const add = (action: NoteToolbarAction, title: string, html: string): void => {
-    const button = doc.createElement('button');
-    button.type = 'button';
-    button.setAttribute('data-action', action);
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-action", action);
     button.title = title;
     button.innerHTML = html;
     // Keep the editor's focus/selection: formatting applies to the CURRENT selection, and a
     // focus loss would commit-close the editor before the click even lands.
-    button.addEventListener('mousedown', (e) => e.preventDefault());
-    button.addEventListener('click', () => onAction(action));
+    button.addEventListener("mousedown", (e) => e.preventDefault());
+    button.addEventListener("click", () => onAction(action));
     toolbar.appendChild(button);
   };
-  add('note-bold', 'Bold (Cmd/Ctrl+B)', chromeIcon('bold'));
-  add('note-italic', 'Italic (Cmd/Ctrl+I)', chromeIcon('italic'));
-  add('note-bullet', 'Bullet list', chromeIcon('list'));
-  const separator = doc.createElement('span');
-  separator.className = 'event-storming-note-toolbar-separator';
+  add("note-bold", "Bold (Cmd/Ctrl+B)", chromeIcon("bold"));
+  add("note-italic", "Italic (Cmd/Ctrl+I)", chromeIcon("italic"));
+  add("note-bullet", "Bullet list", chromeIcon("list"));
+  const separator = doc.createElement("span");
+  separator.className = "event-storming-note-toolbar-separator";
   toolbar.appendChild(separator);
-  add('note-align-horizontal', 'Horizontal alignment (click to cycle)', '');
-  add('note-align-vertical', 'Vertical alignment (click to cycle)', '');
+  add("note-align-horizontal", "Horizontal alignment (click to cycle)", "");
+  add("note-align-vertical", "Vertical alignment (click to cycle)", "");
   return toolbar;
 }
 
 /** Stamps a cycle button with the icon/tooltip of the CURRENT alignment value. */
 export function updateAlignButton(
   button: HTMLElement,
-  axis: 'horizontal' | 'vertical',
+  axis: "horizontal" | "vertical",
   value: NoteAlignHorizontal | NoteAlignVertical,
 ): void {
   const icon = ALIGN_ICONS[axis][value];
-  button.innerHTML = icon ? chromeIcon(icon) : '';
+  button.innerHTML = icon ? chromeIcon(icon) : "";
   button.title =
-    axis === 'horizontal'
+    axis === "horizontal"
       ? `Horizontal alignment: ${value} (click to cycle)`
       : `Vertical alignment: ${value} (click to cycle)`;
 }
@@ -274,5 +274,5 @@ export function updateAlignButton(
 export function applyAlignPreview(editor: HTMLElement, align: NoteAlignState): void {
   editor.style.textAlign = align.horizontal;
   editor.style.justifyContent =
-    align.vertical === 'top' ? 'flex-start' : align.vertical === 'middle' ? 'center' : 'flex-end';
+    align.vertical === "top" ? "flex-start" : align.vertical === "middle" ? "center" : "flex-end";
 }

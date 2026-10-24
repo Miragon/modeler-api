@@ -30,7 +30,11 @@ export function createTooltip({ root, layer, id }: TooltipContext): TooltipContr
   const ownerDocument = root.ownerDocument;
   const label = createElement(ownerDocument, "span", { class: "cd-shell-tooltip-label" });
   const shortcut = createElement(ownerDocument, "kbd", { class: "cd-shell-kbd" });
-  const element = createElement(ownerDocument, "div", { class: "cd-shell-tooltip", role: "tooltip", id });
+  const element = createElement(ownerDocument, "div", {
+    class: "cd-shell-tooltip",
+    role: "tooltip",
+    id,
+  });
   element.hidden = true;
   element.append(label, shortcut);
   layer.append(element);
@@ -223,7 +227,10 @@ export function createTooltip({ root, layer, id }: TooltipContext): TooltipContr
       container.removeEventListener("focusout", focusOut);
       container.removeEventListener("pointerdown", press);
       container.removeEventListener("click", press);
-      if ((shown && container.contains(shown.control)) || (pending && container.contains(pending.control))) {
+      if (
+        (shown && container.contains(shown.control)) ||
+        (pending && container.contains(pending.control))
+      ) {
         hide();
       }
       hovered = undefined;

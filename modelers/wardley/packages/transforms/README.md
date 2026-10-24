@@ -15,10 +15,10 @@ npm install @miragon/wardley-transforms
 ## Usage
 
 ```ts
-import { parseDSL } from '@miragon/wardley-dsl';
-import { evolveComponent } from '@miragon/wardley-transforms';
+import { parseDSL } from "@miragon/wardley-dsl";
+import { evolveComponent } from "@miragon/wardley-transforms";
 
-const map = parseDSL('component Kettle [0.43, 0.35]');
+const map = parseDSL("component Kettle [0.43, 0.35]");
 const [kettle] = map.elements;
 
 const evolved = evolveComponent(map, kettle.id, 0.62); // returns a new map

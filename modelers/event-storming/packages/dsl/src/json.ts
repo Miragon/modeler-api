@@ -7,4 +7,4 @@ export {
   serializeBoard as boardToJSON,
   parseBoardJSON as boardFromJSON,
   loadBoard,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";

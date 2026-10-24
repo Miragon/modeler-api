@@ -1,8 +1,8 @@
-import KeyboardBindings from 'diagram-js/lib/features/keyboard/KeyboardBindings';
-import { hasModifier, isCmd, isKey } from 'diagram-js/lib/features/keyboard/KeyboardUtil';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Keyboard from 'diagram-js/lib/features/keyboard/Keyboard';
-import type EditorActions from 'diagram-js/lib/features/editor-actions/EditorActions';
+import KeyboardBindings from "diagram-js/lib/features/keyboard/KeyboardBindings";
+import { hasModifier, isCmd, isKey } from "diagram-js/lib/features/keyboard/KeyboardUtil";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Keyboard from "diagram-js/lib/features/keyboard/Keyboard";
+import type EditorActions from "diagram-js/lib/features/editor-actions/EditorActions";
 
 interface KeyContext {
   keyEvent: KeyboardEvent;
@@ -16,7 +16,7 @@ export interface VcKeyboardConfig {
   undoRedoKeys?: boolean | undefined;
 }
 
-const UNDO_REDO_ACTIONS = new Set(['undo', 'redo']);
+const UNDO_REDO_ACTIONS = new Set(["undo", "redo"]);
 
 /**
  * Default diagram-js bindings (undo/redo/copy/paste/zoom/delete) plus the single-key tool
@@ -24,7 +24,7 @@ const UNDO_REDO_ACTIONS = new Set(['undo', 'redo']);
  * The keyboard listens on the focused canvas only.
  */
 export default class VcKeyboardBindings extends KeyboardBindings {
-  static override $inject = ['eventBus', 'keyboard', 'config.vcKeyboard'];
+  static override $inject = ["eventBus", "keyboard", "config.vcKeyboard"];
 
   private readonly undoRedoKeys: boolean;
 
@@ -63,17 +63,17 @@ export default class VcKeyboardBindings extends KeyboardBindings {
       });
     };
 
-    bindTool('lassoTool', ['l', 'L']);
-    bindTool('handTool', ['h', 'H']);
-    bindTool('spaceTool', ['s', 'S']);
-    bindTool('globalConnectTool', ['c', 'C']);
-    bindTool('directEditing', ['e', 'E']);
+    bindTool("lassoTool", ["l", "L"]);
+    bindTool("handTool", ["h", "H"]);
+    bindTool("spaceTool", ["s", "S"]);
+    bindTool("globalConnectTool", ["c", "C"]);
+    bindTool("directEditing", ["e", "E"]);
 
     // diagram-js binds no select all; an unhandled Cmd/Ctrl+A would select the page's text.
-    addListener('selectAll', (context) => {
+    addListener("selectAll", (context) => {
       const event = context.keyEvent;
-      if (isCmd(event) && isKey(['a', 'A'], event) && !event.shiftKey && !event.altKey) {
-        editorActions.trigger('selectAll', {});
+      if (isCmd(event) && isKey(["a", "A"], event) && !event.shiftKey && !event.altKey) {
+        editorActions.trigger("selectAll", {});
         return true;
       }
       return undefined as unknown as boolean;

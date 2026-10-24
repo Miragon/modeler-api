@@ -1,8 +1,8 @@
-import type { MapEdge, MapElement, WardleyMap } from '@miragon/wardley-schema-model';
-import { CommentStripper } from './lexer.js';
-import { roundAsWritten } from './names.js';
-import { parseDSL, parseDSLWithSourceMap, widenEmptyRange, type SourceMap } from './parser.js';
-import { serializeDSL, serializeKeyedLines, type KeyedLine } from './serializer.js';
+import type { MapEdge, MapElement, WardleyMap } from "@miragon/wardley-schema-model";
+import { CommentStripper } from "./lexer.js";
+import { roundAsWritten } from "./names.js";
+import { parseDSL, parseDSLWithSourceMap, widenEmptyRange, type SourceMap } from "./parser.js";
+import { serializeDSL, serializeKeyedLines, type KeyedLine } from "./serializer.js";
 
 /**
  * How `patchDSL` produced its text: `patched` rewrote only the changed statements, `rewritten`
@@ -10,7 +10,7 @@ import { serializeDSL, serializeKeyedLines, type KeyedLine } from './serializer.
  * to `serializeDSL`, `unchanged` returned the original text because the map could not be
  * serialized at all.
  */
-export type PatchOutcome = 'patched' | 'rewritten' | 'serialized' | 'unchanged';
+export type PatchOutcome = "patched" | "rewritten" | "serialized" | "unchanged";
 
 /**
  * Writes `map` back into `originalText`, the text it was read from, and keeps everything the edit
@@ -44,26 +44,26 @@ export function patchDSLWithOutcome(
   map: WardleyMap,
   options: PatchOptions = {},
 ): { readonly text: string; readonly outcome: PatchOutcome } {
-  const original = typeof originalText === 'string' ? originalText : '';
+  const original = typeof originalText === "string" ? originalText : "";
   let canonical: string;
   try {
     canonical = serializeDSL(map);
   } catch {
-    return { text: original, outcome: 'unchanged' };
+    return { text: original, outcome: "unchanged" };
   }
   try {
     const expected = fingerprint(parseDSL(canonical));
     const source = readSource(original);
     const edited = alignToSource(source.map, map, options.previous);
-    for (const mode of ['minimal', 'rewrite'] as const) {
+    for (const mode of ["minimal", "rewrite"] as const) {
       const text = patchLines(source, edited, mode);
       if (text !== null && fingerprint(parseDSL(text)) === expected) {
-        return { text, outcome: mode === 'minimal' ? 'patched' : 'rewritten' };
+        return { text, outcome: mode === "minimal" ? "patched" : "rewritten" };
       }
     }
-    return { text: withLineBreaksOf(source, canonical), outcome: 'serialized' };
+    return { text: withLineBreaksOf(source, canonical), outcome: "serialized" };
   } catch {
-    return { text: canonical, outcome: 'serialized' };
+    return { text: canonical, outcome: "serialized" };
   }
 }
 
@@ -106,8 +106,8 @@ function readSource(text: string): Source {
     shapes: shapeLines(lines),
     map: parsed.map,
     sourceMap: parsed.sourceMap,
-    lineBreak: crlf > lf ? '\r\n' : '\n',
-    endsWithLineBreak: text === '' || text.endsWith('\n'),
+    lineBreak: crlf > lf ? "\r\n" : "\n",
+    endsWithLineBreak: text === "" || text.endsWith("\n"),
   };
 }
 
@@ -120,7 +120,7 @@ function splitLines(text: string): SourceLine[] {
     lines.push({ text: text.slice(start, match.index), lineBreak: match[0] });
     start = match.index + match[0].length;
   }
-  if (start < text.length) lines.push({ text: text.slice(start), lineBreak: '' });
+  if (start < text.length) lines.push({ text: text.slice(start), lineBreak: "" });
   return lines;
 }
 
@@ -137,13 +137,13 @@ function shapeLines(lines: readonly SourceLine[]): LineShape[] {
     const startsInBlockComment = comments.insideBlockComment;
     let fragments = comments.strip(raw).comments;
     let rest = raw;
-    let commentHead = '';
-    let commentTail = '';
+    let commentHead = "";
+    let commentTail = "";
     let editable = true;
     if (startsInBlockComment) {
       // A statement after the end of a block comment is editable; the comment part stays verbatim.
       const head = fragments[0];
-      if (head?.endsWith('*/') && raw.startsWith(head)) {
+      if (head?.endsWith("*/") && raw.startsWith(head)) {
         commentHead = head;
         rest = raw.slice(head.length);
         fragments = fragments.slice(1);
@@ -175,17 +175,17 @@ function shapeLines(lines: readonly SourceLine[]): LineShape[] {
 
 function withLineBreaksOf(source: Source, text: string): string {
   if (source.lines.length === 0) return text;
-  const withBreaks = source.lineBreak === '\n' ? text : text.replace(/\n/g, source.lineBreak);
-  return source.endsWithLineBreak ? withBreaks : withBreaks.replace(/\r?\n$/, '');
+  const withBreaks = source.lineBreak === "\n" ? text : text.replace(/\n/g, source.lineBreak);
+  return source.endsWithLineBreak ? withBreaks : withBreaks.replace(/\r?\n$/, "");
 }
 
 // --- Matching the edited map to the statements of the source -----------------------------------
 
 function identityOf(el: MapElement): string {
   switch (el.elementType) {
-    case 'annotation':
+    case "annotation":
       return `annotation\0${el.number}`;
-    case 'attitude':
+    case "attitude":
       return `attitude\0${el.kind}`;
     default:
       return `${el.elementType}\0${el.label}`;
@@ -264,10 +264,10 @@ function alignToSource(
   const rename = (id: string): string => idByEditedId.get(id) ?? id;
   const elements = edited.elements.map((el): MapElement => {
     const renamed = { ...el, id: rename(el.id) } as MapElement;
-    if (renamed.elementType === 'component' && renamed.pipelineId !== undefined) {
+    if (renamed.elementType === "component" && renamed.pipelineId !== undefined) {
       return { ...renamed, pipelineId: rename(renamed.pipelineId) };
     }
-    if (renamed.elementType === 'pipeline') {
+    if (renamed.elementType === "pipeline") {
       return { ...renamed, childIds: renamed.childIds.map(rename) };
     }
     return renamed;
@@ -331,10 +331,10 @@ function inSourceOrder<T extends { readonly id: string }>(
 
 // --- Planning the edit --------------------------------------------------------------------------
 
-type Mode = 'minimal' | 'rewrite';
-type Status = 'same' | 'changed' | 'deleted';
+type Mode = "minimal" | "rewrite";
+type Status = "same" | "changed" | "deleted";
 
-const isRawKey = (key: string) => key.startsWith('raw:');
+const isRawKey = (key: string) => key.startsWith("raw:");
 
 function keyedTexts(lines: readonly KeyedLine[]): Map<string, string> {
   return new Map(lines.filter((line) => !isRawKey(line.key)).map((line) => [line.key, line.text]));
@@ -352,7 +352,7 @@ function diffPassthrough(
   const remainingByText = new Map<string, number[]>();
   for (const line of before.filter((entry) => isRawKey(entry.key))) {
     const indexes = remainingByText.get(line.text) ?? [];
-    indexes.push(Number(line.key.slice('raw:'.length)));
+    indexes.push(Number(line.key.slice("raw:".length)));
     remainingByText.set(line.text, indexes);
   }
   const added: KeyedLine[] = [];
@@ -370,7 +370,7 @@ interface Insertion {
 function pipelineOfEachChild(map: WardleyMap): Map<string, string> {
   const pipelineById = new Map<string, string>();
   for (const el of map.elements) {
-    if (el.elementType === 'component' && el.pipelineId !== undefined) {
+    if (el.elementType === "component" && el.pipelineId !== undefined) {
       pipelineById.set(el.id, el.pipelineId);
     }
   }
@@ -400,13 +400,13 @@ function pipelinesNoLongerSpannedByChildren(
   if (rangeFromChildren.size === 0) return keys;
   const evolutionsByPipeline = new Map<string, number[]>();
   for (const el of edited.elements) {
-    if (el.elementType !== 'component' || el.pipelineId === undefined) continue;
+    if (el.elementType !== "component" || el.pipelineId === undefined) continue;
     const evolutions = evolutionsByPipeline.get(el.pipelineId) ?? [];
     evolutions.push(roundAsWritten(el.position.evolution));
     evolutionsByPipeline.set(el.pipelineId, evolutions);
   }
   for (const el of edited.elements) {
-    if (el.elementType !== 'pipeline' || !rangeFromChildren.has(el.id)) continue;
+    if (el.elementType !== "pipeline" || !rangeFromChildren.has(el.id)) continue;
     const evolutions = evolutionsByPipeline.get(el.id) ?? [];
     const read =
       evolutions.length > 0
@@ -435,11 +435,11 @@ function patchLines(source: Source, edited: WardleyMap, mode: Mode): string | nu
 
   const statusOf = (key: string): Status => {
     const written = textAfter.get(key);
-    if (written === undefined || reparented.has(key)) return 'deleted';
-    if (mode === 'rewrite' || written !== textBefore.get(key) || unspanned.has(key)) {
-      return 'changed';
+    if (written === undefined || reparented.has(key)) return "deleted";
+    if (mode === "rewrite" || written !== textBefore.get(key) || unspanned.has(key)) {
+      return "changed";
     }
-    return 'same';
+    return "same";
   };
 
   const primaryKeysByLine = listsByLine<string>(lines.length);
@@ -453,13 +453,13 @@ function patchLines(source: Source, edited: WardleyMap, mode: Mode): string | nu
   }
   const passthroughByLine = listsByLine<number>(lines.length);
   sourceMap.passthrough.forEach((entry, index) => passthroughByLine[entry.line - 1]?.push(index));
-  const bracesByLine = listsByLine<{ pipelineId: string; end: 'open' | 'close' }>(lines.length);
+  const bracesByLine = listsByLine<{ pipelineId: string; end: "open" | "close" }>(lines.length);
   for (const [pipelineId, block] of sourceMap.blocks) {
     if (block.open !== undefined) {
-      bracesByLine[block.open - 1]?.push({ pipelineId, end: 'open' });
+      bracesByLine[block.open - 1]?.push({ pipelineId, end: "open" });
     }
     if (block.close !== undefined) {
-      bracesByLine[block.close - 1]?.push({ pipelineId, end: 'close' });
+      bracesByLine[block.close - 1]?.push({ pipelineId, end: "close" });
     }
   }
   // A block goes with its pipeline or its last child; an empty block of a kept pipeline stays.
@@ -483,8 +483,8 @@ function patchLines(source: Source, edited: WardleyMap, mode: Mode): string | nu
     );
     const braces = bracesByLine[index]!;
     const changed =
-      primaries.some((key) => statusOf(key) !== 'same') ||
-      secondaryKeysByLine[index]!.some((key) => statusOf(key) !== 'same') ||
+      primaries.some((key) => statusOf(key) !== "same") ||
+      secondaryKeysByLine[index]!.some((key) => statusOf(key) !== "same") ||
       removedPassthrough.length > 0 ||
       braces.some((brace) => braceRemoved(brace.pipelineId));
     if (!changed) return line.text;
@@ -498,30 +498,30 @@ function patchLines(source: Source, edited: WardleyMap, mode: Mode): string | nu
     const primary = primaries[0];
     if (primary !== undefined) {
       const status = statusOf(primary);
-      if (status === 'changed') statement = textAfter.get(primary)!.trim();
-      else if (status === 'deleted') statement = '';
+      if (status === "changed") statement = textAfter.get(primary)!.trim();
+      else if (status === "deleted") statement = "";
     } else if (secondaryKeysByLine[index]!.length || removedPassthrough.length) {
-      statement = '';
+      statement = "";
     }
 
     // The block braces on the line: a leading `{`, a trailing `}`, or the `{` ending a pipeline line.
-    const open = braces.find((brace) => brace.end === 'open');
-    const close = braces.find((brace) => brace.end === 'close');
+    const open = braces.find((brace) => brace.end === "open");
+    const close = braces.find((brace) => brace.end === "close");
     let rest = shape.code;
-    let prefix = '';
-    let suffix = '';
-    if (open && primary !== `element:${open.pipelineId}` && rest.startsWith('{')) {
-      prefix = braceRemoved(open.pipelineId) ? '' : '{';
+    let prefix = "";
+    let suffix = "";
+    if (open && primary !== `element:${open.pipelineId}` && rest.startsWith("{")) {
+      prefix = braceRemoved(open.pipelineId) ? "" : "{";
       rest = rest.slice(1).trimStart();
-    } else if (open && rest.endsWith('{')) {
-      suffix = braceRemoved(open.pipelineId) ? '' : '{';
+    } else if (open && rest.endsWith("{")) {
+      suffix = braceRemoved(open.pipelineId) ? "" : "{";
       rest = rest.slice(0, -1).trimEnd();
     } else if (open) return undefined;
-    if (close && rest.endsWith('}') && !(open && suffix)) {
-      suffix = braceRemoved(close.pipelineId) ? '' : '}';
+    if (close && rest.endsWith("}") && !(open && suffix)) {
+      suffix = braceRemoved(close.pipelineId) ? "" : "}";
       rest = rest.slice(0, -1).trimEnd();
     } else if (close) return undefined;
-    const assembled = [prefix, statement ?? rest, suffix].filter(Boolean).join(' ');
+    const assembled = [prefix, statement ?? rest, suffix].filter(Boolean).join(" ");
     if (assembled) return shape.commentHead + shape.indent + assembled + shape.commentTail;
     // A removed statement keeps the comment around it (the head still closes its block comment).
     if (shape.commentHead) return shape.commentHead + shape.commentTail;
@@ -569,7 +569,7 @@ function planInsertions(
   const pipelineLineOf = (pipelineId: string) => lineOf(`element:${pipelineId}`);
   const childLinesOf = (pipelineId: string): number[] =>
     source.map.elements.flatMap((el) => {
-      if (el.elementType !== 'component' || el.pipelineId !== pipelineId) return [];
+      if (el.elementType !== "component" || el.pipelineId !== pipelineId) return [];
       const line = lineOf(`child:${el.id}`);
       return line === undefined ? [] : [line];
     });
@@ -585,7 +585,7 @@ function planInsertions(
     const block = sourceMap.blocks.get(pipelineId)!;
     let anchor: number;
     if (block.close === undefined) anchor = blockEndOf(pipelineId)!;
-    else if (block.close !== block.open && shapes[block.close - 1]!.code === '}') {
+    else if (block.close !== block.open && shapes[block.close - 1]!.code === "}") {
       anchor = block.close - 2;
     } else return null;
     return shapes[anchor]?.endsInBlockComment ? null : anchor;
@@ -594,8 +594,8 @@ function planInsertions(
   /** The last line a statement occupies: a pipeline reaches to the end of its block. */
   const endOf = (key: string): number | undefined => {
     const line = lineOf(key);
-    if (line === undefined || !key.startsWith('element:')) return line;
-    return Math.max(line, blockEndOf(key.slice('element:'.length)) ?? line);
+    if (line === undefined || !key.startsWith("element:")) return line;
+    return Math.max(line, blockEndOf(key.slice("element:".length)) ?? line);
   };
   const sourceElementTypes = new Map(source.map.elements.map((el) => [el.id, el.elementType]));
   const editedElementById = new Map(edited.elements.map((el) => [el.id, el]));
@@ -609,7 +609,7 @@ function planInsertions(
     return last;
   };
   const isElementOfType = (type: string) => (key: string) =>
-    key.startsWith('element:') && sourceElementTypes.get(key.slice('element:'.length)) === type;
+    key.startsWith("element:") && sourceElementTypes.get(key.slice("element:".length)) === type;
   const startsWith = (prefix: string) => (key: string) => key.startsWith(prefix);
 
   /** Never between a pipeline and its block, never inside a block or a block comment. */
@@ -634,13 +634,13 @@ function planInsertions(
     reparented.has(key) ||
     (!sourceMap.primaryLineOf.has(key) && textBefore.get(key) !== textAfter.get(key));
   const anchorOfElement = (id: string): number => {
-    const type = editedElementById.get(id)?.elementType ?? '';
+    const type = editedElementById.get(id)?.elementType ?? "";
     return settle(
       firstOf(
         lastLineOf(isElementOfType(type)),
-        lastLineOf(startsWith('element:')),
-        lastLineOf(startsWith('url:')),
-        lastLineOf(startsWith('config:')),
+        lastLineOf(startsWith("element:")),
+        lastLineOf(startsWith("url:")),
+        lastLineOf(startsWith("config:")),
       ),
     );
   };
@@ -652,11 +652,11 @@ function planInsertions(
   for (let order = 0; order < after.length; order++) {
     const { key, text } = after[order]!;
     if (isRawKey(key)) continue;
-    const separator = key.indexOf(':');
+    const separator = key.indexOf(":");
     const kind = key.slice(0, separator);
     const id = key.slice(separator + 1);
     let anchor: number | null;
-    if (kind === 'block-open' || kind === 'block-close') {
+    if (kind === "block-open" || kind === "block-close") {
       if (textBefore.has(`block-open:${id}`)) continue;
       if (hasSourceBlock(id)) {
         // The source holds an empty block: the new children go into it.
@@ -666,24 +666,24 @@ function planInsertions(
       anchor = anchorOfNewBlock(id);
     } else if (!needsInsertion(key)) {
       continue;
-    } else if (kind === 'config') {
-      anchor = settle(firstOf(lastLineOf(startsWith('config:')), -1));
-    } else if (kind === 'url') {
-      const lastUrl = lastLineOf(startsWith('url:'));
-      anchor = settle(firstOf(lastUrl, lastLineOf(startsWith('config:')), -1));
-    } else if (kind === 'element') {
+    } else if (kind === "config") {
+      anchor = settle(firstOf(lastLineOf(startsWith("config:")), -1));
+    } else if (kind === "url") {
+      const lastUrl = lastLineOf(startsWith("url:"));
+      anchor = settle(firstOf(lastUrl, lastLineOf(startsWith("config:")), -1));
+    } else if (kind === "element") {
       anchor = anchorOfElement(id);
-    } else if (kind === 'child') {
+    } else if (kind === "child") {
       const child = editedElementById.get(id);
-      const pipelineId = child?.elementType === 'component' ? child.pipelineId : undefined;
+      const pipelineId = child?.elementType === "component" ? child.pipelineId : undefined;
       if (pipelineId === undefined) return null;
       anchor = hasSourceBlock(pipelineId)
         ? anchorInBlock(pipelineId)
         : anchorOfNewBlock(pipelineId);
-    } else if (kind === 'evolve') {
-      anchor = settle(firstOf(lastLineOf(startsWith('evolve:')), endOf(`element:${id}`)));
-    } else if (kind === 'edge') {
-      anchor = settle(firstOf(lastLineOf(startsWith('edge:'))));
+    } else if (kind === "evolve") {
+      anchor = settle(firstOf(lastLineOf(startsWith("evolve:")), endOf(`element:${id}`)));
+    } else if (kind === "edge") {
+      anchor = settle(firstOf(lastLineOf(startsWith("edge:"))));
     } else return null;
     if (anchor === null) return null;
     addInsertion(insertions, anchor, text, order);
@@ -699,7 +699,7 @@ function assemble(
   const output: { text: string; lineBreak: string }[] = [];
   const insertAfter = (line: number) => {
     const list = [...(insertions.get(line) ?? [])].sort((a, b) => a.order - b.order);
-    for (const { text } of list) output.push({ text, lineBreak: '' });
+    for (const { text } of list) output.push({ text, lineBreak: "" });
   };
   insertAfter(-1);
   result.forEach((text, index) => {
@@ -712,16 +712,16 @@ function assemble(
       if (isLast && !source.endsWithLineBreak) return text;
       return text + (lineBreak || source.lineBreak);
     })
-    .join('');
+    .join("");
 }
 
 // --- Safety net ---------------------------------------------------------------------------------
 
 /** Rounds numbers as the serializer writes them and orders object keys, so equal maps compare equal. */
 function normalized(value: unknown): unknown {
-  if (typeof value === 'number') return roundAsWritten(value);
+  if (typeof value === "number") return roundAsWritten(value);
   if (Array.isArray(value)) return value.map(normalized);
-  if (value !== null && typeof value === 'object') {
+  if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([, entry]) => entry !== undefined)
@@ -746,10 +746,10 @@ function fingerprint(map: WardleyMap): string {
   for (const el of map.elements) {
     const { id: _id, ...rest } = el;
     const described: Record<string, unknown> = { ...rest };
-    if (el.elementType === 'component' && el.pipelineId !== undefined) {
-      described['pipelineId'] = reference(el.pipelineId);
+    if (el.elementType === "component" && el.pipelineId !== undefined) {
+      described["pipelineId"] = reference(el.pipelineId);
     }
-    if (el.elementType === 'pipeline') described['childIds'] = el.childIds.map(reference).sort();
+    if (el.elementType === "pipeline") described["childIds"] = el.childIds.map(reference).sort();
     entries.push(`element ${JSON.stringify(normalized(described))}`);
   }
   for (const edge of map.edges) {
@@ -758,5 +758,5 @@ function fingerprint(map: WardleyMap): string {
     entries.push(`edge ${JSON.stringify(normalized(described))}`);
   }
   for (const raw of map.rawPassthrough ?? []) entries.push(`raw ${raw}`);
-  return entries.sort().join('\n');
+  return entries.sort().join("\n");
 }

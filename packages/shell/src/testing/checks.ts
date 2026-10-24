@@ -35,9 +35,11 @@ import { legalAriaProblems, primaryAriaProblems } from "./web-checks.js";
 
 const normalize = (text: string): string => text.replace(/\s+/g, " ").trim();
 
-const name = (element: ElementFacts): string => normalize(element.attributes["aria-label"] ?? element.text);
+const name = (element: ElementFacts): string =>
+  normalize(element.attributes["aria-label"] ?? element.text);
 
-const attribute = (element: ElementFacts, key: string): string | undefined => element.attributes[key];
+const attribute = (element: ElementFacts, key: string): string | undefined =>
+  element.attributes[key];
 
 /** `aria-keyshortcuts` of the zoom panel (guide §5.6, WAI-ARIA key names). */
 export function expectedKeyShortcuts(platform: "mac" | "other"): Record<ZoomButton, string> {
@@ -67,9 +69,12 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
   } else {
     if (trigger.tag !== "button")
       problems.push(`menu: the trigger is a <${trigger.tag}>, expected a <button>`);
-    if (!attribute(trigger, "aria-label")) problems.push("menu: the icon-only trigger has no aria-label");
+    if (!attribute(trigger, "aria-label"))
+      problems.push("menu: the icon-only trigger has no aria-label");
     if (attribute(trigger, "aria-haspopup") !== "menu") {
-      problems.push(`menu: aria-haspopup is "${attribute(trigger, "aria-haspopup") ?? ""}", expected "menu"`);
+      problems.push(
+        `menu: aria-haspopup is "${attribute(trigger, "aria-haspopup") ?? ""}", expected "menu"`,
+      );
     }
     if (attribute(trigger, "aria-expanded") !== "false") {
       problems.push(
@@ -79,7 +84,9 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
     if (!attribute(trigger, "aria-controls")) {
       problems.push("menu: the trigger has no aria-controls");
     } else if (!facts.controlled) {
-      problems.push(`menu: aria-controls="${attribute(trigger, "aria-controls")}" names no element`);
+      problems.push(
+        `menu: aria-controls="${attribute(trigger, "aria-controls")}" names no element`,
+      );
     } else if (attribute(facts.controlled, "role") !== "menu") {
       problems.push(
         `menu: aria-controls names a ${facts.controlled.description} with role "${attribute(facts.controlled, "role") ?? ""}", expected "menu"`,
@@ -104,7 +111,9 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
         problems.push(`palette: entry "${action}" has no aria-label (title)`);
       const tabindex = attribute(entry, "tabindex");
       if (tabindex !== "0" && tabindex !== "-1") {
-        problems.push(`palette: entry "${action}" has tabindex "${tabindex ?? ""}", expected roving 0/-1`);
+        problems.push(
+          `palette: entry "${action}" has tabindex "${tabindex ?? ""}", expected roving 0/-1`,
+        );
       }
     }
     const stops = facts.entries.filter((entry) => attribute(entry, "tabindex") === "0");
@@ -114,7 +123,8 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
       );
     }
     const tools = facts.entries.filter(
-      (entry) => entry.group === "tools" && (attribute(entry, "data-action") ?? "").endsWith("-tool"),
+      (entry) =>
+        entry.group === "tools" && (attribute(entry, "data-action") ?? "").endsWith("-tool"),
     );
     for (const tool of tools) {
       const pressed = attribute(tool, "aria-pressed");
@@ -123,7 +133,8 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
       }
     }
     const pressed = tools.filter((tool) => attribute(tool, "aria-pressed") === "true");
-    if (pressed.length > 1) problems.push(`palette: ${pressed.length} tools are aria-pressed at once`);
+    if (pressed.length > 1)
+      problems.push(`palette: ${pressed.length} tools are aria-pressed at once`);
   }
 
   const zoom = facts.zoom;
@@ -139,7 +150,8 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
         problems.push(`zoom: no [data-zoom="${button}"] button`);
         continue;
       }
-      if (control.tag !== "button") problems.push(`zoom: [data-zoom="${button}"] is a <${control.tag}>`);
+      if (control.tag !== "button")
+        problems.push(`zoom: [data-zoom="${button}"] is a <${control.tag}>`);
       if (!name(control)) problems.push(`zoom: [data-zoom="${button}"] has no accessible name`);
       if (attribute(control, "aria-keyshortcuts") !== shortcuts[button]) {
         problems.push(
@@ -174,9 +186,14 @@ export function ariaProblems(facts: AriaFacts, host: ShellHost): string[] {
       `DOM order is ${facts.order.join(", ")}; expected ${expectedOrder.join(", ")} (guide §5.14)`,
     );
   }
-  if (!present.has("canvas")) problems.push("canvas: no diagram-js <svg> (.djs-container > svg) in the root");
+  if (!present.has("canvas"))
+    problems.push("canvas: no diagram-js <svg> (.djs-container > svg) in the root");
   const canvas = facts.canvas;
-  if (canvas && !normalize(attribute(canvas, "aria-label") ?? "") && !attribute(canvas, "aria-labelledby")) {
+  if (
+    canvas &&
+    !normalize(attribute(canvas, "aria-label") ?? "") &&
+    !attribute(canvas, "aria-labelledby")
+  ) {
     problems.push(
       'canvas: the focusable <svg> has no accessible name (WCAG 4.1.2); shellModule names it role="application" with messages.canvas',
     );
@@ -198,11 +215,14 @@ export function optionalIslandProblems(facts: AriaFacts, shown: ReadonlySet<stri
     if (!pill?.visible) {
       problems.push("problems: the pill is not visible after show.problems");
     } else {
-      if (pill.tag !== "button") problems.push(`problems: the pill is a <${pill.tag}>, expected a <button>`);
+      if (pill.tag !== "button")
+        problems.push(`problems: the pill is a <${pill.tag}>, expected a <button>`);
       const label = normalize(attribute(pill, "aria-label") ?? "");
       if (!label) problems.push("problems: the pill has no aria-label (count and errors)");
       else if (!label.includes(pill.text)) {
-        problems.push(`problems: the aria-label "${label}" does not contain the visible text "${pill.text}"`);
+        problems.push(
+          `problems: the aria-label "${label}" does not contain the visible text "${pill.text}"`,
+        );
       }
     }
   }
@@ -238,8 +258,10 @@ export function optionalIslandProblems(facts: AriaFacts, shown: ReadonlySet<stri
     if (!inspector?.visible) {
       problems.push("inspector: the inspector is not visible after show.inspector");
     } else {
-      if (inspector.tag !== "aside") problems.push(`inspector: a <${inspector.tag}>, expected an <aside>`);
-      if (!attribute(inspector, "aria-label")) problems.push("inspector: the <aside> has no aria-label");
+      if (inspector.tag !== "aside")
+        problems.push(`inspector: a <${inspector.tag}>, expected an <aside>`);
+      if (!attribute(inspector, "aria-label"))
+        problems.push("inspector: the <aside> has no aria-label");
     }
   }
   return problems;
@@ -511,7 +533,8 @@ export function keyReachProblem(
 /** The decision of guide §13.5, computed independently of the shell under test. */
 export function expectedAppearance(requested: Appearance, themes: readonly Theme[]): Appearance {
   const fallback = themes[0];
-  if (fallback === undefined) throw new Error("@miragon/modeler-shell conformance: harness.themes is empty");
+  if (fallback === undefined)
+    throw new Error("@miragon/modeler-shell conformance: harness.themes is empty");
   const theme = themes.includes(requested.theme) ? requested.theme : fallback;
   return requested.kontrast ? { theme, kontrast: requested.kontrast } : { theme };
 }
@@ -528,9 +551,13 @@ export interface AppearanceVerdict {
  * is no channel to ask it for a mode, so it stays in its first one whatever the page shows, and
  * takes the page's high contrast over from the nearest mode carrier above it.
  */
-export function expectedEmbeddedAppearance(facts: AppearanceFacts, themes: readonly Theme[]): Appearance {
+export function expectedEmbeddedAppearance(
+  facts: AppearanceFacts,
+  themes: readonly Theme[],
+): Appearance {
   const fallback = themes[0];
-  if (fallback === undefined) throw new Error("@miragon/modeler-shell conformance: harness.themes is empty");
+  if (fallback === undefined)
+    throw new Error("@miragon/modeler-shell conformance: harness.themes is empty");
   const host = facts.themed.filter((element) => element.relation === "ancestor").at(-1);
   return host?.kontrast === "hoch" ? { theme: fallback, kontrast: "hoch" } : { theme: fallback };
 }
@@ -556,7 +583,9 @@ export function appearanceProblems(
   const ownDocument = host !== "embedded";
   const expected =
     web?.effective ??
-    (ownDocument ? expectedAppearance(requested, themes) : expectedEmbeddedAppearance(facts, themes));
+    (ownDocument
+      ? expectedAppearance(requested, themes)
+      : expectedEmbeddedAppearance(facts, themes));
   const carrierTheme = web?.carrier ?? expected.theme;
   const problems: string[] = [];
   const described =
@@ -599,7 +628,9 @@ export function appearanceProblems(
       .filter(Boolean)
       .join(" ");
     const sameMode =
-      carrier !== undefined && element.theme === carrier.theme && element.kontrast === carrier.kontrast;
+      carrier !== undefined &&
+      element.theme === carrier.theme &&
+      element.kontrast === carrier.kontrast;
     problems.push(
       element.theme === null
         ? `${element.description} carries ${values} without data-cd-theme on the same element (guide §13.3)`
@@ -684,7 +715,8 @@ export function leftoverProblems(facts: LeftoverFacts, host: ShellHost): string[
     problems.push(`<html> keeps the class ${name} after destroy`);
   }
   for (const element of facts.chromeElements) problems.push(`${element} is left after destroy`);
-  for (const name of facts.rootClasses) problems.push(`the root keeps the class ${name} after destroy`);
+  for (const name of facts.rootClasses)
+    problems.push(`the root keeps the class ${name} after destroy`);
   const written = ownDocument
     ? SHELL_ROOT_ATTRIBUTES
     : [...SHELL_ROOT_ATTRIBUTES, ...EMBEDDED_ROOT_ATTRIBUTES];
@@ -692,13 +724,17 @@ export function leftoverProblems(facts: LeftoverFacts, host: ShellHost): string[
     if (written.includes(name)) problems.push(`the root keeps ${name} after destroy`);
   }
   for (const error of facts.errors) {
-    if (!BENIGN_ERRORS.test(error)) problems.push(`the page reported an error after destroy: ${error}`);
+    if (!BENIGN_ERRORS.test(error))
+      problems.push(`the page reported an error after destroy: ${error}`);
   }
   return problems;
 }
 
 /** After `destroy` no listener of the shell may act on a chrome key any more. */
-export function afterDestroyKeyProblem(press: string, recorded: readonly RecordedKey[]): string | undefined {
+export function afterDestroyKeyProblem(
+  press: string,
+  recorded: readonly RecordedKey[],
+): string | undefined {
   if (recorded.length === 0)
     return `${press} after destroy never reached window: a shell listener still stops it`;
   if (recorded.some((key) => key.defaultPrevented)) {
@@ -835,13 +871,17 @@ export function createProblems(facts: CreateFacts): string[] {
   }
   const [shape] = added as [ShapeFacts];
   const problems: string[] = [];
-  if (!shape.selected) problems.push(`create: the new element "${shape.id}" is not selected (guide §5.5)`);
+  if (!shape.selected)
+    problems.push(`create: the new element "${shape.id}" is not selected (guide §5.5)`);
   if (!facts.canvas.focusInCanvas) {
     problems.push(
       `create: after ${pressed} the focus is on ${facts.canvas.focused}, expected the canvas (its <svg> or the label editor, guide §5.5)`,
     );
   }
-  const centre = { x: shape.box.left + shape.box.width / 2, y: shape.box.top + shape.box.height / 2 };
+  const centre = {
+    x: shape.box.left + shape.box.width / 2,
+    y: shape.box.top + shape.box.height / 2,
+  };
   const { free } = facts;
   const tolerance = GEOMETRY_TOLERANCE_PX + 1e-6;
   const inside =
@@ -909,7 +949,9 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
   const { step, typed, after } = facts;
   const problems: string[] = [];
   if (after.view === null || after.view === facts.viewBefore) {
-    problems.push(`label editor: ${step} left the view as it was, so it proved nothing about a view change`);
+    problems.push(
+      `label editor: ${step} left the view as it was, so it proved nothing about a view change`,
+    );
   }
   if (facts.documentChanged) {
     problems.push(
@@ -968,7 +1010,9 @@ export function readOnlyPaletteProblems(entries: readonly PaletteEntryState[]): 
       ];
     }
     if (!staysActive && !entry.disabled) {
-      return [`palette: "${entry.action}" is not aria-disabled on the read-only canvas (guide §13.5)`];
+      return [
+        `palette: "${entry.action}" is not aria-disabled on the read-only canvas (guide §13.5)`,
+      ];
     }
     return [];
   });

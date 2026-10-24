@@ -13,7 +13,12 @@ import {
   type ToastStatus,
 } from "../core/index.js";
 import type { AriaFacts, MenuEntryFacts } from "./facts.js";
-import { GEOMETRY_TOLERANCE_PX, boxMismatches, type ChromeMeasurement, type IslandBox } from "./geometry.js";
+import {
+  GEOMETRY_TOLERANCE_PX,
+  boxMismatches,
+  type ChromeMeasurement,
+  type IslandBox,
+} from "./geometry.js";
 import type { ModeChange, RecordedKey } from "./page-tools.js";
 import type {
   DropZoneFacts,
@@ -80,8 +85,10 @@ export function legalAriaProblems(facts: AriaFacts, host: ShellHost): string[] {
   const legal = facts.legal;
   if (!legal) return ['legal: no [data-chrome="legal"] in the web app (guide §5.10)'];
   const problems: string[] = [];
-  if (legal.tag !== "nav") problems.push(`legal: the legal line is a <${legal.tag}>, expected a <nav>`);
-  if (!normalize(legal.attributes["aria-label"] ?? "")) problems.push("legal: the <nav> has no aria-label");
+  if (legal.tag !== "nav")
+    problems.push(`legal: the legal line is a <${legal.tag}>, expected a <nav>`);
+  if (!normalize(legal.attributes["aria-label"] ?? ""))
+    problems.push("legal: the <nav> has no aria-label");
   for (const text of GERMAN_LEGAL_LINKS) {
     const link = facts.legalLinks.find((candidate) => candidate.text === text);
     if (!link) {
@@ -96,7 +103,9 @@ export function legalAriaProblems(facts: AriaFacts, host: ShellHost): string[] {
     if (link.target !== "_blank") continue;
     const rel = (link.rel ?? "").split(/\s+/);
     if (!rel.includes("noopener") || !rel.includes("noreferrer")) {
-      problems.push(`legal: the link "${link.text}" opens a new tab without rel="noopener noreferrer"`);
+      problems.push(
+        `legal: the link "${link.text}" opens a new tab without rel="noopener noreferrer"`,
+      );
     }
   }
   return problems;
@@ -173,7 +182,8 @@ export function menuGroupProblems(
         ? "its file actions are native (guide §13.5)"
         : "the host owns file and mode (guide §5.2)";
     if (file.length > 0) problems.push(`menu: the ${host} host shows a File group; ${guide}`);
-    if (appearance.length > 0) problems.push(`menu: the ${host} host shows an Appearance group; ${guide}`);
+    if (appearance.length > 0)
+      problems.push(`menu: the ${host} host shows an Appearance group; ${guide}`);
     return problems;
   }
 
@@ -181,8 +191,11 @@ export function menuGroupProblems(
   for (const entry of entries) {
     if (entry.group && sequence.at(-1) !== entry.group) sequence.push(entry.group);
   }
-  const rank = (group: string) => MENU_GROUP_ORDER.indexOf(group as (typeof MENU_GROUP_ORDER)[number]);
-  const ordered = sequence.every((group, index) => index === 0 || rank(sequence[index - 1]!) < rank(group));
+  const rank = (group: string) =>
+    MENU_GROUP_ORDER.indexOf(group as (typeof MENU_GROUP_ORDER)[number]);
+  const ordered = sequence.every(
+    (group, index) => index === 0 || rank(sequence[index - 1]!) < rank(group),
+  );
   if (!ordered) {
     problems.push(
       `menu: the groups stand in the order ${sequence.join(", ")}; expected File, Model, Export, Appearance, Help (guide §5.4)`,
@@ -200,7 +213,8 @@ export function menuGroupProblems(
     }
     if (entry.role !== "menuitem")
       problems.push(`menu: File entry "${entry.name}" is a ${entry.role}, expected a menuitem`);
-    if (spec.icon && !entry.icon) problems.push(`menu: File entry "${entry.name}" has no icon (guide §5.4)`);
+    if (spec.icon && !entry.icon)
+      problems.push(`menu: File entry "${entry.name}" has no icon (guide §5.4)`);
     if (!spec.icon && entry.icon) {
       problems.push(
         `menu: File entry "${entry.name}" carries an icon; the guide gives ${entry.menuId} none (guide §5.14)`,
@@ -269,7 +283,9 @@ export function lightOnlyMenuProblems(
 /** The labelled width of the primary action: its widest measurement while it showed the label. */
 export function labelledWidth(samples: readonly TopRowFacts[]): number | undefined {
   const widths = samples.flatMap((sample) =>
-    sample.primary && !sample.primary.collapsed && sample.primary.label ? [sample.primary.box.width] : [],
+    sample.primary && !sample.primary.collapsed && sample.primary.label
+      ? [sample.primary.box.width]
+      : [],
   );
   return widths.length > 0 ? Math.max(...widths) : undefined;
 }
@@ -280,7 +296,11 @@ export function labelledWidth(samples: readonly TopRowFacts[]): number | undefin
  * its `aria-label` and has no `aria-describedby`. A width where a 1px difference flips the
  * decision is left out.
  */
-export function topRowProblems(samples: readonly TopRowFacts[], withLabel: number, name: string): string[] {
+export function topRowProblems(
+  samples: readonly TopRowFacts[],
+  withLabel: number,
+  name: string,
+): string[] {
   const problems: string[] = [];
   for (const sample of samples) {
     const { container, paletteWidth, menuRight, primary } = sample;
@@ -311,7 +331,9 @@ export function topRowProblems(samples: readonly TopRowFacts[], withLabel: numbe
         );
       }
       if (!collapsed && primary.collapsed) {
-        problems.push(`${at} primary: collapsed although its ${round(withLabel)}px label fits (guide §5.15)`);
+        problems.push(
+          `${at} primary: collapsed although its ${round(withLabel)}px label fits (guide §5.15)`,
+        );
       }
       if (expected.paletteRow !== sample.paletteRow) {
         problems.push(
@@ -335,7 +357,9 @@ export function topRowProblems(samples: readonly TopRowFacts[], withLabel: numbe
         );
       }
     } else if (!primary.label) {
-      problems.push(`${at} primary: shows no label although the root lacks data-primary="collapsed"`);
+      problems.push(
+        `${at} primary: shows no label although the root lacks data-primary="collapsed"`,
+      );
     }
     if (primary.describedBy) {
       problems.push(
@@ -355,10 +379,14 @@ export function primaryTooltipProblems(
 ): string[] {
   const at = `[${round(width)}px wide]`;
   if (collapsed && tooltip === null) {
-    return [`${at} primary: no chrome tooltip while collapsed; it shows the label "${name}" (guide §5.15)`];
+    return [
+      `${at} primary: no chrome tooltip while collapsed; it shows the label "${name}" (guide §5.15)`,
+    ];
   }
   if (collapsed && tooltip !== null && !normalize(tooltip).startsWith(name)) {
-    return [`${at} primary: the tooltip while collapsed reads "${normalize(tooltip)}", expected "${name}"`];
+    return [
+      `${at} primary: the tooltip while collapsed reads "${normalize(tooltip)}", expected "${name}"`,
+    ];
   }
   if (!collapsed && tooltip !== null) {
     return [
@@ -403,7 +431,8 @@ export function legalContentProblems(links: AriaFacts["legalLinks"]): string[] {
       );
       break;
     }
-    if (link.href !== href) problems.push(`legal: "${text}" links "${link.href}", expected ${href}`);
+    if (link.href !== href)
+      problems.push(`legal: "${text}" links "${link.href}", expected ${href}`);
   }
   return [...new Set(problems)];
 }
@@ -524,12 +553,17 @@ export function zoomRowBottomProblems(
 // ---- emptyState ----
 
 /** The start screen of guide §8 as `show.emptyState` leaves it. */
-export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang: string): string[] {
+export function emptyStateProblems(
+  facts: EmptyStateFacts,
+  container: Size,
+  lang: string,
+): string[] {
   const problems: string[] = [];
   if (!facts.shown)
     problems.push('empty-state: the root lacks data-empty-state="shown" after show.emptyState');
   const card = facts.card;
-  if (!card?.visible) return [...problems, "empty-state: the card is not visible after show.emptyState"];
+  if (!card?.visible)
+    return [...problems, "empty-state: the card is not visible after show.emptyState"];
   problems.push(
     ...boxMismatches(
       "empty-state",
@@ -542,7 +576,8 @@ export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang
       container,
     ),
   );
-  if (!card.labelledBy) problems.push("empty-state: the card is not labelled by its title (aria-labelledby)");
+  if (!card.labelledBy)
+    problems.push("empty-state: the card is not labelled by its title (aria-labelledby)");
   if (!facts.komet) {
     problems.push("empty-state: no Komet <img> on the card (guide §2, §8)");
   } else {
@@ -613,7 +648,9 @@ export function emptyStateProblems(facts: EmptyStateFacts, container: Size, lang
     );
   }
   if (!facts.legalVisible)
-    problems.push("empty-state: the legal line is not visible; a public page always shows it (guide §8)");
+    problems.push(
+      "empty-state: the legal line is not visible; a public page always shows it (guide §8)",
+    );
   return problems;
 }
 
@@ -710,7 +747,8 @@ export function afterStartProblems(
 ): string[] {
   const problems: string[] = [];
   const after = 'after "New diagram"';
-  if (facts.shown) problems.push(`empty-state: ${after} the root still carries data-empty-state="shown"`);
+  if (facts.shown)
+    problems.push(`empty-state: ${after} the root still carries data-empty-state="shown"`);
   if (facts.card?.visible) problems.push(`empty-state: ${after} the card still shows`);
   for (const name of ["menu", "palette", "zoom"]) {
     const part = facts.work.find((candidate) => candidate.name === name);
@@ -795,7 +833,11 @@ export function toastAnatomyProblems(
  * Guide §8 (design system 1.15.0): a card is as wide as its content, at most the stack's
  * `min(480px, 100% − 24px)`, so a short toast stays short and the stack rises only for wide cards.
  */
-export function toastWidthProblems(toast: ToastFacts, status: ToastStatus, stackWidth: number): string[] {
+export function toastWidthProblems(
+  toast: ToastFacts,
+  status: ToastStatus,
+  stackWidth: number,
+): string[] {
   const expected = Math.min(toast.contentWidth, stackWidth);
   if (Math.abs(toast.box.width - expected) <= GEOMETRY_TOLERANCE_PX + 1e-6) return [];
   return [
@@ -839,7 +881,9 @@ export function toastStackProblems(
 export function repeatedToastProblems(toasts: readonly ToastFacts[], text: string): string[] {
   const count = toasts.filter((toast) => toast.text.includes(text)).length;
   return count > 1
-    ? [`toasts: a repeated "${text}" stacks ${count} toasts; it restarts the shown one (API.md, Toasts)`]
+    ? [
+        `toasts: a repeated "${text}" stacks ${count} toasts; it restarts the shown one (API.md, Toasts)`,
+      ]
     : [];
 }
 
@@ -867,7 +911,9 @@ const TOAST_RULES: Readonly<Record<ToastCondition, string>> = {
 export function toastTimingProblems(timings: readonly ToastTiming[]): string[] {
   return timings.flatMap((timing) => {
     const since =
-      timing.condition === "resumed" ? "after the pointer and the focus left it" : "after it appeared";
+      timing.condition === "resumed"
+        ? "after the pointer and the focus left it"
+        : "after it appeared";
     if (timing.expectation === "present" && !timing.present) {
       return [
         `toasts: "${timing.text}" closed within ${timing.after}ms ${since}; ${TOAST_RULES[timing.condition]} (guide §8)`,
@@ -895,7 +941,10 @@ export interface PopoverKeyStep {
  * Guide §5.10, §12 (WCAG 2.1.1): the keyboard reaches every row of the problems list, text rows
  * without an element too, and each focused row scrolls into the list's visible part.
  */
-export function popoverKeyboardProblems(steps: readonly PopoverKeyStep[], rowCount: number): string[] {
+export function popoverKeyboardProblems(
+  steps: readonly PopoverKeyStep[],
+  rowCount: number,
+): string[] {
   const problems: string[] = [];
   for (const step of steps) {
     if (step.focused?.index !== step.expected) {
@@ -935,7 +984,9 @@ export function openPopoverProblems(facts: PopoverFacts, container: Size, lang: 
     );
   }
   if (facts.rows.length === 0) {
-    problems.push("problems-popover: the list has no rows; show.problems passes items in the web host");
+    problems.push(
+      "problems-popover: the list has no rows; show.problems passes items in the web host",
+    );
   }
   for (const row of facts.rows) {
     if (row.height < SHELL.entry - GEOMETRY_TOLERANCE_PX) {
@@ -961,13 +1012,18 @@ export function openPopoverProblems(facts: PopoverFacts, container: Size, lang: 
         container,
       ),
     );
-    if (popover.box.width > Math.min(320, container.width - 2 * SHELL.edge) + GEOMETRY_TOLERANCE_PX + 1e-6) {
+    if (
+      popover.box.width >
+      Math.min(320, container.width - 2 * SHELL.edge) + GEOMETRY_TOLERANCE_PX + 1e-6
+    ) {
       problems.push(
         `problems-popover: width is ${round(popover.box.width)}px, at most ${round(Math.min(320, container.width - 2 * SHELL.edge))}px expected`,
       );
     }
     if (popover.box.height > 320 + GEOMETRY_TOLERANCE_PX + 1e-6) {
-      problems.push(`problems-popover: height is ${round(popover.box.height)}px, at most 320px expected`);
+      problems.push(
+        `problems-popover: height is ${round(popover.box.height)}px, at most 320px expected`,
+      );
     }
   }
   return problems;
@@ -986,7 +1042,9 @@ export function closedPopoverProblems(
     );
   }
   if (how === "Escape" && facts.focus !== "pill") {
-    problems.push(`problems-popover: Escape leaves the focus on ${facts.focused}, expected the pill`);
+    problems.push(
+      `problems-popover: Escape leaves the focus on ${facts.focused}, expected the pill`,
+    );
   }
   if (how === "an outside click" && facts.focus === "pill") {
     problems.push(
@@ -1020,7 +1078,9 @@ export function dropStateProblems(
       problems.push(`drop-zone: ${context} sets data-drop="${facts.state}"; it is no file drag`);
     if (zone?.visible) problems.push(`drop-zone: ${context} shows the drop zone`);
     if (over.some((event) => event.defaultPrevented))
-      problems.push(`drop-zone: ${context} is prevented; the drop zone leaves non-file drags alone`);
+      problems.push(
+        `drop-zone: ${context} is prevented; the drop zone leaves non-file drags alone`,
+      );
     return problems;
   }
   if (facts.state !== expected) {
@@ -1034,13 +1094,18 @@ export function dropStateProblems(
   const effect = expected === "over" ? "copy" : "none";
   for (const event of over) {
     if (event.dropEffect !== effect)
-      problems.push(`drop-zone: ${context} has dropEffect "${event.dropEffect}", expected "${effect}"`);
+      problems.push(
+        `drop-zone: ${context} has dropEffect "${event.dropEffect}", expected "${effect}"`,
+      );
   }
   if (!zone?.visible) return [...problems, `drop-zone: ${context} shows no drop zone (guide §9)`];
   problems.push(
-    ...boxMismatches("drop-zone", zone.box, { left: 12, top: 12, right: 12, bottom: 12 }, container).map(
-      (problem) => `${problem} (${context})`,
-    ),
+    ...boxMismatches(
+      "drop-zone",
+      zone.box,
+      { left: 12, top: 12, right: 12, bottom: 12 },
+      container,
+    ).map((problem) => `${problem} (${context})`),
   );
   if (zone.ariaHidden !== "true") problems.push('drop-zone: the overlay lacks aria-hidden="true"');
   const fill =
@@ -1056,7 +1121,11 @@ export function dropStateProblems(
       `drop-zone: ${context} fills ${zone.background}, expected ${fill[0]} (${fill[1]}) (guide §9)`,
     );
   }
-  if (zone.borderStyle !== "dashed" || zone.borderWidth !== "2px" || zone.borderColor !== border[1]) {
+  if (
+    zone.borderStyle !== "dashed" ||
+    zone.borderWidth !== "2px" ||
+    zone.borderColor !== border[1]
+  ) {
     problems.push(
       `drop-zone: ${context} has a ${zone.borderWidth} ${zone.borderStyle} ${zone.borderColor} border, expected 2px dashed ${border[0]} (${border[1]}) (guide §9)`,
     );
@@ -1087,8 +1156,10 @@ export function expectedWebMode(
   choice: AppearanceChoice,
 ): ExpectedWebMode {
   const kontrast = requested.kontrast ? { kontrast: requested.kontrast } : {};
-  if (!themes.includes("dark")) return { carrier: "light", effective: { theme: "light", ...kontrast } };
-  if (choice === "system") return { carrier: "system", effective: { theme: requested.theme, ...kontrast } };
+  if (!themes.includes("dark"))
+    return { carrier: "light", effective: { theme: "light", ...kontrast } };
+  if (choice === "system")
+    return { carrier: "system", effective: { theme: requested.theme, ...kontrast } };
   return { carrier: choice, effective: { theme: choice, ...kontrast } };
 }
 
@@ -1133,7 +1204,9 @@ export function webModeProblems(
     );
   }
   const byMedia = (scheme: "light" | "dark") =>
-    facts.themeColors.find((meta) => meta.media?.replace(/\s+/g, "") === `(prefers-color-scheme:${scheme})`);
+    facts.themeColors.find(
+      (meta) => meta.media?.replace(/\s+/g, "") === `(prefers-color-scheme:${scheme})`,
+    );
   const light = byMedia("light");
   const darkMeta = byMedia("dark");
   if (!light || !darkMeta) {
@@ -1153,18 +1226,24 @@ export function webModeProblems(
 
 /** Guide §13.3, §7: one switch changes `<html>` and every meta tag in one frame, transitions off for it. */
 export function modeSwitchProblems(changes: readonly ModeChange[], label: string): string[] {
-  const relevant = changes.filter((change) => ["theme", "color-scheme", "theme-color"].includes(change.part));
-  if (relevant.length === 0) return [`mode: choosing ${label} changed nothing on <html> or its meta tags`];
+  const relevant = changes.filter((change) =>
+    ["theme", "color-scheme", "theme-color"].includes(change.part),
+  );
+  if (relevant.length === 0)
+    return [`mode: choosing ${label} changed nothing on <html> or its meta tags`];
   const problems: string[] = [];
   const frames = [...new Set(relevant.map((change) => change.frame))];
   if (frames.length > 1) {
     const parts = relevant.map((change) => `${change.part} in frame ${change.frame}`).join(", ");
-    problems.push(`mode: choosing ${label} changed ${parts}; one frame for all of them (guide §13.3)`);
+    problems.push(
+      `mode: choosing ${label} changed ${parts}; one frame for all of them (guide §13.3)`,
+    );
   }
   const first = Math.min(...frames);
   if (
     !changes.some(
-      (change) => change.part === "no-transition" && change.value === "on" && change.frame === first,
+      (change) =>
+        change.part === "no-transition" && change.value === "on" && change.frame === first,
     )
   ) {
     problems.push(

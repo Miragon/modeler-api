@@ -1,6 +1,6 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import { isEventStormingShape, type EventStormingShape } from '../model/di-types.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import { isEventStormingShape, type EventStormingShape } from "../model/di-types.js";
 
 const SNAP_TOLERANCE = 8;
 
@@ -31,7 +31,7 @@ interface Point {
  * have no effect.
  */
 export default class ElementSnapping {
-  static $inject = ['eventBus', 'elementRegistry'];
+  static $inject = ["eventBus", "elementRegistry"];
 
   constructor(eventBus: EventBus, elementRegistry: ElementRegistry) {
     const candidateCenters = (excludeIds: ReadonlySet<string>): Point[] =>
@@ -40,7 +40,7 @@ export default class ElementSnapping {
         .filter(
           (el): el is EventStormingShape =>
             isEventStormingShape(el) &&
-            el.eventStormingType !== 'drawing' &&
+            el.eventStormingType !== "drawing" &&
             !excludeIds.has(el.id),
         )
         .map((s) => ({ x: s.x + s.width / 2, y: s.y + s.height / 2 }));
@@ -60,19 +60,19 @@ export default class ElementSnapping {
 
     // Move: snap the SHAPE MIDPOINT (not the cursor) — the user rarely grabs the sticky
     // exactly at its centre.
-    eventBus.on(['shape.move.move', 'shape.move.end'], 1500, (event: DragMoveEvent) => {
+    eventBus.on(["shape.move.move", "shape.move.end"], 1500, (event: DragMoveEvent) => {
       if (event.originalEvent?.shiftKey) return;
       if (
-        typeof event.x !== 'number' ||
-        typeof event.dx !== 'number' ||
-        typeof event.y !== 'number' ||
-        typeof event.dy !== 'number'
+        typeof event.x !== "number" ||
+        typeof event.dx !== "number" ||
+        typeof event.y !== "number" ||
+        typeof event.dy !== "number"
       )
         return;
       const shape = event.context?.shape;
       if (!shape) return;
       const moving = new Set<string>(
-        (event.context?.shapes ?? [shape]).map((s) => s.id ?? '').filter(Boolean),
+        (event.context?.shapes ?? [shape]).map((s) => s.id ?? "").filter(Boolean),
       );
       const centers = candidateCenters(moving);
       const midX = shape.x + shape.width / 2 + event.dx;
@@ -99,26 +99,26 @@ export default class ElementSnapping {
     });
 
     // Create (cursor = shape midpoint): snap the cursor to nearby sticky centers.
-    eventBus.on(['create.move', 'create.end'], 1500, (event: DragMoveEvent) => {
+    eventBus.on(["create.move", "create.end"], 1500, (event: DragMoveEvent) => {
       if (event.originalEvent?.shiftKey) return;
       const centers = candidateCenters(new Set());
-      if (typeof event.x === 'number') {
+      if (typeof event.x === "number") {
         const snapX = closest(
           event.x,
           centers.map((c) => c.x),
         );
         if (snapX !== undefined) {
-          if (typeof event.dx === 'number') event.dx += snapX - event.x;
+          if (typeof event.dx === "number") event.dx += snapX - event.x;
           event.x = snapX;
         }
       }
-      if (typeof event.y === 'number') {
+      if (typeof event.y === "number") {
         const snapY = closest(
           event.y,
           centers.map((c) => c.y),
         );
         if (snapY !== undefined) {
-          if (typeof event.dy === 'number') event.dy += snapY - event.y;
+          if (typeof event.dy === "number") event.dy += snapY - event.y;
           event.y = snapY;
         }
       }

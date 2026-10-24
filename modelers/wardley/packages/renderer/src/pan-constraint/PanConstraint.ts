@@ -1,9 +1,9 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { Injector } from 'didi';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type { FreeRect, FreeRectInsets } from '../free-rect/index.js';
-import { exportBounds } from '../io/index.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { Injector } from "didi";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type { FreeRect, FreeRectInsets } from "../free-rect/index.js";
+import { exportBounds } from "../io/index.js";
 
 /** Margins in diagram px, for hosts that report no chrome insets. */
 const PAD_TOP = 180;
@@ -117,7 +117,7 @@ function constrainAxisToFreeArea(
  * view the host or the import fitted there, to the content or to the plot, is left alone.
  */
 export default class PanConstraint {
-  static $inject = ['eventBus', 'canvas', 'evolutionGrid', 'injector'];
+  static $inject = ["eventBus", "canvas", "evolutionGrid", "injector"];
 
   private applying = false;
   /** Content bounds are measured lazily (getBBox), at most once per change of the map. */
@@ -132,26 +132,26 @@ export default class PanConstraint {
     private readonly grid: EvolutionGrid,
     injector: Injector,
   ) {
-    this.freeRect = injector.get<FreeRect | null>('wardleyFreeRect', false) ?? null;
-    eventBus.on('canvas.viewbox.changed', (event: { viewbox?: ViewBox }) => {
+    this.freeRect = injector.get<FreeRect | null>("wardleyFreeRect", false) ?? null;
+    eventBus.on("canvas.viewbox.changed", (event: { viewbox?: ViewBox }) => {
       if (this.applying) return;
       this.constrain(event?.viewbox);
     });
     const invalidate = () => {
       this.measured = undefined;
     };
-    eventBus.on(['element.changed', 'import.done'], invalidate);
+    eventBus.on(["element.changed", "import.done"], invalidate);
     // Shrinking the plot while scrolled into its far corner must never leave a blank viewport.
     // A transient change (live resize preview) is skipped: moving the viewport under a dragged
     // plot corner would feed back into the drag.
-    eventBus.on('wardley.config.changed', (event?: { transient?: boolean }) => {
+    eventBus.on("wardley.config.changed", (event?: { transient?: boolean }) => {
       invalidate();
       if (event?.transient) return;
       this.constrain(undefined, { recentre: false });
       // The command's elements are redrawn only after this event — measure again once they are.
       this.constrainAfterCommand = true;
     });
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       if (!this.constrainAfterCommand) return;
       invalidate();
       this.constrain(undefined, { recentre: false });

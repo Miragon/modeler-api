@@ -61,7 +61,8 @@ export function dragVerdict(items: readonly DragItemLike[], context: DragContext
   const { mimeTypes } = acceptEntries(context.accept);
   const foreignType = (item: DragItemLike) =>
     item.type.trim() !== "" && !matchesMimeType(item.type, mimeTypes);
-  if (mimeTypes.length > 0 && files.every(foreignType)) return { state: "forbidden", reason: "type" };
+  if (mimeTypes.length > 0 && files.every(foreignType))
+    return { state: "forbidden", reason: "type" };
   return { state: "over" };
 }
 
@@ -70,9 +71,15 @@ export function dragVerdict(items: readonly DragItemLike[], context: DragContext
  * end of the name (case-insensitive), an entry with "/" the MIME type exactly or as `type/*`; an
  * empty `accept` matches every file.
  */
-export function acceptsFile(file: { name: string; type: string }, accept: readonly string[]): boolean {
+export function acceptsFile(
+  file: { name: string; type: string },
+  accept: readonly string[],
+): boolean {
   const { extensions, mimeTypes } = acceptEntries(accept);
   if (extensions.length === 0 && mimeTypes.length === 0) return true;
   const name = file.name.toLowerCase();
-  return extensions.some((extension) => name.endsWith(extension)) || matchesMimeType(file.type, mimeTypes);
+  return (
+    extensions.some((extension) => name.endsWith(extension)) ||
+    matchesMimeType(file.type, mimeTypes)
+  );
 }

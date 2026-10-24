@@ -1,14 +1,14 @@
-import OrderingProvider from 'diagram-js/lib/features/ordering/OrderingProvider';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { ElementLike, ShapeLike } from 'diagram-js/lib/model/Types';
-import { isWardleyConnection, isWardleyShape, type WardleyShape } from '../model/di-types.js';
+import OrderingProvider from "diagram-js/lib/features/ordering/OrderingProvider";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { ElementLike, ShapeLike } from "diagram-js/lib/model/Types";
+import { isWardleyConnection, isWardleyShape, type WardleyShape } from "../model/di-types.js";
 
 /** Frame types sit at the very back (concept doc: frames -> connections -> nodes). */
 function isFrame(el: unknown): boolean {
   return (
     isWardleyShape(el) &&
-    ((el as WardleyShape).wardleyType === 'attitude' ||
-      (el as WardleyShape).wardleyType === 'pipeline')
+    ((el as WardleyShape).wardleyType === "attitude" ||
+      (el as WardleyShape).wardleyType === "pipeline")
   );
 }
 
@@ -18,7 +18,7 @@ function isFrame(el: unknown): boolean {
  * connections drawn in the editor would land above the nodes (unlike imported ones).
  */
 export default class WardleyOrderingProvider extends OrderingProvider {
-  static override $inject = ['eventBus'];
+  static override $inject = ["eventBus"];
 
   constructor(eventBus: EventBus) {
     super(eventBus);
@@ -32,11 +32,11 @@ export default class WardleyOrderingProvider extends OrderingProvider {
     if (isWardleyConnection(element)) {
       // Behind the nodes. A flow goes on top of all connections; a dependency stays below the
       // flows, so it cannot strike through a flow value (matches the import order).
-      const isFlow = element.wardleyType === 'flow';
+      const isFlow = element.wardleyType === "flow";
       const index = siblings.filter(
         (c) =>
           c !== element &&
-          (isFrame(c) || (isWardleyConnection(c) && (isFlow || c.wardleyType !== 'flow'))),
+          (isFrame(c) || (isWardleyConnection(c) && (isFlow || c.wardleyType !== "flow"))),
       ).length;
       return { parent: newParent, index };
     }

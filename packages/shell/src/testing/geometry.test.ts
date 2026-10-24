@@ -92,7 +92,10 @@ describe("expectedChromeBoxes", () => {
 
   it("puts the palette in the second row at top 64 and the status box at top 116", () => {
     const status = anchored(NARROW, { width: 400, height: 48 }, { top: 116 });
-    const boxes = expectedChromeBoxes(measurement({ container: NARROW, islands: { status } }), "ide");
+    const boxes = expectedChromeBoxes(
+      measurement({ container: NARROW, islands: { status } }),
+      "ide",
+    );
     expect(boxes.palette).toEqual({ top: 64, height: 40, centerX: 360 });
     expect(boxes.status).toEqual({ top: 116, centerX: 360 });
   });
@@ -118,7 +121,11 @@ describe("expectedChromeBoxes", () => {
         legend: anchored(WIDE, { width: 200, height: 120 }, { left: 12, bottom: legendBottom }),
       };
       if (pill)
-        islands.problems = anchored(WIDE, { width: 120, height: 40 }, { left: 12, bottom: pillBottom });
+        islands.problems = anchored(
+          WIDE,
+          { width: 120, height: 40 },
+          { left: 12, bottom: pillBottom },
+        );
       const boxes = expectedChromeBoxes(
         measurement({ islands, open: { legend: true, problems: pill } }),
         host,
@@ -180,7 +187,9 @@ describe("expectedChromeBoxes", () => {
     expect(expectations.boxes.inspector).toEqual({ left: 12, right: 12, bottom: 12 });
     expect(expectations.boxes.zoom).toBeUndefined();
     expect(expectations.required).toEqual(["menu", "palette"]);
-    expect(Object.keys(expectations.hidden)).toEqual(expect.arrayContaining(["zoom", "problems", "legend"]));
+    expect(Object.keys(expectations.hidden)).toEqual(
+      expect.arrayContaining(["zoom", "problems", "legend"]),
+    );
     expect(expectations.boxes.status).toBeUndefined();
   });
 
@@ -191,7 +200,9 @@ describe("expectedChromeBoxes", () => {
       right: 12,
       height: 40,
     });
-    expect(expectedChromeBoxes(measurement({ islands: { primary } }), "ide").primary).toBeUndefined();
+    expect(
+      expectedChromeBoxes(measurement({ islands: { primary } }), "ide").primary,
+    ).toBeUndefined();
   });
 });
 
@@ -223,9 +234,9 @@ describe("tolerance", () => {
   it("applies the tolerance to limits as well", () => {
     const legend = { left: 12, top: 700, width: 183, height: 100 };
     expect(limitViolations("legend", legend, { minWidth: 184 }, WIDE)).toEqual([]);
-    expect(limitViolations("legend", { ...legend, width: 182.5 }, { minWidth: 184 }, WIDE)).toEqual([
-      "legend: width is 182.5px, at least 184px expected",
-    ]);
+    expect(limitViolations("legend", { ...legend, width: 182.5 }, { minWidth: 184 }, WIDE)).toEqual(
+      ["legend: width is 182.5px, at least 184px expected"],
+    );
   });
 });
 
@@ -239,7 +250,9 @@ describe("geometryProblems", () => {
   it("reports a missing required island", () => {
     const state = measurement();
     delete state.islands.zoom;
-    expect(geometryProblems(state, "ide")).toEqual(['zoom: [data-chrome="zoom"] is missing or not visible']);
+    expect(geometryProblems(state, "ide")).toEqual([
+      'zoom: [data-chrome="zoom"] is missing or not visible',
+    ]);
   });
 
   it("reports an island shifted by 2px", () => {
@@ -278,7 +291,9 @@ describe("geometryProblems", () => {
       container,
       islands: { palette: anchored(container, { width: 680, height: 40 }, { top: 12 }) },
     });
-    expect(geometryProblems(state, "ide")).toEqual(["palette: left is 60px, at least 68px expected"]);
+    expect(geometryProblems(state, "ide")).toEqual([
+      "palette: left is 60px, at least 68px expected",
+    ]);
   });
 
   it("caps the second-row palette at the container width minus 24px", () => {
@@ -286,7 +301,9 @@ describe("geometryProblems", () => {
       container: VERY_NARROW,
       islands: { palette: { left: 4, top: 64, width: 412, height: 40 } },
     });
-    expect(geometryProblems(state, "ide")).toEqual(["palette: width is 412px, at most 396px expected"]);
+    expect(geometryProblems(state, "ide")).toEqual([
+      "palette: width is 412px, at most 396px expected",
+    ]);
   });
 
   it("keeps the top right empty outside the web app", () => {
@@ -298,7 +315,11 @@ describe("geometryProblems", () => {
 
   it("reports zoom, pill and legend left visible under an open bottom sheet", () => {
     const inspector = anchored(NARROW, { width: 696, height: 200 }, { left: 12, bottom: 12 });
-    const state = measurement({ container: NARROW, islands: { inspector }, open: { inspector: true } });
+    const state = measurement({
+      container: NARROW,
+      islands: { inspector },
+      open: { inspector: true },
+    });
     expect(geometryProblems(state, "ide")).toEqual([
       "zoom: visible, but hidden while the inspector is a bottom sheet (guide §5.11)",
     ]);
@@ -306,15 +327,23 @@ describe("geometryProblems", () => {
 
   it("limits the bottom sheet to 45% of the container height", () => {
     const inspector = anchored(NARROW, { width: 696, height: 400 }, { left: 12, bottom: 12 });
-    const state = measurement({ container: NARROW, islands: { inspector }, open: { inspector: true } });
+    const state = measurement({
+      container: NARROW,
+      islands: { inspector },
+      open: { inspector: true },
+    });
     delete state.islands.zoom;
-    expect(geometryProblems(state, "ide")).toEqual(["inspector: height is 400px, at most 315px expected"]);
+    expect(geometryProblems(state, "ide")).toEqual([
+      "inspector: height is 400px, at most 315px expected",
+    ]);
   });
 
   it("keeps the side inspector 64px above the bottom", () => {
     const inspector = anchored(WIDE, { width: 288, height: 800 }, { top: 64, right: 12 });
     const state = measurement({ islands: { inspector }, open: { inspector: true } });
-    expect(geometryProblems(state, "ide")).toEqual(["inspector: bottom is 36px, at least 64px expected"]);
+    expect(geometryProblems(state, "ide")).toEqual([
+      "inspector: bottom is 36px, at least 64px expected",
+    ]);
   });
 
   it("checks the root's state attributes against what is visible", () => {
@@ -329,9 +358,9 @@ describe("geometryProblems", () => {
 
   it("requires the legend to be at least 184px wide", () => {
     const legend = anchored(WIDE, { width: 150, height: 100 }, { left: 12, bottom: 12 });
-    expect(geometryProblems(measurement({ islands: { legend }, open: { legend: true } }), "ide")).toEqual([
-      "legend: width is 150px, at least 184px expected",
-    ]);
+    expect(
+      geometryProblems(measurement({ islands: { legend }, open: { legend: true } }), "ide"),
+    ).toEqual(["legend: width is 150px, at least 184px expected"]);
   });
 });
 
@@ -356,11 +385,15 @@ describe("tooltipProblems", () => {
   const menu = { left: 12, top: 12, width: 40, height: 40 };
 
   it("stands under the top row at 60px, shifted to keep 12px to the side", () => {
-    expect(tooltipProblems({ left: 12, top: 60, width: 60, height: 28 }, menu, "top", WIDE)).toEqual([]);
-    expect(tooltipProblems({ left: 2, top: 60, width: 60, height: 28 }, menu, "top", WIDE)).toEqual([
-      "tooltip: left is 2px, expected 12px (±1px)",
-      "tooltip: left is 2px, at least 12px expected",
-    ]);
+    expect(
+      tooltipProblems({ left: 12, top: 60, width: 60, height: 28 }, menu, "top", WIDE),
+    ).toEqual([]);
+    expect(tooltipProblems({ left: 2, top: 60, width: 60, height: 28 }, menu, "top", WIDE)).toEqual(
+      [
+        "tooltip: left is 2px, expected 12px (±1px)",
+        "tooltip: left is 2px, at least 12px expected",
+      ],
+    );
   });
 
   it("stands under the second row at 112px, centred on its entry", () => {
@@ -401,8 +434,18 @@ describe("tooltipProblems", () => {
 
 describe("expectedFitInsets and freeRectangle", () => {
   it("are the guide's table in the top row and the second row", () => {
-    expect(expectedFitInsets(measurement(), "ide")).toEqual({ top: 88, right: 24, bottom: 64, left: 24 });
-    expect(freeRectangle(measurement(), "ide")).toEqual({ left: 24, top: 88, right: 1256, bottom: 836 });
+    expect(expectedFitInsets(measurement(), "ide")).toEqual({
+      top: 88,
+      right: 24,
+      bottom: 64,
+      left: 24,
+    });
+    expect(freeRectangle(measurement(), "ide")).toEqual({
+      left: 24,
+      top: 88,
+      right: 1256,
+      bottom: 836,
+    });
     expect(expectedFitInsets(measurement({ container: NARROW }), "embedded")).toEqual({
       top: 140,
       right: 24,
@@ -426,10 +469,18 @@ describe("expectedFitInsets and freeRectangle", () => {
         "ide",
       ),
     ).toEqual({ top: 88, right: 324, bottom: 64, left: 236 });
-    const narrowLegend = anchored(VERY_NARROW, { width: 200, height: 120 }, { left: 12, bottom: 64 });
+    const narrowLegend = anchored(
+      VERY_NARROW,
+      { width: 200, height: 120 },
+      { left: 12, bottom: 64 },
+    );
     expect(
       expectedFitInsets(
-        measurement({ container: VERY_NARROW, open: { legend: true }, islands: { legend: narrowLegend } }),
+        measurement({
+          container: VERY_NARROW,
+          open: { legend: true },
+          islands: { legend: narrowLegend },
+        }),
         "ide",
       ).left,
     ).toBe(24);
@@ -481,7 +532,10 @@ describe("the web column (0.2)", () => {
   });
 
   it("anchors the primary action top right, 40 wide while collapsed", () => {
-    const collapsed = web({ open: { primaryCollapsed: true }, islands: { primary: primary(WIDE, 40) } });
+    const collapsed = web({
+      open: { primaryCollapsed: true },
+      islands: { primary: primary(WIDE, 40) },
+    });
     expect(expectedChromeBoxes(collapsed, "web").primary).toEqual({
       top: 12,
       right: 12,
@@ -490,7 +544,9 @@ describe("the web column (0.2)", () => {
     });
     expect(geometryProblems(collapsed, "web")).toEqual([]);
     const labelled = web({ open: { primaryCollapsed: true } });
-    expect(geometryProblems(labelled, "web")).toEqual(["primary: width is 94px, expected 40px (±1px)"]);
+    expect(geometryProblems(labelled, "web")).toEqual([
+      "primary: width is 94px, expected 40px (±1px)",
+    ]);
   });
 
   it("keeps a top-row palette 16px from the primary action (guide §5.15)", () => {
@@ -500,7 +556,9 @@ describe("the web column (0.2)", () => {
       islands: { palette: anchored(container, { width: 800, height: 40 }, { top: 12 }) },
     });
     expect(chromeExpectations(wide, "web").limits.palette).toEqual({ minLeft: 68, minRight: 122 });
-    expect(geometryProblems(wide, "web")).toEqual(["palette: right is 100px, at least 122px expected"]);
+    expect(geometryProblems(wide, "web")).toEqual([
+      "palette: right is 100px, at least 122px expected",
+    ]);
   });
 
   it("accepts the second row above 760px only once even the icon keeps less than 16px", () => {
@@ -595,7 +653,10 @@ describe("the web column (0.2)", () => {
   it("opens the problems list 8px above the pill, at most min(320px, 100% − 24px) × 320", () => {
     const pill = anchored(WIDE, { width: 120, height: 40 }, { left: 12, bottom: 40 });
     const list = anchored(WIDE, { width: 320, height: 200 }, { left: 12, bottom: 88 });
-    const state = web({ open: { problems: true }, islands: { problems: pill, "problems-popover": list } });
+    const state = web({
+      open: { problems: true },
+      islands: { problems: pill, "problems-popover": list },
+    });
     expect(expectedChromeBoxes(state, "web")["problems-popover"]).toEqual({ left: 12, bottom: 88 });
     expect(geometryProblems(state, "web")).toEqual([]);
     const tooBig = web({
@@ -619,14 +680,19 @@ describe("the web column (0.2)", () => {
     expect(geometryProblems(alone, "web")).toEqual([
       "problems-popover: visible, but the problems list opens only above a visible pill (guide §5.10)",
     ]);
-    expect(geometryProblems(measurement({ islands: { "problems-popover": list } }), "ide")).toEqual([
-      "problems-popover: visible, but the IDE host opens its Problems view, never a list of its own (guide §5.10)",
-    ]);
+    expect(geometryProblems(measurement({ islands: { "problems-popover": list } }), "ide")).toEqual(
+      [
+        "problems-popover: visible, but the IDE host opens its Problems view, never a list of its own (guide §5.10)",
+      ],
+    );
   });
 
   it("centres the toast stack at toastStackBottom of the measured bottom row", () => {
     const state = web();
-    const obstacles = [bottomObstacle(state.islands.zoom!, WIDE), bottomObstacle(state.islands.legal!, WIDE)];
+    const obstacles = [
+      bottomObstacle(state.islands.zoom!, WIDE),
+      bottomObstacle(state.islands.legal!, WIDE),
+    ];
     const bottom = toastStackBottom({ containerWidth: WIDE.width, obstacles });
     const toasts = anchored(WIDE, { width: toastStackWidth(WIDE.width), height: 42 }, { bottom });
     state.islands.toasts = toasts;
@@ -665,12 +731,16 @@ describe("the web column (0.2)", () => {
     expect(chromeExpectations(state, "web").limits.legal).toEqual({ maxWidth: 296 });
     expect(expectedFitInsets(state, "web").bottom).toBe(112);
     const overflowing = web({ container, islands: { legal: { ...wrapped, width: 380 } } });
-    expect(geometryProblems(overflowing, "web")).toContain("legal: width is 380px, at most 296px expected");
+    expect(geometryProblems(overflowing, "web")).toContain(
+      "legal: width is 380px, at most 296px expected",
+    );
   });
 
   it("lifts the toast stack only where its widest card would meet the bottom row", () => {
     // The legal line with a GitHub link ends 7.5px before the 480px stack's column.
-    const state = web({ islands: { legal: { left: 12, top: WIDE.height - 32, width: 380.5, height: 20 } } });
+    const state = web({
+      islands: { legal: { left: 12, top: WIDE.height - 32, width: 380.5, height: 20 } },
+    });
     const narrowCard = { ...state, toastCardWidth: 146 };
     narrowCard.islands = {
       ...state.islands,
@@ -711,7 +781,9 @@ describe("the web column (0.2)", () => {
     ]);
     const narrow = measurement({ container: VERY_NARROW, open: { emptyState: true } });
     expect(
-      chromeExpectations({ ...narrow, islands: { "empty-state": card } }, "web").boxes["empty-state"],
+      chromeExpectations({ ...narrow, islands: { "empty-state": card } }, "web").boxes[
+        "empty-state"
+      ],
     ).toEqual({
       centerX: 210,
       centerY: 350,
@@ -734,9 +806,9 @@ describe("the web column (0.2)", () => {
   it("insets the drop zone 12px on every side", () => {
     const zone = { left: 12, top: 12, width: 1256, height: 876 };
     expect(geometryProblems(web({ islands: { "drop-zone": zone } }), "web")).toEqual([]);
-    expect(geometryProblems(web({ islands: { "drop-zone": { ...zone, width: 1260 } } }), "web")).toEqual([
-      "drop-zone: right is 8px, expected 12px (±1px)",
-    ]);
+    expect(
+      geometryProblems(web({ islands: { "drop-zone": { ...zone, width: 1260 } } }), "web"),
+    ).toEqual(["drop-zone: right is 8px, expected 12px (±1px)"]);
   });
 
   it("never shows the web column in the IDE and embedded hosts", () => {
@@ -754,9 +826,9 @@ describe("the web column (0.2)", () => {
   });
 
   it("keeps 92px at the bottom of the fit with the zoom panel raised", () => {
-    expect(expectedFitInsets(web({ container: VERY_NARROW, open: { zoomRaised: true } }), "web").bottom).toBe(
-      92,
-    );
+    expect(
+      expectedFitInsets(web({ container: VERY_NARROW, open: { zoomRaised: true } }), "web").bottom,
+    ).toBe(92);
     expect(expectedFitInsets(web({ container: VERY_NARROW }), "web").bottom).toBe(64);
   });
 

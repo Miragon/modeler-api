@@ -104,7 +104,8 @@ html.cd-shell-reduce-motion .cd-shell .cd-shell-button[data-variant]:is(:hover, 
   box-shadow: none;
 }
 
-.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *) .cd-shell-button:focus-visible {
+.cd-shell:is([data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] *)
+  .cd-shell-button:focus-visible {
   outline-width: 3px;
 }
 

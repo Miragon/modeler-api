@@ -18,26 +18,26 @@
  */
 
 /** Diagram actions that exist both in the webview menu and as Command Palette commands. */
-export type WebviewCommand = 'fitView' | 'exportPng' | 'exportSvg';
+export type WebviewCommand = "fitView" | "exportPng" | "exportSvg";
 
 export type HostToWebview =
   /** Initial population after `ready`. */
-  | { type: 'init'; text: string }
+  | { type: "init"; text: string }
   /** External document change (text editor, Git, undo, Insert example, …) -> re-import. */
-  | { type: 'update'; text: string }
+  | { type: "update"; text: string }
   /** Diagnostics of the document, for the problems pill. */
-  | { type: 'problems'; count: number; errors: number }
+  | { type: "problems"; count: number; errors: number }
   /** A command from the Command Palette for this diagram. */
-  | { type: 'command'; name: WebviewCommand };
+  | { type: "command"; name: WebviewCommand };
 
 export type WebviewToHost =
-  | { type: 'ready' }
+  | { type: "ready" }
   /** Graphical change -> apply to the document as a WorkspaceEdit. */
-  | { type: 'edit'; text: string }
+  | { type: "edit"; text: string }
   /** Trigger an image export (SVG = text, PNG = Base64). */
-  | { type: 'export'; format: 'svg' | 'png'; data: string }
-  | { type: 'error'; message: string }
+  | { type: "export"; format: "svg" | "png"; data: string }
+  | { type: "error"; message: string }
   /** The problems pill was activated -> open the Problems view. */
-  | { type: 'showProblems' }
+  | { type: "showProblems" }
   /** "Insert example" of the empty-file hint -> write the example as one document edit. */
-  | { type: 'insertExample' };
+  | { type: "insertExample" };

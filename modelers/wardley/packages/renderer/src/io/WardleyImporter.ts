@@ -1,19 +1,19 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Root } from 'diagram-js/lib/model/Types';
-import type { Injector } from 'didi';
-import type { MapEdge, MapElement, WardleyMap } from '@miragon/wardley-schema-model';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type { WardleyShape } from '../model/di-types.js';
-import type { FreeRect } from '../free-rect/index.js';
-import { ROOT_ID, type ImportWarning, type RootBusinessObject } from './types.js';
-import { fitViewbox } from './fitViewbox.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Root } from "diagram-js/lib/model/Types";
+import type { Injector } from "didi";
+import type { MapEdge, MapElement, WardleyMap } from "@miragon/wardley-schema-model";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type { WardleyShape } from "../model/di-types.js";
+import type { FreeRect } from "../free-rect/index.js";
+import { ROOT_ID, type ImportWarning, type RootBusinessObject } from "./types.js";
+import { fitViewbox } from "./fitViewbox.js";
 
 /** "Frame" types sit behind the connections (concept doc requirement: frames at the very back). */
-const FRAME_TYPES: ReadonlySet<string> = new Set(['attitude', 'pipeline']);
+const FRAME_TYPES: ReadonlySet<string> = new Set(["attitude", "pipeline"]);
 
 /** Z-order of the nodes among themselves: smaller number = further back. */
 const TYPE_ORDER: Record<string, number> = {
@@ -40,14 +40,14 @@ export interface WardleyImportConfig {
  */
 export default class WardleyImporter {
   static $inject = [
-    'canvas',
-    'elementFactory',
-    'wardleyElementFactory',
-    'evolutionGrid',
-    'eventBus',
-    'elementRegistry',
-    'injector',
-    'config.wardleyImport',
+    "canvas",
+    "elementFactory",
+    "wardleyElementFactory",
+    "evolutionGrid",
+    "eventBus",
+    "elementRegistry",
+    "injector",
+    "config.wardleyImport",
   ];
 
   private readonly freeRect: FreeRect | null;
@@ -62,12 +62,12 @@ export default class WardleyImporter {
     injector: Injector,
     private readonly config: WardleyImportConfig | undefined,
   ) {
-    this.freeRect = injector.get<FreeRect | null>('wardleyFreeRect', false) ?? null;
+    this.freeRect = injector.get<FreeRect | null>("wardleyFreeRect", false) ?? null;
   }
 
   import(map: WardleyMap): ImportWarning[] {
     const warnings: ImportWarning[] = [];
-    this.eventBus.fire('import.render.start', { map });
+    this.eventBus.fire("import.render.start", { map });
 
     this.grid.configure(map.config);
 
@@ -136,13 +136,13 @@ export default class WardleyImporter {
     // Flows sit above dependencies so a dependency on the same pair cannot strike through the flow
     // value; within each group, a later declaration paints on top (like interactive creation).
     const connectionPaintOrder = [
-      ...resolvedEdges.filter(({ edge }) => edge.edgeType !== 'flow'),
-      ...resolvedEdges.filter(({ edge }) => edge.edgeType === 'flow'),
+      ...resolvedEdges.filter(({ edge }) => edge.edgeType !== "flow"),
+      ...resolvedEdges.filter(({ edge }) => edge.edgeType === "flow"),
     ];
     let insertedConnections = 0;
     for (const { edge, source, target } of connectionPaintOrder) {
       const conn =
-        edge.edgeType === 'flow'
+        edge.edgeType === "flow"
           ? this.factory.createFlow(edge, source, target)
           : this.factory.createDependency(edge, source, target);
       // Behind all nodes, in front of the frames and the connections inserted so far.
@@ -154,13 +154,13 @@ export default class WardleyImporter {
     // same-named anchor component exists — re-render them now that everything is in place.
     for (const el of frames) {
       const shape = shapeById.get(el.id);
-      if (shape && el.elementType === 'pipeline') {
-        this.eventBus.fire('element.changed', { element: shape });
+      if (shape && el.elementType === "pipeline") {
+        this.eventBus.fire("element.changed", { element: shape });
       }
     }
 
     if (this.config?.fit !== false) this.fitPlot();
-    this.eventBus.fire('import.render.done', { warnings });
+    this.eventBus.fire("import.render.done", { warnings });
     return warnings;
   }
 

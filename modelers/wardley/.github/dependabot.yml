@@ -2,26 +2,26 @@ version: 2
 updates:
   # npm (workspaces resolve from root): minor + patch arrive grouped, every
   # major lands as its own PR so breaking changes get individual review.
-  - package-ecosystem: 'npm'
-    directory: '/'
+  - package-ecosystem: "npm"
+    directory: "/"
     schedule:
-      interval: 'weekly'
-    rebase-strategy: 'disabled'
+      interval: "weekly"
+    rebase-strategy: "disabled"
     labels:
-      - 'dependencies'
+      - "dependencies"
     # majors arrive as individual PRs — leave headroom above the default of 5
     open-pull-requests-limit: 10
     commit-message:
-      prefix: 'chore'
-      include: 'scope'
+      prefix: "chore"
+      include: "scope"
     cooldown:
       default-days: 3
     # @types/vscode must stay <= engines.vscode (^1.96.0) or `vsce package` fails.
     ignore:
-      - dependency-name: '@types/vscode'
+      - dependency-name: "@types/vscode"
         update-types:
-          - 'version-update:semver-minor'
-          - 'version-update:semver-major'
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
     groups:
       # The shared modeler contract and chrome change what users see and what the release says
       # (a 0.x minor of @miragon/modeler-shell breaks the chrome), so they come in a PR of their
@@ -30,47 +30,47 @@ updates:
       modeler-platform:
         applies-to: version-updates
         patterns:
-          - '@miragon/modeler-*'
+          - "@miragon/modeler-*"
       npm-minor-patch:
         applies-to: version-updates
         patterns:
-          - '*'
+          - "*"
         exclude-patterns:
-          - '@miragon/modeler-*'
+          - "@miragon/modeler-*"
         update-types:
-          - 'minor'
-          - 'patch'
+          - "minor"
+          - "patch"
       npm-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - "*"
     # majors intentionally NOT grouped → one reviewable PR per breaking change
 
   # github-actions: majors are mechanical (runner/node bumps) and every `uses:`
   # is SHA-pinned + CI-gated, so grouping all update types stays low-risk.
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'monthly'
-    rebase-strategy: 'disabled'
+      interval: "monthly"
+    rebase-strategy: "disabled"
     labels:
-      - 'dependencies'
+      - "dependencies"
     open-pull-requests-limit: 5
     commit-message:
-      prefix: 'chore'
-      include: 'scope'
+      prefix: "chore"
+      include: "scope"
     cooldown:
       default-days: 3
     groups:
       github-actions:
         applies-to: version-updates
         patterns:
-          - '*'
+          - "*"
         update-types:
-          - 'patch'
-          - 'minor'
-          - 'major'
+          - "patch"
+          - "minor"
+          - "major"
       github-actions-security:
         applies-to: security-updates
         patterns:
-          - '*'
+          - "*"

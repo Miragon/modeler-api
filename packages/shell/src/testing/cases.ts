@@ -70,7 +70,12 @@ import {
   type ChromeMeasurement,
   type TooltipRow,
 } from "./geometry.js";
-import type { ShellConformanceCase, ShellConformanceHarness, ShellSkip, ToastFixture } from "./harness.js";
+import type {
+  ShellConformanceCase,
+  ShellConformanceHarness,
+  ShellSkip,
+  ToastFixture,
+} from "./harness.js";
 import type { PageLike } from "./page.js";
 import {
   CHROME_TARGET_SELECTORS,
@@ -173,7 +178,10 @@ function appearanceLabel(appearance: Appearance): string {
   return appearance.kontrast ? `${appearance.theme} + ${appearance.kontrast}` : appearance.theme;
 }
 
-function missingHooks<P extends PageLike>(harness: ShellConformanceHarness<P>, what: string): ShellSkip[] {
+function missingHooks<P extends PageLike>(
+  harness: ShellConformanceHarness<P>,
+  what: string,
+): ShellSkip[] {
   return SHOWN_ISLANDS.filter((island) => unfed(harness, island)).map((island) => ({
     hook: island,
     reason: `show.${island} is undefined: ${what} of the ${island} island not verified`,
@@ -213,7 +221,9 @@ async function popupGeometry(
     }
     const tooltip = await findOverlay(page, root, "tooltip");
     if (!tooltip) {
-      problems.push(`tooltip: none visible ${TOOLTIP_DELAY_MS + HOVER_MARGIN_MS}ms after hovering ${target}`);
+      problems.push(
+        `tooltip: none visible ${TOOLTIP_DELAY_MS + HOVER_MARGIN_MS}ms after hovering ${target}`,
+      );
       continue;
     }
     if (tooltip.count > 1) problems.push(`tooltip: ${tooltip.count} tooltips visible at once`);
@@ -222,11 +232,18 @@ async function popupGeometry(
     }
     // The web app's raised zoom row stands above the legal line (`data-zoom-row="raised"`).
     const legalHeight = legalLineHeight(measurement.islands.legal?.height);
-    const bottomRow = measurement.open.zoomRaised ? SHELL.edge + legalHeight + SHELL.gap : SHELL.edge;
+    const bottomRow = measurement.open.zoomRaised
+      ? SHELL.edge + legalHeight + SHELL.gap
+      : SHELL.edge;
     problems.push(
-      ...tooltipProblems(tooltip.box, anchor.box, row, measurement.container, undefined, bottomRow).map(
-        (problem) => `${problem} (on ${target})`,
-      ),
+      ...tooltipProblems(
+        tooltip.box,
+        anchor.box,
+        row,
+        measurement.container,
+        undefined,
+        bottomRow,
+      ).map((problem) => `${problem} (on ${target})`),
     );
   }
   await page.mouse.move(PARK.x, PARK.y);
@@ -275,7 +292,9 @@ const geometryCase: ShellConformanceCase = {
         return measurement;
       };
       const opened = await check("as opened");
-      problems.push(...(await popupGeometry(page, root, opened)).map((problem) => `[${at}] ${problem}`));
+      problems.push(
+        ...(await popupGeometry(page, root, opened)).map((problem) => `[${at}] ${problem}`),
+      );
       const toast = harness.show?.toast;
       if (toast) {
         await toast(page, GEOMETRY_TOAST);
@@ -337,7 +356,12 @@ const legendStartCase: ShellConformanceCase = {
         "legendStart",
         harness.host,
         [],
-        [{ hook: "legend", reason: "show.legend is undefined: the legend's start state was not verified" }],
+        [
+          {
+            hook: "legend",
+            reason: "show.legend is undefined: the legend's start state was not verified",
+          },
+        ],
       );
     }
     const root = harness.root ?? DEFAULT_ROOT;
@@ -345,7 +369,10 @@ const legendStartCase: ShellConformanceCase = {
     for (const size of LEGEND_START_SIZES) {
       await page.evaluate(installPageTools, null);
       await openHarness(page, harness, { size, requested: LIGHT });
-      const kept = keptDocumentProblems(size, (await page.evaluate(pageToolsKeptProbe, null)) === true);
+      const kept = keptDocumentProblems(
+        size,
+        (await page.evaluate(pageToolsKeptProbe, null)) === true,
+      );
       if (kept.length > 0) fail("legendStart", harness.host, kept);
       await settle(page);
       const measurement = await measureChrome(page, root);
@@ -373,7 +400,9 @@ async function menuKeyboardProblems(page: PageLike, root: string): Promise<strin
     await page.keyboard.press(key);
     await settle(page);
     const opened = await menuState(page, root);
-    problems.push(...menuOpenProblems(opened, focus).map((problem) => `${key} on the trigger: ${problem}`));
+    problems.push(
+      ...menuOpenProblems(opened, focus).map((problem) => `${key} on the trigger: ${problem}`),
+    );
     return opened;
   };
   const close = async (key: string) => {
@@ -438,7 +467,9 @@ async function paletteKeyboardProblems(page: PageLike, root: string): Promise<st
     const after = await inPage(page, paletteFocusProbe, { root });
     const expected = before.entries[index];
     if (!after || after.active !== expected) {
-      problems.push(`palette: ${key} focuses "${after?.active ?? "nothing"}", expected "${expected}"`);
+      problems.push(
+        `palette: ${key} focuses "${after?.active ?? "nothing"}", expected "${expected}"`,
+      );
     } else if (after.tabStops.length !== 1 || after.tabStops[0] !== expected) {
       problems.push(
         `palette: after ${key} tabindex="0" is on ${after.tabStops.join(", ") || "no entry"}, expected "${expected}"`,
@@ -465,7 +496,11 @@ async function paletteShortcutWalk(page: PageLike, root: string): Promise<string
 }
 
 /** Tab from the menu trigger: the primary action (web app), the palette's one stop, then the canvas (guide §5.14). */
-async function tabSequenceFromMenu(page: PageLike, root: string, primary: boolean): Promise<string[]> {
+async function tabSequenceFromMenu(
+  page: PageLike,
+  root: string,
+  primary: boolean,
+): Promise<string[]> {
   if (!(await focusTarget(page, root, "menu"))) return [];
   const stops: TabStop[] = [];
   for (let step = 0; step < 3; step++) {
@@ -504,9 +539,12 @@ async function zoomLimitProblems(page: PageLike, root: string): Promise<string[]
       );
     } else {
       if (zoom !== limit) {
-        problems.push(`zoom: [data-zoom="${button}"] is disabled at ${zoom ?? "?"}%, expected at ${limit}%`);
+        problems.push(
+          `zoom: [data-zoom="${button}"] is disabled at ${zoom ?? "?"}%, expected at ${limit}%`,
+        );
       }
-      if (reached.disabled) problems.push(`zoom: [data-zoom="${button}"] is natively disabled at the limit`);
+      if (reached.disabled)
+        problems.push(`zoom: [data-zoom="${button}"] is natively disabled at the limit`);
     }
     if (buttons[other]?.attributes["aria-disabled"] === "true") {
       problems.push(`zoom: [data-zoom="${other}"] is aria-disabled at ${zoom ?? "?"}%`);
@@ -528,14 +566,21 @@ const ariaCase: ShellConformanceCase = {
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const facts = await inPage(page, ariaProbe, { root });
-    if (!facts) fail("aria", harness.host, [`no element matches the shell root selector "${root}"`]);
+    if (!facts)
+      fail("aria", harness.host, [`no element matches the shell root selector "${root}"`]);
     const problems = ariaProblems(facts, harness.host);
-    problems.push(...menuGroupProblems(await menuEntries(page, root), harness.host, harness.themes));
+    problems.push(
+      ...menuGroupProblems(await menuEntries(page, root), harness.host, harness.themes),
+    );
     problems.push(...(await menuKeyboardProblems(page, root)));
     problems.push(...(await paletteKeyboardProblems(page, root)));
     problems.push(...(await paletteShortcutWalk(page, root)));
     problems.push(
-      ...(await tabSequenceFromMenu(page, root, harness.host === "web" && Boolean(facts.primary?.visible))),
+      ...(await tabSequenceFromMenu(
+        page,
+        root,
+        harness.host === "web" && Boolean(facts.primary?.visible),
+      )),
     );
     problems.push(...(await zoomLimitProblems(page, root)));
 
@@ -553,7 +598,8 @@ const ariaCase: ShellConformanceCase = {
       if (withIslands) {
         final = withIslands;
         problems.push(...optionalIslandProblems(withIslands, shown));
-        if (shown.has("problems")) problems.push(...pillPopupAriaProblems(withIslands, harness.host));
+        if (shown.has("problems"))
+          problems.push(...pillPopupAriaProblems(withIslands, harness.host));
         const known = new Set(problems);
         problems.push(
           ...ariaProblems(withIslands, harness.host)
@@ -582,7 +628,8 @@ const keysCase: ShellConformanceCase = {
     }
     await inPage(page, clearKeysProbe, null);
     let current = (await inPage(page, afterPressProbe, { root })).zoom;
-    if (current === null) fail("keys", host, ['zoom: no readout [data-zoom="actual"] showing a percentage']);
+    if (current === null)
+      fail("keys", host, ['zoom: no readout [data-zoom="actual"] showing a percentage']);
 
     const press = async (
       key: string,
@@ -637,10 +684,22 @@ const keysCase: ShellConformanceCase = {
       await press("Control+Equal", "handled", ONE_STEP_UP);
       await press(zoomToActual, "handled", 100);
     }
-    for (const key of ["Equal", "Minus", "Shift+Equal", "Shift+Minus", "NumpadAdd", "NumpadSubtract"]) {
+    for (const key of [
+      "Equal",
+      "Minus",
+      "Shift+Equal",
+      "Shift+Minus",
+      "NumpadAdd",
+      "NumpadSubtract",
+    ]) {
       await press(key, "free", "unchanged", "on the canvas without Cmd/Ctrl");
     }
-    for (const key of ["Digit0", "Control+Alt+Equal", "Control+Alt+Minus", "Control+Shift+Digit1"]) {
+    for (const key of [
+      "Digit0",
+      "Control+Alt+Equal",
+      "Control+Alt+Minus",
+      "Control+Shift+Digit1",
+    ]) {
       await press(key, undefined, "unchanged");
     }
     await press("F1", "free", undefined);
@@ -652,7 +711,12 @@ const keysCase: ShellConformanceCase = {
     if (host === "ide") {
       // Guide §13.5: on the canvas, undo and redo use the document's history, never the canvas's.
       for (const key of UNDO_REDO_PRESSES) {
-        await press(key, "free", undefined, "on the canvas (undo and redo belong to the VS Code document)");
+        await press(
+          key,
+          "free",
+          undefined,
+          "on the canvas (undo and redo belong to the VS Code document)",
+        );
       }
     }
     // Guide §13.5: keys the canvas uses act on the canvas only, select all included; in VS Code an
@@ -694,7 +758,8 @@ const keysCase: ShellConformanceCase = {
     if (await openMenuByClick(page, root)) {
       await inPage(page, clearKeysProbe, null);
       await press("Escape", "handled", undefined, "with the menu open");
-      if (await findOverlay(page, root, "menu")) problems.push("Escape with the menu open did not close it");
+      if (await findOverlay(page, root, "menu"))
+        problems.push("Escape with the menu open did not close it");
     }
 
     await focusTarget(page, root, "canvas");
@@ -756,7 +821,10 @@ async function menuActionSteps(
     problems.push(`focus: no visible ${control} to click in the opened menu`);
   }
   if (await findOverlay(page, root, "menu")) await closeByEscape(page);
-  if ((await openMenuByClick(page, root)) && (await inPage(page, focusProbe, { root, selector: item }))) {
+  if (
+    (await openMenuByClick(page, root)) &&
+    (await inPage(page, focusProbe, { root, selector: item }))
+  ) {
     await page.keyboard.press("Enter");
     await settle(page);
     steps.push({
@@ -797,7 +865,11 @@ const focusHandBackCase: ShellConformanceCase = {
       }
       await page.mouse.click(button.client.x, button.client.y);
       await settle(page);
-      steps.push({ control, by: "pointer", focus: await focusAfter(CHROME_TARGET_SELECTORS[target]) });
+      steps.push({
+        control,
+        by: "pointer",
+        focus: await focusAfter(CHROME_TARGET_SELECTORS[target]),
+      });
     }
 
     const tools = (await inPage(page, paletteEntriesProbe, { root })).filter(
@@ -888,7 +960,8 @@ async function paletteColorWalk(page: PageLike, root: string): Promise<string[]>
     await page.mouse.move(PARK.x, PARK.y);
   }
   const armed =
-    tools.find((tool) => tool.action === "lasso-tool") ?? tools.find((tool) => tool.action.endsWith("-tool"));
+    tools.find((tool) => tool.action === "lasso-tool") ??
+    tools.find((tool) => tool.action.endsWith("-tool"));
   if (armed) {
     await page.mouse.click(armed.client.x, armed.client.y);
     await settle(page);
@@ -896,7 +969,9 @@ async function paletteColorWalk(page: PageLike, root: string): Promise<string[]>
       (entry) => entry.action === armed.action,
     );
     if (!pressed?.pressed) {
-      problems.push(`palette: clicking tool "${armed.action}" does not set aria-pressed="true" (guide §5.5)`);
+      problems.push(
+        `palette: clicking tool "${armed.action}" does not set aria-pressed="true" (guide §5.5)`,
+      );
     }
     problems.push(...(await paletteColors(page, root)));
     await page.mouse.move(PARK.x, PARK.y);
@@ -931,8 +1006,9 @@ async function appearanceSwitchProblems<P extends PageLike>(
   const problems: string[] = [];
   const system = await webMode(page);
   const media = (scheme: string) =>
-    system.themeColors.find((meta) => meta.media?.replace(/\s+/g, "") === `(prefers-color-scheme:${scheme})`)
-      ?.content;
+    system.themeColors.find(
+      (meta) => meta.media?.replace(/\s+/g, "") === `(prefers-color-scheme:${scheme})`,
+    )?.content;
   const light = media("light");
   const dark = media("dark");
   const colors = light && dark ? { light, dark } : undefined;
@@ -1011,7 +1087,8 @@ const appearanceCase: ShellConformanceCase = {
       const verdict = appearanceProblems(facts, harness.host, requested, harness.themes, expected);
       problems.push(...verdict.problems.map((problem) => `${at} ${problem}`));
       const surround = await inPage(page, surroundProbe, { root });
-      if (surround) problems.push(...surroundProblems(surround).map((problem) => `${at} ${problem}`));
+      if (surround)
+        problems.push(...surroundProblems(surround).map((problem) => `${at} ${problem}`));
       problems.push(...(await paletteColorWalk(page, root)).map((problem) => `${at} ${problem}`));
       if (web) {
         problems.push(
@@ -1088,7 +1165,9 @@ const createCase: ShellConformanceCase = {
     const before = await shapes(page, root);
     const after = await enterOnEntry(page, root, entry.action, before);
     if (!after) {
-      fail("create", harness.host, [`create: the palette's roving focus does not reach "${entry.action}"`]);
+      fail("create", harness.host, [
+        `create: the palette's roving focus does not reach "${entry.action}"`,
+      ]);
     }
     const canvas = await inPage(page, canvasStateProbe, { root });
     const problems = createProblems({ entry: entry.action, before, after, canvas, free });
@@ -1098,13 +1177,21 @@ const createCase: ShellConformanceCase = {
 };
 
 /** A shape whose centre a pointer reaches (no chrome above it), found again by its id. */
-async function reachableShape(page: PageLike, root: string, id?: string): Promise<ShapeFacts | undefined> {
+async function reachableShape(
+  page: PageLike,
+  root: string,
+  id?: string,
+): Promise<ShapeFacts | undefined> {
   const all = await shapes(page, root);
   return id === undefined ? all.find((shape) => shape.hit) : all.find((shape) => shape.id === id);
 }
 
 /** Guide §13.5, "Was der Schreibschutz sperrt", on one shape: select, drag, double-click, delete. */
-async function lockedShapeChecks(page: PageLike, root: string, shape: ShapeFacts): Promise<string[]> {
+async function lockedShapeChecks(
+  page: PageLike,
+  root: string,
+  shape: ShapeFacts,
+): Promise<string[]> {
   await page.mouse.click(shape.client.x, shape.client.y);
   await settle(page);
   const selected = await inPage(page, canvasStateProbe, { root });
@@ -1156,7 +1243,8 @@ const readOnlyCase: ShellConformanceCase = {
         skipped: [
           {
             hook: "invalid",
-            reason: "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
+            reason:
+              "show.invalid is undefined: the read-only canvas of an invalid file was not verified",
           },
         ],
       };
@@ -1177,7 +1265,8 @@ const readOnlyCase: ShellConformanceCase = {
       (facts) => facts === null || readOnlyStateProblems(facts).length === 0,
       READ_ONLY_WAIT_MS,
     );
-    if (!state) fail("readOnly", harness.host, [`no element matches the shell root selector "${root}"`]);
+    if (!state)
+      fail("readOnly", harness.host, [`no element matches the shell root selector "${root}"`]);
     await settle(page);
     problems.push(...readOnlyStateProblems(state));
 
@@ -1232,7 +1321,8 @@ const cleanupCase: ShellConformanceCase = {
     await openHarness(page, harness, { size, requested: LIGHT });
     await settle(page);
     const armed = await inPage(page, armCleanupProbe, { root });
-    if (!armed) fail("cleanup", harness.host, [`no element matches the shell root selector "${root}"`]);
+    if (!armed)
+      fail("cleanup", harness.host, [`no element matches the shell root selector "${root}"`]);
     const problems: string[] = [];
 
     // A hover leaves the tooltip timer pending, so a timer that outlives destroy shows up below.
@@ -1246,7 +1336,9 @@ const cleanupCase: ShellConformanceCase = {
     } catch (error) {
       problems.push(`destroy threw: ${error instanceof Error ? error.message : String(error)}`);
     }
-    await page.waitForTimeout(Math.max(INVALID_STATUS_DELAY_MS, TOOLTIP_DELAY_MS) + HOVER_MARGIN_MS);
+    await page.waitForTimeout(
+      Math.max(INVALID_STATUS_DELAY_MS, TOOLTIP_DELAY_MS) + HOVER_MARGIN_MS,
+    );
     await page.mouse.move(PARK.x, PARK.y);
     await page.setViewportSize({ width: size.width - 40, height: size.height - 40 });
     await settle(page);

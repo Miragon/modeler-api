@@ -60,7 +60,13 @@ export {
   shortcutLabel,
 } from "./keymap.js";
 
-export type { Appearance, AppearanceAttributes, ColorThemeSetting, Kontrast, Theme } from "./appearance.js";
+export type {
+  Appearance,
+  AppearanceAttributes,
+  ColorThemeSetting,
+  Kontrast,
+  Theme,
+} from "./appearance.js";
 export {
   REDUCED_MOTION_CLASS,
   appearanceAttributes,
@@ -90,7 +96,12 @@ export type { PrimaryWidths, TopRow, TopRowInput } from "./web-chrome/top-row.js
 export { decideTopRow } from "./web-chrome/top-row.js";
 export type { BottomRowInput } from "./web-chrome/bottom-row.js";
 export { LEGAL_LINE_HEIGHT, legalLineHeight, zoomRowRaised } from "./web-chrome/bottom-row.js";
-export type { DragContext, DragItemLike, DragVerdict, DropForbiddenReason } from "./web-chrome/drop.js";
+export type {
+  DragContext,
+  DragItemLike,
+  DragVerdict,
+  DropForbiddenReason,
+} from "./web-chrome/drop.js";
 export { acceptsFile, dragVerdict } from "./web-chrome/drop.js";
 
 export type {

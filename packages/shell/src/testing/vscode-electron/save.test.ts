@@ -22,7 +22,12 @@ const PREVIOUS = JSON.stringify({ elements: ["a"] });
 const SAVED = JSON.stringify({ elements: ["a", "b"], edges: [{ from: "a", to: "b" }] });
 
 /** As VS Code saves: truncate, write the first part, and only `gapMs` later the rest. */
-async function writeInTwoSteps(file: string, first: string, rest: string, gapMs: number): Promise<void> {
+async function writeInTwoSteps(
+  file: string,
+  first: string,
+  rest: string,
+  gapMs: number,
+): Promise<void> {
   const handle = await open(file, "w");
   try {
     if (first) await handle.write(first);

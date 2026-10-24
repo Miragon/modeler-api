@@ -1,12 +1,12 @@
-import { test, type Page } from '@playwright/test';
+import { test, type Page } from "@playwright/test";
 import {
   registerShellConformance,
   vsCodeStubSearch,
   type ShellSkip,
-} from '@miragon/modeler-shell/testing';
-import { WEBVIEW_THEMES } from '../../../apps/vscode/src/themes.js';
-import { kettleLabelEditor } from '../support/label-editor.js';
-import { postedMessages } from './support/webview.js';
+} from "@miragon/modeler-shell/testing";
+import { WEBVIEW_THEMES } from "../../../apps/vscode/src/themes.js";
+import { kettleLabelEditor } from "../support/label-editor.js";
+import { postedMessages } from "./support/webview.js";
 
 /**
  * The shell's conformance kit against the real VS Code webview (main.ts inside the VS Code stub):
@@ -18,14 +18,14 @@ import { postedMessages } from './support/webview.js';
  * kit asserts they never show; any skip fails the suite.
  */
 const describeSkips = (skips: readonly ShellSkip[]): string =>
-  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join('; ');
+  skips.map((skip) => `${skip.hook}: ${skip.reason}`).join("; ");
 
-test.describe('VS Code webview: shell conformance', () => {
+test.describe("VS Code webview: shell conformance", () => {
   test.describe.configure({ timeout: 90_000 });
 
   registerShellConformance<Page>(
     {
-      host: 'ide',
+      host: "ide",
       themes: WEBVIEW_THEMES,
       async open(page, { size, requested }) {
         await page.setViewportSize(size);
@@ -41,11 +41,11 @@ test.describe('VS Code webview: shell conformance', () => {
       },
       // VS Code owns the file, so the menu has no File group, and the Model group holds only the
       // "Map size…" and "X-axis labels…" popovers: no entry acts on the canvas without a dialog.
-      absent: ['legend', 'inspector', 'canvasMenuAction'],
+      absent: ["legend", "inspector", "canvasMenuAction"],
       show: {
         async problems(page) {
           await page.evaluate(() =>
-            window.postMessage({ type: 'problems', count: 2, errors: 0 }, '*'),
+            window.postMessage({ type: "problems", count: 2, errors: 0 }, "*"),
           );
           await page.waitForFunction(
             () => document.querySelector<HTMLElement>('[data-chrome="problems"]')?.hidden === false,
@@ -55,8 +55,8 @@ test.describe('VS Code webview: shell conformance', () => {
           await page.evaluate(() => {
             const shell = window.shell!;
             shell.setStatus({
-              severity: 'danger',
-              text: shell.messages.invalidFile('Wardley map'),
+              severity: "danger",
+              text: shell.messages.invalidFile("Wardley map"),
             });
           });
         },
@@ -69,15 +69,15 @@ test.describe('VS Code webview: shell conformance', () => {
             const importText = modeler.importText.bind(modeler);
             modeler.importText = () => {
               modeler.importText = importText;
-              return Promise.reject(new Error('not importable'));
+              return Promise.reject(new Error("not importable"));
             };
-            window.postMessage({ type: 'update', text: 'title Broken\n' }, '*');
+            window.postMessage({ type: "update", text: "title Broken\n" }, "*");
           });
         },
       },
       // Every edit reaches VS Code as an `edit` message, which writes it into the document.
       labelEditor: kettleLabelEditor(async (page) =>
-        JSON.stringify((await postedMessages(page)).filter((message) => message.type === 'edit')),
+        JSON.stringify((await postedMessages(page)).filter((message) => message.type === "edit")),
       ),
     },
     test,

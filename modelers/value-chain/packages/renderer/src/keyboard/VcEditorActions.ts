@@ -1,8 +1,8 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type EditorActions from 'diagram-js/lib/features/editor-actions/EditorActions';
-import type { Injector } from 'didi';
-import type { Element } from 'diagram-js/lib/model/Types';
-import { isVcElement } from '../model/di-types.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type EditorActions from "diagram-js/lib/features/editor-actions/EditorActions";
+import type { Injector } from "didi";
+import type { Element } from "diagram-js/lib/model/Types";
+import { isVcElement } from "../model/di-types.js";
 
 /** Runs before KeyboardBindings' listener (priority 500) checks registered actions. */
 const HIGH_PRIORITY = 1500;
@@ -21,12 +21,12 @@ interface EditLock {
  * shut; the hand, the lasso and select all keep working.
  */
 export default class VcEditorActions {
-  static $inject = ['eventBus', 'injector'];
+  static $inject = ["eventBus", "injector"];
 
   constructor(eventBus: EventBus, injector: Injector) {
-    eventBus.on('editorActions.init', HIGH_PRIORITY, (event: { editorActions: EditorActions }) => {
+    eventBus.on("editorActions.init", HIGH_PRIORITY, (event: { editorActions: EditorActions }) => {
       const { editorActions } = event;
-      const lock = injector.get<EditLock>('vcReadOnly', false);
+      const lock = injector.get<EditLock>("vcReadOnly", false);
       const unlocked = () => !lock?.isReadOnly();
 
       const register = (
@@ -45,15 +45,15 @@ export default class VcEditorActions {
         }
       };
 
-      register('handTool', 'handTool', (tool: ToggleTool) => tool.toggle());
-      register('lassoTool', 'lassoTool', (tool: ToggleTool) => tool.toggle());
-      register('spaceTool', 'spaceTool', (tool: ToggleTool) => tool.toggle(), unlocked);
-      register('globalConnectTool', 'globalConnect', (tool: ToggleTool) => tool.toggle(), unlocked);
+      register("handTool", "handTool", (tool: ToggleTool) => tool.toggle());
+      register("lassoTool", "lassoTool", (tool: ToggleTool) => tool.toggle());
+      register("spaceTool", "spaceTool", (tool: ToggleTool) => tool.toggle(), unlocked);
+      register("globalConnectTool", "globalConnect", (tool: ToggleTool) => tool.toggle(), unlocked);
 
-      const elementRegistry = injector.get('elementRegistry', false) as {
+      const elementRegistry = injector.get("elementRegistry", false) as {
         filter(fn: (element: Element) => boolean): Element[];
       } | null;
-      const selection = injector.get('selection', false) as {
+      const selection = injector.get("selection", false) as {
         get(): Element[];
         select(elements: Element[]): void;
       } | null;
@@ -63,7 +63,7 @@ export default class VcEditorActions {
         });
       }
 
-      const directEditing = injector.get('directEditing', false) as {
+      const directEditing = injector.get("directEditing", false) as {
         activate(element: Element): void;
       } | null;
       if (directEditing && selection) {

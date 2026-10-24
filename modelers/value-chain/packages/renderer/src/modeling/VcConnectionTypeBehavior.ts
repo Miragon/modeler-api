@@ -1,8 +1,8 @@
-import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type { Connection } from 'diagram-js/lib/model/Types';
-import { isVcConnection } from '../model/di-types.js';
+import CommandInterceptor from "diagram-js/lib/command/CommandInterceptor";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type { Connection } from "diagram-js/lib/model/Types";
+import { isVcConnection } from "../model/di-types.js";
 
 interface UpdatePropertiesContext {
   element?: unknown;
@@ -15,16 +15,16 @@ interface UpdatePropertiesContext {
  * route form a single undo step.
  */
 export default class VcConnectionTypeBehavior extends CommandInterceptor {
-  static override $inject = ['eventBus', 'modeling'];
+  static override $inject = ["eventBus", "modeling"];
 
   constructor(eventBus: EventBus, modeling: Modeling) {
     super(eventBus);
 
     this.postExecute(
-      ['element.updateProperties'],
+      ["element.updateProperties"],
       (context: UpdatePropertiesContext) => {
         const { element, properties } = context;
-        if (properties && 'vcType' in properties && isVcConnection(element)) {
+        if (properties && "vcType" in properties && isVcConnection(element)) {
           modeling.layoutConnection(element as Connection);
         }
       },

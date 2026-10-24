@@ -3,8 +3,8 @@
  * (SVG / PNG) or files (.storm / .json). Sharing an editable board is done via the URL (see
  * share.ts), not via the image.
  */
-import { loadBoard, type EventStormingBoard } from '@miragon/event-storming-schema-model';
-import { COLORS, type ImportWarning, type Modeler } from '@miragon/event-storming-renderer';
+import { loadBoard, type EventStormingBoard } from "@miragon/event-storming-schema-model";
+import { COLORS, type ImportWarning, type Modeler } from "@miragon/event-storming-renderer";
 
 // ---------------------------------------------------------------------------
 // Open
@@ -12,8 +12,8 @@ import { COLORS, type ImportWarning, type Modeler } from '@miragon/event-stormin
 
 /** A file read and checked, ready to import: board text, or a validated board from JSON. */
 export type BoardFile =
-  | { readonly kind: 'dsl'; readonly text: string }
-  | { readonly kind: 'board'; readonly board: EventStormingBoard };
+  | { readonly kind: "dsl"; readonly text: string }
+  | { readonly kind: "board"; readonly board: EventStormingBoard };
 
 /**
  * Reads a file as a board without touching the canvas. Throws with a descriptive message for a
@@ -21,12 +21,12 @@ export type BoardFile =
  */
 export async function readBoardFile(file: File): Promise<BoardFile> {
   const name = file.name.toLowerCase();
-  if (name.endsWith('.png') || name.endsWith('.svg') || file.type.startsWith('image/')) {
-    throw new Error('Images cannot be opened as boards: open a .storm or .json file.');
+  if (name.endsWith(".png") || name.endsWith(".svg") || file.type.startsWith("image/")) {
+    throw new Error("Images cannot be opened as boards: open a .storm or .json file.");
   }
   const text = await file.text();
-  if (name.endsWith('.json')) return { kind: 'board', board: loadBoard(JSON.parse(text)) };
-  return { kind: 'dsl', text };
+  if (name.endsWith(".json")) return { kind: "board", board: loadBoard(JSON.parse(text)) };
+  return { kind: "dsl", text };
 }
 
 /** Imports a board read by `readBoardFile`. */
@@ -35,7 +35,7 @@ export async function importBoardFile(
   viewer: Modeler,
 ): Promise<ImportWarning[]> {
   const { warnings } =
-    boardFile.kind === 'board'
+    boardFile.kind === "board"
       ? await viewer.importMap(boardFile.board)
       : await viewer.importDSL(boardFile.text);
   return warnings;
@@ -61,7 +61,7 @@ export interface PngOptions {
 export async function svgToPng(svg: string, options: PngOptions = {}): Promise<Blob> {
   const { width, height } = svgSize(svg);
   const png = await rasterize(svg, width, height, options.scale ?? 2, options.transparent ?? false);
-  return new Blob([png as BlobPart], { type: 'image/png' });
+  return new Blob([png as BlobPart], { type: "image/png" });
 }
 
 function svgSize(svg: string): { width: number; height: number } {
@@ -77,28 +77,28 @@ async function rasterize(
   scale: number,
   transparent: boolean,
 ): Promise<Uint8Array> {
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const img = new Image();
     img.width = width;
     img.height = height;
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Could not render the SVG.'));
+      img.onerror = () => reject(new Error("Could not render the SVG."));
       img.src = url;
     });
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context not available.');
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context not available.");
     if (!transparent) {
       ctx.fillStyle = COLORS.paper;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('PNG generation failed.');
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("PNG generation failed.");
     return new Uint8Array(await blob.arrayBuffer());
   } finally {
     URL.revokeObjectURL(url);
@@ -111,7 +111,7 @@ async function rasterize(
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();

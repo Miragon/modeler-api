@@ -37,7 +37,9 @@ function styleOf(page: Page, selector: string, properties: readonly string[], ps
       const style = getComputedStyle(element, pseudo ?? null);
       const rect = element.getBoundingClientRect();
       return {
-        ...Object.fromEntries(properties.map((property) => [property, style.getPropertyValue(property)])),
+        ...Object.fromEntries(
+          properties.map((property) => [property, style.getPropertyValue(property)]),
+        ),
         boxTop: rect.top,
         boxWidth: rect.width,
         boxHeight: rect.height,
@@ -65,7 +67,9 @@ function dragFiles(page: Page, count: number): Promise<void> {
 const TOAST_STATUSES = ["success", "info", "warning", "danger"] as const;
 
 test.describe("web chrome styles", () => {
-  test("the primary action is blue with white text and lifts on hover (guide §5.7, §8)", async ({ page }) => {
+  test("the primary action is blue with white text and lifts on hover (guide §5.7, §8)", async ({
+    page,
+  }) => {
     await openWeb(page);
     const primary = '[data-chrome="primary"]';
     const properties = [
@@ -77,7 +81,9 @@ test.describe("web chrome styles", () => {
       "font-weight",
     ];
     const rest = await styleOf(page, primary, properties);
-    expect(rest["background-color"]).toBe(await computed(page, "background-color", "var(--cd-blau)"));
+    expect(rest["background-color"]).toBe(
+      await computed(page, "background-color", "var(--cd-blau)"),
+    );
     expect(rest.color).toBe(await computed(page, "color", "var(--cd-weiss)"));
     expect(rest["box-shadow"]).toBe(await computed(page, "box-shadow", "var(--cd-shadow-1)"));
     expect(rest["border-top-left-radius"]).toBe("12px");
@@ -88,7 +94,9 @@ test.describe("web chrome styles", () => {
     await page.locator(primary).hover();
     await page.waitForTimeout(400);
     const hovered = await styleOf(page, primary, properties);
-    expect(hovered["background-color"]).toBe(await computed(page, "background-color", "var(--cd-blau-link)"));
+    expect(hovered["background-color"]).toBe(
+      await computed(page, "background-color", "var(--cd-blau-link)"),
+    );
     expect(hovered["box-shadow"]).toBe(await computed(page, "box-shadow", "var(--cd-shadow-2)"));
     expect(hovered.boxTop).toBeCloseTo(rest.boxTop - 1, 1);
   });
@@ -122,7 +130,10 @@ test.describe("web chrome styles", () => {
       page,
     }) => {
       await openWeb(page);
-      await page.evaluate((status) => window.__webDemo?.toast({ status, text: `Styled ${status}` }), status);
+      await page.evaluate(
+        (status) => window.__webDemo?.toast({ status, text: `Styled ${status}` }),
+        status,
+      );
       const toast = `.cd-shell-toast[data-status="${status}"]`;
       await expect(page.locator(toast)).toBeVisible();
       await page.waitForTimeout(400);
@@ -151,7 +162,9 @@ test.describe("web chrome styles", () => {
     });
   }
 
-  test("the drop zone shows drag-over and forbidden in the colours of guide §9", async ({ page }) => {
+  test("the drop zone shows drag-over and forbidden in the colours of guide §9", async ({
+    page,
+  }) => {
     await openWeb(page);
     const zone = '[data-chrome="drop-zone"]';
     const properties = [
@@ -164,9 +177,13 @@ test.describe("web chrome styles", () => {
     await dragFiles(page, 1);
     await page.waitForTimeout(300);
     const over = await styleOf(page, zone, properties);
-    expect(over["background-color"]).toBe(await computed(page, "background-color", "var(--cd-ui-hover)"));
+    expect(over["background-color"]).toBe(
+      await computed(page, "background-color", "var(--cd-ui-hover)"),
+    );
     expect([over["border-top-style"], over["border-top-width"]]).toEqual(["dashed", "2px"]);
-    expect(over["border-top-color"]).toBe(await computed(page, "color", "var(--cd-ui-interaktion)"));
+    expect(over["border-top-color"]).toBe(
+      await computed(page, "color", "var(--cd-ui-interaktion)"),
+    );
     expect(over["border-top-left-radius"]).toBe("16px");
     const chip = await styleOf(page, `${zone} .cd-shell-drop-zone-chip`, [
       "background-color",
@@ -186,7 +203,9 @@ test.describe("web chrome styles", () => {
     );
     expect(forbidden["border-top-style"]).toBe("dashed");
     // The not-allowed cursor comes from dropEffect "none" during the drag (the kit's dropZone case).
-    expect(forbidden["border-top-color"]).toBe(await computed(page, "color", "var(--cd-ui-danger)"));
+    expect(forbidden["border-top-color"]).toBe(
+      await computed(page, "color", "var(--cd-ui-danger)"),
+    );
   });
 
   test("the start screen card is glass with radius lg and shadow-2, Komet 64, title 21/600 (guide §8)", async ({
@@ -210,13 +229,15 @@ test.describe("web chrome styles", () => {
     const title = await styleOf(page, `${card} h1`, ["font-size", "font-weight"]);
     expect([title["font-size"], title["font-weight"]]).toEqual(["21px", "600"]);
     const buttons = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-chrome="empty-state"] .cd-shell-empty-state-actions button')].map(
-        (button) => ({
-          variant: button.getAttribute("data-variant"),
-          height: button.getBoundingClientRect().height,
-          background: getComputedStyle(button).backgroundColor,
-        }),
-      ),
+      [
+        ...document.querySelectorAll(
+          '[data-chrome="empty-state"] .cd-shell-empty-state-actions button',
+        ),
+      ].map((button) => ({
+        variant: button.getAttribute("data-variant"),
+        height: button.getBoundingClientRect().height,
+        background: getComputedStyle(button).backgroundColor,
+      })),
     );
     expect(buttons.map((button) => [button.variant, button.height])).toEqual([
       ["primary", 36],
@@ -242,12 +263,16 @@ test.describe("web chrome styles", () => {
       open["text-decoration-line"],
     ]).toEqual(["13px", "rgba(0, 0, 0, 0)", "0px", "underline"]);
     await page.locator(link).hover();
-    const hovered = await styleOf(page, link, ["color", "text-decoration-line", "text-decoration-thickness"]);
-    expect([hovered.color, hovered["text-decoration-line"], hovered["text-decoration-thickness"]]).toEqual([
-      open.color,
-      "underline",
-      "2px",
+    const hovered = await styleOf(page, link, [
+      "color",
+      "text-decoration-line",
+      "text-decoration-thickness",
     ]);
+    expect([
+      hovered.color,
+      hovered["text-decoration-line"],
+      hovered["text-decoration-thickness"],
+    ]).toEqual([open.color, "underline", "2px"]);
   });
 
   test("high contrast drops the shadows and widens the focus ring to 3px (guide §5.3, §5.14)", async ({
@@ -255,13 +280,19 @@ test.describe("web chrome styles", () => {
   }) => {
     await page.emulateMedia({ contrast: "more" });
     await openWeb(page, "?empty");
-    expect(await page.evaluate(() => document.documentElement.getAttribute("data-cd-kontrast"))).toBe("hoch");
-    expect((await styleOf(page, '[data-chrome="empty-state"]', ["box-shadow"]))["box-shadow"]).toBe("none");
+    expect(
+      await page.evaluate(() => document.documentElement.getAttribute("data-cd-kontrast")),
+    ).toBe("hoch");
+    expect((await styleOf(page, '[data-chrome="empty-state"]', ["box-shadow"]))["box-shadow"]).toBe(
+      "none",
+    );
     await page.locator('[data-chrome="empty-state"] button[data-variant="primary"]').click();
     await page.evaluate(() => window.__webDemo?.toast({ status: "info", text: "High contrast" }));
     await expect(page.locator(".cd-shell-toast")).toBeVisible();
     expect((await styleOf(page, ".cd-shell-toast", ["box-shadow"]))["box-shadow"]).toBe("none");
-    expect((await styleOf(page, '[data-chrome="primary"]', ["box-shadow"]))["box-shadow"]).toBe("none");
+    expect((await styleOf(page, '[data-chrome="primary"]', ["box-shadow"]))["box-shadow"]).toBe(
+      "none",
+    );
     await page.locator('[data-chrome="menu"]').focus();
     await page.keyboard.press("Tab");
     const ring = await styleOf(page, '[data-chrome="primary"]', ["outline-style", "outline-width"]);
@@ -283,14 +314,19 @@ test.describe("web chrome styles", () => {
     expect(primary["outline-style"]).toBe("solid");
     expect(primary["outline-color"]).toBe(await computed(page, "color", "Highlight"));
     expect(primary["border-top-color"]).toBe(await computed(page, "color", "ButtonText"));
-    await page.evaluate(() => window.__webDemo?.toast({ status: "danger", text: "Forced colours" }));
+    await page.evaluate(() =>
+      window.__webDemo?.toast({ status: "danger", text: "Forced colours" }),
+    );
     await expect(page.locator(".cd-shell-toast")).toBeVisible();
     const bar = await styleOf(page, ".cd-shell-toast", ["background-color", "width"], "::before");
     expect(bar.width).toBe("4px");
     expect(bar["background-color"]).toBe(await computed(page, "color", "CanvasText"));
     await dragFiles(page, 1);
     await page.waitForTimeout(300);
-    const zone = await styleOf(page, '[data-chrome="drop-zone"]', ["border-top-style", "border-top-width"]);
+    const zone = await styleOf(page, '[data-chrome="drop-zone"]', [
+      "border-top-style",
+      "border-top-width",
+    ]);
     expect([zone["border-top-style"], zone["border-top-width"]]).toEqual(["dashed", "2px"]);
   });
 });

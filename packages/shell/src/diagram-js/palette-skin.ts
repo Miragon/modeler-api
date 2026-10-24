@@ -78,7 +78,9 @@ export class PaletteSkin {
   vetoes(entry: PaletteEntryLike, event: Event | undefined): boolean {
     if (!this.locked) return false;
     const element = this.entryOf(
-      (event as { delegateTarget?: EventTarget } | undefined)?.delegateTarget ?? event?.target ?? null,
+      (event as { delegateTarget?: EventTarget } | undefined)?.delegateTarget ??
+        event?.target ??
+        null,
     );
     if (element) return !staysActive(element);
     return entry.group !== TOOLS_GROUP;
@@ -198,7 +200,8 @@ export class PaletteSkin {
   };
 
   private readonly onKeydown = (event: KeyboardEvent): void => {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+      return;
     const entry = this.entryOf(event.target);
     if (!entry) return;
     const entries = this.entryElements();

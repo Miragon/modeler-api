@@ -119,9 +119,10 @@ export function webHeadMarkup(options: WebModeScriptOptions): string {
   const mode = documentMode("system", options.themes, options.themeColors);
   const script = `<script>\n${webModeScript(options)}\n</script>`;
   if (mode.theme !== "system") {
-    return [`<meta name="theme-color" content="${escapeAttribute(mode.themeColor.light)}">`, script].join(
-      "\n",
-    );
+    return [
+      `<meta name="theme-color" content="${escapeAttribute(mode.themeColor.light)}">`,
+      script,
+    ].join("\n");
   }
   return [
     `<meta name="color-scheme" content="${escapeAttribute(mode.colorScheme)}">`,

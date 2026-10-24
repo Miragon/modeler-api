@@ -47,7 +47,11 @@ const KOMET_SIZE = "64";
 export function createEmptyState(context: EmptyStateContext): EmptyStateController {
   const { ownerDocument, messages, options, dropHint, open, titleId, onLeave } = context;
 
-  const button = (variant: "primary" | "ghost", label: string, run: () => void): HTMLButtonElement => {
+  const button = (
+    variant: "primary" | "ghost",
+    label: string,
+    run: () => void,
+  ): HTMLButtonElement => {
     const element = createElement(
       ownerDocument,
       "button",
@@ -76,7 +80,12 @@ export function createEmptyState(context: EmptyStateContext): EmptyStateControll
       alt: "",
       draggable: "false",
     }),
-    createElement(ownerDocument, "h1", { class: "cd-shell-empty-state-title", id: titleId }, options.title),
+    createElement(
+      ownerDocument,
+      "h1",
+      { class: "cd-shell-empty-state-title", id: titleId },
+      options.title,
+    ),
     createElement(ownerDocument, "p", { class: "cd-shell-empty-state-text" }, options.text),
     createElement(
       ownerDocument,
@@ -108,10 +117,19 @@ export function createEmptyState(context: EmptyStateContext): EmptyStateControll
     );
     link.addEventListener("click", () => open.onSelect());
     if (hasDropHint) {
-      paragraph.append(" ", createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·"), " ");
+      paragraph.append(
+        " ",
+        createElement(ownerDocument, "span", { "aria-hidden": "true" }, "·"),
+        " ",
+      );
     }
     // The link and its chip wrap as one: a chip alone on a line names no action.
-    const openItem = createElement(ownerDocument, "span", { class: "cd-shell-empty-state-open-item" }, link);
+    const openItem = createElement(
+      ownerDocument,
+      "span",
+      { class: "cd-shell-empty-state-open-item" },
+      link,
+    );
     if (shortcut) {
       openItem.append(
         " ",

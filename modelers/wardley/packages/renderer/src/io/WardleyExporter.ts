@@ -1,6 +1,6 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type { Root } from 'diagram-js/lib/model/Types';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type { Root } from "diagram-js/lib/model/Types";
 import {
   validateMap,
   CURRENT_SCHEMA_VERSION,
@@ -16,11 +16,11 @@ import {
   type PipelineElement,
   type SubmapElement,
   type WardleyMap,
-} from '@miragon/wardley-schema-model';
-import { isWardleyConnection, isWardleyShape, type WardleyShape } from '../model/di-types.js';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleySourceOrder from './WardleySourceOrder.js';
-import { ROOT_ID, type RootBusinessObject } from './types.js';
+} from "@miragon/wardley-schema-model";
+import { isWardleyConnection, isWardleyShape, type WardleyShape } from "../model/di-types.js";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleySourceOrder from "./WardleySourceOrder.js";
+import { ROOT_ID, type RootBusinessObject } from "./types.js";
 
 function compact<T extends Record<string, unknown>>(obj: T): T {
   const out: Record<string, unknown> = {};
@@ -35,7 +35,7 @@ function compact<T extends Record<string, unknown>>(obj: T): T {
  * `businessObject` serves only as a fallback for type-specific fields that are not (yet) editable.
  */
 export default class WardleyExporter {
-  static $inject = ['elementRegistry', 'canvas', 'evolutionGrid', 'wardleySourceOrder'];
+  static $inject = ["elementRegistry", "canvas", "evolutionGrid", "wardleySourceOrder"];
 
   constructor(
     private readonly elementRegistry: ElementRegistry,
@@ -58,11 +58,11 @@ export default class WardleyExporter {
         if (el.businessObject) {
           unorderedEdges.push(el.businessObject);
         } else {
-          const base = { id: el.id, from: el.source?.id ?? '', to: el.target?.id ?? '' };
+          const base = { id: el.id, from: el.source?.id ?? "", to: el.target?.id ?? "" };
           unorderedEdges.push(
-            el.wardleyType === 'flow'
-              ? { ...base, edgeType: 'flow', ...(el.bidirectional ? { bidirectional: true } : {}) }
-              : { ...base, edgeType: 'dependency' },
+            el.wardleyType === "flow"
+              ? { ...base, edgeType: "flow", ...(el.bidirectional ? { bidirectional: true } : {}) }
+              : { ...base, edgeType: "dependency" },
           );
         }
       } else if (isWardleyShape(el)) {
@@ -76,16 +76,16 @@ export default class WardleyExporter {
     // Consolidate pipeline membership: childIds are derived from component.pipelineId
     // (single source of truth); pipelineId references to deleted pipelines are discarded.
     const pipelineIds = new Set(
-      elements.filter((e) => e.elementType === 'pipeline').map((e) => e.id),
+      elements.filter((e) => e.elementType === "pipeline").map((e) => e.id),
     );
     const consolidated = elements.map((el) => {
-      if (el.elementType === 'component' && el.pipelineId && !pipelineIds.has(el.pipelineId)) {
+      if (el.elementType === "component" && el.pipelineId && !pipelineIds.has(el.pipelineId)) {
         const { pipelineId: _stale, ...rest } = el;
         return rest as MapElement;
       }
-      if (el.elementType === 'pipeline') {
+      if (el.elementType === "pipeline") {
         const childIds = elements
-          .filter((e) => e.elementType === 'component' && e.pipelineId === el.id)
+          .filter((e) => e.elementType === "component" && e.pipelineId === el.id)
           .map((e) => e.id);
         return { ...el, childIds };
       }
@@ -109,10 +109,10 @@ export default class WardleyExporter {
     const bo = el.businessObject;
 
     switch (el.wardleyType) {
-      case 'component':
+      case "component":
         return compact({
           id: el.id,
-          elementType: 'component',
+          elementType: "component",
           label: el.wardleyLabel,
           position,
           // labelOffset is not editable (yet); without the fallback it would be lost on
@@ -126,28 +126,28 @@ export default class WardleyExporter {
           url: (bo as ComponentElement | undefined)?.url,
           color: el.color,
         }) as ComponentElement;
-      case 'anchor':
+      case "anchor":
         return compact({
           id: el.id,
-          elementType: 'anchor',
+          elementType: "anchor",
           label: el.wardleyLabel,
           position,
           labelOffset: el.labelOffset ?? (bo as AnchorElement | undefined)?.labelOffset,
           color: el.color,
         }) as AnchorElement;
-      case 'note':
+      case "note":
         return compact({
           id: el.id,
-          elementType: 'note',
+          elementType: "note",
           label: el.wardleyLabel,
           position,
           patternType: (bo as NoteElement | undefined)?.patternType,
           color: el.color,
         }) as NoteElement;
-      case 'pipeline':
+      case "pipeline":
         return {
           id: el.id,
-          elementType: 'pipeline',
+          elementType: "pipeline",
           label: el.wardleyLabel,
           position,
           evolutionStart: el.evolutionStart ?? 0,
@@ -155,11 +155,11 @@ export default class WardleyExporter {
           childIds: (bo as PipelineElement | undefined)?.childIds ?? [],
           ...(el.color ? { color: el.color } : {}),
         };
-      case 'attitude':
+      case "attitude":
         return {
           id: el.id,
-          elementType: 'attitude',
-          kind: el.attitudeKind ?? 'pioneers',
+          elementType: "attitude",
+          kind: el.attitudeKind ?? "pioneers",
           label: el.wardleyLabel,
           position,
           // corner2 is maintained by the EvolutionConstraintBehavior on move/resize/create.
@@ -170,22 +170,22 @@ export default class WardleyExporter {
             },
           ...(el.color ? { color: el.color } : {}),
         };
-      case 'accelerator':
+      case "accelerator":
         return {
           id: el.id,
-          elementType: 'accelerator',
-          direction: el.acceleratorDirection ?? 'accelerate',
+          elementType: "accelerator",
+          direction: el.acceleratorDirection ?? "accelerate",
           label: el.wardleyLabel,
           position,
           ...(el.color ? { color: el.color } : {}),
         };
-      case 'annotation': {
+      case "annotation": {
         // The marker shows positions[0]; additional positions (multi-point annotation) are
         // preserved from the businessObject instead of collapsing to a single point on round trip.
         const extraPositions = ((bo as AnnotationElement | undefined)?.positions ?? []).slice(1);
         return {
           id: el.id,
-          elementType: 'annotation',
+          elementType: "annotation",
           label: el.wardleyLabel,
           position,
           number: el.annotationNumber ?? 0,
@@ -194,16 +194,16 @@ export default class WardleyExporter {
           ...(el.color ? { color: el.color } : {}),
         };
       }
-      case 'submap':
+      case "submap":
         return compact({
           id: el.id,
-          elementType: 'submap',
+          elementType: "submap",
           label: el.wardleyLabel,
           position,
           urlRef: (bo as SubmapElement | undefined)?.urlRef,
           color: el.color,
         }) as SubmapElement;
-      case 'drawing': {
+      case "drawing": {
         // Points are stored relative to the shape in px — convert back per point.
         const points = (el.drawingPoints ?? []).map((p) =>
           this.grid.fromCanvas({ x: el.x + p.x, y: el.y + p.y }),
@@ -211,8 +211,8 @@ export default class WardleyExporter {
         if (points.length < 2) return undefined;
         return {
           id: el.id,
-          elementType: 'drawing',
-          label: '',
+          elementType: "drawing",
+          label: "",
           position: points[0]!,
           points,
           ...(el.closed ? { closed: true } : {}),

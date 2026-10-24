@@ -1,5 +1,5 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { WardleyMap } from '@miragon/wardley-schema-model';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { WardleyMap } from "@miragon/wardley-schema-model";
 
 interface Identified {
   readonly id: string;
@@ -11,17 +11,17 @@ interface Identified {
  * connections, nodes), and exporting in it reshuffles every hand-written file on the first edit.
  */
 export default class WardleySourceOrder {
-  static $inject = ['eventBus'];
+  static $inject = ["eventBus"];
 
   private elementIndex = new Map<string, number>();
   private edgeIndex = new Map<string, number>();
 
   constructor(eventBus: EventBus) {
-    eventBus.on('import.render.start', (event: { map: WardleyMap }) => this.remember(event.map));
-    eventBus.on('diagram.clear', () => this.remember({ elements: [], edges: [] }));
+    eventBus.on("import.render.start", (event: { map: WardleyMap }) => this.remember(event.map));
+    eventBus.on("diagram.clear", () => this.remember({ elements: [], edges: [] }));
   }
 
-  remember(map: Pick<WardleyMap, 'elements' | 'edges'>): void {
+  remember(map: Pick<WardleyMap, "elements" | "edges">): void {
     this.elementIndex = new Map(map.elements.map((element, index) => [element.id, index]));
     this.edgeIndex = new Map(map.edges.map((edge, index) => [edge.id, index]));
   }

@@ -1,18 +1,18 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 import {
   connectThemeBridge,
   currentAppearance,
   renderWebviewHtml,
-} from '@miragon/modeler-shell/vscode/extension';
-import { BoardSession } from './BoardSession.js';
+} from "@miragon/modeler-shell/vscode/extension";
+import { BoardSession } from "./BoardSession.js";
 import {
   BOARD_VIEW_TYPE,
   registerSideBySideCommands,
   registerWebviewCommands,
-} from './commands.js';
-import { DIAGNOSTIC_COLLECTION_NAME } from './diagnostics.js';
-import type { HostToWebview, WebviewCommand } from './protocol.js';
-import { WEBVIEW_THEMES } from './themes.js';
+} from "./commands.js";
+import { DIAGNOSTIC_COLLECTION_NAME } from "./diagnostics.js";
+import type { HostToWebview, WebviewCommand } from "./protocol.js";
+import { WEBVIEW_THEMES } from "./themes.js";
 
 /**
  * CustomTextEditor for `.storm`. The document (Event Storming DSL text) remains the source of
@@ -58,7 +58,7 @@ export class EventStormingEditorProvider implements vscode.CustomTextEditorProvi
   /** Forwards a Command Palette command to the focused board; false when none is focused. */
   public runCommand(name: WebviewCommand): boolean {
     if (!this.activePanel) return false;
-    void this.activePanel.webview.postMessage({ type: 'command', name } satisfies HostToWebview);
+    void this.activePanel.webview.postMessage({ type: "command", name } satisfies HostToWebview);
     return true;
   }
 
@@ -68,16 +68,16 @@ export class EventStormingEditorProvider implements vscode.CustomTextEditorProvi
     _token: vscode.CancellationToken,
   ): Promise<void> {
     const webview = webviewPanel.webview;
-    const dist = vscode.Uri.joinPath(this.context.extensionUri, 'dist');
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     webview.options = { enableScripts: true, localResourceRoots: [dist] };
     const asset = (file: string): string =>
       webview.asWebviewUri(vscode.Uri.joinPath(dist, file)).toString();
     webview.html = renderWebviewHtml({
       cspSource: webview.cspSource,
-      scriptUri: asset('webview.js'),
-      styleUris: [asset('webview.css')],
-      title: 'Event Storming Board',
-      lang: 'en',
+      scriptUri: asset("webview.js"),
+      styleUris: [asset("webview.css")],
+      title: "Event Storming Board",
+      lang: "en",
       appearance: currentAppearance(vscode, { themes: WEBVIEW_THEMES }),
       body: '<div id="app"></div>',
     });

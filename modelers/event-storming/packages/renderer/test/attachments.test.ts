@@ -1,23 +1,23 @@
-import { describe, it, expect } from 'vitest';
-import EventBus from 'diagram-js/lib/core/EventBus';
-import CommandStack from 'diagram-js/lib/command/CommandStack';
-import UpdateAttachmentHandler from 'diagram-js/lib/features/modeling/cmd/UpdateAttachmentHandler';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type Modeling from 'diagram-js/lib/features/modeling/Modeling';
-import type { Shape } from 'diagram-js/lib/model/Types';
-import type { Injector } from 'didi';
-import type { EventStormingBoard } from '@miragon/event-storming-schema-model';
-import EventStormingImporter from '../src/io/EventStormingImporter.js';
-import EventStormingExporter from '../src/io/EventStormingExporter.js';
-import EventStormingElementFactory from '../src/model/EventStormingElementFactory.js';
-import EventStormingModeling from '../src/modeling/EventStormingModeling.js';
-import EventStormingAttachBehavior from '../src/attach/EventStormingAttachBehavior.js';
-import type BoardBounds from '../src/board-bounds/BoardBounds.js';
-import type { EventStormingShape } from '../src/model/di-types.js';
-import { STICKY_STYLES } from '../src/draw/styles.js';
-import { ROOT_ID } from '../src/io/types.js';
+import { describe, it, expect } from "vitest";
+import EventBus from "diagram-js/lib/core/EventBus";
+import CommandStack from "diagram-js/lib/command/CommandStack";
+import UpdateAttachmentHandler from "diagram-js/lib/features/modeling/cmd/UpdateAttachmentHandler";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type Modeling from "diagram-js/lib/features/modeling/Modeling";
+import type { Shape } from "diagram-js/lib/model/Types";
+import type { Injector } from "didi";
+import type { EventStormingBoard } from "@miragon/event-storming-schema-model";
+import EventStormingImporter from "../src/io/EventStormingImporter.js";
+import EventStormingExporter from "../src/io/EventStormingExporter.js";
+import EventStormingElementFactory from "../src/model/EventStormingElementFactory.js";
+import EventStormingModeling from "../src/modeling/EventStormingModeling.js";
+import EventStormingAttachBehavior from "../src/attach/EventStormingAttachBehavior.js";
+import type BoardBounds from "../src/board-bounds/BoardBounds.js";
+import type { EventStormingShape } from "../src/model/di-types.js";
+import { STICKY_STYLES } from "../src/draw/styles.js";
+import { ROOT_ID } from "../src/io/types.js";
 
 /** Importer + exporter over the same shape store — the mock factory returns plain attrs. */
 function ioHarness() {
@@ -30,7 +30,7 @@ function ioHarness() {
   } as unknown as ElementFactory;
   const canvas = {
     getRootElement: () => {
-      if (!root) throw new Error('no root yet');
+      if (!root) throw new Error("no root yet");
       return root;
     },
     setRootElement: (r: Record<string, unknown>) => (root = r),
@@ -60,23 +60,23 @@ function ioHarness() {
   return { importer, exporter, byId };
 }
 
-describe('Attachments: import -> export round-trip', () => {
-  it('wires host from attachedTo after ALL shapes exist and exports it back', () => {
+describe("Attachments: import -> export round-trip", () => {
+  it("wires host from attachedTo after ALL shapes exist and exports it back", () => {
     const board = {
-      config: { title: 'Fixture' },
+      config: { title: "Fixture" },
       elements: [
         // The attacher comes FIRST in document order — its host only exists afterwards.
         {
-          id: 'actor_customer',
-          elementType: 'actor',
-          label: 'Customer',
+          id: "actor_customer",
+          elementType: "actor",
+          label: "Customer",
           position: { x: 210, y: 190 },
-          attachedTo: 'command_place_order',
+          attachedTo: "command_place_order",
         },
         {
-          id: 'command_place_order',
-          elementType: 'command',
-          label: 'Place Order',
+          id: "command_place_order",
+          elementType: "command",
+          label: "Place Order",
           position: { x: 200, y: 200 },
         },
       ],
@@ -85,34 +85,34 @@ describe('Attachments: import -> export round-trip', () => {
 
     const { importer, exporter, byId } = ioHarness();
     expect(importer.import(board)).toEqual([]);
-    expect(byId('actor_customer')!.host).toBe(byId('command_place_order'));
+    expect(byId("actor_customer")!.host).toBe(byId("command_place_order"));
 
     const exported = exporter.export();
-    const actor = exported.elements.find((e) => e.id === 'actor_customer');
-    if (actor?.elementType !== 'actor') throw new Error('actor missing');
-    expect(actor.attachedTo).toBe('command_place_order');
+    const actor = exported.elements.find((e) => e.id === "actor_customer");
+    if (actor?.elementType !== "actor") throw new Error("actor missing");
+    expect(actor.attachedTo).toBe("command_place_order");
     // The position stays the actor's own absolute center — attachedTo never changes geometry.
     expect(actor.position).toEqual({ x: 210, y: 190 });
-    const command = exported.elements.find((e) => e.id === 'command_place_order')!;
-    expect('attachedTo' in command).toBe(false);
+    const command = exported.elements.find((e) => e.id === "command_place_order")!;
+    expect("attachedTo" in command).toBe(false);
   });
 
-  it('round-trips an attached note incl. a manual (size …) box', () => {
+  it("round-trips an attached note incl. a manual (size …) box", () => {
     const board = {
-      config: { title: 'Fixture' },
+      config: { title: "Fixture" },
       elements: [
         {
-          id: 'note_check',
-          elementType: 'note',
-          label: 'Check credit limit',
+          id: "note_check",
+          elementType: "note",
+          label: "Check credit limit",
           position: { x: 320, y: 210 },
           size: { width: 240, height: 160 },
-          attachedTo: 'command_place_order',
+          attachedTo: "command_place_order",
         },
         {
-          id: 'command_place_order',
-          elementType: 'command',
-          label: 'Place Order',
+          id: "command_place_order",
+          elementType: "command",
+          label: "Place Order",
           position: { x: 200, y: 200 },
         },
       ],
@@ -121,49 +121,49 @@ describe('Attachments: import -> export round-trip', () => {
 
     const { importer, exporter, byId } = ioHarness();
     expect(importer.import(board)).toEqual([]);
-    expect(byId('note_check')!.host).toBe(byId('command_place_order'));
+    expect(byId("note_check")!.host).toBe(byId("command_place_order"));
 
     const exported = exporter.export();
-    const note = exported.elements.find((e) => e.id === 'note_check');
-    if (note?.elementType !== 'note') throw new Error('note missing');
-    expect(note.attachedTo).toBe('command_place_order');
+    const note = exported.elements.find((e) => e.id === "note_check");
+    if (note?.elementType !== "note") throw new Error("note missing");
+    expect(note.attachedTo).toBe("command_place_order");
     // Both the manual box (resize feature) and the note's own absolute center survive the
     // attachment round-trip untouched.
     expect(note.size).toEqual({ width: 240, height: 160 });
     expect(note.position).toEqual({ x: 320, y: 210 });
   });
 
-  it('warns (instead of crashing) on a missing or non-host attachedTo target', () => {
+  it("warns (instead of crashing) on a missing or non-host attachedTo target", () => {
     const board = {
-      config: { title: 'Fixture' },
+      config: { title: "Fixture" },
       elements: [
         {
-          id: 'hotspot_why',
-          elementType: 'hotspot',
-          label: 'Why?',
+          id: "hotspot_why",
+          elementType: "hotspot",
+          label: "Why?",
           position: { x: 0, y: 0 },
-          attachedTo: 'ghost',
+          attachedTo: "ghost",
         },
         {
-          id: 'actor_customer',
-          elementType: 'actor',
-          label: 'Customer',
+          id: "actor_customer",
+          elementType: "actor",
+          label: "Customer",
           position: { x: 50, y: 0 },
-          attachedTo: 'note_hint',
+          attachedTo: "note_hint",
         },
-        { id: 'note_hint', elementType: 'note', label: 'Hint', position: { x: 100, y: 0 } },
+        { id: "note_hint", elementType: "note", label: "Hint", position: { x: 100, y: 0 } },
       ],
       edges: [],
     } as unknown as EventStormingBoard;
 
     const { importer, byId } = ioHarness();
     const warnings = importer.import(board);
-    expect(warnings.map((w) => w.elementId)).toEqual(['hotspot_why', 'actor_customer']);
+    expect(warnings.map((w) => w.elementId)).toEqual(["hotspot_why", "actor_customer"]);
     expect(warnings[0]!.message).toMatch(
       /^“hotspot_why” is pinned to “.+”, which isn't on the board/,
     );
-    expect(byId('hotspot_why')!.host).toBeUndefined();
-    expect(byId('actor_customer')!.host).toBeUndefined();
+    expect(byId("hotspot_why")!.host).toBeUndefined();
+    expect(byId("actor_customer")!.host).toBeUndefined();
   });
 });
 
@@ -178,19 +178,19 @@ function retypeHarness() {
     { getRootElement: () => ({ id: ROOT_ID }) } as unknown as Canvas,
     { get: () => undefined } as unknown as ElementRegistry,
   );
-  commandStack.registerHandler('element.updateAttachment', UpdateAttachmentHandler);
+  commandStack.registerHandler("element.updateAttachment", UpdateAttachmentHandler);
   new EventStormingAttachBehavior(eventBus, {
     updateAttachment: (shape: Shape, newHost?: Shape) =>
-      commandStack.execute('element.updateAttachment', { shape, newHost }),
+      commandStack.execute("element.updateAttachment", { shape, newHost }),
   } as unknown as Modeling);
   return { commandStack, modeling };
 }
 
 function pinnedPair() {
   const host = {
-    id: 'command_place_order',
-    eventStormingType: 'command',
-    eventStormingLabel: 'Place Order',
+    id: "command_place_order",
+    eventStormingType: "command",
+    eventStormingLabel: "Place Order",
     x: 0,
     y: 0,
     width: STICKY_STYLES.command.width,
@@ -198,9 +198,9 @@ function pinnedPair() {
     attachers: [] as unknown[],
   };
   const attacher = {
-    id: 'actor_customer',
-    eventStormingType: 'actor',
-    eventStormingLabel: 'Customer',
+    id: "actor_customer",
+    eventStormingType: "actor",
+    eventStormingLabel: "Customer",
     x: 10,
     y: 10,
     width: STICKY_STYLES.actor.width,
@@ -214,30 +214,30 @@ function pinnedPair() {
   };
 }
 
-describe('EventStormingAttachBehavior: retype keeps pinning consistent', () => {
-  it('detaches a pinned actor retyped to a non-attachable kind — one undo restores both', () => {
+describe("EventStormingAttachBehavior: retype keeps pinning consistent", () => {
+  it("detaches a pinned actor retyped to a non-attachable kind — one undo restores both", () => {
     const { commandStack, modeling } = retypeHarness();
     const { host, attacher } = pinnedPair();
 
-    modeling.setStickyKind(attacher, 'event');
-    expect(attacher.eventStormingType).toBe('event');
+    modeling.setStickyKind(attacher, "event");
+    expect(attacher.eventStormingType).toBe("event");
     expect(attacher.host).toBeUndefined();
     expect(host.attachers).toEqual([]);
 
     commandStack.undo();
-    expect(attacher.eventStormingType).toBe('actor');
+    expect(attacher.eventStormingType).toBe("actor");
     expect(attacher.host).toBe(host);
     expect(host.attachers).toContain(attacher);
   });
 
-  it('sheds the attachers of a host retyped to a non-host kind, keeps them on host-to-host', () => {
+  it("sheds the attachers of a host retyped to a non-host kind, keeps them on host-to-host", () => {
     const { commandStack, modeling } = retypeHarness();
     const { host, attacher } = pinnedPair();
 
-    modeling.setStickyKind(host, 'event');
+    modeling.setStickyKind(host, "event");
     expect(attacher.host).toBe(host);
 
-    modeling.setStickyKind(host, 'hotspot');
+    modeling.setStickyKind(host, "hotspot");
     expect(attacher.host).toBeUndefined();
     expect(host.attachers).toEqual([]);
 
@@ -246,20 +246,20 @@ describe('EventStormingAttachBehavior: retype keeps pinning consistent', () => {
     expect(host.attachers).toContain(attacher);
   });
 
-  it('leaves retypes between attachable kinds attached', () => {
+  it("leaves retypes between attachable kinds attached", () => {
     const { modeling } = retypeHarness();
     const { host, attacher } = pinnedPair();
-    modeling.setStickyKind(attacher, 'hotspot');
+    modeling.setStickyKind(attacher, "hotspot");
     expect(attacher.host).toBe(host);
   });
 
-  it('sheds a pinned NOTE when its host is retyped to a non-host kind — undo restores', () => {
+  it("sheds a pinned NOTE when its host is retyped to a non-host kind — undo restores", () => {
     const { commandStack, modeling } = retypeHarness();
     const { host, attacher } = pinnedPair();
     const note = {
-      id: 'note_check',
-      eventStormingType: 'note',
-      eventStormingLabel: 'Check credit limit',
+      id: "note_check",
+      eventStormingType: "note",
+      eventStormingLabel: "Check credit limit",
       x: 30,
       y: 30,
       width: 240,
@@ -268,7 +268,7 @@ describe('EventStormingAttachBehavior: retype keeps pinning consistent', () => {
     } as unknown as EventStormingShape;
     host.attachers!.push(note);
 
-    modeling.setStickyKind(host, 'actor');
+    modeling.setStickyKind(host, "actor");
     expect(note.host).toBeUndefined();
     expect(attacher.host).toBeUndefined();
     expect(host.attachers).toEqual([]);
@@ -278,20 +278,20 @@ describe('EventStormingAttachBehavior: retype keeps pinning consistent', () => {
     expect(host.attachers).toContain(note);
   });
 
-  it('rejects retyping the note itself — notes never gain a retype path', () => {
+  it("rejects retyping the note itself — notes never gain a retype path", () => {
     const { modeling } = retypeHarness();
     const { host } = pinnedPair();
     const note = {
-      id: 'note_check',
-      eventStormingType: 'note',
-      eventStormingLabel: 'Check credit limit',
+      id: "note_check",
+      eventStormingType: "note",
+      eventStormingLabel: "Check credit limit",
       x: 30,
       y: 30,
       width: 240,
       height: 160,
       host,
     } as unknown as EventStormingShape;
-    expect(() => modeling.setStickyKind(note, 'event')).toThrow(/sticky kinds/);
+    expect(() => modeling.setStickyKind(note, "event")).toThrow(/sticky kinds/);
     expect(note.host).toBe(host);
   });
 });

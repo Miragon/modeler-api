@@ -1,8 +1,8 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { SvgBounds } from './saveSvg.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { SvgBounds } from "./saveSvg.js";
 
 /** Name of the diagram-js layer the evolution grid draws its axes into. */
-const AXES_LAYER = 'wardley-axes';
+const AXES_LAYER = "wardley-axes";
 
 /** Small enough that the default axes stay inside the plot margins: the axis text has no halo. */
 const AXES_PADDING = 4;
@@ -90,7 +90,7 @@ function drawnContentBox(canvas: Canvas): SvgBounds | undefined {
     // diagram-js draws the previews of a move or create into the same layer; they are no part of
     // the document, and a cancelled drag would otherwise leave its box behind.
     const visuals = layer.querySelectorAll<SVGGraphicsElement>(
-      '.djs-visual:not(.djs-drag-group .djs-visual)',
+      ".djs-visual:not(.djs-drag-group .djs-visual)",
     );
     for (const visual of visuals) {
       const local = visual.getBBox();

@@ -1,4 +1,4 @@
-import type { Shape, Connection } from 'diagram-js/lib/model/Types';
+import type { Shape, Connection } from "diagram-js/lib/model/Types";
 import type {
   AcceleratorDirection,
   AttitudeKind,
@@ -8,7 +8,7 @@ import type {
   MapEdge,
   MapElement,
   Movement,
-} from '@miragon/wardley-schema-model';
+} from "@miragon/wardley-schema-model";
 
 /**
  * diagram-js runtime model with Wardley extensions.
@@ -19,17 +19,17 @@ import type {
  */
 
 export type WardleyShapeType =
-  | 'component'
-  | 'anchor'
-  | 'pipeline'
-  | 'note'
-  | 'annotation'
-  | 'attitude'
-  | 'submap'
-  | 'accelerator'
-  | 'drawing';
+  | "component"
+  | "anchor"
+  | "pipeline"
+  | "note"
+  | "annotation"
+  | "attitude"
+  | "submap"
+  | "accelerator"
+  | "drawing";
 
-export type WardleyConnectionType = 'dependency' | 'flow';
+export type WardleyConnectionType = "dependency" | "flow";
 
 export interface WardleyShape extends Shape {
   wardleyType: WardleyShapeType;
@@ -77,16 +77,16 @@ export interface WardleyConnection extends Connection {
 }
 
 function isObject(el: unknown): el is Record<string, unknown> {
-  return typeof el === 'object' && el !== null;
+  return typeof el === "object" && el !== null;
 }
 
 export function isWardleyShape(el: unknown): el is WardleyShape {
-  return isObject(el) && typeof el['wardleyType'] === 'string' && 'evolution' in el;
+  return isObject(el) && typeof el["wardleyType"] === "string" && "evolution" in el;
 }
 
 const CONNECTION_TYPES: ReadonlySet<unknown> = new Set<WardleyConnectionType>([
-  'dependency',
-  'flow',
+  "dependency",
+  "flow",
 ]);
 
 /**
@@ -94,17 +94,17 @@ const CONNECTION_TYPES: ReadonlySet<unknown> = new Set<WardleyConnectionType>([
  * inside `connection.create`'s execute, so pre-execute hooks (e.g. ordering) see it without them.
  */
 export function isWardleyConnection(el: unknown): el is WardleyConnection {
-  return isObject(el) && CONNECTION_TYPES.has(el['wardleyType']);
+  return isObject(el) && CONNECTION_TYPES.has(el["wardleyType"]);
 }
 
 export function isComponent(el: unknown): el is WardleyShape {
-  return isWardleyShape(el) && el.wardleyType === 'component';
+  return isWardleyShape(el) && el.wardleyType === "component";
 }
 
 export function isPipeline(el: unknown): el is WardleyShape {
-  return isWardleyShape(el) && el.wardleyType === 'pipeline';
+  return isWardleyShape(el) && el.wardleyType === "pipeline";
 }
 
 export function isAttitude(el: unknown): el is WardleyShape {
-  return isWardleyShape(el) && el.wardleyType === 'attitude';
+  return isWardleyShape(el) && el.wardleyType === "attitude";
 }

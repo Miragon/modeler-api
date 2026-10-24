@@ -1,20 +1,20 @@
-import * as vscode from 'vscode';
-import type { WebviewCommand } from './protocol.js';
+import * as vscode from "vscode";
+import type { WebviewCommand } from "./protocol.js";
 
 export const WEBVIEW_COMMANDS: Readonly<Record<WebviewCommand, string>> = {
-  fitView: 'eventStorming.fitView',
-  exportPng: 'eventStorming.exportPng',
-  exportSvg: 'eventStorming.exportSvg',
-  exportPngTransparent: 'eventStorming.exportPngTransparent',
-  exportJson: 'eventStorming.exportJson',
+  fitView: "eventStorming.fitView",
+  exportPng: "eventStorming.exportPng",
+  exportSvg: "eventStorming.exportSvg",
+  exportPngTransparent: "eventStorming.exportPngTransparent",
+  exportJson: "eventStorming.exportJson",
 };
 
-export const NO_BOARD_MESSAGE = 'Open an Event Storming board in the board editor first.';
+export const NO_BOARD_MESSAGE = "Open an Event Storming board in the board editor first.";
 
 /** Text and board side by side (guide §13.5), from the editor title of either editor. */
-export const OPEN_SOURCE_COMMAND = 'eventStorming.openSource';
-export const OPEN_BOARD_COMMAND = 'eventStorming.openBoard';
-export const BOARD_VIEW_TYPE = 'eventStorming.boardEditor';
+export const OPEN_SOURCE_COMMAND = "eventStorming.openSource";
+export const OPEN_BOARD_COMMAND = "eventStorming.openBoard";
+export const BOARD_VIEW_TYPE = "eventStorming.boardEditor";
 
 /**
  * Editor title buttons pass the editor's resource; the Command Palette passes nothing, so the
@@ -32,9 +32,9 @@ export function registerSideBySideCommands(
       const uri = resourceArgument(argument) ?? activeBoardUri();
       if (!uri) return void vscode.window.showInformationMessage(NO_BOARD_MESSAGE);
       return vscode.commands.executeCommand(
-        'vscode.openWith',
+        "vscode.openWith",
         uri,
-        'default',
+        "default",
         vscode.ViewColumn.Beside,
       );
     }),
@@ -42,7 +42,7 @@ export function registerSideBySideCommands(
       const uri = resourceArgument(argument) ?? vscode.window.activeTextEditor?.document.uri;
       if (!uri) return undefined;
       return vscode.commands.executeCommand(
-        'vscode.openWith',
+        "vscode.openWith",
         uri,
         BOARD_VIEW_TYPE,
         vscode.ViewColumn.Beside,

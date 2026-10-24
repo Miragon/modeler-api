@@ -1,19 +1,19 @@
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type {
   BoardEdge,
   BoardElement,
   DrawingElement,
   NoteElement,
-} from '@miragon/event-storming-schema-model';
-import { STICKY_STYLES, noteMetrics } from '../draw/styles.js';
+} from "@miragon/event-storming-schema-model";
+import { STICKY_STYLES, noteMetrics } from "../draw/styles.js";
 import {
   isStickyKind,
   type EventStormingConnection,
   type EventStormingShape,
   type EventStormingShapeType,
-} from './di-types.js';
-import { randomIdSuffix } from './random-id.js';
+} from "./di-types.js";
+import { randomIdSuffix } from "./random-id.js";
 
 /**
  * Id prefixes matching the DSL parser's allocator (event_/cmd_/…) plus note/drawing — a sticky's
@@ -21,16 +21,16 @@ import { randomIdSuffix } from './random-id.js';
  * elements must not carry diagram-js `shape_N` ids.
  */
 const ID_PREFIXES: Readonly<Record<EventStormingShapeType, string>> = {
-  event: 'event',
-  command: 'cmd',
-  actor: 'actor',
-  aggregate: 'agg',
-  policy: 'policy',
-  readmodel: 'read',
-  external: 'ext',
-  hotspot: 'hot',
-  note: 'note',
-  drawing: 'draw',
+  event: "event",
+  command: "cmd",
+  actor: "actor",
+  aggregate: "agg",
+  policy: "policy",
+  readmodel: "read",
+  external: "ext",
+  hotspot: "hot",
+  note: "note",
+  drawing: "draw",
 };
 
 /**
@@ -38,7 +38,7 @@ const ID_PREFIXES: Readonly<Record<EventStormingShapeType, string>> = {
  * CENTERS in board pixels — converted to diagram-js top-left via the per-kind width/height.
  */
 export default class EventStormingElementFactory {
-  static $inject = ['elementFactory', 'elementRegistry'];
+  static $inject = ["elementFactory", "elementRegistry"];
 
   constructor(
     private readonly elementFactory: ElementFactory,
@@ -54,7 +54,7 @@ export default class EventStormingElementFactory {
     const taken = new Set<string>();
     for (const el of this.elementRegistry.getAll()) {
       const lbl = (el as { eventStormingLabel?: unknown }).eventStormingLabel;
-      if (typeof lbl === 'string') taken.add(lbl);
+      if (typeof lbl === "string") taken.add(lbl);
     }
     if (!taken.has(base)) return base;
     let i = 2;
@@ -112,12 +112,12 @@ export default class EventStormingElementFactory {
       y: el.position.y - height / 2,
       width,
       height,
-      eventStormingType: 'note',
+      eventStormingType: "note",
       eventStormingLabel: el.label,
       businessObject: el,
       ...(el.color ? { color: el.color } : {}),
-      ...(horizontal && horizontal !== 'left' ? { alignHorizontal: horizontal } : {}),
-      ...(vertical && vertical !== 'top' ? { alignVertical: vertical } : {}),
+      ...(horizontal && horizontal !== "left" ? { alignHorizontal: horizontal } : {}),
+      ...(vertical && vertical !== "top" ? { alignVertical: vertical } : {}),
     });
     return shape as unknown as EventStormingShape;
   }
@@ -138,7 +138,7 @@ export default class EventStormingElementFactory {
     extra: {
       id?: string;
       closed?: boolean;
-      strokeStyle?: DrawingElement['strokeStyle'];
+      strokeStyle?: DrawingElement["strokeStyle"];
       color?: string;
       businessObject?: DrawingElement;
     } = {},
@@ -150,13 +150,13 @@ export default class EventStormingElementFactory {
     const width = Math.max(Math.max(...xs) - x, 4);
     const height = Math.max(Math.max(...ys) - y, 4);
     const shape = this.elementFactory.createShape({
-      id: extra.id ?? this.allocateId('drawing'),
+      id: extra.id ?? this.allocateId("drawing"),
       x,
       y,
       width,
       height,
-      eventStormingType: 'drawing',
-      eventStormingLabel: '',
+      eventStormingType: "drawing",
+      eventStormingLabel: "",
       drawingPoints: canvasPoints.map((p) => ({ x: p.x - x, y: p.y - y })),
       ...(extra.closed ? { closed: true } : {}),
       ...(extra.strokeStyle ? { strokeStyle: extra.strokeStyle } : {}),
@@ -189,11 +189,11 @@ export default class EventStormingElementFactory {
   createProvisional(): EventStormingShape {
     const { width, height } = STICKY_STYLES.event;
     const shape = this.elementFactory.createShape({
-      id: this.allocateId('event'),
+      id: this.allocateId("event"),
       width,
       height,
-      eventStormingType: 'event',
-      eventStormingLabel: '',
+      eventStormingType: "event",
+      eventStormingLabel: "",
       provisional: true,
     });
     return shape as unknown as EventStormingShape;
@@ -209,7 +209,7 @@ export default class EventStormingElementFactory {
       source,
       target,
       waypoints: [centerOf(source), centerOf(target)],
-      eventStormingType: 'arrow',
+      eventStormingType: "arrow",
       ...(edge.label ? { linkLabel: edge.label } : {}),
       businessObject: edge,
     });

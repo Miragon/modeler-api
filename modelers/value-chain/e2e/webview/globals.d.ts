@@ -1,7 +1,7 @@
-import type { CollaborativeValueChainModeler } from '@miragon/value-chain-renderer';
-import type { ShellHandle } from '@miragon/modeler-shell';
-import type { DiagramJsConnection } from '@miragon/modeler-shell/diagram-js';
-import type { VsCodeWebviewStub } from '@miragon/modeler-shell/testing/vscode-stub';
+import type { CollaborativeValueChainModeler } from "@miragon/value-chain-renderer";
+import type { ShellHandle } from "@miragon/modeler-shell";
+import type { DiagramJsConnection } from "@miragon/modeler-shell/diagram-js";
+import type { VsCodeWebviewStub } from "@miragon/modeler-shell/testing/vscode-stub";
 
 /* What the webview test page publishes on window for the tests (never the shipped bundle). */
 declare global {

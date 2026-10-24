@@ -1,4 +1,4 @@
-declare module '*.wmap?raw' {
+declare module "*.wmap?raw" {
   const text: string;
   export default text;
 }

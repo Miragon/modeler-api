@@ -1,6 +1,6 @@
 ---
 paths:
-  - '**/package.json'
+  - "**/package.json"
 ---
 
 # Always use fixed dependency versions

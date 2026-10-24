@@ -35,7 +35,8 @@ export const webModeProbe = ({ key }: { key: string }): WebModeFacts => {
   return {
     theme: html.getAttribute("data-cd-theme"),
     kontrast: html.getAttribute("data-cd-kontrast"),
-    colorScheme: document.querySelector('meta[name="color-scheme"]')?.getAttribute("content") ?? null,
+    colorScheme:
+      document.querySelector('meta[name="color-scheme"]')?.getAttribute("content") ?? null,
     themeColors: [...document.querySelectorAll('meta[name="theme-color"]')].map((meta) => ({
       content: meta.getAttribute("content") ?? "",
       media: meta.getAttribute("media"),
@@ -71,7 +72,8 @@ export const watchModeProbe = (_: null): void => {
         if (record.attributeName === "class") {
           const had = (record.oldValue ?? "").split(/\s+/).includes("cd-shell-no-transition");
           const has = html.classList.contains("cd-shell-no-transition");
-          if (had !== has) changes.push({ part: "no-transition", value: has ? "on" : "off", frame });
+          if (had !== has)
+            changes.push({ part: "no-transition", value: has ? "on" : "off", frame });
         } else if (record.attributeName === "data-cd-theme") {
           changes.push({ part: "theme", value: html.getAttribute("data-cd-theme"), frame });
         } else if (record.attributeName === "data-cd-kontrast") {
@@ -93,7 +95,9 @@ export const watchModeProbe = (_: null): void => {
     attributeOldValue: true,
     attributeFilter: ["data-cd-theme", "data-cd-kontrast", "class"],
   });
-  for (const meta of document.querySelectorAll('meta[name="color-scheme"], meta[name="theme-color"]')) {
+  for (const meta of document.querySelectorAll(
+    'meta[name="color-scheme"], meta[name="theme-color"]',
+  )) {
     observer.observe(meta, { attributes: true, attributeFilter: ["content"] });
   }
   tools.modeWatch = {
@@ -186,7 +190,8 @@ export const legalLineProbe = ({ root }: { root: string }): LegalLineFacts | nul
     })),
     separators: separators.map((separator) => {
       const next = links.findIndex(
-        (link) => (separator.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+        (link) =>
+          (separator.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
       );
       const rect = separator.getBoundingClientRect();
       return { centerY: rect.top + rect.height / 2 - rootTop, next: next === -1 ? null : next };
@@ -214,7 +219,8 @@ export const topRowProbe = ({ root }: { root: string }): TopRowFacts | null => {
       collapsed: rootElement.getAttribute("data-primary") === "collapsed",
       ariaLabel: primary.getAttribute("aria-label"),
       describedBy: primary.getAttribute("aria-describedby"),
-      label: labels.length > 0 ? labels.map((span) => (span.textContent ?? "").trim()).join(" ") : null,
+      label:
+        labels.length > 0 ? labels.map((span) => (span.textContent ?? "").trim()).join(" ") : null,
     };
   }
   return {
@@ -227,7 +233,13 @@ export const topRowProbe = ({ root }: { root: string }): TopRowFacts | null => {
 };
 
 /** Counts the `click` events that reach the first match of `selector` (removed with the stand-ins). */
-export const countClicksProbe = ({ root, selector }: { root: string; selector: string }): boolean => {
+export const countClicksProbe = ({
+  root,
+  selector,
+}: {
+  root: string;
+  selector: string;
+}): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const element = document.querySelector(root)?.querySelector(selector);
   if (!element) return false;
@@ -240,7 +252,8 @@ export const countClicksProbe = ({ root, selector }: { root: string; selector: s
   return true;
 };
 
-export const clicksProbe = (_: null): number => (window as ToolWindow).__modelerShellConformance!.clicks;
+export const clicksProbe = (_: null): number =>
+  (window as ToolWindow).__modelerShellConformance!.clicks;
 
 /** The web app's start screen and what it hides (guide §8). */
 export interface EmptyStateFacts {
@@ -255,7 +268,12 @@ export interface EmptyStateFacts {
    * The last link or button of the hint (the card's last paragraph), with its `aria-keyshortcuts`,
    * the text of the `kbd` chip after it and whether its own `text-decoration-line` underlines it.
    */
-  openLink: { name: string; keyShortcuts: string | null; chip: string | null; underlined: boolean } | null;
+  openLink: {
+    name: string;
+    keyShortcuts: string | null;
+    chip: string | null;
+    underlined: boolean;
+  } | null;
   /** Each island of the work chrome in the DOM, with its computed visibility. */
   work: Array<{ name: string; visibility: string; visible: boolean }>;
   /** The canvas slot (`.cd-shell-canvas`) is `inert`. */
@@ -292,7 +310,8 @@ export const emptyStateProbe = ({
   const chip = link
     ? [...(hintParagraph?.querySelectorAll("kbd") ?? [])].find(
         (kbd) =>
-          tools.visible(kbd) && (link.compareDocumentPosition(kbd) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+          tools.visible(kbd) &&
+          (link.compareDocumentPosition(kbd) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
       )
     : undefined;
   return {
@@ -320,7 +339,10 @@ export const emptyStateProbe = ({
         }
       : null,
     heading: heading
-      ? { tag: heading.tagName.toLowerCase(), text: (heading.textContent ?? "").replace(/\s+/g, " ").trim() }
+      ? {
+          tag: heading.tagName.toLowerCase(),
+          text: (heading.textContent ?? "").replace(/\s+/g, " ").trim(),
+        }
       : null,
     // The card's actions; a text link inside the hint paragraph is no action (guide §8).
     buttons: [...(card?.querySelectorAll("button") ?? [])]
@@ -329,7 +351,9 @@ export const emptyStateProbe = ({
         const rect = button.getBoundingClientRect();
         return {
           variant: button.getAttribute("data-variant"),
-          name: (button.getAttribute("aria-label") ?? button.textContent ?? "").replace(/\s+/g, " ").trim(),
+          name: (button.getAttribute("aria-label") ?? button.textContent ?? "")
+            .replace(/\s+/g, " ")
+            .trim(),
           height: rect.height,
           client: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
         };
@@ -341,7 +365,9 @@ export const emptyStateProbe = ({
         .at(-1) ?? null,
     openLink: link
       ? {
-          name: (link.getAttribute("aria-label") ?? link.textContent ?? "").replace(/\s+/g, " ").trim(),
+          name: (link.getAttribute("aria-label") ?? link.textContent ?? "")
+            .replace(/\s+/g, " ")
+            .trim(),
           keyShortcuts: link.getAttribute("aria-keyshortcuts"),
           chip: chip?.textContent?.trim() || null,
           underlined: getComputedStyle(link).textDecorationLine.split(/\s+/).includes("underline"),
@@ -360,7 +386,11 @@ export const emptyStateProbe = ({
 };
 
 /** Where the focus is: the island (`data-chrome`) around it, the canvas, `<body>` or outside the root. */
-export const focusOwnerProbe = ({ root }: { root: string }): { owner: string; description: string } => {
+export const focusOwnerProbe = ({
+  root,
+}: {
+  root: string;
+}): { owner: string; description: string } => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const active = document.activeElement;
   const rootElement = document.querySelector(root);
@@ -405,7 +435,12 @@ export interface LiveRegionFacts {
 
 export interface ToastsFacts {
   /** `[data-chrome="toasts"]`; `null` where there is none (the IDE host). */
-  stack: { visible: boolean; box: RelativeBox; popover: string | null; popoverOpen: boolean } | null;
+  stack: {
+    visible: boolean;
+    box: RelativeBox;
+    popover: string | null;
+    popoverOpen: boolean;
+  } | null;
   /** The visible toasts (`[data-status]` cards of the stack), in DOM order (the newest last). */
   toasts: ToastFacts[];
   /** Toast cards (`.cd-shell-toast`) visible anywhere in the document outside the stack. */
@@ -441,7 +476,11 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
   const contentWidth = (card: HTMLElement): number => {
     const saved = ["width", "min-width", "max-width"].map(
       (property) =>
-        [property, card.style.getPropertyValue(property), card.style.getPropertyPriority(property)] as const,
+        [
+          property,
+          card.style.getPropertyValue(property),
+          card.style.getPropertyPriority(property),
+        ] as const,
     );
     card.style.setProperty("width", "max-content", "important");
     card.style.setProperty("min-width", "0", "important");
@@ -486,13 +525,13 @@ export const toastsProbe = ({ root }: { root: string }): ToastsFacts | null => {
     strays: [...document.querySelectorAll(".cd-shell-toast")]
       .filter((element) => !stack?.contains(element) && tools.visible(element))
       .map((element) => tools.describe(element)),
-    live: [...rootElement.querySelectorAll(".cd-shell-live [role], .cd-shell-live [aria-live]")].map(
-      (region) => ({
-        role: region.getAttribute("role"),
-        live: region.getAttribute("aria-live"),
-        text: (region.textContent ?? "").replace(/\s+/g, " ").trim(),
-      }),
-    ),
+    live: [
+      ...rootElement.querySelectorAll(".cd-shell-live [role], .cd-shell-live [aria-live]"),
+    ].map((region) => ({
+      role: region.getAttribute("role"),
+      live: region.getAttribute("aria-live"),
+      text: (region.textContent ?? "").replace(/\s+/g, " ").trim(),
+    })),
   };
 };
 
@@ -511,7 +550,8 @@ export const focusToastButtonProbe = ({
     (candidate) => (candidate.textContent ?? "").includes(text),
   );
   const button = [...(toast?.querySelectorAll("button") ?? [])].find(
-    (candidate) => (candidate.getAttribute("aria-label") ?? candidate.textContent ?? "").trim() === name,
+    (candidate) =>
+      (candidate.getAttribute("aria-label") ?? candidate.textContent ?? "").trim() === name,
   );
   if (!button) return false;
   button.focus();
@@ -535,7 +575,11 @@ export const watchToastStackProbe = ({ root }: { root: string }): boolean => {
 };
 
 /** The toggles `watchToastStackProbe` recorded, and whether the stack is shown in the top layer now. */
-export const toastStackTogglesProbe = ({ root }: { root: string }): { toggles: string[]; open: boolean } => {
+export const toastStackTogglesProbe = ({
+  root,
+}: {
+  root: string;
+}): { toggles: string[]; open: boolean } => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const stack = document.querySelector(root)?.querySelector('[data-chrome="toasts"]');
   let open = false;
@@ -566,7 +610,12 @@ export const showModalProbe = (_: null): boolean => {
 
 /** The pill, the web app's problems list it opens, its rows and where the focus is (guide §5.10). */
 export interface PopoverFacts {
-  pill: { attributes: Record<string, string>; box: RelativeBox; client: Point; visible: boolean } | null;
+  pill: {
+    attributes: Record<string, string>;
+    box: RelativeBox;
+    client: Point;
+    visible: boolean;
+  } | null;
   popover: {
     attributes: Record<string, string>;
     box: RelativeBox;
@@ -610,7 +659,10 @@ export const popoverProbe = ({ root }: { root: string }): PopoverFacts | null =>
         ? {
             attributes: attributes(pill),
             box: tools.box(pill, rootElement),
-            client: { x: pillRect.left + pillRect.width / 2, y: pillRect.top + pillRect.height / 2 },
+            client: {
+              x: pillRect.left + pillRect.width / 2,
+              y: pillRect.top + pillRect.height / 2,
+            },
             visible: tools.visible(pill),
           }
         : null,
@@ -692,7 +744,13 @@ export interface DropZoneFacts {
   } | null;
   chip: { text: string; background: string } | null;
   /** The roles of guide §9 resolved to computed colours inside the root. */
-  roles: { hover: string; interaktion: string; dangerFlaeche: string; danger: string; flaecheHoch: string };
+  roles: {
+    hover: string;
+    interaktion: string;
+    dangerFlaeche: string;
+    danger: string;
+    flaecheHoch: string;
+  };
 }
 
 export const dragProbe = async (spec: DragSpec): Promise<DropZoneFacts | null> => {
@@ -724,7 +782,9 @@ export const dragProbe = async (spec: DragSpec): Promise<DropZoneFacts | null> =
       get(target, key) {
         if (key === "dropEffect" || key === "effectAllowed") return effects[key];
         const value = Reflect.get(target, key, target) as unknown;
-        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+        return typeof value === "function"
+          ? (value as (...args: unknown[]) => unknown).bind(target)
+          : value;
       },
       set(target, key, value) {
         if (key === "dropEffect" || key === "effectAllowed") {
@@ -736,7 +796,11 @@ export const dragProbe = async (spec: DragSpec): Promise<DropZoneFacts | null> =
     });
     Object.defineProperty(event, "dataTransfer", { configurable: true, value: recorded });
     target.dispatchEvent(event);
-    events.push({ type, defaultPrevented: event.defaultPrevented, dropEffect: effects.dropEffect ?? "none" });
+    events.push({
+      type,
+      defaultPrevented: event.defaultPrevented,
+      dropEffect: effects.dropEffect ?? "none",
+    });
   }
   await tools.settle();
   const resolve = (role: string): string => {

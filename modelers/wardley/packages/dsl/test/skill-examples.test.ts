@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from '../src/index.js';
-import { collectMapFiles, collectMarkdownExamples, pluginRoot } from './support/plugin-examples.js';
+import { describe, it, expect } from "vitest";
+import { parseDSL, parseDSLWithDiagnostics, serializeDSL } from "../src/index.js";
+import { collectMapFiles, collectMarkdownExamples, pluginRoot } from "./support/plugin-examples.js";
 
 /**
  * Some lines reach `rawPassthrough` without a diagnostic (comments, a url definition no element
@@ -13,12 +13,12 @@ function nonCommentPassthrough(text: string): string[] {
   for (const entry of parseDSL(text).rawPassthrough ?? []) {
     const trimmed = entry.trim();
     if (insideBlockComment) {
-      if (trimmed.includes('*/')) insideBlockComment = false;
+      if (trimmed.includes("*/")) insideBlockComment = false;
       continue;
     }
-    if (trimmed.startsWith('//')) continue;
-    if (trimmed.startsWith('/*')) {
-      insideBlockComment = !trimmed.includes('*/', 2);
+    if (trimmed.startsWith("//")) continue;
+    if (trimmed.startsWith("/*")) {
+      insideBlockComment = !trimmed.includes("*/", 2);
       continue;
     }
     leftovers.push(entry);
@@ -28,7 +28,7 @@ function nonCommentPassthrough(text: string): string[] {
 
 function expectCleanRoundTrip(text: string): void {
   expect(parseDSLWithDiagnostics(text).diagnostics).toEqual([]);
-  expect(nonCommentPassthrough(text), 'statements the parser did not understand').toEqual([]);
+  expect(nonCommentPassthrough(text), "statements the parser did not understand").toEqual([]);
   const serializedOnce = serializeDSL(parseDSL(text));
   expect(serializeDSL(parseDSL(serializedOnce))).toBe(serializedOnce);
 }
@@ -42,17 +42,17 @@ const mapFiles = collectMapFiles();
  * parser rejects, silently drops or rewrites would teach Claude broken syntax, so every example
  * must parse cleanly and survive a serialize round-trip unchanged.
  */
-describe('skill examples', () => {
-  it('finds at least one ```owm block and one map file (guards against a silently empty suite)', () => {
+describe("skill examples", () => {
+  it("finds at least one ```owm block and one map file (guards against a silently empty suite)", () => {
     expect(markdownExamples.length, `\`\`\`owm blocks under ${pluginRoot}`).toBeGreaterThan(0);
     expect(mapFiles.length, `.wmap/.owm files under ${pluginRoot}`).toBeGreaterThan(0);
   });
 
-  it.each(markdownExamples)('owm block $name', ({ text }) => {
+  it.each(markdownExamples)("owm block $name", ({ text }) => {
     expectCleanRoundTrip(text);
   });
 
-  it.each(mapFiles)('map file $name', ({ text }) => {
+  it.each(mapFiles)("map file $name", ({ text }) => {
     expectCleanRoundTrip(text);
   });
 });

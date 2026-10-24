@@ -15,7 +15,7 @@ npm install @miragon/wardley-dsl
 ## Usage
 
 ```ts
-import { parseDSL, serializeDSL } from '@miragon/wardley-dsl';
+import { parseDSL, serializeDSL } from "@miragon/wardley-dsl";
 
 const map = parseDSL(`title Tea Shop
 component Kettle [0.43, 0.35]
@@ -31,7 +31,7 @@ the end, numbers like `0.80` as `0.8`. Where the text file is the source of trut
 file under Git), write an edited map back with `patchDSL` instead:
 
 ```ts
-import { parseDSL, patchDSL } from '@miragon/wardley-dsl';
+import { parseDSL, patchDSL } from "@miragon/wardley-dsl";
 
 const map = parseDSL(fileText);
 // … the user moves, renames, adds or deletes something …
@@ -57,9 +57,9 @@ an element holds an id the text does not give it until the text is read again. `
 tells, by the ids of `map`, which id each element carries once `serializeDSL(map)` is read back:
 
 ```ts
-import { readBackIds } from '@miragon/wardley-dsl';
+import { readBackIds } from "@miragon/wardley-dsl";
 
-readBackIds(editedMap).get('shape_42'); // 'cmp_hot_water'
+readBackIds(editedMap).get("shape_42"); // 'cmp_hot_water'
 ```
 
 Part of the [Wardley Maps](https://github.com/Miragon/wardley-maps-modeler) monorepo.

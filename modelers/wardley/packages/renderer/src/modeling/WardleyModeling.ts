@@ -1,16 +1,16 @@
-import type CommandStack from 'diagram-js/lib/command/CommandStack';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type { MapConfig, MapSize, Method } from '@miragon/wardley-schema-model';
-import type { WardleyConnection, WardleyShape } from '../model/di-types.js';
-import { noteMetrics } from '../draw/styles.js';
-import { wardleyRootOf } from '../map-resize/index.js';
-import UpdatePropertiesHandler from './cmd/UpdatePropertiesHandler.js';
-import ResizeMapHandler from './cmd/ResizeMapHandler.js';
-import UpdateConfigHandler, { type MapConfigUpdate } from './cmd/UpdateConfigHandler.js';
+import type CommandStack from "diagram-js/lib/command/CommandStack";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type { MapConfig, MapSize, Method } from "@miragon/wardley-schema-model";
+import type { WardleyConnection, WardleyShape } from "../model/di-types.js";
+import { noteMetrics } from "../draw/styles.js";
+import { wardleyRootOf } from "../map-resize/index.js";
+import UpdatePropertiesHandler from "./cmd/UpdatePropertiesHandler.js";
+import ResizeMapHandler from "./cmd/ResizeMapHandler.js";
+import UpdateConfigHandler, { type MapConfigUpdate } from "./cmd/UpdateConfigHandler.js";
 
-const UPDATE_PROPERTIES = 'element.updateProperties';
-export const RESIZE_MAP = 'wardley.map.resize';
-export const UPDATE_CONFIG = 'wardley.config.update';
+const UPDATE_PROPERTIES = "element.updateProperties";
+export const RESIZE_MAP = "wardley.map.resize";
+export const UPDATE_CONFIG = "wardley.config.update";
 
 function compact<T extends Record<string, unknown>>(obj: T): T {
   const out: Record<string, unknown> = {};
@@ -28,7 +28,7 @@ export interface EvolveOptions {
  * Registers the generic UpdatePropertiesHandler at bootstrap.
  */
 export default class WardleyModeling {
-  static $inject = ['commandStack', 'canvas'];
+  static $inject = ["commandStack", "canvas"];
 
   constructor(
     private readonly commandStack: CommandStack,
@@ -57,7 +57,7 @@ export default class WardleyModeling {
     const current = config as unknown as Record<string, unknown>;
     const changed = Object.fromEntries(
       Object.entries(properties).filter(
-        ([key, value]) => key !== 'size' && JSON.stringify(current[key]) !== JSON.stringify(value),
+        ([key, value]) => key !== "size" && JSON.stringify(current[key]) !== JSON.stringify(value),
       ),
     ) as MapConfigUpdate;
     if (Object.keys(changed).length === 0) return;
@@ -77,7 +77,7 @@ export default class WardleyModeling {
 
   updateLabel(element: WardleyShape, label: string): void {
     // Notes: resize the box (and thus the move/click hitbox) to the new text, keeping the center.
-    if (element.wardleyType === 'note') {
+    if (element.wardleyType === "note") {
       const { width, height } = noteMetrics(label);
       const cx = element.x + element.width / 2;
       const cy = element.y + element.height / 2;
@@ -113,23 +113,23 @@ export default class WardleyModeling {
 
   toggleInertia(element: WardleyShape): void {
     const dec: Record<string, unknown> = { ...(element.decorators ?? {}) };
-    if (dec['inertia']) delete dec['inertia'];
-    else dec['inertia'] = true;
+    if (dec["inertia"]) delete dec["inertia"];
+    else dec["inertia"] = true;
     this.updateProperties(element, { decorators: Object.keys(dec).length ? dec : undefined });
   }
 
   setMethod(element: WardleyShape, method: Method | undefined): void {
     const dec: Record<string, unknown> = { ...(element.decorators ?? {}) };
-    if (method) dec['method'] = method;
-    else delete dec['method'];
+    if (method) dec["method"] = method;
+    else delete dec["method"];
     this.updateProperties(element, { decorators: Object.keys(dec).length ? dec : undefined });
   }
 
   /** Sets market/ecosystem (mutually exclusive) or removes both (`undefined`). */
-  setMarketEcosystem(element: WardleyShape, kind: 'market' | 'ecosystem' | undefined): void {
+  setMarketEcosystem(element: WardleyShape, kind: "market" | "ecosystem" | undefined): void {
     const dec: Record<string, unknown> = { ...(element.decorators ?? {}) };
-    delete dec['market'];
-    delete dec['ecosystem'];
+    delete dec["market"];
+    delete dec["ecosystem"];
     if (kind) dec[kind] = true;
     this.updateProperties(element, { decorators: Object.keys(dec).length ? dec : undefined });
   }

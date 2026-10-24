@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { satisfies, valid } from 'semver';
-import { describe, expect, it } from 'vitest';
+import { readFileSync } from "node:fs";
+import { satisfies, valid } from "semver";
+import { describe, expect, it } from "vitest";
 
 interface Manifest {
   name: string;
@@ -19,18 +19,18 @@ interface PeerPin {
 
 function readManifest(directoryFromRepoRoot: string): Manifest {
   const manifestUrl = new URL(`../../../${directoryFromRepoRoot}package.json`, import.meta.url);
-  return JSON.parse(readFileSync(manifestUrl, 'utf8')) as Manifest;
+  return JSON.parse(readFileSync(manifestUrl, "utf8")) as Manifest;
 }
 
 /** The modeler's workspaces as npm resolved the suite's globs: the lockfile has one entry each. */
 function modelerWorkspaces(): string[] {
-  const repositoryRoot = new URL('../../../', import.meta.url);
-  const suiteRoot = new URL('../../', repositoryRoot);
+  const repositoryRoot = new URL("../../../", import.meta.url);
+  const suiteRoot = new URL("../../", repositoryRoot);
   const modeler = repositoryRoot.href.slice(suiteRoot.href.length);
-  const lockfile = new URL('package-lock.json', suiteRoot);
-  const { packages } = JSON.parse(readFileSync(lockfile, 'utf8')) as { packages: object };
+  const lockfile = new URL("package-lock.json", suiteRoot);
+  const { packages } = JSON.parse(readFileSync(lockfile, "utf8")) as { packages: object };
   return Object.keys(packages)
-    .filter((path) => path.startsWith(modeler) && !path.includes('node_modules/'))
+    .filter((path) => path.startsWith(modeler) && !path.includes("node_modules/"))
     .map((path) => path.slice(modeler.length));
 }
 
@@ -69,8 +69,8 @@ const peerPins: PeerPin[] = providers.flatMap((provider) =>
  * exact pins past a peer range: the published package then fails `npm install` (ERESOLVE) for a
  * consumer that pins the version this repo builds and ships with.
  */
-describe('peerDependencies of the workspace packages', () => {
-  it('mirrors every ranged peer with an exact devDependency', () => {
+describe("peerDependencies of the workspace packages", () => {
+  it("mirrors every ranged peer with an exact devDependency", () => {
     expect(providers.length).toBeGreaterThan(0);
     for (const provider of providers) {
       for (const [peer, range] of Object.entries(provider.peerDependencies ?? {})) {
@@ -83,7 +83,7 @@ describe('peerDependencies of the workspace packages', () => {
   });
 
   it.each(peerPins)(
-    '$consumer: $peer $version is inside the peer range $range of $provider',
+    "$consumer: $peer $version is inside the peer range $range of $provider",
     ({ version, range }) => {
       expect(satisfies(version, range)).toBe(true);
     },

@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementFactory from 'diagram-js/lib/core/ElementFactory';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { EventStormingBoard } from '@miragon/event-storming-schema-model';
-import EventStormingImporter from '../src/io/EventStormingImporter.js';
-import EventStormingElementFactory from '../src/model/EventStormingElementFactory.js';
-import type BoardBounds from '../src/board-bounds/BoardBounds.js';
+import { describe, it, expect } from "vitest";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementFactory from "diagram-js/lib/core/ElementFactory";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { EventStormingBoard } from "@miragon/event-storming-schema-model";
+import EventStormingImporter from "../src/io/EventStormingImporter.js";
+import EventStormingElementFactory from "../src/model/EventStormingElementFactory.js";
+import type BoardBounds from "../src/board-bounds/BoardBounds.js";
 
 function importerHarness() {
   const addedShapeIds: string[] = [];
@@ -17,7 +17,7 @@ function importerHarness() {
   } as unknown as ElementFactory;
   const canvas = {
     getRootElement: () => {
-      throw new Error('no root yet');
+      throw new Error("no root yet");
     },
     setRootElement: () => {},
     getRootElements: () => [],
@@ -37,38 +37,38 @@ function importerHarness() {
   return { importer, addedShapeIds };
 }
 
-describe('EventStormingImporter: z-order', () => {
+describe("EventStormingImporter: z-order", () => {
   // Regression: notes had their own back band on import, while interactive editing appends them
   // on top like stickies — the stacking of overlapping note/sticky pairs flipped on reload.
-  it('keeps stickies and notes in document order (note listed after a sticky stays on top)', () => {
+  it("keeps stickies and notes in document order (note listed after a sticky stays on top)", () => {
     const board = {
-      config: { title: 'Fixture' },
+      config: { title: "Fixture" },
       elements: [
         {
-          id: 'event_order_placed',
-          elementType: 'event',
-          label: 'Order Placed',
+          id: "event_order_placed",
+          elementType: "event",
+          label: "Order Placed",
           position: { x: 200, y: 200 },
         },
-        { id: 'note_risk', elementType: 'note', label: 'Risk', position: { x: 210, y: 210 } },
+        { id: "note_risk", elementType: "note", label: "Risk", position: { x: 210, y: 210 } },
       ],
       edges: [],
     } as unknown as EventStormingBoard;
 
     const { importer, addedShapeIds } = importerHarness();
     expect(importer.import(board)).toEqual([]);
-    expect(addedShapeIds).toEqual(['event_order_placed', 'note_risk']);
+    expect(addedShapeIds).toEqual(["event_order_placed", "note_risk"]);
   });
 
-  it('still moves drawings to the very back regardless of document order', () => {
+  it("still moves drawings to the very back regardless of document order", () => {
     const board = {
-      config: { title: 'Fixture' },
+      config: { title: "Fixture" },
       elements: [
-        { id: 'note_risk', elementType: 'note', label: 'Risk', position: { x: 0, y: 0 } },
+        { id: "note_risk", elementType: "note", label: "Risk", position: { x: 0, y: 0 } },
         {
-          id: 'draw_circle',
-          elementType: 'drawing',
-          label: '',
+          id: "draw_circle",
+          elementType: "drawing",
+          label: "",
           position: { x: 0, y: 0 },
           points: [
             { x: 0, y: 0 },
@@ -76,9 +76,9 @@ describe('EventStormingImporter: z-order', () => {
           ],
         },
         {
-          id: 'event_order_placed',
-          elementType: 'event',
-          label: 'Order Placed',
+          id: "event_order_placed",
+          elementType: "event",
+          label: "Order Placed",
           position: { x: 200, y: 200 },
         },
       ],
@@ -87,6 +87,6 @@ describe('EventStormingImporter: z-order', () => {
 
     const { importer, addedShapeIds } = importerHarness();
     expect(importer.import(board)).toEqual([]);
-    expect(addedShapeIds).toEqual(['draw_circle', 'note_risk', 'event_order_placed']);
+    expect(addedShapeIds).toEqual(["draw_circle", "note_risk", "event_order_placed"]);
   });
 });

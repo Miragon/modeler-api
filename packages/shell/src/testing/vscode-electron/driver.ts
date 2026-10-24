@@ -220,7 +220,9 @@ function describeCanvas(facts: CanvasFacts): string {
 
 function appearanceOf(facts: WebviewThemeFacts): Appearance | undefined {
   if (facts.theme !== "light" && facts.theme !== "dark") return undefined;
-  return facts.kontrast === "hoch" ? { theme: facts.theme, kontrast: "hoch" } : { theme: facts.theme };
+  return facts.kontrast === "hoch"
+    ? { theme: facts.theme, kontrast: "hoch" }
+    : { theme: facts.theme };
 }
 
 async function readManifest(extensionPath: string): Promise<ExtensionManifest> {
@@ -301,7 +303,8 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
   const extensionPath = resolve(options.extensionPath);
   const manifest = await readManifest(extensionPath);
   const viewType = options.viewType ?? customEditorViewType(manifest, fileName);
-  if (!viewType) throw new Error(`runVsCodeSmoke: no custom editor of ${extensionPath} opens ${fileName}`);
+  if (!viewType)
+    throw new Error(`runVsCodeSmoke: no custom editor of ${extensionPath} opens ${fileName}`);
   if (manifest.main && !resolveExtensionMain(extensionPath, manifest.main)) {
     throw new Error(
       `runVsCodeSmoke: the extension is not built, ${join(extensionPath, manifest.main)} is missing`,
@@ -340,10 +343,12 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
     const reporter: ProgressReporter = {
       report(report: ProgressReport) {
         const stage = String(report.stage);
-        if (stage === "resolvedVersion" && "version" in report) result.vscodeVersion = report.version;
+        if (stage === "resolvedVersion" && "version" in report)
+          result.vscodeVersion = report.version;
         if (stage === "downloading" && "bytesSoFar" in report && report.totalBytes > 0) {
           const tenth = Math.floor((report.bytesSoFar / report.totalBytes) * 10);
-          if (tenth !== lastTenth) log(`resolve: downloading VS Code, ${(lastTenth = tenth) * 10} %`);
+          if (tenth !== lastTenth)
+            log(`resolve: downloading VS Code, ${(lastTenth = tenth) * 10} %`);
         }
       },
       error(error: unknown) {
@@ -377,7 +382,8 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
     const root = await mkdtemp(join(tmpdir(), "modeler-shell-vscode-"));
     // Synchronous, and on exit too: Playwright answers Ctrl+C by closing VS Code and calling
     // process.exit, which skips `finally` or cuts an asynchronous removal short.
-    const removeTemporaryFiles = () => rmSync(root, { recursive: true, force: true, maxRetries: 3 });
+    const removeTemporaryFiles = () =>
+      rmSync(root, { recursive: true, force: true, maxRetries: 3 });
     if (!options.keepTemporaryFiles) process.once("exit", removeTemporaryFiles);
     const launched: { app?: ElectronApplication } = {};
     try {
@@ -514,7 +520,8 @@ async function runSession(run: SessionRun): Promise<void> {
   const edited = await step("edit", async () => {
     await (options.edit ?? createFromPalette)(context);
     const changed = await pollUntil(dirty, (value) => value, timeoutMs);
-    if (!changed.met) throw new Error("the document did not change (its editor never turned dirty)");
+    if (!changed.met)
+      throw new Error("the document did not change (its editor never turned dirty)");
     return true;
   });
 
@@ -531,7 +538,8 @@ async function runSession(run: SessionRun): Promise<void> {
         intervalMs: POLL_INTERVAL_MS,
         settleMs: SAVE_SETTLE_MS,
       });
-      if (written.status === "unchanged") throw new Error(`${context.keys.save} wrote nothing to disk`);
+      if (written.status === "unchanged")
+        throw new Error(`${context.keys.save} wrote nothing to disk`);
       if (!clean) failures.add("save", "the editor is still dirty after the save");
       if (written.status === "unsettled") {
         throw new Error(`the file was still changing ${diskTimeoutMs} ms after the save`);
@@ -554,7 +562,11 @@ async function runSession(run: SessionRun): Promise<void> {
       for (let index = 0; index < (options.undoSteps ?? 1); index++) {
         await context.page.keyboard.press(context.keys.undo);
       }
-      const restored = await pollUntil(canvasFacts, (facts) => sameCanvas(facts, before), timeoutMs);
+      const restored = await pollUntil(
+        canvasFacts,
+        (facts) => sameCanvas(facts, before),
+        timeoutMs,
+      );
       if (!restored.met) {
         failures.add(
           "undo",
@@ -566,7 +578,9 @@ async function runSession(run: SessionRun): Promise<void> {
       await context.page.keyboard.press(context.keys.save);
       const reverted = await pollUntil(readDisk, (text) => text === original, timeoutMs);
       if (!reverted.met) {
-        throw new Error(`${context.keys.undo} and ${context.keys.save} did not restore the fixture's text`);
+        throw new Error(
+          `${context.keys.undo} and ${context.keys.save} did not restore the fixture's text`,
+        );
       }
       result.undone = restored.met;
     });
@@ -621,7 +635,9 @@ async function showCustomEditor(context: VsCodeSmokeContext, run: SessionRun): P
     const retry = performance.now() - reopenedAt > REOPEN_INTERVAL_MS;
     if (retry && (await context.page.evaluate(activeTextEditorProbe))) {
       reopenedAt = performance.now();
-      run.log(`open: VS Code shows ${run.options.fixture.fileName} as text, reopening it from the Explorer`);
+      run.log(
+        `open: VS Code shows ${run.options.fixture.fileName} as text, reopening it from the Explorer`,
+      );
       await context.page.keyboard.press(context.keys.close);
       await context.page
         .locator(".explorer-folders-view")
@@ -659,11 +675,16 @@ async function activationFailures(run: SessionRun): Promise<string[]> {
 async function openFailure(context: VsCodeSmokeContext, run: SessionRun): Promise<string> {
   const sources = await context.page.evaluate(workbenchWebviewsProbe).catch((): string[] => []);
   const id = run.extensionId?.toLowerCase();
-  const own = id ? sources.filter((source) => source.toLowerCase().includes(`extensionid=${id}`)) : sources;
+  const own = id
+    ? sources.filter((source) => source.toLowerCase().includes(`extensionid=${id}`))
+    : sources;
   let screenshot = "";
   if (run.options.screenshotDir) {
     await mkdir(run.options.screenshotDir, { recursive: true });
-    const path = join(resolve(run.options.screenshotDir), screenshotFileName(run.name, OPEN_FAILURE));
+    const path = join(
+      resolve(run.options.screenshotDir),
+      screenshotFileName(run.name, OPEN_FAILURE),
+    );
     screenshot = await context.page.screenshot({ path, scale: "css" }).then(
       () => `, screenshot ${path}`,
       () => "",
@@ -696,7 +717,11 @@ async function checkTheme(
   context: VsCodeSmokeContext,
   theme: VsCodeColorTheme,
   options: ThemeCheckOptions,
-): Promise<{ result: VsCodeSmokeThemeResult; failures: string[]; workbench: WorkbenchThemeSwitch }> {
+): Promise<{
+  result: VsCodeSmokeThemeResult;
+  failures: string[];
+  workbench: WorkbenchThemeSwitch;
+}> {
   const since = performance.now();
   const failures: string[] = [];
   const html = context.webview.locator("html");

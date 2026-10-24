@@ -23,9 +23,9 @@ import {
   createEmptyBoard,
   serializeBoard,
   parseBoardJSON,
-} from '@miragon/event-storming-schema-model';
+} from "@miragon/event-storming-schema-model";
 
-const board = createEmptyBoard('Order Checkout');
+const board = createEmptyBoard("Order Checkout");
 
 const json = serializeBoard(board); // deterministic: stable key order, rounded coordinates
 const restored = parseBoardJSON(json); // validated + migrated to the current schema

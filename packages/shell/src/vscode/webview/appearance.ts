@@ -103,7 +103,8 @@ export function connectAppearance(options: AppearanceListenerOptions): () => voi
 
   window.addEventListener("message", onMessage);
   if (document.body) startFallback();
-  else if (fallbackActive) document.addEventListener("DOMContentLoaded", startFallback, { once: true });
+  else if (fallbackActive)
+    document.addEventListener("DOMContentLoaded", startFallback, { once: true });
 
   return () => {
     window.removeEventListener("message", onMessage);
@@ -123,7 +124,10 @@ export function connectReducedMotion(): () => void {
   const html = document.documentElement;
   const apply = (): void => {
     if (document.body)
-      html.classList.toggle(REDUCED_MOTION_CLASS, reducedMotionFromBodyClasses(document.body.classList));
+      html.classList.toggle(
+        REDUCED_MOTION_CLASS,
+        reducedMotionFromBodyClasses(document.body.classList),
+      );
   };
   const observer = new MutationObserver(apply);
   const start = (): void => {

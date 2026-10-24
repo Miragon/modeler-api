@@ -46,7 +46,11 @@ export function fitViewbox(
   return Object.values(box).every(Number.isFinite) && scale > 0 ? box : undefined;
 }
 
-function freeExtent(total: number, before: number, after: number): { start: number; extent: number } {
+function freeExtent(
+  total: number,
+  before: number,
+  after: number,
+): { start: number; extent: number } {
   const extent = total - before - after;
   return extent > 0 ? { start: before, extent } : { start: 0, extent: total };
 }
@@ -101,7 +105,8 @@ export interface FitLayout {
  * `SHELL.veryNarrow`, bottom = distance to the sheet's top edge + 12 with an open bottom sheet.
  */
 export function fitInsets(layout: FitLayout): Insets {
-  const { container, host, paletteRow, problemsVisible, zoomRaised, legendWidth, inspector } = layout;
+  const { container, host, paletteRow, problemsVisible, zoomRaised, legendWidth, inspector } =
+    layout;
   const raisedBottomRow = host === "web" && (problemsVisible || zoomRaised === true);
   const wrappedLegalLines = legalLineHeight(layout.legalHeight) - LEGAL_LINE_HEIGHT;
   const insets: Insets = {
@@ -143,7 +148,9 @@ export function sameView(
   const close = (first: number, second: number): boolean =>
     Math.abs(first - second) <= tolerance * Math.max(1, Math.abs(first), Math.abs(second));
   return (
-    close(a.scale, b.scale) && close(a.x * a.scale, b.x * b.scale) && close(a.y * a.scale, b.y * b.scale)
+    close(a.scale, b.scale) &&
+    close(a.x * a.scale, b.x * b.scale) &&
+    close(a.y * a.scale, b.y * b.scale)
   );
 }
 
@@ -151,7 +158,11 @@ export function sameView(
  * The view at `progress` (0…1) between two viewboxes of the same container: the scale is
  * interpolated in log space, the centre linearly. Used per animation frame by the animated fit.
  */
-export function interpolateViewbox(from: ScaledViewbox, to: ScaledViewbox, progress: number): ScaledViewbox {
+export function interpolateViewbox(
+  from: ScaledViewbox,
+  to: ScaledViewbox,
+  progress: number,
+): ScaledViewbox {
   if (!(progress > 0)) return { ...from };
   if (progress >= 1) return { ...to };
   const linear = (start: number, end: number): number => start + (end - start) * progress;

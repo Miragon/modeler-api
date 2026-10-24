@@ -1,18 +1,18 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { MapConfig, WardleyMap } from '@miragon/wardley-schema-model';
-import type WardleyExporter from '../io/WardleyExporter.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { MapConfig, WardleyMap } from "@miragon/wardley-schema-model";
+import type WardleyExporter from "../io/WardleyExporter.js";
 
 /** The config fields a live preview changes: the plot size, the X-axis stage labels. */
-export type PreviewedField = 'size' | 'evolutionLabels';
+export type PreviewedField = "size" | "evolutionLabels";
 
 /**
  * Fired before a command changes the document: `preExecute` for a command, `execute` for a redo
  * (which skips `preExecute`), `revert` for an undo.
  */
 export const COMMAND_START_EVENTS = [
-  'commandStack.preExecute',
-  'commandStack.execute',
-  'commandStack.revert',
+  "commandStack.preExecute",
+  "commandStack.execute",
+  "commandStack.revert",
 ];
 
 /** Ahead of the other listeners of these events; the command's handler runs after all of them. */
@@ -24,7 +24,7 @@ export const PUT_BACK_PRIORITY = 10_000;
  * export at any moment, also mid-drag, and must store the document, never the preview.
  */
 export default class LivePreview {
-  static $inject = ['eventBus', 'wardleyExporter'];
+  static $inject = ["eventBus", "wardleyExporter"];
 
   private committed: WardleyMap | undefined;
   private readonly previewed = new Set<PreviewedField>();
@@ -33,11 +33,11 @@ export default class LivePreview {
     eventBus: EventBus,
     private readonly exporter: WardleyExporter,
   ) {
-    eventBus.on(['import.render.start', 'diagram.clear'], () => this.endAll());
+    eventBus.on(["import.render.start", "diagram.clear"], () => this.endAll());
     // A command can land under an axis-label preview (a title a host sets) and changes the
     // document there; the preview itself only ever changes its own fields. A size preview is put
     // back before any command instead (MapResizeHandles, WardleyBaseViewer).
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       if (this.committed) this.committed = this.withCommittedFields(this.exporter.export());
     });
   }

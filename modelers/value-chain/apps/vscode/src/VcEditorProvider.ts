@@ -1,18 +1,18 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 import {
   connectThemeBridge,
   currentAppearance,
   renderWebviewHtml,
-} from '@miragon/modeler-shell/vscode/extension';
+} from "@miragon/modeler-shell/vscode/extension";
 import {
   DIAGRAM_VIEW_TYPE,
   registerSideBySideCommands,
   registerWebviewCommands,
-} from './commands.js';
-import { DiagramSession } from './DiagramSession.js';
-import { DIAGNOSTIC_COLLECTION_NAME } from './diagnostics.js';
-import type { HostToWebview, WebviewCommand } from './protocol.js';
-import { WEBVIEW_THEMES } from './themes.js';
+} from "./commands.js";
+import { DiagramSession } from "./DiagramSession.js";
+import { DIAGNOSTIC_COLLECTION_NAME } from "./diagnostics.js";
+import type { HostToWebview, WebviewCommand } from "./protocol.js";
+import { WEBVIEW_THEMES } from "./themes.js";
 
 /**
  * CustomTextEditor for `*.vc` / `*.vc.json`. The document (canonical JSON) remains the source of
@@ -58,7 +58,7 @@ export class VcEditorProvider implements vscode.CustomTextEditorProvider {
   /** Forwards a Command Palette command to the focused diagram; false when none is focused. */
   public runCommand(name: WebviewCommand): boolean {
     if (!this.activePanel) return false;
-    void this.activePanel.webview.postMessage({ type: 'command', name } satisfies HostToWebview);
+    void this.activePanel.webview.postMessage({ type: "command", name } satisfies HostToWebview);
     return true;
   }
 
@@ -68,17 +68,17 @@ export class VcEditorProvider implements vscode.CustomTextEditorProvider {
     _token: vscode.CancellationToken,
   ): Promise<void> {
     const webview = webviewPanel.webview;
-    const dist = vscode.Uri.joinPath(this.context.extensionUri, 'dist');
+    const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     // Script, stylesheet and font files.
     webview.options = { enableScripts: true, localResourceRoots: [dist] };
     const asset = (file: string): string =>
       webview.asWebviewUri(vscode.Uri.joinPath(dist, file)).toString();
     webview.html = renderWebviewHtml({
       cspSource: webview.cspSource,
-      scriptUri: asset('webview.js'),
-      styleUris: [asset('webview.css')],
-      title: 'Value Chain Diagram',
-      lang: 'en',
+      scriptUri: asset("webview.js"),
+      styleUris: [asset("webview.css")],
+      title: "Value Chain Diagram",
+      lang: "en",
       appearance: currentAppearance(vscode, { themes: WEBVIEW_THEMES }),
       body: '<div id="app"></div>',
     });

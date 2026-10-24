@@ -1,9 +1,9 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import { isSticky } from '../model/di-types.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import { isSticky } from "../model/di-types.js";
 
 /** Fired whenever a view preference changes (payload: `{ typeCaptionsVisible }`). */
-export const VIEW_OPTIONS_CHANGED_EVENT = 'eventStorming.viewOptions.changed';
+export const VIEW_OPTIONS_CHANGED_EVENT = "eventStorming.viewOptions.changed";
 
 /**
  * Per-viewer VIEW preferences — NOT board content: no schema/DSL field, no command-stack
@@ -11,7 +11,7 @@ export const VIEW_OPTIONS_CHANGED_EVENT = 'eventStorming.viewOptions.changed';
  * choice themselves (e.g. localStorage) and re-apply it right after creating the viewer.
  */
 export default class EventStormingViewOptions {
-  static $inject = ['eventBus', 'elementRegistry'];
+  static $inject = ["eventBus", "elementRegistry"];
 
   /** Captions default to ON — a fresh board explains the sticky color grammar by itself. */
   private _typeCaptionsVisible = true;
@@ -32,6 +32,6 @@ export default class EventStormingViewOptions {
     // Only stickies carry a caption — mark exactly those changed; the stock change support
     // then clears and redraws each one, and the renderer reads the flag per drawShape.
     const stickies = this.elementRegistry.filter(isSticky);
-    if (stickies.length) this.eventBus.fire('elements.changed', { elements: stickies });
+    if (stickies.length) this.eventBus.fire("elements.changed", { elements: stickies });
   }
 }

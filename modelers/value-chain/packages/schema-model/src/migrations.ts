@@ -10,12 +10,12 @@ const MIGRATIONS: ReadonlyArray<(json: Json) => Json> = [];
  * Runs before Zod validation, so it must tolerate malformed input.
  */
 export function migrate(input: unknown): unknown {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return input;
   }
   let json = input as Json;
-  const rawVersion = json['schemaVersion'];
-  let version = typeof rawVersion === 'number' && Number.isInteger(rawVersion) ? rawVersion : 1;
+  const rawVersion = json["schemaVersion"];
+  let version = typeof rawVersion === "number" && Number.isInteger(rawVersion) ? rawVersion : 1;
   if (version > CURRENT_SCHEMA_VERSION) {
     throw new Error(
       `Unsupported schemaVersion ${version} (current: ${CURRENT_SCHEMA_VERSION}). Please update the tool.`,

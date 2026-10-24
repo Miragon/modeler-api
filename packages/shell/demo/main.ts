@@ -94,7 +94,12 @@ const menu: MenuGroups = {
       },
     },
     // A Model action without a dialog: after a click the focus goes to the canvas (guide §5.4).
-    { kind: "action", id: "arrange", label: "Arrange boxes", onSelect: () => calls.push("arrange") },
+    {
+      kind: "action",
+      id: "arrange",
+      label: "Arrange boxes",
+      onSelect: () => calls.push("arrange"),
+    },
   ],
   export: [
     {
@@ -142,11 +147,14 @@ function hostElement(): HTMLElement {
 }
 
 const root = hostElement();
-const vscodeHost = host === "ide" ? installVsCodeWebviewStub({ ...stubOptions, themes }) : undefined;
+const vscodeHost =
+  host === "ide" ? installVsCodeWebviewStub({ ...stubOptions, themes }) : undefined;
 const vscode = host === "ide" ? (window as StubWindow).acquireVsCodeApi?.() : undefined;
 const stored: ShellWebviewState = vscode ? readShellState(vscode) : {};
 if (host === "web") {
-  for (const [name, value] of Object.entries(appearanceAttributes(resolveAppearance(requested, themes)))) {
+  for (const [name, value] of Object.entries(
+    appearanceAttributes(resolveAppearance(requested, themes)),
+  )) {
     document.documentElement.setAttribute(name, value);
   }
 }
@@ -195,7 +203,9 @@ const options = {
 
 // The whole web column is on /web.html; here the web host keeps its 0.1 parts, so a dark-capable
 // modeler only needs its theme colours (mountShell throws without them).
-const appearance = { themeColors: { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] } };
+const appearance = {
+  themeColors: { light: tokens.fest["--cd-blau"], dark: tokens.dunkel["--cd-ui-grund"] },
+};
 const shell: ShellHandle =
   host === "ide"
     ? mountVsCodeShell(root, { ...options, themes })

@@ -7,25 +7,25 @@ import {
   type ElementsSurface,
   type ImportResult,
   type ModelerMeta,
-} from '@miragon/modeler-api';
-import { readBackIds, serializeDSL } from '@miragon/wardley-dsl';
-import type { ModuleDeclaration } from 'didi';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type Selection from 'diagram-js/lib/features/selection/Selection';
-import type { Element } from 'diagram-js/lib/model/Types';
-import { Modeler } from '../Modeler.js';
-import { NavigatedViewer } from '../NavigatedViewer.js';
-import type { WardleyViewerOptions } from '../WardleyBaseViewer.js';
-import { restoreEditorState, setAsideEditorState, type EditorState } from '../editor-state.js';
-import type { FreeRectInsets } from '../free-rect/index.js';
-import type { LivePreview } from '../live-preview/index.js';
-import { isWardleyShape, type WardleyShape } from '../model/di-types.js';
-import type { PanConstraint } from '../pan-constraint/index.js';
+} from "@miragon/modeler-api";
+import { readBackIds, serializeDSL } from "@miragon/wardley-dsl";
+import type { ModuleDeclaration } from "didi";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Element } from "diagram-js/lib/model/Types";
+import { Modeler } from "../Modeler.js";
+import { NavigatedViewer } from "../NavigatedViewer.js";
+import type { WardleyViewerOptions } from "../WardleyBaseViewer.js";
+import { restoreEditorState, setAsideEditorState, type EditorState } from "../editor-state.js";
+import type { FreeRectInsets } from "../free-rect/index.js";
+import type { LivePreview } from "../live-preview/index.js";
+import { isWardleyShape, type WardleyShape } from "../model/di-types.js";
+import type { PanConstraint } from "../pan-constraint/index.js";
 
 /** Stable notation id in `meta.notation` of the collaborative-modeler contract. */
-export const WARDLEY_NOTATION = 'wardley';
+export const WARDLEY_NOTATION = "wardley";
 
 /**
  * The contract's factory options (`freeArea`, `fitOnImport`, `undoRedoKeys`, see
@@ -69,11 +69,11 @@ interface ViewState {
  * tells repeats apart by line order, so their ids would move to another element.
  */
 const ADDRESSABLE_TYPES: ReadonlySet<string> = new Set([
-  'component',
-  'anchor',
-  'pipeline',
-  'submap',
-  'accelerator',
+  "component",
+  "anchor",
+  "pipeline",
+  "submap",
+  "accelerator",
 ]);
 
 function isAddressable(element: unknown): element is WardleyShape {
@@ -103,8 +103,8 @@ export function createCollaborativeViewer(
 
 function diagramOptions(options: CollaborativeWardleyOptions): WardleyViewerOptions {
   return {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     additionalModules: options.additionalModules ?? [],
     freeArea: options.freeArea,
     freeRectInsets: options.freeRectInsets,
@@ -120,7 +120,7 @@ function documentIds(diagram: Modeler | NavigatedViewer, eventBus: EventBus) {
   let byCanvasId: Map<string, string> | undefined;
   let byDocumentId: Map<string, string> | undefined;
   eventBus.on(
-    ['elements.changed', 'import.done', 'diagram.clear', 'commandStack.changed'],
+    ["elements.changed", "import.done", "diagram.clear", "commandStack.changed"],
     () => (byCanvasId = byDocumentId = undefined),
   );
   const read = () => {
@@ -144,18 +144,18 @@ function collaborative(
   diagram: Modeler | NavigatedViewer,
   editable: boolean,
 ): CollaborativeWardleyModeler {
-  const eventBus = diagram.get<EventBus>('eventBus');
-  const canvas = diagram.get<Canvas>('canvas');
-  const elementRegistry = diagram.get<ElementRegistry>('elementRegistry');
-  const selection = diagram.get<Selection>('selection');
-  const panConstraint = diagram.get<PanConstraint>('panConstraint');
+  const eventBus = diagram.get<EventBus>("eventBus");
+  const canvas = diagram.get<Canvas>("canvas");
+  const elementRegistry = diagram.get<ElementRegistry>("elementRegistry");
+  const selection = diagram.get<Selection>("selection");
+  const panConstraint = diagram.get<PanConstraint>("panConstraint");
   const ids = documentIds(diagram, eventBus);
-  const livePreview = editable ? diagram.get<LivePreview>('wardleyLivePreview') : undefined;
+  const livePreview = editable ? diagram.get<LivePreview>("wardleyLivePreview") : undefined;
   const contentListeners = new Set<() => void>();
   let importsRunning = 0;
   let imported = false;
   let destroyed = false;
-  let lastExport = '';
+  let lastExport = "";
 
   const meta: ModelerMeta = {
     notation: WARDLEY_NOTATION,
@@ -166,7 +166,7 @@ function collaborative(
   // The command stack is the one channel of every user-visible change, config edits included;
   // an import clears it, which is housekeeping, not a change (L1, L3).
   if (editable) {
-    eventBus.on('commandStack.changed', () => {
+    eventBus.on("commandStack.changed", () => {
       if (importsRunning > 0) return;
       for (const listener of [...contentListeners]) listener();
     });
@@ -204,8 +204,8 @@ function collaborative(
     onSelection(callback) {
       const listener = (event: unknown) =>
         callback(documentIdsOf((event as { newSelection?: unknown[] }).newSelection ?? []));
-      eventBus.on('selection.changed', listener);
-      return () => eventBus.off('selection.changed', listener);
+      eventBus.on("selection.changed", listener);
+      return () => eventBus.off("selection.changed", listener);
     },
     bounds(id) {
       const element = listedElement(id);
@@ -222,7 +222,7 @@ function collaborative(
   };
 
   async function importText(text: string): Promise<ImportResult> {
-    if (destroyed) throw new Error('The modeler was destroyed.');
+    if (destroyed) throw new Error("The modeler was destroyed.");
     importsRunning += 1;
     // An open label editor neither commits during the import nor loses what was typed (L1): it
     // is taken down and reopened on the element with the same id.
@@ -286,7 +286,7 @@ function collaborative(
       try {
         lastExport = committedText();
       } catch {
-        lastExport = '';
+        lastExport = "";
       }
       destroyed = true;
       contentListeners.clear();
@@ -296,7 +296,7 @@ function collaborative(
 }
 
 function isViewState(state: unknown): state is ViewState {
-  if (typeof state !== 'object' || state === null) return false;
+  if (typeof state !== "object" || state === null) return false;
   const { x, y, width, height } = state as Record<string, unknown>;
   return (
     isFiniteNumber(x) &&
@@ -309,5 +309,5 @@ function isViewState(state: unknown): state is ViewState {
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+  return typeof value === "number" && Number.isFinite(value);
 }

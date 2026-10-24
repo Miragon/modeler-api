@@ -119,7 +119,9 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
     ["toasts", find('[data-chrome="toasts"]')],
   ];
   const present = parts.filter((part): part is [string, Element] => part[1] !== null);
-  present.sort(([, a], [, b]) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  present.sort(([, a], [, b]) =>
+    a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+  );
   const titledSelector = [
     '[data-chrome="menu"][title]',
     '[data-chrome="primary"][title]',
@@ -147,8 +149,12 @@ export const ariaProbe = ({ root }: { root: string }): AriaFacts | null => {
     order: present.map(([name]) => name) as OrderedPart[],
     positiveTabindex: [...rootElement.querySelectorAll("[tabindex]")]
       .filter((element) => Number(element.getAttribute("tabindex")) > 0)
-      .map((element) => `${tools.describe(element)} (tabindex="${element.getAttribute("tabindex")}")`),
-    titled: [...rootElement.querySelectorAll(titledSelector)].map((element) => tools.describe(element)),
+      .map(
+        (element) => `${tools.describe(element)} (tabindex="${element.getAttribute("tabindex")}")`,
+      ),
+    titled: [...rootElement.querySelectorAll(titledSelector)].map((element) =>
+      tools.describe(element),
+    ),
     problems: factsOf(find('[data-chrome="problems"]')),
     status: factsOf(find('[data-chrome="status"]')),
     legend: factsOf(legend),
@@ -209,10 +215,13 @@ export const menuProbe = ({ root }: { root: string }): MenuFacts | null => {
   if (!rootElement) return null;
   const trigger = rootElement.querySelector('[data-chrome="menu"]');
   const menu =
-    [...rootElement.querySelectorAll('[role="menu"]')].find((element) => tools.visible(element)) ?? null;
+    [...rootElement.querySelectorAll('[role="menu"]')].find((element) => tools.visible(element)) ??
+    null;
   const items = menu
     ? [
-        ...menu.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]'),
+        ...menu.querySelectorAll(
+          '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]',
+        ),
       ].filter((item) => tools.visible(item))
     : [];
   return {
@@ -229,7 +238,8 @@ export const menuProbe = ({ root }: { root: string }): MenuFacts | null => {
         disabled: item.getAttribute("aria-disabled"),
         haspopup: item.getAttribute("aria-haspopup"),
         group: group && menu?.contains(group) ? (group.getAttribute("aria-label") ?? "") : null,
-        shortcut: chip && tools.visible(chip) ? (chip.textContent ?? "").replace(/\s+/g, " ").trim() : "",
+        shortcut:
+          chip && tools.visible(chip) ? (chip.textContent ?? "").replace(/\s+/g, " ").trim() : "",
         keyShortcuts: item.getAttribute("aria-keyshortcuts"),
         description: tools.accessibleDescription(item),
       };
@@ -262,7 +272,11 @@ export const paletteFocusProbe = ({ root }: { root: string }): PaletteFocusFacts
   };
 };
 
-export const zoomButtonsProbe = ({ root }: { root: string }): Partial<Record<ZoomButton, ElementFacts>> => {
+export const zoomButtonsProbe = ({
+  root,
+}: {
+  root: string;
+}): Partial<Record<ZoomButton, ElementFacts>> => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const zoom = document.querySelector(root)?.querySelector('[data-chrome="zoom"]');
   const buttons: Partial<Record<ZoomButton, ElementFacts>> = {};
@@ -274,7 +288,12 @@ export const zoomButtonsProbe = ({ root }: { root: string }): Partial<Record<Zoo
 };
 
 /** The design-system roles whose resolved values must agree on every part (no half-dark). */
-export const MODE_ROLES = ["--cd-ui-grund", "--cd-ui-text", "--cd-ui-flaeche-hoch", "--cd-ui-linie"] as const;
+export const MODE_ROLES = [
+  "--cd-ui-grund",
+  "--cd-ui-text",
+  "--cd-ui-flaeche-hoch",
+  "--cd-ui-linie",
+] as const;
 
 export interface ModeFacts {
   name: string;
@@ -314,13 +333,19 @@ export const appearanceProbe = ({
     const style = getComputedStyle(element);
     const resolved: Record<string, string> = {};
     for (const role of roles) resolved[role] = style.getPropertyValue(role).trim();
-    return { name, description: tools.describe(element), colorScheme: style.colorScheme, roles: resolved };
+    return {
+      name,
+      description: tools.describe(element),
+      colorScheme: style.colorScheme,
+      roles: resolved,
+    };
   };
   const parts = [mode("root", rootElement)];
   const canvas = rootElement.querySelector(".djs-container");
   if (canvas) parts.push(mode("canvas", canvas));
   for (const island of rootElement.querySelectorAll("[data-chrome]")) {
-    if (tools.visible(island)) parts.push(mode(island.getAttribute("data-chrome") ?? "island", island));
+    if (tools.visible(island))
+      parts.push(mode(island.getAttribute("data-chrome") ?? "island", island));
   }
   for (const [name, role] of [
     ["dropdown", "menu"],
@@ -333,34 +358,42 @@ export const appearanceProbe = ({
   }
   return {
     documentClasses: [...document.documentElement.classList],
-    themed: [...document.querySelectorAll("[data-cd-theme], [data-cd-kontrast]")].map((element) => ({
-      description: tools.describe(element),
-      isDocument: element === document.documentElement,
-      relation:
-        element === rootElement
-          ? "self"
-          : element.contains(rootElement)
-            ? "ancestor"
-            : rootElement.contains(element)
-              ? "descendant"
-              : "elsewhere",
-      theme: element.getAttribute("data-cd-theme"),
-      kontrast: element.getAttribute("data-cd-kontrast"),
-    })),
+    themed: [...document.querySelectorAll("[data-cd-theme], [data-cd-kontrast]")].map(
+      (element) => ({
+        description: tools.describe(element),
+        isDocument: element === document.documentElement,
+        relation:
+          element === rootElement
+            ? "self"
+            : element.contains(rootElement)
+              ? "ancestor"
+              : rootElement.contains(element)
+                ? "descendant"
+                : "elsewhere",
+        theme: element.getAttribute("data-cd-theme"),
+        kontrast: element.getAttribute("data-cd-kontrast"),
+      }),
+    ),
     parts,
   };
 };
 
 /** The element with the focus, classified for the tab-sequence check. */
-export const activeStopProbe = ({ root }: { root: string }): { description: string; kind: string } => {
+export const activeStopProbe = ({
+  root,
+}: {
+  root: string;
+}): { description: string; kind: string } => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const active = document.activeElement;
   const rootElement = document.querySelector(root);
-  if (!active || active === document.body || !rootElement) return { description: "<body>", kind: "other" };
+  if (!active || active === document.body || !rootElement)
+    return { description: "<body>", kind: "other" };
   const description = tools.describe(active);
   if (!rootElement.contains(active))
     return { description: `${description} outside the shell root`, kind: "other" };
-  if (active.matches('[data-chrome="palette"] [data-action]')) return { description, kind: "palette" };
+  if (active.matches('[data-chrome="palette"] [data-action]'))
+    return { description, kind: "palette" };
   if (active.matches(".djs-container > svg")) return { description, kind: "canvas" };
   if (active.closest('[data-chrome="primary"]')) return { description, kind: "primary" };
   const tabindex = active.getAttribute("tabindex");
@@ -380,7 +413,13 @@ export interface FocusPlaceFacts {
   control: boolean;
 }
 
-export const focusPlaceProbe = ({ root, selector }: { root: string; selector: string }): FocusPlaceFacts => {
+export const focusPlaceProbe = ({
+  root,
+  selector,
+}: {
+  root: string;
+  selector: string;
+}): FocusPlaceFacts => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector(root);
   const active = document.activeElement;
@@ -561,7 +600,11 @@ export const shapesProbe = ({ root }: { root: string }): ShapeFacts[] => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
   const rootElement = document.querySelector<HTMLElement>(root);
   if (!rootElement) return [];
-  return [...rootElement.querySelectorAll<SVGGraphicsElement>(".djs-container .djs-shape[data-element-id]")]
+  return [
+    ...rootElement.querySelectorAll<SVGGraphicsElement>(
+      ".djs-container .djs-shape[data-element-id]",
+    ),
+  ]
     .filter((shape) => tools.visible(shape))
     .map((shape) => {
       const visual = shape.querySelector<SVGGraphicsElement>(".djs-visual") ?? shape;
@@ -609,8 +652,8 @@ export const canvasStateProbe = ({ root }: { root: string }): CanvasStateFacts =
     contextPadEntries: visibleIn(".djs-context-pad .entry").map(
       (entry) => entry.getAttribute("data-action") ?? tools.describe(entry),
     ),
-    textFields: visibleIn('input, textarea, [contenteditable]:not([contenteditable="false"])').map((field) =>
-      tools.describe(field),
+    textFields: visibleIn('input, textarea, [contenteditable]:not([contenteditable="false"])').map(
+      (field) => tools.describe(field),
     ),
   };
 };
@@ -633,14 +676,17 @@ export const labelEditorProbe = ({ root }: { root: string }): LabelEditorFacts |
   if (!rootElement) return null;
   const active = document.activeElement;
   const editing =
-    active instanceof HTMLElement && (active.isContentEditable || active.matches("input, textarea"));
+    active instanceof HTMLElement &&
+    (active.isContentEditable || active.matches("input, textarea"));
   const text =
     active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
       ? active.value
       : editing
         ? (active.textContent ?? "")
         : "";
-  const viewport = rootElement.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+  const viewport = rootElement.querySelector<SVGGraphicsElement>(
+    ".djs-container > svg > .viewport",
+  );
   const matrix = viewport?.transform?.baseVal?.consolidate?.()?.matrix;
   const view = matrix
     ? [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]
@@ -659,7 +705,11 @@ export const labelEditorProbe = ({ root }: { root: string }): LabelEditorFacts |
  * A point in the viewport where a pointer reaches the canvas itself: the `<svg>` or a drawing of
  * its root, no element, overlay, field or island above it; `null` when the canvas shows none.
  */
-export const emptyCanvasSpotProbe = ({ root }: { root: string }): { x: number; y: number } | null => {
+export const emptyCanvasSpotProbe = ({
+  root,
+}: {
+  root: string;
+}): { x: number; y: number } | null => {
   const svg = document.querySelector(root)?.querySelector(".djs-container > svg");
   if (!svg) return null;
   const rect = svg.getBoundingClientRect();
@@ -684,7 +734,10 @@ export const readOnlyStateProbe = ({ root }: { root: string }): ReadOnlyStateFac
   const rootElement = document.querySelector(root);
   if (!rootElement) return null;
   const status = rootElement.querySelector('[data-chrome="status"]');
-  return { readOnly: rootElement.hasAttribute("data-readonly"), status: status ? tools.facts(status) : null };
+  return {
+    readOnly: rootElement.hasAttribute("data-readonly"),
+    status: status ? tools.facts(status) : null,
+  };
 };
 
 /** One item of the open menu with the group it stands in, counted by the separators. */

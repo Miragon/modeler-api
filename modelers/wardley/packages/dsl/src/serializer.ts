@@ -4,8 +4,8 @@ import type {
   LabelOffset,
   MapElement,
   WardleyMap,
-} from '@miragon/wardley-schema-model';
-import { CommentStripper, keywordOf, readUrlDefinition } from './lexer.js';
+} from "@miragon/wardley-schema-model";
+import { CommentStripper, keywordOf, readUrlDefinition } from "./lexer.js";
 import {
   NAMED_TYPES,
   UniqueNames,
@@ -13,11 +13,11 @@ import {
   writtenName,
   writtenNoteText,
   writtenText,
-} from './names.js';
+} from "./names.js";
 
 /** How the source text referenced an element's address, so a rewritten line keeps doing so. */
 export type UrlReferenceHint =
-  { readonly kind: 'definition'; readonly name: string } | { readonly kind: 'embedded' };
+  { readonly kind: "definition"; readonly name: string } | { readonly kind: "embedded" };
 
 export interface SerializeHints {
   /** By element id. */
@@ -32,8 +32,8 @@ export interface KeyedLine {
 
 /** Address of an element (component.url / submap.urlRef) — or undefined. */
 function urlOf(el: MapElement): string | undefined {
-  if (el.elementType === 'component') return el.url;
-  if (el.elementType === 'submap') return el.urlRef;
+  if (el.elementType === "component") return el.url;
+  if (el.elementType === "submap") return el.urlRef;
   return undefined;
 }
 
@@ -55,7 +55,7 @@ function uniqueNames(map: WardleyMap): Map<string, string> {
   for (const el of map.elements) {
     if (NAMED_TYPES.has(el.elementType)) {
       byId.set(el.id, namesInUse.claim(writtenName(el.label, el.elementType)));
-    } else if (el.elementType === 'pipeline') {
+    } else if (el.elementType === "pipeline") {
       byId.set(el.id, writtenName(el.label, el.elementType));
     }
   }
@@ -94,7 +94,7 @@ function planUrls(
     const address = urlOf(el);
     const hint = hints?.get(el.id);
     if (!address || !hint) continue;
-    if (hint.kind === 'embedded') {
+    if (hint.kind === "embedded") {
       if (EMBEDDABLE_ADDRESS_RE.test(address)) referenceById.set(el.id, address);
       continue;
     }
@@ -113,8 +113,8 @@ function planUrls(
     let name = definitionNameById.get(el.id);
     if (name === undefined) {
       const readable = nameOf(el)
-        .replace(/[()[\]<>]/g, ' ')
-        .replace(/\s+/g, ' ')
+        .replace(/[()[\]<>]/g, " ")
+        .replace(/\s+/g, " ")
         .trim();
       name = namesInUse.claim(`${readable} URL`.trim());
     }
@@ -127,42 +127,42 @@ function planUrls(
 }
 
 function offsetSuffix(lo: LabelOffset | undefined): string {
-  return lo ? ` label [${r(lo.dx)}, ${r(lo.dy)}]` : '';
+  return lo ? ` label [${r(lo.dx)}, ${r(lo.dy)}]` : "";
 }
 
 /** Project extension: `(color …)` after the coordinates (the OWM parser ignores it). */
 function colorSuffix(el: { color?: string }): string {
-  return el.color ? ` (color ${el.color})` : '';
+  return el.color ? ` (color ${el.color})` : "";
 }
 
 function decoratorSuffix(dec: ComponentDecorators | undefined): string {
-  if (!dec) return '';
+  if (!dec) return "";
   const paren: string[] = [];
-  if (dec.market) paren.push('market');
-  if (dec.ecosystem) paren.push('ecosystem');
+  if (dec.market) paren.push("market");
+  if (dec.ecosystem) paren.push("ecosystem");
   if (dec.method) paren.push(dec.method);
-  let out = '';
-  if (paren.length) out += ` (${paren.join(', ')})`;
-  if (dec.inertia) out += ' inertia';
+  let out = "";
+  if (paren.length) out += ` (${paren.join(", ")})`;
+  if (dec.inertia) out += " inertia";
   return out;
 }
 
-function configLines(config: WardleyMap['config']): KeyedLine[] {
-  const lines: KeyedLine[] = [{ key: 'config:title', text: `title ${writtenText(config.title)}` }];
+function configLines(config: WardleyMap["config"]): KeyedLine[] {
+  const lines: KeyedLine[] = [{ key: "config:title", text: `title ${writtenText(config.title)}` }];
   const add = (keyword: string, text: string) => lines.push({ key: `config:${keyword}`, text });
-  if (config.style) add('style', `style ${config.style}`);
-  if (config.size) add('size', `size [${r(config.size.width)}, ${r(config.size.height)}]`);
+  if (config.style) add("style", `style ${config.style}`);
+  if (config.size) add("size", `size [${r(config.size.width)}, ${r(config.size.height)}]`);
   if (config.evolutionLabels) {
-    add('evolution', `evolution ${config.evolutionLabels.map(writtenText).join('->')}`);
+    add("evolution", `evolution ${config.evolutionLabels.map(writtenText).join("->")}`);
   }
   if (config.yAxisLabel) {
     const ends = config.yAxisEndLabels;
-    const endLabels = ends ? `->${writtenText(ends[0])}->${writtenText(ends[1])}` : '';
-    add('y-axis', `y-axis ${writtenText(config.yAxisLabel)}${endLabels}`);
+    const endLabels = ends ? `->${writtenText(ends[0])}->${writtenText(ends[1])}` : "";
+    add("y-axis", `y-axis ${writtenText(config.yAxisLabel)}${endLabels}`);
   }
   if (config.annotationsBoxPosition) {
     const b = config.annotationsBoxPosition;
-    add('annotations', `annotations [${r(b.visibility)}, ${r(b.evolution)}]`);
+    add("annotations", `annotations [${r(b.visibility)}, ${r(b.evolution)}]`);
   }
   return lines;
 }
@@ -175,8 +175,8 @@ function configLines(config: WardleyMap['config']): KeyedLine[] {
  */
 function passthroughLines(map: WardleyMap): { lines: KeyedLine[]; urlDefinitionNames: string[] } {
   const emitted = new Set<string>();
-  if (map.config.evolutionLabels) emitted.add('evolution');
-  if (map.config.yAxisLabel) emitted.add('y-axis');
+  if (map.config.evolutionLabels) emitted.add("evolution");
+  if (map.config.yAxisLabel) emitted.add("y-axis");
   const comments = new CommentStripper();
   const lines: KeyedLine[] = [];
   const urlDefinitionNames: string[] = [];
@@ -185,7 +185,7 @@ function passthroughLines(map: WardleyMap): { lines: KeyedLine[]; urlDefinitionN
     const keyword = keywordOf(code);
     if (emitted.has(keyword)) return;
     lines.push({ key: `raw:${index}`, text: raw });
-    const definition = keyword === 'url' ? readUrlDefinition(code.trim().slice(3)) : null;
+    const definition = keyword === "url" ? readUrlDefinition(code.trim().slice(3)) : null;
     if (definition) urlDefinitionNames.push(definition.name);
   });
   return { lines, urlDefinitionNames };
@@ -205,15 +205,15 @@ function pipelineHeights(
 ): (el: MapElement) => string {
   const componentVisibilityByName = new Map<string, number>();
   for (const el of map.elements) {
-    if (el.elementType !== 'component') continue;
+    if (el.elementType !== "component") continue;
     const isChild = !!el.pipelineId && pipelineIds.has(el.pipelineId);
     if (!isChild) componentVisibilityByName.set(nameOf(el), el.position.visibility);
   }
   return (el) => {
-    if (el.elementType !== 'pipeline') return '';
+    if (el.elementType !== "pipeline") return "";
     const derived = componentVisibilityByName.get(nameOf(el)) ?? 0.5;
     const written = r(el.position.visibility);
-    return written !== r(derived) ? ` (y ${written})` : '';
+    return written !== r(derived) ? ` (y ${written})` : "";
   };
 }
 
@@ -222,14 +222,14 @@ function edgeLines(map: WardleyMap, nameOf: (el: MapElement) => string): KeyedLi
   return map.edges.map((edge) => {
     const from = namesById.get(edge.from) ?? edge.from;
     const to = namesById.get(edge.to) ?? edge.to;
-    const annotation = edge.label ? `; ${writtenText(edge.label)}` : '';
+    const annotation = edge.label ? `; ${writtenText(edge.label)}` : "";
     const key = `edge:${edge.id}`;
-    if (edge.edgeType === 'dependency') return { key, text: `${from} -> ${to}${annotation}` };
+    if (edge.edgeType === "dependency") return { key, text: `${from} -> ${to}${annotation}` };
     const op = edge.flowValue
-      ? `+'${edge.flowValue}'${edge.bidirectional ? '<>' : '>'}`
+      ? `+'${edge.flowValue}'${edge.bidirectional ? "<>" : ">"}`
       : edge.bidirectional
-        ? '+<>'
-        : '+>';
+        ? "+<>"
+        : "+>";
     return { key, text: `${from} ${op} ${to}${annotation}` };
   });
 }
@@ -241,7 +241,7 @@ function edgeLines(map: WardleyMap, nameOf: (el: MapElement) => string): KeyedLi
  * pipeline = [maturityStart, maturityEnd]).
  */
 export function serializeDSL(map: WardleyMap): string {
-  return [...serializeKeyedLines(map).map((line) => line.text), ''].join('\n');
+  return [...serializeKeyedLines(map).map((line) => line.text), ""].join("\n");
 }
 
 /**
@@ -263,17 +263,17 @@ export function serializeKeyedLines(map: WardleyMap, hints: SerializeHints = {})
   }
   const urlSuffix = (el: MapElement): string => {
     const reference = urls.referenceById.get(el.id);
-    return reference ? ` url(${reference})` : '';
+    return reference ? ` url(${reference})` : "";
   };
 
   // Pipeline children (pipelineId set + pipeline exists) are emitted in the pipeline's
   // block form instead of as top-level components (OWM v2).
   const pipelineIds = new Set(
-    map.elements.filter((e) => e.elementType === 'pipeline').map((e) => e.id),
+    map.elements.filter((e) => e.elementType === "pipeline").map((e) => e.id),
   );
   const childrenByPipeline = new Map<string, ComponentElement[]>();
   for (const el of map.elements) {
-    if (el.elementType !== 'component' || !el.pipelineId || !pipelineIds.has(el.pipelineId)) {
+    if (el.elementType !== "component" || !el.pipelineId || !pipelineIds.has(el.pipelineId)) {
       continue;
     }
     const list = childrenByPipeline.get(el.pipelineId) ?? [];
@@ -284,10 +284,10 @@ export function serializeKeyedLines(map: WardleyMap, hints: SerializeHints = {})
 
   const evolveLines: KeyedLine[] = [];
   for (const el of map.elements) {
-    if (el.elementType === 'component' && el.movement) {
+    if (el.elementType === "component" && el.movement) {
       evolveLines.push({ key: `evolve:${el.id}`, text: evolveLine(el, nameOf(el)) });
     }
-    if (el.elementType === 'component' && el.pipelineId && pipelineIds.has(el.pipelineId)) {
+    if (el.elementType === "component" && el.pipelineId && pipelineIds.has(el.pipelineId)) {
       continue; // emitted inside the pipeline block
     }
     lines.push({
@@ -296,7 +296,7 @@ export function serializeKeyedLines(map: WardleyMap, hints: SerializeHints = {})
     });
     const kids = childrenByPipeline.get(el.id) ?? [];
     if (kids.length) {
-      lines.push({ key: `block-open:${el.id}`, text: '{' });
+      lines.push({ key: `block-open:${el.id}`, text: "{" });
       for (const k of kids) {
         lines.push({
           key: `child:${k.id}`,
@@ -305,7 +305,7 @@ export function serializeKeyedLines(map: WardleyMap, hints: SerializeHints = {})
             `${decoratorSuffix(k.decorators)}${colorSuffix(k)}${offsetSuffix(k.labelOffset)}`,
         });
       }
-      lines.push({ key: `block-close:${el.id}`, text: '}' });
+      lines.push({ key: `block-close:${el.id}`, text: "}" });
     }
   }
 
@@ -315,34 +315,34 @@ export function serializeKeyedLines(map: WardleyMap, hints: SerializeHints = {})
 function elementLine(el: MapElement, name: string): string {
   const p = el.position;
   switch (el.elementType) {
-    case 'anchor':
+    case "anchor":
       return `anchor ${name} [${r(p.visibility)}, ${r(p.evolution)}]${colorSuffix(el)}${offsetSuffix(el.labelOffset)}`;
-    case 'component':
+    case "component":
       return `component ${name} [${r(p.visibility)}, ${r(p.evolution)}]${decoratorSuffix(el.decorators)}${colorSuffix(el)}${offsetSuffix(el.labelOffset)}`;
-    case 'note':
+    case "note":
       // Encode line breaks as literal `\n` -> the line-based DSL stays single-line.
       return `note ${writtenNoteText(el.label)} [${r(p.visibility)}, ${r(p.evolution)}]${colorSuffix(el)}`;
-    case 'pipeline':
+    case "pipeline":
       return `pipeline ${name} [${r(el.evolutionStart)}, ${r(el.evolutionEnd)}]${colorSuffix(el)}`;
-    case 'submap':
+    case "submap":
       return `submap ${name} [${r(p.visibility)}, ${r(p.evolution)}]${colorSuffix(el)}`;
-    case 'annotation': {
+    case "annotation": {
       const pos =
         el.positions.length > 1
-          ? `[${el.positions.map((q) => `[${r(q.visibility)}, ${r(q.evolution)}]`).join(', ')}]`
+          ? `[${el.positions.map((q) => `[${r(q.visibility)}, ${r(q.evolution)}]`).join(", ")}]`
           : `[${r(p.visibility)}, ${r(p.evolution)}]`;
       return `annotation ${el.number} ${pos}${colorSuffix(el)} ${writtenText(el.text)}`;
     }
-    case 'accelerator':
-      return `${el.direction === 'deaccelerate' ? 'deaccelerator' : 'accelerator'} ${name} [${r(p.visibility)}, ${r(p.evolution)}]${colorSuffix(el)}`;
-    case 'attitude':
+    case "accelerator":
+      return `${el.direction === "deaccelerate" ? "deaccelerator" : "accelerator"} ${name} [${r(p.visibility)}, ${r(p.evolution)}]${colorSuffix(el)}`;
+    case "attitude":
       // OWM canon: two corners, normalized — `pioneers [vis1, mat1, vis2, mat2]`.
       return `${el.kind} [${r(p.visibility)}, ${r(p.evolution)}, ${r(el.corner2.visibility)}, ${r(el.corner2.evolution)}]${colorSuffix(el)}`;
-    case 'drawing': {
+    case "drawing": {
       // Project extension (freeform drawing): tuple list + style flags.
-      const pts = el.points.map((q) => `[${r(q.visibility)}, ${r(q.evolution)}]`).join(', ');
-      const closed = el.closed ? ' (closed)' : '';
-      const stroke = el.strokeStyle && el.strokeStyle !== 'solid' ? ` (${el.strokeStyle})` : '';
+      const pts = el.points.map((q) => `[${r(q.visibility)}, ${r(q.evolution)}]`).join(", ");
+      const closed = el.closed ? " (closed)" : "";
+      const stroke = el.strokeStyle && el.strokeStyle !== "solid" ? ` (${el.strokeStyle})` : "";
       return `line [${pts}]${closed}${stroke}${colorSuffix(el)}`;
     }
   }
@@ -351,6 +351,6 @@ function elementLine(el: MapElement, name: string): string {
 function evolveLine(el: ComponentElement, name: string): string {
   const mv = el.movement!;
   const label = mv.newLabel ? `${name}->${writtenText(mv.newLabel)}` : name;
-  const method = mv.method ? ` (${mv.method})` : '';
+  const method = mv.method ? ` (${mv.method})` : "";
   return `evolve ${label} ${r(mv.targetEvolution)}${method}${offsetSuffix(mv.labelOffset)}`;
 }

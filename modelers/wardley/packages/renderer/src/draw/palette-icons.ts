@@ -2,8 +2,8 @@
  * straight segment. Lucide (lucide-static 1.59.0) @license ISC
  * Copyright (c) 2026 Lucide Icons and Contributors
  * Full notice: README.md of @miragon/wardley-renderer */
-import { COLORS, ATTITUDE_COLORS, FONT } from './styles.js';
-import { ICON_FAST_FORWARD, ICON_FAST_REWIND, ICON_PERSON } from './icons.js';
+import { COLORS, ATTITUDE_COLORS, FONT } from "./styles.js";
+import { ICON_FAST_FORWARD, ICON_FAST_REWIND, ICON_PERSON } from "./icons.js";
 
 /**
  * Palette icons: the creating entries are a mini preview of the ACTUAL canvas rendering
@@ -41,7 +41,7 @@ const LINE_SEGMENT =
   '<circle cx="5" cy="19" r="2"/>' +
   '<path d="M6.5 17.5 17.5 6.5"/>';
 
-const eventCircle = (extra = ''): string =>
+const eventCircle = (extra = ""): string =>
   `<circle cx="12" cy="12" r="7" fill="${COLORS.componentFill}" stroke="${COLORS.stroke}" stroke-width="2"/>${extra}`;
 
 const text = (content: string, attrs: string): string =>
@@ -83,7 +83,7 @@ export const PALETTE_ICONS: Record<string, string> = {
   ),
   annotation: wrap(
     `<circle cx="12" cy="12" r="8" fill="${COLORS.annotationFill}" stroke="${COLORS.stroke}" stroke-width="1.25"/>` +
-      text('1', `y="16" font-size="11" font-weight="700" fill="${COLORS.stroke}"`),
+      text("1", `y="16" font-size="11" font-weight="700" fill="${COLORS.stroke}"`),
   ),
   accelerator: wrap(`<path d="${ICON_FAST_FORWARD}" fill="${COLORS.accelerator}"/>`),
   deaccelerator: wrap(`<path d="${ICON_FAST_REWIND}" fill="${COLORS.deaccelerator}"/>`),
@@ -94,15 +94,15 @@ export const PALETTE_ICONS: Record<string, string> = {
 };
 
 const ATTITUDE_INITIALS: Record<string, string> = {
-  pioneers: 'P',
-  settlers: 'S',
-  townplanners: 'T',
+  pioneers: "P",
+  settlers: "S",
+  townplanners: "T",
 };
 
 /** Region glyph; the initial letter tells the three kinds apart without relying on colour. */
 export function attitudeIcon(kind: string): string {
   const c = ATTITUDE_COLORS[kind] ?? { fill: COLORS.band, stroke: COLORS.dependency };
-  const initial = ATTITUDE_INITIALS[kind] ?? '';
+  const initial = ATTITUDE_INITIALS[kind] ?? "";
   return wrap(
     `<rect x="2" y="6" width="20" height="12" rx="3" fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.5" stroke-dasharray="3 2"/>` +
       text(initial, `y="15.3" font-size="9" font-weight="700" fill="${COLORS.ink}"`),

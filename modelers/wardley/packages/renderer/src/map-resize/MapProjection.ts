@@ -1,17 +1,17 @@
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type BaseLayouter from 'diagram-js/lib/layout/BaseLayouter';
-import type { Element, Root } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
-import type { MapConfig, MapSize, WardleyMap } from '@miragon/wardley-schema-model';
-import { withoutRawStatements } from '@miragon/wardley-dsl';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyExporter from '../io/WardleyExporter.js';
-import { ROOT_ID, type RootBusinessObject } from '../io/index.js';
-import type WardleyElementFactory from '../model/WardleyElementFactory.js';
-import type { LivePreview } from '../live-preview/index.js';
-import { isWardleyConnection, isWardleyShape, type WardleyShape } from '../model/di-types.js';
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type BaseLayouter from "diagram-js/lib/layout/BaseLayouter";
+import type { Element, Root } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
+import type { MapConfig, MapSize, WardleyMap } from "@miragon/wardley-schema-model";
+import { withoutRawStatements } from "@miragon/wardley-dsl";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyExporter from "../io/WardleyExporter.js";
+import { ROOT_ID, type RootBusinessObject } from "../io/index.js";
+import type WardleyElementFactory from "../model/WardleyElementFactory.js";
+import type { LivePreview } from "../live-preview/index.js";
+import { isWardleyConnection, isWardleyShape, type WardleyShape } from "../model/di-types.js";
 
 export type WardleyRoot = Root & { businessObject?: RootBusinessObject };
 
@@ -52,7 +52,7 @@ export function wardleyRootOf(canvas: Canvas): WardleyRoot | undefined {
 export function withoutRawSizeStatements(
   rawPassthrough: readonly string[] | undefined,
 ): readonly string[] | undefined {
-  return withoutRawStatements(rawPassthrough, 'size');
+  return withoutRawStatements(rawPassthrough, "size");
 }
 
 /**
@@ -63,14 +63,14 @@ export function withoutRawSizeStatements(
  */
 export default class MapProjection {
   static $inject = [
-    'canvas',
-    'elementRegistry',
-    'evolutionGrid',
-    'wardleyElementFactory',
-    'wardleyExporter',
-    'layouter',
-    'eventBus',
-    'wardleyLivePreview',
+    "canvas",
+    "elementRegistry",
+    "evolutionGrid",
+    "wardleyElementFactory",
+    "wardleyExporter",
+    "layouter",
+    "eventBus",
+    "wardleyLivePreview",
   ];
 
   constructor(
@@ -107,7 +107,7 @@ export default class MapProjection {
   ): Element[] {
     const root = this.root();
     if (!root) return [];
-    if (options.transient) this.livePreview.begin('size');
+    if (options.transient) this.livePreview.begin("size");
     root.businessObject = businessObject;
     this.grid.configure(businessObject.config);
     this.grid.render();
@@ -176,7 +176,7 @@ export default class MapProjection {
       connection.waypoints = points.map((point) => ({ ...point }));
       changed.push(connection);
     }
-    this.livePreview.end('size');
+    this.livePreview.end("size");
     this.fireConfigChanged(businessObject.config, options.transient === true);
     return changed;
   }
@@ -194,12 +194,12 @@ export default class MapProjection {
 
   /** `transient` marks a live preview that is not part of the document (yet). */
   private fireConfigChanged(config: MapConfig, transient: boolean): void {
-    this.eventBus.fire('wardley.config.changed', { config, ...(transient ? { transient } : {}) });
+    this.eventBus.fire("wardley.config.changed", { config, ...(transient ? { transient } : {}) });
   }
 
   /** Redraws elements changed outside the command stack (the live preview). */
   redraw(elements: readonly Element[]): void {
-    for (const element of elements) this.eventBus.fire('element.changed', { element });
+    for (const element of elements) this.eventBus.fire("element.changed", { element });
   }
 
   private layoutConnections(): Element[] {

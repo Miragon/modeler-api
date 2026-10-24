@@ -7,23 +7,23 @@
 // diagram-js imports resolve relative to the renderer source (packages/renderer/node_modules). The
 // host only pulls in the DOM-free DSL (diagnostics); @miragon/modeler-shell comes from node_modules
 // in both.
-import * as esbuild from 'esbuild';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import * as esbuild from "esbuild";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = resolve(here, '../..');
-const watch = process.argv.includes('--watch');
-const production = process.argv.includes('--production');
+const root = resolve(here, "../..");
+const watch = process.argv.includes("--watch");
+const production = process.argv.includes("--production");
 
 const r = (p) => resolve(root, p);
 
 /** Package aliases pointing at the TS source (mirrors apps/webapp/vite.config.ts). */
 const alias = {
-  '@miragon/wardley-renderer': r('packages/renderer/src/index.ts'),
-  '@miragon/wardley-schema-model': r('packages/schema-model/src/index.ts'),
-  '@miragon/wardley-dsl': r('packages/dsl/src/index.ts'),
-  '@miragon/wardley-transforms': r('packages/transforms/src/index.ts'),
+  "@miragon/wardley-renderer": r("packages/renderer/src/index.ts"),
+  "@miragon/wardley-schema-model": r("packages/schema-model/src/index.ts"),
+  "@miragon/wardley-dsl": r("packages/dsl/src/index.ts"),
+  "@miragon/wardley-transforms": r("packages/transforms/src/index.ts"),
 };
 
 /** @type {import('esbuild').BuildOptions} */
@@ -31,44 +31,44 @@ const common = {
   bundle: true,
   sourcemap: !production,
   minify: production,
-  logLevel: 'info',
+  logLevel: "info",
 };
 
 /** @type {import('esbuild').BuildOptions} */
 const host = {
   ...common,
-  entryPoints: [resolve(here, 'src/extension.ts')],
-  outfile: resolve(here, 'dist/extension.cjs'),
-  platform: 'node',
-  format: 'cjs',
+  entryPoints: [resolve(here, "src/extension.ts")],
+  outfile: resolve(here, "dist/extension.cjs"),
+  platform: "node",
+  format: "cjs",
   // VS Code 1.96 (engines) runs extensions on Node 20; the shell's createNonce needs its
   // globalThis.crypto.
-  target: 'node20',
-  external: ['vscode'],
+  target: "node20",
+  external: ["vscode"],
   alias,
 };
 
 /** @type {import('esbuild').BuildOptions} */
 const web = {
   ...common,
-  entryPoints: [resolve(here, 'src/webview/main.ts')],
-  outfile: resolve(here, 'dist/webview.js'),
-  platform: 'browser',
-  format: 'iife',
-  target: 'es2022',
+  entryPoints: [resolve(here, "src/webview/main.ts")],
+  outfile: resolve(here, "dist/webview.js"),
+  platform: "browser",
+  format: "iife",
+  target: "es2022",
   alias,
   // Font files next to the bundle, not inlined: Geist Mono alone brings six subsets, and as
   // separate files the browser fetches only the ones a page's unicode-range needs. The CSP of
   // renderWebviewHtml allows fonts from cspSource, and dist/ is the webview's resource root.
-  loader: { '.woff2': 'file', '.woff': 'file', '.ttf': 'file' },
-  assetNames: 'fonts/[name]-[hash]',
+  loader: { ".woff2": "file", ".woff": "file", ".ttf": "file" },
+  assetNames: "fonts/[name]-[hash]",
 };
 
 if (watch) {
   const ctxs = await Promise.all([esbuild.context(host), esbuild.context(web)]);
   await Promise.all(ctxs.map((c) => c.watch()));
-  console.log('[wardley-vscode] watching …');
+  console.log("[wardley-vscode] watching …");
 } else {
   await Promise.all([esbuild.build(host), esbuild.build(web)]);
-  console.log('[wardley-vscode] build done');
+  console.log("[wardley-vscode] build done");
 }

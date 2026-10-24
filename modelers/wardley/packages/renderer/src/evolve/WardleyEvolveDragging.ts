@@ -1,19 +1,19 @@
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { Injector } from 'didi';
-import { isReadOnly } from '../read-only/index.js';
-import type Dragging from 'diagram-js/lib/features/dragging/Dragging';
-import type Canvas from 'diagram-js/lib/core/Canvas';
-import type ElementRegistry from 'diagram-js/lib/core/ElementRegistry';
-import type { Movement } from '@miragon/wardley-schema-model';
-import type EvolutionGrid from '../evolution-grid/EvolutionGrid.js';
-import type WardleyModeling from '../modeling/WardleyModeling.js';
-import type { WardleyShape } from '../model/di-types.js';
-import { MIN_EVOLVE_DELTA } from './constants.js';
-import { focusCanvasWithoutRing } from '../a11y/index.js';
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { Injector } from "didi";
+import { isReadOnly } from "../read-only/index.js";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
+import type Canvas from "diagram-js/lib/core/Canvas";
+import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
+import type { Movement } from "@miragon/wardley-schema-model";
+import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
+import type WardleyModeling from "../modeling/WardleyModeling.js";
+import type { WardleyShape } from "../model/di-types.js";
+import { MIN_EVOLVE_DELTA } from "./constants.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 
-const PREFIX = 'wardley.evolve';
+const PREFIX = "wardley.evolve";
 /** CSS class of the red target circle (set by the renderer) — direct drag handle. */
-const HANDLE_CLASS = 'wardley-evolve-handle';
+const HANDLE_CLASS = "wardley-evolve-handle";
 
 interface EvolveContext {
   shape: WardleyShape;
@@ -33,13 +33,13 @@ function clamp01(n: number): number {
  */
 export default class WardleyEvolveDragging {
   static $inject = [
-    'eventBus',
-    'dragging',
-    'evolutionGrid',
-    'wardleyModeling',
-    'canvas',
-    'elementRegistry',
-    'injector',
+    "eventBus",
+    "dragging",
+    "evolutionGrid",
+    "wardleyModeling",
+    "canvas",
+    "elementRegistry",
+    "injector",
   ];
 
   constructor(
@@ -54,7 +54,7 @@ export default class WardleyEvolveDragging {
     const preview = (shape: WardleyShape, movement: Movement | undefined) => {
       if (movement === undefined) delete shape.movement;
       else shape.movement = movement;
-      eventBus.fire('element.changed', { element: shape });
+      eventBus.fire("element.changed", { element: shape });
     };
 
     // Evolution only moves forward: the preview stops at the component instead of flipping
@@ -73,8 +73,8 @@ export default class WardleyEvolveDragging {
     // The draw tool owns every press while it is active (its listener registers after this one).
     const isDrawing = (): boolean => {
       const container = canvas.getContainer();
-      const outer = container.closest('.wardley-container') ?? container;
-      return outer.classList.contains('wardley-draw-mode');
+      const outer = container.closest(".wardley-container") ?? container;
+      return outer.classList.contains("wardley-draw-mode");
     };
 
     // Direct handle: mousedown on the red target circle moves the evolve target by dragging.
@@ -82,13 +82,13 @@ export default class WardleyEvolveDragging {
     // Own document listeners (instead of dragging.init) — reliable, testable mousedown dragging.
     // Delegated on the container -> survives the re-rendering of the circle during the preview.
     canvas.getContainer().addEventListener(
-      'mousedown',
+      "mousedown",
       (event: MouseEvent) => {
         const dom = event.target as Element | null;
         if (!dom?.closest(`.${HANDLE_CLASS}`) || isDrawing() || isReadOnly(injector)) return;
-        const id = dom.closest('[data-element-id]')?.getAttribute('data-element-id');
+        const id = dom.closest("[data-element-id]")?.getAttribute("data-element-id");
         const shape = id ? (elementRegistry.get(id) as WardleyShape | undefined) : undefined;
-        if (!shape || shape.wardleyType !== 'component') return;
+        if (!shape || shape.wardleyType !== "component") return;
         event.stopPropagation();
         event.preventDefault();
         focusCanvasWithoutRing(canvas);
@@ -101,8 +101,8 @@ export default class WardleyEvolveDragging {
           preview(shape, { ...original, targetEvolution: target });
         };
         const onUp = () => {
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
           preview(shape, original); // reset preview, then ONE undoable commit (P4)
           // The shape may be gone (deleted mid-drag, or replaced by a re-import).
           if (elementRegistry.get(shape.id) !== shape) return;
@@ -110,8 +110,8 @@ export default class WardleyEvolveDragging {
             modeling.evolveComponent(shape, target);
           }
         };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
       },
       true,
     );
@@ -151,6 +151,6 @@ export default class WardleyEvolveDragging {
       shape,
       ...(shape.movement ? { originalMovement: shape.movement } : {}),
     };
-    this.dragging.init(event as MouseEvent, PREFIX, { cursor: 'ew-resize', data: { context } });
+    this.dragging.init(event as MouseEvent, PREFIX, { cursor: "ew-resize", data: { context } });
   }
 }

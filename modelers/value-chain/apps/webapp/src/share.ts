@@ -4,18 +4,18 @@
  * shares an editable diagram, not a picture.
  */
 
-const HASH_PREFIX = '#mz=';
+const HASH_PREFIX = "#mz=";
 
 function toBase64Url(bytes: Uint8Array): string {
-  let binary = '';
+  let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromBase64Url(base64: string): Uint8Array {
-  let normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
+  let normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4;
-  if (padding) normalized += '='.repeat(4 - padding);
+  if (padding) normalized += "=".repeat(4 - padding);
   return Uint8Array.from(atob(normalized), (character) => character.charCodeAt(0));
 }
 
@@ -26,13 +26,13 @@ async function pipe(bytes: Uint8Array, stream: ReadableWritablePair): Promise<Ui
 
 /** UTF-8 -> deflate-raw -> URL-safe Base64. A diagram's JSON shrinks by about 5 to 10 times. */
 export async function encodeDocument(text: string): Promise<string> {
-  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
+  const deflated = await pipe(new TextEncoder().encode(text), new CompressionStream("deflate-raw"));
   return toBase64Url(deflated);
 }
 
 /** URL-safe Base64 -> inflate -> UTF-8. */
 export async function decodeDocument(encoded: string): Promise<string> {
-  const inflated = await pipe(fromBase64Url(encoded), new DecompressionStream('deflate-raw'));
+  const inflated = await pipe(fromBase64Url(encoded), new DecompressionStream("deflate-raw"));
   return new TextDecoder().decode(inflated);
 }
 

@@ -150,9 +150,21 @@ export function defaultVsCodeCachePath(
 
 export function platformKeys(platform: string): PlatformKeys {
   if (platform === "darwin") {
-    return { modifier: "Meta", save: "Meta+s", undo: "Meta+z", redo: "Meta+Shift+z", close: "Meta+w" };
+    return {
+      modifier: "Meta",
+      save: "Meta+s",
+      undo: "Meta+z",
+      redo: "Meta+Shift+z",
+      close: "Meta+w",
+    };
   }
-  return { modifier: "Control", save: "Control+s", undo: "Control+z", redo: "Control+y", close: "Control+w" };
+  return {
+    modifier: "Control",
+    save: "Control+s",
+    undo: "Control+z",
+    redo: "Control+y",
+    close: "Control+w",
+  };
 }
 
 /** `publisher.name`, the id VS Code puts into the webview's frame URL. */
@@ -205,11 +217,15 @@ export function resolveExtensionMain(extensionPath: string, main: string): strin
 }
 
 /** The view type of the first custom editor whose selector matches `fileName`. */
-export function customEditorViewType(manifest: ExtensionManifest, fileName: string): string | undefined {
+export function customEditorViewType(
+  manifest: ExtensionManifest,
+  fileName: string,
+): string | undefined {
   for (const editor of manifest.contributes?.customEditors ?? []) {
     const matches = (editor.selector ?? []).some(
       (selector) =>
-        selector.filenamePattern !== undefined && matchesFilenamePattern(selector.filenamePattern, fileName),
+        selector.filenamePattern !== undefined &&
+        matchesFilenamePattern(selector.filenamePattern, fileName),
     );
     if (editor.viewType && matches) return editor.viewType;
   }

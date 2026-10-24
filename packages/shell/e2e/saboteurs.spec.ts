@@ -21,7 +21,10 @@ const WIDE_ONLY = [{ width: 1280, height: 900 }] as const;
 function allCases(): ShellConformanceCase[] {
   const registered = shellConformanceCases();
   const names = new Set(registered.map((conformanceCase) => conformanceCase.name));
-  return [...registered, ...createWebCases().filter((conformanceCase) => !names.has(conformanceCase.name))];
+  return [
+    ...registered,
+    ...createWebCases().filter((conformanceCase) => !names.has(conformanceCase.name)),
+  ];
 }
 
 function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page>) {
@@ -31,14 +34,20 @@ function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page
 }
 
 /** Runs every case; the failure (or skips) of each case that did not pass, by case name. */
-async function failures(page: Page, harness: ShellConformanceHarness<Page>): Promise<Map<string, string>> {
+async function failures(
+  page: Page,
+  harness: ShellConformanceHarness<Page>,
+): Promise<Map<string, string>> {
   const failed = new Map<string, string>();
   for (const conformanceCase of allCases()) {
     try {
       const outcome = await conformanceCase.run(page, harness);
       const skipped = outcome?.skipped ?? [];
       if (skipped.length > 0) {
-        failed.set(conformanceCase.name, `skipped: ${skipped.map((skip) => skip.reason).join("; ")}`);
+        failed.set(
+          conformanceCase.name,
+          `skipped: ${skipped.map((skip) => skip.reason).join("; ")}`,
+        );
       }
     } catch (error) {
       failed.set(conformanceCase.name, String(error));
@@ -127,7 +136,9 @@ interface ToastReading {
 function liftToasts({ column, limit, ownLinks }: ToastReading): void {
   const root = document.querySelector<HTMLElement>(".cd-shell")!;
   if (!ownLinks) {
-    for (const item of [...root.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item')].slice(2))
+    for (const item of [
+      ...root.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item'),
+    ].slice(2))
       item.remove();
   }
   const place = () => {
@@ -144,7 +155,8 @@ function liftToasts({ column, limit, ownLinks }: ToastReading): void {
     for (const name of ["zoom", "legal", "problems"]) {
       const island = root.querySelector(`[data-chrome="${name}"]`);
       const rect = island?.getBoundingClientRect();
-      if (!island || !rect || rect.width === 0 || getComputedStyle(island).visibility === "hidden") continue;
+      if (!island || !rect || rect.width === 0 || getComputedStyle(island).visibility === "hidden")
+        continue;
       if (Math.max(rect.left - (left + width), left - rect.right) < limit) {
         bottom = Math.max(bottom, box.bottom - rect.top + 8);
       }
@@ -191,7 +203,8 @@ test.describe("saboteurs", () => {
       // shell 0.4's rule, open above 440px width and 820px height, before the decision of 2026-10-24
       const harness = sabotaged(() => {
         const root = document.querySelector(".cd-shell")!;
-        if (root.clientWidth > 440 && root.clientHeight > 820) window.__demo!.shell.legend?.setOpen(true);
+        if (root.clientWidth > 440 && root.clientHeight > 820)
+          window.__demo!.shell.legend?.setOpen(true);
       });
       const failure = await expectOnlyCaseFails(page, harness, "legendStart", [
         /legend: open on first load in a 441 × 900 container; without a stored state it starts closed in every container/,
@@ -226,7 +239,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("focusHandBack fails when a pointer click leaves the focus on the chrome", async ({ page }) => {
+    test("focusHandBack fails when a pointer click leaves the focus on the chrome", async ({
+      page,
+    }) => {
       // shell 0.2.1: the clicked button keeps the focus, so Delete and the arrows do nothing
       const harness = sabotaged(() => {
         window.__demo!.connection.viewport.focus = () => {};
@@ -266,7 +281,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("keys fails in the IDE host when Cmd/Ctrl+A on the canvas goes on to VS Code", async ({ page }) => {
+    test("keys fails in the IDE host when Cmd/Ctrl+A on the canvas goes on to VS Code", async ({
+      page,
+    }) => {
       const harness = sabotaged(() => {
         window.__demo!.flaws.noSelectAll = true;
       });
@@ -280,7 +297,8 @@ test.describe("saboteurs", () => {
       // Event Storming's `style dark` board: navy around a light modeler
       const harness = sabotaged(() => {
         const style = document.createElement("style");
-        style.textContent = ".cd-shell-canvas, .djs-container { background-color: #080A20 !important; }";
+        style.textContent =
+          ".cd-shell-canvas, .djs-container { background-color: #080A20 !important; }";
         document.head.append(style);
       });
       await expectOnlyCaseFails(page, harness, "appearance", [
@@ -308,7 +326,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("webChrome fails when a narrow legal line scrolls instead of wrapping", async ({ page }) => {
+    test("webChrome fails when a narrow legal line scrolls instead of wrapping", async ({
+      page,
+    }) => {
       const harness = webSabotaged(() => {
         const style = document.createElement("style");
         style.textContent = ".cd-shell-legal { flex-wrap: nowrap !important; overflow-x: auto; }";
@@ -319,12 +339,14 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("webChrome fails when the zoom row rises only once it overlaps the legal line", async ({ page }) => {
+    test("webChrome fails when the zoom row rises only once it overlaps the legal line", async ({
+      page,
+    }) => {
       // without modeler links the 24px steps measure 13.8px and −10.2px and passed this reading
       const harness = webSabotaged(() => {
-        for (const item of [...document.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item')].slice(
-          2,
-        ))
+        for (const item of [
+          ...document.querySelectorAll('[data-chrome="legal"] .cd-shell-legal-item'),
+        ].slice(2))
           item.remove();
         const root = document.querySelector<HTMLElement>(".cd-shell")!;
         const lower = () => {
@@ -335,7 +357,10 @@ test.describe("saboteurs", () => {
             root.removeAttribute("data-zoom-row");
           }
         };
-        new MutationObserver(lower).observe(root, { attributes: true, attributeFilter: ["data-zoom-row"] });
+        new MutationObserver(lower).observe(root, {
+          attributes: true,
+          attributeFilter: ["data-zoom-row"],
+        });
         lower();
       });
       await expectOnlyCaseFails(page, harness, "webChrome", [
@@ -366,7 +391,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("webChrome fails when the pill does not rise with a wrapped legal line", async ({ page }) => {
+    test("webChrome fails when the pill does not rise with a wrapped legal line", async ({
+      page,
+    }) => {
       const harness = webSabotaged(() => {
         const style = document.createElement("style");
         style.textContent = '.cd-shell [data-chrome="problems"] { bottom: 40px !important; }';
@@ -381,7 +408,8 @@ test.describe("saboteurs", () => {
       // §8's min(480px, 100% − 24px) read as the card's width instead of its maximum
       const harness = webSabotaged(() => {
         const style = document.createElement("style");
-        style.textContent = '[data-chrome="toasts"] > [data-status] { align-self: stretch !important; }';
+        style.textContent =
+          '[data-chrome="toasts"] > [data-status] { align-self: stretch !important; }';
         document.head.append(style);
       });
       await expectOnlyCaseFails(page, harness, "toasts", [
@@ -420,7 +448,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("emptyState fails when the start screen swallows the browser's zoom keys", async ({ page }) => {
+    test("emptyState fails when the start screen swallows the browser's zoom keys", async ({
+      page,
+    }) => {
       const harness = webSabotaged(() => {
         document.addEventListener("keydown", (event) => {
           const shown = document.querySelector('.cd-shell[data-empty-state="shown"]') !== null;
@@ -459,12 +489,15 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("emptyState fails when the start screen swallows the browser's Ctrl+0", async ({ page }) => {
+    test("emptyState fails when the start screen swallows the browser's Ctrl+0", async ({
+      page,
+    }) => {
       // a stored page zoom could not be reset there (WCAG 1.4.4)
       const harness = webSabotaged(() => {
         document.addEventListener("keydown", (event) => {
           const shown = document.querySelector('.cd-shell[data-empty-state="shown"]') !== null;
-          if (shown && (event.ctrlKey || event.metaKey) && event.key === "0") event.preventDefault();
+          if (shown && (event.ctrlKey || event.metaKey) && event.key === "0")
+            event.preventDefault();
         });
       });
       await expectOnlyCaseFails(page, harness, "emptyState", [
@@ -476,7 +509,9 @@ test.describe("saboteurs", () => {
       // every dialog read as modal: the reading design system 1.15.0 rules out for guide §5.8
       const harness = sabotaged(() => {
         const asModal = () => {
-          for (const dialog of document.querySelectorAll('[role="dialog"]:not([aria-modal]), dialog[open]')) {
+          for (const dialog of document.querySelectorAll(
+            '[role="dialog"]:not([aria-modal]), dialog[open]',
+          )) {
             if (!dialog.matches(":modal")) dialog.setAttribute("aria-modal", "true");
           }
         };
@@ -521,7 +556,10 @@ test.describe("saboteurs", () => {
             row.removeAttribute("tabindex");
         };
         unfocusable();
-        new MutationObserver(unfocusable).observe(document.body, { childList: true, subtree: true });
+        new MutationObserver(unfocusable).observe(document.body, {
+          childList: true,
+          subtree: true,
+        });
       });
       await expectOnlyCaseFails(page, harness, "problemsList", [
         /problems-popover: ArrowDown reaches row 1, expected row 2 of 2; the keyboard reads every row, text rows too/,
@@ -532,7 +570,8 @@ test.describe("saboteurs", () => {
       const harness = webSabotaged(() => {
         const root = document.querySelector(".cd-shell")!;
         new MutationObserver(() => {
-          if (root.getAttribute("data-drop") === "forbidden") root.setAttribute("data-drop", "over");
+          if (root.getAttribute("data-drop") === "forbidden")
+            root.setAttribute("data-drop", "over");
         }).observe(root, { attributes: true, attributeFilter: ["data-drop"] });
       });
       await expectOnlyCaseFails(page, harness, "dropZone", [
@@ -554,7 +593,9 @@ test.describe("saboteurs", () => {
 
     test("problemsList fails for a problems list not labelled by its title", async ({ page }) => {
       const harness = webSabotaged(() => {
-        document.querySelector('[data-chrome="problems-popover"]')?.removeAttribute("aria-labelledby");
+        document
+          .querySelector('[data-chrome="problems-popover"]')
+          ?.removeAttribute("aria-labelledby");
       });
       await expectOnlyCaseFails(page, harness, "problemsList", [
         /problems-popover: not labelled by its title \(aria-labelledby\)/,
@@ -584,7 +625,9 @@ test.describe("saboteurs", () => {
       });
       await expectOnlyCasesFail(page, harness, {
         // 10px above toastStackBottom, which depends on the legal line's measured width
-        geometry: [/\[1280 × 900, with a toast\] toasts: bottom is (\d+)px, expected (\d+)px \(±1px\)/],
+        geometry: [
+          /\[1280 × 900, with a toast\] toasts: bottom is (\d+)px, expected (\d+)px \(±1px\)/,
+        ],
         // the toasts case measures the lift at its two widths
         toasts: [
           /\[\d+px wide, the widest card 12px beside the bottom row\] toasts: bottom is 22px, expected 12px/,
@@ -605,7 +648,9 @@ test.describe("saboteurs", () => {
       ]);
     });
 
-    test("labelEditor fails when the shell's fit takes the focus from the label editor", async ({ page }) => {
+    test("labelEditor fails when the shell's fit takes the focus from the label editor", async ({
+      page,
+    }) => {
       // the demo's editor commits when it loses the focus, as the renderers' do
       const harness = sabotaged(() => {
         const viewport = window.__demo!.connection.viewport;
@@ -644,7 +689,8 @@ test.describe("saboteurs", () => {
           window.clearTimeout(pending);
           pending = window.setTimeout(() => {
             const field = document.activeElement;
-            if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+            if (field instanceof HTMLElement && field.classList.contains("demo-label-editor"))
+              field.blur();
           }, 300);
         });
       });
@@ -659,7 +705,9 @@ test.describe("saboteurs", () => {
     }) => {
       // a commit 300ms after each view change lands after the view held still, while the case moves on
       const harness = sabotaged(() => {
-        const viewport = document.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+        const viewport = document.querySelector<SVGGraphicsElement>(
+          ".djs-container > svg > .viewport",
+        );
         if (!viewport) throw new Error("demo: no diagram-js viewport layer");
         // canvas.viewbox(box) writes transform.baseVal, which queues no MutationRecord in Chromium
         const viewOf = () => {
@@ -673,7 +721,8 @@ test.describe("saboteurs", () => {
             seen = view;
             window.setTimeout(() => {
               const field = document.activeElement;
-              if (field instanceof HTMLElement && field.classList.contains("demo-label-editor")) field.blur();
+              if (field instanceof HTMLElement && field.classList.contains("demo-label-editor"))
+                field.blur();
             }, 300);
           }
           window.requestAnimationFrame(watch);
@@ -709,7 +758,9 @@ test.describe("saboteurs", () => {
   test("readOnly fails for a creating entry the lock does not mark", async ({ page }) => {
     const harness = sabotaged(() => {
       const unmark = () => {
-        for (const entry of document.querySelectorAll('[data-action="create.box"][aria-disabled]')) {
+        for (const entry of document.querySelectorAll(
+          '[data-action="create.box"][aria-disabled]',
+        )) {
           entry.removeAttribute("aria-disabled");
         }
       };
@@ -725,14 +776,17 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("readOnly fails for view toggles and export disabled on the read-only canvas", async ({ page }) => {
+  test("readOnly fails for view toggles and export disabled on the read-only canvas", async ({
+    page,
+  }) => {
     const harness = sabotaged(() => {
       const disable = () => {
         if (!document.querySelector(".cd-shell[data-readonly]")) return;
         for (const item of document.querySelectorAll(
           '[data-menu-id="legend"], [data-menu-id="export-png"]',
         )) {
-          if (item.getAttribute("aria-disabled") !== "true") item.setAttribute("aria-disabled", "true");
+          if (item.getAttribute("aria-disabled") !== "true")
+            item.setAttribute("aria-disabled", "true");
         }
       };
       new MutationObserver(disable).observe(document.body, {
@@ -768,10 +822,14 @@ test.describe("saboteurs", () => {
     expect(failure).not.toMatch(/after a click/);
   });
 
-  test("focusHandBack fails when Enter on a File action leaves the focus on the canvas", async ({ page }) => {
+  test("focusHandBack fails when Enter on a File action leaves the focus on the canvas", async ({
+    page,
+  }) => {
     const harness = webSabotaged(() => {
       document.addEventListener("click", (event) => {
-        const entry = (event.target as Element | null)?.closest?.('[role="menu"] [data-menu-group="file"]');
+        const entry = (event.target as Element | null)?.closest?.(
+          '[role="menu"] [data-menu-group="file"]',
+        );
         if (entry && event.detail === 0) window.__webDemo!.connection.viewport.focus?.();
       });
     });
@@ -805,7 +863,9 @@ test.describe("saboteurs", () => {
     expect(await runCase("focusHandBack", page, declared)).toBeUndefined();
   });
 
-  test("labelEditor fails for a documentChanged probe that never sees the commit", async ({ page }) => {
+  test("labelEditor fails for a documentChanged probe that never sees the commit", async ({
+    page,
+  }) => {
     const base = demoHarness("ide");
     const harness: ShellConformanceHarness<Page> = {
       ...base,
@@ -882,8 +942,12 @@ test.describe("saboteurs", () => {
       (error: unknown) => String(error),
     );
     expect(failure).toMatch(/\[1280 × 900\] dropdown: top is 63px, expected 60px \(±1px\)/);
-    expect(failure).toMatch(/\[1280 × 900\] tooltip: top is 63px, expected 60px \(±1px\) \(on menu\)/);
-    expect(failure).toMatch(/\[1280 × 900\] tooltip: bottom is 57px, expected 60px \(±1px\) \(on zoom-in\)/);
+    expect(failure).toMatch(
+      /\[1280 × 900\] tooltip: top is 63px, expected 60px \(±1px\) \(on menu\)/,
+    );
+    expect(failure).toMatch(
+      /\[1280 × 900\] tooltip: bottom is 57px, expected 60px \(±1px\) \(on zoom-in\)/,
+    );
   });
 
   test("aria fails for a positive tabindex", async ({ page }) => {
@@ -897,7 +961,9 @@ test.describe("saboteurs", () => {
 
   test("aria fails for a palette shortcut that only the tooltip chip names", async ({ page }) => {
     const harness = sabotaged(() => {
-      for (const entry of document.querySelectorAll('[data-chrome="palette"] [aria-keyshortcuts]')) {
+      for (const entry of document.querySelectorAll(
+        '[data-chrome="palette"] [aria-keyshortcuts]',
+      )) {
         entry.removeAttribute("aria-keyshortcuts");
       }
     });
@@ -906,11 +972,19 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("aria fails for a dialog entry without the ellipsis, whatever its shortcut chip", async ({ page }) => {
+  test("aria fails for a dialog entry without the ellipsis, whatever its shortcut chip", async ({
+    page,
+  }) => {
     const harness = sabotaged(() => {
       window.__demo!.shell.menu.setGroups({
         help: [
-          { kind: "dialog", id: "shortcuts", label: "Keyboard shortcuts", shortcut: "?", onSelect() {} },
+          {
+            kind: "dialog",
+            id: "shortcuts",
+            label: "Keyboard shortcuts",
+            shortcut: "?",
+            onSelect() {},
+          },
         ],
       });
     });
@@ -919,7 +993,9 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("aria fails for a menu shortcut chip that assistive technology cannot hear", async ({ page }) => {
+  test("aria fails for a menu shortcut chip that assistive technology cannot hear", async ({
+    page,
+  }) => {
     // Without the saboteur the same entry passes: the failure is the lost description, not the chip.
     await runCase(
       "aria",
@@ -927,14 +1003,28 @@ test.describe("saboteurs", () => {
       sabotaged(() => {
         window.__demo!.shell.menu.setGroups({
           export: [
-            { kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} },
+            {
+              kind: "action",
+              id: "goto",
+              label: "Go to diagram",
+              shortcut: "G then D",
+              onSelect() {},
+            },
           ],
         });
       }),
     );
     const harness = sabotaged(() => {
       window.__demo!.shell.menu.setGroups({
-        export: [{ kind: "action", id: "goto", label: "Go to diagram", shortcut: "G then D", onSelect() {} }],
+        export: [
+          {
+            kind: "action",
+            id: "goto",
+            label: "Go to diagram",
+            shortcut: "G then D",
+            onSelect() {},
+          },
+        ],
       });
       const menu = document.querySelector('[role="menu"]')!;
       new MutationObserver(() => {
@@ -958,7 +1048,9 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("aria fails when the open menu lets its arrow keys reach document listeners", async ({ page }) => {
+  test("aria fails when the open menu lets its arrow keys reach document listeners", async ({
+    page,
+  }) => {
     const harness = sabotaged(() => {
       const ignore = () => {};
       Event.prototype.stopPropagation = ignore;
@@ -978,7 +1070,9 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("keys fails when the canvas takes Cmd/Ctrl+Z from VS Code's document history", async ({ page }) => {
+  test("keys fails when the canvas takes Cmd/Ctrl+Z from VS Code's document history", async ({
+    page,
+  }) => {
     const harness = sabotaged(() => {
       document.addEventListener("keydown", (event) => {
         const onCanvas = (event.target as Element | null)?.closest?.(".djs-container") !== null;
@@ -992,7 +1086,9 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("appearance fails for an embedded root that takes the host page's mode", async ({ page }) => {
+  test("appearance fails for an embedded root that takes the host page's mode", async ({
+    page,
+  }) => {
     const harness = sabotaged(() => {
       document.querySelector(".cd-shell")?.removeAttribute("data-cd-theme");
     }, "embedded");
@@ -1024,11 +1120,14 @@ test.describe("saboteurs", () => {
     );
   });
 
-  test("keys fails when a document undo binding takes Cmd/Ctrl+Z from a text field", async ({ page }) => {
+  test("keys fails when a document undo binding takes Cmd/Ctrl+Z from a text field", async ({
+    page,
+  }) => {
     // Event Storming binds undo on document; registered before the kit's recorders, as a modeler's is
     const harness = sabotaged(() => {
       document.addEventListener("keydown", (event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") event.preventDefault();
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z")
+          event.preventDefault();
       });
     });
     await expect(runCase("keys", page, harness)).rejects.toThrow(

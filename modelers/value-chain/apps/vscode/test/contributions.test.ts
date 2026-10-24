@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
-import { OPEN_DIAGRAM_COMMAND, OPEN_SOURCE_COMMAND, WEBVIEW_COMMANDS } from '../src/commands.js';
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { OPEN_DIAGRAM_COMMAND, OPEN_SOURCE_COMMAND, WEBVIEW_COMMANDS } from "../src/commands.js";
 
 interface CommandContribution {
   command: string;
@@ -14,7 +14,7 @@ interface MenuContribution {
   group?: string;
 }
 
-const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
   contributes: {
     commands: CommandContribution[];
     menus: Record<string, MenuContribution[]>;
@@ -23,23 +23,23 @@ const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.
   };
 };
 const { contributes } = manifest;
-const ON_DIAGRAM = 'activeCustomEditorId == valueChain.diagramEditor';
+const ON_DIAGRAM = "activeCustomEditorId == valueChain.diagramEditor";
 
-describe('package.json contributions', () => {
-  it('declares fit and export with Title Case titles in the Value Chain category', () => {
+describe("package.json contributions", () => {
+  it("declares fit and export with Title Case titles in the Value Chain category", () => {
     const byId = new Map(contributes.commands.map((command) => [command.command, command]));
 
-    expect(byId.get(WEBVIEW_COMMANDS.fitView)).toMatchObject({ title: 'Fit to View' });
-    expect(byId.get(WEBVIEW_COMMANDS.exportPng)).toMatchObject({ title: 'Export as PNG' });
-    expect(byId.get(WEBVIEW_COMMANDS.exportSvg)).toMatchObject({ title: 'Export as SVG' });
+    expect(byId.get(WEBVIEW_COMMANDS.fitView)).toMatchObject({ title: "Fit to View" });
+    expect(byId.get(WEBVIEW_COMMANDS.exportPng)).toMatchObject({ title: "Export as PNG" });
+    expect(byId.get(WEBVIEW_COMMANDS.exportSvg)).toMatchObject({ title: "Export as SVG" });
     for (const id of Object.values(WEBVIEW_COMMANDS)) {
-      expect(byId.get(id)?.category).toBe('Value Chain');
+      expect(byId.get(id)?.category).toBe("Value Chain");
     }
   });
 
-  it('puts them in the editor title overflow, fit first, only for a diagram', () => {
+  it("puts them in the editor title overflow, fit first, only for a diagram", () => {
     const webviewCommands = new Set<string>(Object.values(WEBVIEW_COMMANDS));
-    const entries = (contributes.menus['editor/title'] ?? []).filter((entry) =>
+    const entries = (contributes.menus["editor/title"] ?? []).filter((entry) =>
       webviewCommands.has(entry.command),
     );
 
@@ -54,7 +54,7 @@ describe('package.json contributions', () => {
     }
   });
 
-  it('shows them in the Command Palette only while a diagram is focused', () => {
+  it("shows them in the Command Palette only while a diagram is focused", () => {
     const palette = new Map(
       (contributes.menus.commandPalette ?? []).map((entry) => [entry.command, entry.when]),
     );
@@ -63,56 +63,56 @@ describe('package.json contributions', () => {
   });
 
   // Guide §13.5: source and diagram side by side from the title of either editor, with Codicons.
-  it('offers the source beside a diagram and the diagram beside its source', () => {
+  it("offers the source beside a diagram and the diagram beside its source", () => {
     const byId = new Map(contributes.commands.map((command) => [command.command, command]));
     expect(byId.get(OPEN_SOURCE_COMMAND)).toMatchObject({
-      title: 'Open Source to the Side',
-      category: 'Value Chain',
-      icon: '$(go-to-file)',
+      title: "Open Source to the Side",
+      category: "Value Chain",
+      icon: "$(go-to-file)",
     });
     expect(byId.get(OPEN_DIAGRAM_COMMAND)).toMatchObject({
-      title: 'Open Diagram to the Side',
-      category: 'Value Chain',
-      icon: '$(open-preview)',
+      title: "Open Diagram to the Side",
+      category: "Value Chain",
+      icon: "$(open-preview)",
     });
     const title = new Map(
-      (contributes.menus['editor/title'] ?? []).map((entry) => [entry.command, entry]),
+      (contributes.menus["editor/title"] ?? []).map((entry) => [entry.command, entry]),
     );
     expect(title.get(OPEN_SOURCE_COMMAND)).toEqual({
       command: OPEN_SOURCE_COMMAND,
       when: ON_DIAGRAM,
-      group: 'navigation',
+      group: "navigation",
     });
     expect(title.get(OPEN_DIAGRAM_COMMAND)).toEqual({
       command: OPEN_DIAGRAM_COMMAND,
-      when: 'editorLangId == value-chain',
-      group: 'navigation',
+      when: "editorLangId == value-chain",
+      group: "navigation",
     });
   });
 
-  it('walks through new, example and source to the side, each completed by its command', () => {
+  it("walks through new, example and source to the side, each completed by its command", () => {
     const steps = contributes.walkthroughs[0]!.steps;
-    expect(steps.map((step) => step.id).slice(0, 3)).toEqual(['new', 'example', 'source']);
+    expect(steps.map((step) => step.id).slice(0, 3)).toEqual(["new", "example", "source"]);
     expect(steps.slice(0, 3).map((step) => step.completionEvents)).toEqual([
-      ['onCommand:valueChain.newDiagram'],
-      ['onCommand:valueChain.newDiagramFromExample'],
+      ["onCommand:valueChain.newDiagram"],
+      ["onCommand:valueChain.newDiagramFromExample"],
       [`onCommand:${OPEN_SOURCE_COMMAND}`],
     ]);
   });
 
-  it('contributes no keybindings: the canvas keys apply while the webview has focus', () => {
+  it("contributes no keybindings: the canvas keys apply while the webview has focus", () => {
     expect(contributes.keybindings).toBeUndefined();
   });
 
-  it('ships THIRD_PARTY_NOTICES.md in the VSIX', () => {
-    const ignored = readFileSync(new URL('../.vscodeignore', import.meta.url), 'utf8')
-      .split('\n')
+  it("ships THIRD_PARTY_NOTICES.md in the VSIX", () => {
+    const ignored = readFileSync(new URL("../.vscodeignore", import.meta.url), "utf8")
+      .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'));
+      .filter((line) => line && !line.startsWith("#"));
     expect(ignored.some((pattern) => /THIRD_PARTY|\*\.md|^\*\*$/.test(pattern))).toBe(false);
   });
 
-  it('references only declared commands in menus', () => {
+  it("references only declared commands in menus", () => {
     const declared = new Set(contributes.commands.map((command) => command.command));
 
     for (const entries of Object.values(contributes.menus)) {

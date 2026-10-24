@@ -17,7 +17,12 @@ describe("defaultMessages (guide §2)", () => {
     expect(defaultMessages.showProblems).toBe("Show in Problems view");
     expect(defaultMessages.emptyHint).toBe("Pick a tool from the palette to start.");
     expect(defaultMessages.insertExample).toBe("Insert example");
-    expect(defaultMessages.keyNames).toEqual({ ctrl: "Ctrl", shift: "Shift", plus: "Plus", minus: "Minus" });
+    expect(defaultMessages.keyNames).toEqual({
+      ctrl: "Ctrl",
+      shift: "Shift",
+      plus: "Plus",
+      minus: "Minus",
+    });
   });
 
   it("counts problems in singular and plural", () => {
@@ -55,10 +60,10 @@ describe("defaultMessages (guide §2)", () => {
       defaultMessages.appearanceDark,
     ]).toEqual(["System", "Light", "Dark"]);
     expect(defaultMessages.problemsTitle).toBe("Problems");
-    expect([defaultMessages.problemSeverity("error"), defaultMessages.problemSeverity("warning")]).toEqual([
-      "Error",
-      "Warning",
-    ]);
+    expect([
+      defaultMessages.problemSeverity("error"),
+      defaultMessages.problemSeverity("warning"),
+    ]).toEqual(["Error", "Warning"]);
     expect(defaultMessages.close).toBe("Close");
     expect(defaultMessages.dropFile).toBe("Drop file here");
     expect(defaultMessages.dropForbidden("multiple")).toBe("Drop one file at a time");
@@ -98,9 +103,17 @@ describe("resolveMessages", () => {
   });
 
   it("keeps the default where an override is undefined", () => {
-    const messages = resolveMessages({ menu: undefined, keyNames: { plus: undefined, minus: "Moins" } });
+    const messages = resolveMessages({
+      menu: undefined,
+      keyNames: { plus: undefined, minus: "Moins" },
+    });
     expect(messages.menu).toBe("Menu");
-    expect(messages.keyNames).toEqual({ ctrl: "Ctrl", shift: "Shift", plus: "Plus", minus: "Moins" });
+    expect(messages.keyNames).toEqual({
+      ctrl: "Ctrl",
+      shift: "Shift",
+      plus: "Plus",
+      minus: "Moins",
+    });
   });
 
   it("takes a whole localized table", () => {

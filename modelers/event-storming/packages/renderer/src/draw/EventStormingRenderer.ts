@@ -1,8 +1,8 @@
-import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
-import { append as svgAppend, create as svgCreate, attr as svgAttr } from 'tiny-svg';
-import type EventBus from 'diagram-js/lib/core/EventBus';
-import type { ElementLike, ShapeLike, ConnectionLike } from 'diagram-js/lib/model/Types';
-import type { Point } from 'diagram-js/lib/util/Types';
+import BaseRenderer from "diagram-js/lib/draw/BaseRenderer";
+import { append as svgAppend, create as svgCreate, attr as svgAttr } from "tiny-svg";
+import type EventBus from "diagram-js/lib/core/EventBus";
+import type { ElementLike, ShapeLike, ConnectionLike } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
 import {
   COLORS,
   DRAWING_INK,
@@ -14,29 +14,29 @@ import {
   STICKY_PADDING,
   STICKY_RADIUS,
   STICKY_STYLES,
-} from './styles.js';
-import { parseNoteMarkdown, type NoteLine, type NoteRun } from './note-markdown.js';
+} from "./styles.js";
+import { parseNoteMarkdown, type NoteLine, type NoteRun } from "./note-markdown.js";
 import {
   HOTSPOT_ROTATION_DEG,
   LINK_LABEL_FONT_SIZE,
   LINK_LABEL_TEXT_RENDERING,
   connectionEndpoints,
   linkLabelAnchor,
-} from './extent.js';
+} from "./extent.js";
 import {
   isEventStormingConnection,
   isEventStormingShape,
   isStickyKind,
   type EventStormingConnection,
   type EventStormingShape,
-} from '../model/di-types.js';
-import type EventStormingViewOptions from '../view-options/EventStormingViewOptions.js';
+} from "../model/di-types.js";
+import type EventStormingViewOptions from "../view-options/EventStormingViewOptions.js";
 
 /** BaseRenderer default is 1000; 1500 wins the render.shape/render.connection event. */
 const RENDER_PRIORITY = 1500;
 
 /** Class of the small kind caption at a sticky's bottom (selector contract for tests/e2e). */
-export const KIND_CAPTION_CLASS = 'event-storming-kind-caption';
+export const KIND_CAPTION_CLASS = "event-storming-kind-caption";
 
 /**
  * Caption typography: small and light so it never competes with the user's label. The colour is
@@ -49,12 +49,12 @@ const CAPTION_FILL = COLORS.stickyText;
 const CAPTION_BOTTOM_OFFSET = 7;
 
 /** Provisional (blank append) sticky: neutral paper with a dashed hint border, no kind yet. */
-const PROVISIONAL_FILL = '#FBFBFB';
-const PROVISIONAL_STROKE = '#B9B9B9';
-const PROVISIONAL_DASH = '6 4';
+const PROVISIONAL_FILL = "#FBFBFB";
+const PROVISIONAL_STROKE = "#B9B9B9";
+const PROVISIONAL_DASH = "6 4";
 
 /** Soft drop shadow that makes stickies read as paper on the board (defs id, per canvas SVG). */
-export const STICKY_SHADOW_FILTER_ID = 'event-storming-sticky-shadow';
+export const STICKY_SHADOW_FILTER_ID = "event-storming-sticky-shadow";
 
 /**
  * Installs the shadow filter into the owning SVG's defs (once per SVG — the export clones the
@@ -63,26 +63,26 @@ export const STICKY_SHADOW_FILTER_ID = 'event-storming-sticky-shadow';
  * so callers must only reference the filter when this succeeded.
  */
 function ensureStickyShadowFilter(visuals: SVGElement): boolean {
-  const svg = visuals.closest('svg');
+  const svg = visuals.closest("svg");
   if (!svg) return false;
   if (svg.querySelector(`#${STICKY_SHADOW_FILTER_ID}`)) return true;
-  const drop = svgAttr(svgCreate('feDropShadow'), {
+  const drop = svgAttr(svgCreate("feDropShadow"), {
     dx: 0,
     dy: 5,
     stdDeviation: 5,
-    'flood-color': '#000000',
-    'flood-opacity': 0.2,
+    "flood-color": "#000000",
+    "flood-opacity": 0.2,
   });
   // Widened filter region: the default -10%/120% box would clip the soft blur below the sticky.
-  const filter = svgAttr(svgCreate('filter'), {
+  const filter = svgAttr(svgCreate("filter"), {
     id: STICKY_SHADOW_FILTER_ID,
-    x: '-40%',
-    y: '-40%',
-    width: '180%',
-    height: '180%',
+    x: "-40%",
+    y: "-40%",
+    width: "180%",
+    height: "180%",
   });
   svgAppend(filter, drop);
-  const defs = svgCreate('defs');
+  const defs = svgCreate("defs");
   svgAppend(defs, filter);
   svg.insertBefore(defs, svg.firstChild);
   return true;
@@ -91,7 +91,7 @@ function ensureStickyShadowFilter(visuals: SVGElement): boolean {
 type Attrs = Record<string, string | number>;
 
 export default class EventStormingRenderer extends BaseRenderer {
-  static $inject = ['eventBus', 'eventStormingViewOptions'];
+  static $inject = ["eventBus", "eventStormingViewOptions"];
 
   constructor(
     eventBus: EventBus,
@@ -106,7 +106,7 @@ export default class EventStormingRenderer extends BaseRenderer {
 
   override drawShape(visuals: SVGElement, element: ShapeLike): SVGElement {
     const shape = element as unknown as EventStormingShape;
-    if (shape.eventStormingType === 'drawing') return this.drawDrawing(visuals, shape);
+    if (shape.eventStormingType === "drawing") return this.drawDrawing(visuals, shape);
     return this.drawSticky(visuals, shape);
   }
 
@@ -114,15 +114,15 @@ export default class EventStormingRenderer extends BaseRenderer {
   private drawDrawing(visuals: SVGElement, shape: EventStormingShape): SVGElement {
     const pts = shape.drawingPoints ?? [];
     const dash =
-      shape.strokeStyle === 'dashed' ? '8 5' : shape.strokeStyle === 'dotted' ? '2 4' : undefined;
-    const path = svgAttr(svgCreate(shape.closed ? 'polygon' : 'polyline'), {
-      points: pts.map((p) => `${p.x},${p.y}`).join(' '),
-      fill: 'none',
+      shape.strokeStyle === "dashed" ? "8 5" : shape.strokeStyle === "dotted" ? "2 4" : undefined;
+    const path = svgAttr(svgCreate(shape.closed ? "polygon" : "polyline"), {
+      points: pts.map((p) => `${p.x},${p.y}`).join(" "),
+      fill: "none",
       stroke: shape.color ?? DRAWING_INK,
-      'stroke-width': 2,
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round',
-      ...(dash ? { 'stroke-dasharray': dash } : {}),
+      "stroke-width": 2,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      ...(dash ? { "stroke-dasharray": dash } : {}),
     });
     svgAppend(visuals, path);
     return path;
@@ -143,15 +143,15 @@ export default class EventStormingRenderer extends BaseRenderer {
     // Hotspots are tilted like a hastily slapped-on sticky; rotate the whole visual group
     // around the center so rect and text stay together.
     let parent = visuals;
-    if (kind === 'hotspot') {
-      const group = svgAttr(svgCreate('g'), {
+    if (kind === "hotspot") {
+      const group = svgAttr(svgCreate("g"), {
         transform: `rotate(${HOTSPOT_ROTATION_DEG} ${shape.width / 2} ${shape.height / 2})`,
       });
       svgAppend(visuals, group);
       parent = group;
     }
 
-    const rect = svgAttr(svgCreate('rect'), {
+    const rect = svgAttr(svgCreate("rect"), {
       x: 0,
       y: 0,
       width: Math.max(shape.width, 1),
@@ -159,18 +159,18 @@ export default class EventStormingRenderer extends BaseRenderer {
       rx: STICKY_RADIUS,
       fill: provisional ? PROVISIONAL_FILL : (shape.color ?? style.fill),
       stroke: provisional ? PROVISIONAL_STROKE : style.stroke,
-      'stroke-width': 1.5,
-      ...(provisional ? { 'stroke-dasharray': PROVISIONAL_DASH } : {}),
+      "stroke-width": 1.5,
+      ...(provisional ? { "stroke-dasharray": PROVISIONAL_DASH } : {}),
     });
     // Attribute (not tiny-svg attr, which routes `filter` into inline style) so exports carry it.
     if (ensureStickyShadowFilter(visuals)) {
-      rect.setAttribute('filter', `url(#${STICKY_SHADOW_FILTER_ID})`);
+      rect.setAttribute("filter", `url(#${STICKY_SHADOW_FILTER_ID})`);
     }
     svgAppend(parent, rect);
 
     if (provisional) return rect;
 
-    if (kind === 'note') drawNoteText(parent, shape);
+    if (kind === "note") drawNoteText(parent, shape);
     else drawStickyText(parent, shape);
 
     // Small kind caption at the bottom — the 8 sticky kinds only (a note explains itself,
@@ -181,15 +181,15 @@ export default class EventStormingRenderer extends BaseRenderer {
         shape.width / 2,
         shape.height - CAPTION_BOTTOM_OFFSET,
         {
-          'text-anchor': 'middle',
-          'font-size': CAPTION_FONT_SIZE,
+          "text-anchor": "middle",
+          "font-size": CAPTION_FONT_SIZE,
           fill: CAPTION_FILL,
         },
       );
       // Plain attributes (tiny-svg attr routes `font-weight` into inline style): the class is
       // the test/e2e selector contract, and exports must carry both as-is.
-      caption.setAttribute('class', KIND_CAPTION_CLASS);
-      caption.setAttribute('font-weight', String(CAPTION_FONT_WEIGHT));
+      caption.setAttribute("class", KIND_CAPTION_CLASS);
+      caption.setAttribute("font-weight", String(CAPTION_FONT_WEIGHT));
       svgAppend(parent, caption);
     }
     return rect;
@@ -199,12 +199,12 @@ export default class EventStormingRenderer extends BaseRenderer {
     const conn = element as unknown as EventStormingConnection;
     const [start, end] = connectionEndpoints(conn);
 
-    const path = svgAttr(svgCreate('polyline'), {
+    const path = svgAttr(svgCreate("polyline"), {
       points: `${start.x},${start.y} ${end.x},${end.y}`,
-      fill: 'none',
+      fill: "none",
       stroke: COLORS.arrow,
-      'stroke-width': 1.5,
-      'stroke-linecap': 'round',
+      "stroke-width": 1.5,
+      "stroke-linecap": "round",
     });
     svgAppend(visuals, path);
     svgAppend(visuals, connectionArrow(start, end, COLORS.arrow, 11, 5));
@@ -215,10 +215,10 @@ export default class EventStormingRenderer extends BaseRenderer {
       svgAppend(
         visuals,
         label(conn.linkLabel, anchor.x, anchor.y, {
-          'text-anchor': 'middle',
-          'font-size': LINK_LABEL_FONT_SIZE,
-          'font-style': 'italic',
-          'text-rendering': LINK_LABEL_TEXT_RENDERING,
+          "text-anchor": "middle",
+          "font-size": LINK_LABEL_FONT_SIZE,
+          "font-style": "italic",
+          "text-rendering": LINK_LABEL_TEXT_RENDERING,
           fill: COLORS.inkSoft,
         }),
       );
@@ -233,17 +233,17 @@ export default class EventStormingRenderer extends BaseRenderer {
 
   override getConnectionPath(connection: ConnectionLike): string {
     const [first, ...rest] = connection.waypoints;
-    if (!first) return '';
-    return `M${first.x},${first.y}` + rest.map((p: Point) => `L${p.x},${p.y}`).join('');
+    if (!first) return "";
+    return `M${first.x},${first.y}` + rest.map((p: Point) => `L${p.x},${p.y}`).join("");
   }
 }
 
 /** Word-wraps one paragraph to `maxChars` (estimated monospace-ish width, like noteMetrics). */
 function wrapParagraph(paragraph: string, maxChars: number): string[] {
   const words = paragraph.split(/\s+/).filter((w) => w.length);
-  if (!words.length) return [''];
+  if (!words.length) return [""];
   const lines: string[] = [];
-  let current = '';
+  let current = "";
   for (const word of words) {
     // Hard-break unbreakable over-long words (e.g. PascalCase identifiers) into maxChars chunks —
     // an over-wide single line would spill outside the fixed sticky box.
@@ -281,8 +281,8 @@ function drawStickyText(parent: SVGElement, shape: EventStormingShape): void {
     Math.floor((shape.height - 2 * STICKY_PADDING) / STICKY_LINE_HEIGHT),
   );
 
-  const lines = (shape.eventStormingLabel ?? '')
-    .split('\n')
+  const lines = (shape.eventStormingLabel ?? "")
+    .split("\n")
     .flatMap((paragraph) => wrapParagraph(paragraph, maxChars))
     .slice(0, maxLines);
 
@@ -293,7 +293,7 @@ function drawStickyText(parent: SVGElement, shape: EventStormingShape): void {
     svgAppend(
       parent,
       label(line, cx, y0 + i * STICKY_LINE_HEIGHT, {
-        'text-anchor': 'middle',
+        "text-anchor": "middle",
         fill: COLORS.stickyText,
       }),
     );
@@ -335,18 +335,18 @@ function drawNoteText(parent: SVGElement, shape: EventStormingShape): void {
     Math.floor((shape.height - 2 * STICKY_PADDING) / STICKY_LINE_HEIGHT),
   );
 
-  const rows = parseNoteMarkdown(shape.eventStormingLabel ?? '')
+  const rows = parseNoteMarkdown(shape.eventStormingLabel ?? "")
     .flatMap((line) => wrapNoteLine(line, maxChars))
     .slice(0, maxLines);
 
-  const horizontal = shape.alignHorizontal ?? 'left';
-  const vertical = shape.alignVertical ?? 'top';
-  const anchor = horizontal === 'left' ? 'start' : horizontal === 'center' ? 'middle' : 'end';
+  const horizontal = shape.alignHorizontal ?? "left";
+  const vertical = shape.alignVertical ?? "top";
+  const anchor = horizontal === "left" ? "start" : horizontal === "center" ? "middle" : "end";
   const blockHeight = rows.length * STICKY_LINE_HEIGHT;
   const blockTop =
-    vertical === 'top'
+    vertical === "top"
       ? STICKY_PADDING
-      : vertical === 'middle'
+      : vertical === "middle"
         ? (shape.height - blockHeight) / 2
         : shape.height - STICKY_PADDING - blockHeight;
 
@@ -354,28 +354,28 @@ function drawNoteText(parent: SVGElement, shape: EventStormingShape): void {
     // The hanging indent only exists as an x-offset when lines share a left edge; centered/right
     // rows are anchored like any other line (the '• ' marker still sticks to its row's start).
     const x =
-      horizontal === 'left'
+      horizontal === "left"
         ? STICKY_PADDING + (row.indent ? NOTE_BULLET_INDENT : 0)
-        : horizontal === 'center'
+        : horizontal === "center"
           ? shape.width / 2
           : shape.width - STICKY_PADDING;
-    const text = svgAttr(svgCreate('text'), {
+    const text = svgAttr(svgCreate("text"), {
       x,
       y: blockTop + i * STICKY_LINE_HEIGHT + NOTE_ROW_BASELINE,
-      'font-family': FONT.family,
-      'font-size': FONT.label,
+      "font-family": FONT.family,
+      "font-size": FONT.label,
       fill: COLORS.stickyText,
-      'text-anchor': anchor,
+      "text-anchor": anchor,
     });
     const runs: NoteRun[] = row.marker
-      ? [{ text: '• ', bold: false, italic: false }, ...row.runs]
+      ? [{ text: "• ", bold: false, italic: false }, ...row.runs]
       : row.runs;
     for (const run of runs) {
-      const tspan = svgCreate('tspan');
+      const tspan = svgCreate("tspan");
       tspan.textContent = run.text;
       // Plain attributes (like the kind caption): exports and e2e selectors see them directly.
-      if (run.bold) tspan.setAttribute('font-weight', '600');
-      if (run.italic) tspan.setAttribute('font-style', 'italic');
+      if (run.bold) tspan.setAttribute("font-weight", "600");
+      if (run.italic) tspan.setAttribute("font-style", "italic");
       svgAppend(text, tspan);
     }
     svgAppend(parent, text);
@@ -398,7 +398,7 @@ function wrapNoteLine(line: NoteLine, maxChars: number): NoteRow[] {
  * A line that fits stays verbatim (auto-sized boxes always hit this path via noteMetrics).
  */
 function wrapRuns(runs: NoteRun[], maxChars: number): NoteRun[][] {
-  const plain = runs.map((run) => run.text).join('');
+  const plain = runs.map((run) => run.text).join("");
   if (plain.length <= maxChars) return [runs];
   return wrapRanges(plain, maxChars).map(([start, end]) => sliceRuns(runs, start, end));
 }
@@ -464,11 +464,11 @@ function sliceRuns(runs: NoteRun[], start: number, end: number): NoteRun[] {
 }
 
 function label(content: string, x: number, y: number, attrs: Attrs = {}): SVGElement {
-  const el = svgAttr(svgCreate('text'), {
+  const el = svgAttr(svgCreate("text"), {
     x,
     y,
-    'font-family': FONT.family,
-    'font-size': FONT.label,
+    "font-family": FONT.family,
+    "font-size": FONT.label,
     fill: COLORS.ink,
     ...attrs,
   });
@@ -484,5 +484,5 @@ function connectionArrow(from: Point, to: Point, color: string, len = 10, w = 5)
     `${to.x},${to.y} ` +
     `${bx - w * Math.sin(angle)},${by + w * Math.cos(angle)} ` +
     `${bx + w * Math.sin(angle)},${by - w * Math.cos(angle)}`;
-  return svgAttr(svgCreate('polygon'), { points, fill: color });
+  return svgAttr(svgCreate("polygon"), { points, fill: color });
 }

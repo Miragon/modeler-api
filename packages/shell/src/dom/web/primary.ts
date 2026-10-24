@@ -35,7 +35,12 @@ const COLLAPSED_ATTRIBUTE = "data-collapsed";
 export function createPrimaryAction(context: PrimaryActionContext): PrimaryActionController {
   const { ownerDocument, messages, tooltip, options } = context;
   const label = options.label ?? messages.share;
-  const labelElement = createElement(ownerDocument, "span", { class: "cd-shell-primary-label" }, label);
+  const labelElement = createElement(
+    ownerDocument,
+    "span",
+    { class: "cd-shell-primary-label" },
+    label,
+  );
   const element = createElement(
     ownerDocument,
     "button",

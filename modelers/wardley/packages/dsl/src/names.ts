@@ -3,28 +3,28 @@
  * the parser reads them the way the serializer will write them, so a second parse yields the same
  * model.
  */
-import { rewriteOutsideFlowValues } from './lexer.js';
+import { rewriteOutsideFlowValues } from "./lexer.js";
 
 /** Types referenced BY THEIR NAME in the OWM DSL (edge endpoints + namespace). */
 export const NAMED_TYPES: ReadonlySet<string> = new Set([
-  'anchor',
-  'component',
-  'accelerator',
-  'submap',
+  "anchor",
+  "component",
+  "accelerator",
+  "submap",
 ]);
 
 function defaultName(type: string): string {
   switch (type) {
-    case 'anchor':
-      return 'User';
-    case 'accelerator':
-      return 'Accelerator';
-    case 'submap':
-      return 'Submap';
-    case 'pipeline':
-      return 'Pipeline';
+    case "anchor":
+      return "User";
+    case "accelerator":
+      return "Accelerator";
+    case "submap":
+      return "Submap";
+    case "pipeline":
+      return "Pipeline";
     default:
-      return 'Component';
+      return "Component";
   }
 }
 
@@ -32,9 +32,9 @@ export function roundAsWritten(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
 
-const DIVISION_SLASH = '∕';
-const FULLWIDTH_PLUS = '＋';
-const FULLWIDTH_LEFT_BRACE = '｛';
+const DIVISION_SLASH = "∕";
+const FULLWIDTH_PLUS = "＋";
+const FULLWIDTH_LEFT_BRACE = "｛";
 
 /**
  * Comment markers would cut the line on the next parse, so they are written with U+2215 instead
@@ -49,12 +49,12 @@ export function escapeCommentMarkers(text: string): string {
 
 /** A text as it is written on one DSL line: line breaks become spaces, comment markers are escaped. */
 export function writtenText(text: string): string {
-  return escapeCommentMarkers(text.replace(/\r?\n/g, ' '));
+  return escapeCommentMarkers(text.replace(/\r?\n/g, " "));
 }
 
 /** Note texts keep their line breaks as a literal `\n`. */
 export function writtenNoteText(text: string): string {
-  return escapeCommentMarkers(text).replace(/\r?\n/g, '\\n');
+  return escapeCommentMarkers(text).replace(/\r?\n/g, "\\n");
 }
 
 /**
@@ -64,8 +64,8 @@ export function writtenNoteText(text: string): string {
  */
 export function writtenName(label: string, elementType: string): string {
   const name = label
-    .replace(/\r?\n/g, ' ')
-    .replace(/->/g, '→')
+    .replace(/\r?\n/g, " ")
+    .replace(/->/g, "→")
     .replace(/\+(?=['<>])/g, FULLWIDTH_PLUS)
     .trim()
     .replace(/^\{/, FULLWIDTH_LEFT_BRACE);

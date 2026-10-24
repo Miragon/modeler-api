@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
 
 const sourceEntry = (packageName: string): string =>
   new URL(`./packages/${packageName}/src/index.ts`, import.meta.url).pathname;
@@ -12,35 +12,35 @@ export default defineConfig({
   test: {
     // Report-only for now (no thresholds) — Phase G flips this into a gate. `npm run test:coverage`.
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['packages/*/src/**/*.ts', 'apps/*/src/**/*.ts'],
-      exclude: ['**/*.d.ts', '**/dist/**', '**/test/**', 'apps/*/src/webview/main.ts'],
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
+      exclude: ["**/*.d.ts", "**/dist/**", "**/test/**", "apps/*/src/webview/main.ts"],
     },
     projects: [
       {
         test: {
-          name: 'unit',
+          name: "unit",
           // Per-file `// @vitest-environment jsdom` pragmas still override this default.
-          environment: 'node',
-          include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
-          exclude: ['packages/renderer/test/browser/**', '**/node_modules/**', '**/dist/**'],
+          environment: "node",
+          include: ["packages/*/test/**/*.test.ts", "apps/*/test/**/*.test.ts"],
+          exclude: ["packages/renderer/test/browser/**", "**/node_modules/**", "**/dist/**"],
           // The VS Code host imports the ambient `vscode` runtime, which only exists inside the
           // editor. Point it at a thin in-repo mock so host/protocol logic is unit-testable.
           alias: {
-            vscode: new URL('./apps/vscode/test/__mocks__/vscode.ts', import.meta.url).pathname,
+            vscode: new URL("./apps/vscode/test/__mocks__/vscode.ts", import.meta.url).pathname,
           },
         },
       },
       {
         test: {
-          name: 'browser',
-          include: ['packages/renderer/test/browser/**/*.test.ts'],
+          name: "browser",
+          include: ["packages/renderer/test/browser/**/*.test.ts"],
           browser: {
             enabled: true,
             provider: playwright(),
             headless: true,
-            instances: [{ browser: 'chromium' }],
+            instances: [{ browser: "chromium" }],
           },
         },
       },
@@ -49,13 +49,13 @@ export default defineConfig({
         // downloads VS Code once, so it stays out of `npm test`. The parser check takes the package
         // sources, as the extension's bundle does, so it needs no `npm run build` either.
         test: {
-          name: 'vscode',
-          environment: 'node',
-          include: ['apps/vscode/test-smoke/**/*.test.ts'],
+          name: "vscode",
+          environment: "node",
+          include: ["apps/vscode/test-smoke/**/*.test.ts"],
           fileParallelism: false,
           alias: {
-            '@miragon/event-storming-dsl': sourceEntry('dsl'),
-            '@miragon/event-storming-schema-model': sourceEntry('schema-model'),
+            "@miragon/event-storming-dsl": sourceEntry("dsl"),
+            "@miragon/event-storming-schema-model": sourceEntry("schema-model"),
           },
         },
       },

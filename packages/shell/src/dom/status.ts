@@ -32,7 +32,9 @@ export function createStatusBox(ownerDocument: Document): StatusBox {
     if (element.dataset.severity !== status.severity) {
       element.dataset.severity = status.severity;
       element.setAttribute("role", status.severity === "danger" ? "alert" : "status");
-      icon.replaceChildren(iconElement(status.severity === "danger" ? "circle-x" : "triangle-alert"));
+      icon.replaceChildren(
+        iconElement(status.severity === "danger" ? "circle-x" : "triangle-alert"),
+      );
     }
     // An unchanged text is not written again, so role="alert" does not announce it again.
     if (text.textContent !== status.text) text.textContent = status.text;

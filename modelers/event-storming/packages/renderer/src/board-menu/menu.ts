@@ -1,4 +1,4 @@
-import type { BoardLevel } from '@miragon/event-storming-schema-model';
+import type { BoardLevel } from "@miragon/event-storming-schema-model";
 
 /*
  * The board's entries of the chrome menu (guide §5.4), the same in every host. The types mirror
@@ -7,7 +7,7 @@ import type { BoardLevel } from '@miragon/event-storming-schema-model';
  */
 
 /** The icons the guide gives these entries (guide §5.14, the shell's common set). */
-export type BoardMenuIcon = 'file-image' | 'file-code-corner' | 'keyboard';
+export type BoardMenuIcon = "file-image" | "file-code-corner" | "keyboard";
 
 interface BoardMenuItem {
   readonly id: string;
@@ -17,24 +17,24 @@ interface BoardMenuItem {
 }
 
 export interface BoardMenuAction extends BoardMenuItem {
-  readonly kind: 'action';
+  readonly kind: "action";
   readonly shortcut?: string;
   onSelect(): void;
 }
 
 export interface BoardMenuDialog extends BoardMenuItem {
-  readonly kind: 'dialog';
+  readonly kind: "dialog";
   onSelect(): void;
 }
 
 export interface BoardMenuCheckbox extends BoardMenuItem {
-  readonly kind: 'checkbox';
+  readonly kind: "checkbox";
   checked(): boolean;
   onToggle(checked: boolean): void;
 }
 
 export interface BoardMenuRadioGroup {
-  readonly kind: 'radio';
+  readonly kind: "radio";
   readonly id: string;
   readonly label: string;
   readonly options: ReadonlyArray<{ readonly value: string; readonly label: string }>;
@@ -92,12 +92,12 @@ export interface BoardMenuActions {
 }
 
 /** The web app's native-format export, in the Export group and in the shortcuts dialog. */
-export const STORM_EXPORT_LABEL = 'Export as .storm';
+export const STORM_EXPORT_LABEL = "Export as .storm";
 
 export const BOARD_LEVELS: ReadonlyArray<{ readonly value: BoardLevel; readonly label: string }> = [
-  { value: 'big-picture', label: 'Big picture' },
-  { value: 'process', label: 'Process modeling' },
-  { value: 'design', label: 'Software design' },
+  { value: "big-picture", label: "Big picture" },
+  { value: "process", label: "Process modeling" },
+  { value: "design", label: "Software design" },
 ];
 
 function isBoardLevel(value: string): value is BoardLevel {
@@ -111,7 +111,7 @@ function exportEntry(
   icon?: BoardMenuIcon,
 ): BoardMenuAction {
   return {
-    kind: 'action',
+    kind: "action",
     id,
     label,
     ...(icon ? { icon } : {}),
@@ -122,20 +122,20 @@ function exportEntry(
 
 function exportEntries(exports: BoardExports): BoardMenuAction[] {
   const entries = [
-    exportEntry('export-png', 'Export as PNG', exports.png, 'file-image'),
-    exportEntry('export-svg', 'Export as SVG', exports.svg, 'file-code-corner'),
+    exportEntry("export-png", "Export as PNG", exports.png, "file-image"),
+    exportEntry("export-svg", "Export as SVG", exports.svg, "file-code-corner"),
   ];
   if (exports.transparentPng) {
     entries.push(
       exportEntry(
-        'export-png-transparent',
-        'Export as PNG (4×, transparent)',
+        "export-png-transparent",
+        "Export as PNG (4×, transparent)",
         exports.transparentPng,
       ),
     );
   }
-  if (exports.json) entries.push(exportEntry('export-json', 'Export as JSON', exports.json));
-  if (exports.storm) entries.push(exportEntry('export-storm', STORM_EXPORT_LABEL, exports.storm));
+  if (exports.json) entries.push(exportEntry("export-json", "Export as JSON", exports.json));
+  if (exports.storm) entries.push(exportEntry("export-storm", STORM_EXPORT_LABEL, exports.storm));
   return entries;
 }
 
@@ -144,9 +144,9 @@ export function boardMenu(actions: BoardMenuActions): BoardMenu {
   return {
     model: [
       {
-        kind: 'radio',
-        id: 'level',
-        label: 'Level',
+        kind: "radio",
+        id: "level",
+        label: "Level",
         options: BOARD_LEVELS,
         value: () => actions.levels.getLevel(),
         onSelect: (value) => {
@@ -154,9 +154,9 @@ export function boardMenu(actions: BoardMenuActions): BoardMenu {
         },
       },
       {
-        kind: 'checkbox',
-        id: 'type-captions',
-        label: 'Type captions',
+        kind: "checkbox",
+        id: "type-captions",
+        label: "Type captions",
         // A view preference, not board content: it stays usable on a read-only canvas.
         keepEnabledWhenReadOnly: true,
         checked: () => actions.typeCaptions.typeCaptionsVisible(),
@@ -169,10 +169,10 @@ export function boardMenu(actions: BoardMenuActions): BoardMenu {
     export: exportEntries(actions.exports),
     help: [
       {
-        kind: 'dialog',
-        id: 'keyboard-shortcuts',
-        label: 'Keyboard shortcuts…',
-        icon: 'keyboard',
+        kind: "dialog",
+        id: "keyboard-shortcuts",
+        label: "Keyboard shortcuts…",
+        icon: "keyboard",
         onSelect: () => actions.showKeyboardShortcuts(),
       },
     ],

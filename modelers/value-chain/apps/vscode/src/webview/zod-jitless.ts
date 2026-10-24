@@ -1,4 +1,4 @@
-import { config } from 'zod';
+import { config } from "zod";
 
 // The webview CSP forbids eval. Zod probes for it with `new Function` when it builds its first
 // object schema, and the browser reports that probe as a CSP violation even though zod catches the

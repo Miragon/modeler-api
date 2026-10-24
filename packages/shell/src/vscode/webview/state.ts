@@ -31,7 +31,12 @@ function viewboxFrom(value: unknown): Bounds | undefined {
   const { x, y, width, height } = value;
   if (typeof x !== "number" || typeof y !== "number") return undefined;
   if (typeof width !== "number" || typeof height !== "number") return undefined;
-  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height)
+  ) {
     return undefined;
   }
   return width > 0 && height > 0 ? { x, y, width, height } : undefined;
