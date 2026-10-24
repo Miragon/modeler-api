@@ -1,0 +1,134 @@
+# Changelog
+
+## [0.6.1](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.6.0...webapp-v0.6.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** adopt modeler-shell 0.4.1, whose VS Code driver retries a missed theme switch ([#62](https://github.com/Miragon/event-storming-modeler/issues/62)) ([e564e9d](https://github.com/Miragon/event-storming-modeler/commit/e564e9dbb54ad48168d467240a4e4eb23a17f76b))
+
+## [0.6.0](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.5.1...webapp-v0.6.0) (2026-10-23)
+
+
+### Features
+
+* **renderer:** report the board's content bounds (modeler-api 1.3); the apps fit to them with modeler-shell 0.4.0 ([#60](https://github.com/Miragon/event-storming-modeler/issues/60)) ([d4b1689](https://github.com/Miragon/event-storming-modeler/commit/d4b168964d67d09f52c162b5cc89fb8064733b48))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-renderer bumped from 0.4.1 to 0.5.0
+
+## [0.5.1](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.5.0...webapp-v0.5.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* keep the open board when a JSON board lies beyond ±1e38 ([#55](https://github.com/Miragon/event-storming-modeler/issues/55)) ([ad72b03](https://github.com/Miragon/event-storming-modeler/commit/ad72b03ff57b8b7614e191a224836e734b33e70a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.3.0 to 0.3.1
+    * @miragon/event-storming-renderer bumped from 0.4.0 to 0.4.1
+    * @miragon/event-storming-schema-model bumped from 0.2.1 to 0.2.2
+
+## [0.5.0](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.4.0...webapp-v0.5.0) (2026-10-21)
+
+
+### Features
+
+* give new stickies random ids and implement modeler-api contract 1.2 ([#41](https://github.com/Miragon/event-storming-modeler/issues/41)) ([6fe94e7](https://github.com/Miragon/event-storming-modeler/commit/6fe94e7adfe2df27f07658093ef4ac1c5c13e94b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-renderer bumped from 0.3.0 to 0.4.0
+
+## [0.4.0](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.3.0...webapp-v0.4.0) (2026-10-19)
+
+
+### Features
+
+* **webapp:** move the web app onto the shared modeler shell's web chrome ([#39](https://github.com/Miragon/event-storming-modeler/issues/39)) ([03e9792](https://github.com/Miragon/event-storming-modeler/commit/03e979247fc84111a03b111d6ff260f2db558bb2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.2.2 to 0.3.0
+    * @miragon/event-storming-renderer bumped from 0.2.2 to 0.3.0
+
+## [0.3.0](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.2.2...webapp-v0.3.0) (2026-10-08)
+
+
+### Features
+
+* use the Event Storming modeler icon for the webapp and VS Code extension ([#32](https://github.com/Miragon/event-storming-modeler/issues/32)) ([7378172](https://github.com/Miragon/event-storming-modeler/commit/7378172b684f3d4f743f793fbee37801007a2f95))
+
+## [0.2.2](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.2.1...webapp-v0.2.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **deps:** move shared runtime deps to peerDependencies ([#22](https://github.com/Miragon/event-storming-modeler/issues/22)) ([c950b3b](https://github.com/Miragon/event-storming-modeler/commit/c950b3b285e622a2652dcb053e9f88a21d58f4dd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.2.1 to 0.2.2
+    * @miragon/event-storming-renderer bumped from 0.2.1 to 0.2.2
+    * @miragon/event-storming-schema-model bumped from 0.2.0 to 0.2.1
+
+## [0.2.1](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.2.0...webapp-v0.2.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **example:** label the checkout board as a design-level session ([#9](https://github.com/Miragon/event-storming-modeler/issues/9)) ([deb5762](https://github.com/Miragon/event-storming-modeler/commit/deb5762d418b966e49d461477fc14ae28e8d8117))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.2.0 to 0.2.1
+    * @miragon/event-storming-renderer bumped from 0.2.0 to 0.2.1
+
+## [0.2.0](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.1.0...webapp-v0.2.0) (2026-09-02)
+
+
+### Features
+
+* adapt the modeler from wardley maps to event storming ([be69b3c](https://github.com/Miragon/event-storming-modeler/commit/be69b3ca0a0b8c9c2e77c8107c80f2c80ac1ce88))
+* event storming modeler ([4c2163e](https://github.com/Miragon/event-storming-modeler/commit/4c2163eb41a7116680deb2bb74e39fc34a84f72d))
+* toggleable type captions at the bottom of every sticky ([c35b5cc](https://github.com/Miragon/event-storming-modeler/commit/c35b5ccf3074d0e6b8e296fc1c304b3b46baf6b4))
+* workshop levels filter the creation surfaces ([169b18b](https://github.com/Miragon/event-storming-modeler/commit/169b18bef162f5699f7de347e9e534747f8bccee))
+
+
+### Bug Fixes
+
+* example repeats the Order aggregate instead of arrowing backwards ([aee5949](https://github.com/Miragon/event-storming-modeler/commit/aee594940525e353cec7e683b44464384a24eb63))
+* harden the DSL round-trip and renderer editing after adversarial review ([718b933](https://github.com/Miragon/event-storming-modeler/commit/718b933ee29f48ac18defc0c8ea999a8365779a9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.1.0 to 0.2.0
+    * @miragon/event-storming-renderer bumped from 0.1.0 to 0.2.0
+    * @miragon/event-storming-schema-model bumped from 0.1.0 to 0.2.0
+
+## Changelog
+
+Project started at 0.1.0, based on the wardley-maps-modeler codebase.

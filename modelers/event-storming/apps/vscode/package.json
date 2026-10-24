@@ -1,0 +1,273 @@
+{
+  "name": "event-storming-modeler",
+  "private": true,
+  "version": "0.6.1",
+  "displayName": "Event Storming Modeler",
+  "description": "View and edit Event Storming boards directly in VS Code, backed by plain-text .storm files.",
+  "publisher": "miragon-gmbh",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/event-storming-modeler.git",
+    "directory": "apps/vscode"
+  },
+  "bugs": "https://github.com/Miragon/event-storming-modeler/issues",
+  "homepage": "https://github.com/Miragon/event-storming-modeler/tree/main/apps/vscode#readme",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "event storming",
+    "DDD",
+    "domain-driven design",
+    "workshop",
+    "modeling"
+  ],
+  "main": "./dist/extension.cjs",
+  "type": "module",
+  "activationEvents": [
+    "onCustomEditor:eventStorming.boardEditor"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "event-storming-dsl",
+        "aliases": [
+          "Event Storming DSL"
+        ],
+        "extensions": [
+          ".storm"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./media/icons/event-storming-light.svg",
+          "dark": "./media/icons/event-storming-dark.svg"
+        }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "eventStorming.boardEditor",
+        "displayName": "Event Storming Board",
+        "selector": [
+          {
+            "filenamePattern": "*.storm"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "eventStorming.newBoard",
+        "title": "New Empty Board",
+        "category": "Event Storming",
+        "shortTitle": "Event Storming Board"
+      },
+      {
+        "command": "eventStorming.newBoardFromExample",
+        "title": "New Board from Example",
+        "category": "Event Storming"
+      },
+      {
+        "command": "eventStorming.openSource",
+        "title": "Open Source to the Side",
+        "category": "Event Storming",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "eventStorming.openBoard",
+        "title": "Open Board to the Side",
+        "category": "Event Storming",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "eventStorming.fitView",
+        "title": "Fit to View",
+        "category": "Event Storming"
+      },
+      {
+        "command": "eventStorming.exportPng",
+        "title": "Export as PNG",
+        "category": "Event Storming"
+      },
+      {
+        "command": "eventStorming.exportSvg",
+        "title": "Export as SVG",
+        "category": "Event Storming"
+      },
+      {
+        "command": "eventStorming.exportPngTransparent",
+        "title": "Export as PNG (4×, Transparent)",
+        "category": "Event Storming"
+      },
+      {
+        "command": "eventStorming.exportJson",
+        "title": "Export as JSON",
+        "category": "Event Storming"
+      }
+    ],
+    "menus": {
+      "file/newFile": [
+        {
+          "command": "eventStorming.newBoard",
+          "group": "eventStorming"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "eventStorming.openSource",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "eventStorming.openBoard",
+          "when": "editorLangId == event-storming-dsl",
+          "group": "navigation"
+        },
+        {
+          "command": "eventStorming.fitView",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "eventStorming@1"
+        },
+        {
+          "command": "eventStorming.exportPng",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "eventStorming@2"
+        },
+        {
+          "command": "eventStorming.exportSvg",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "eventStorming@3"
+        },
+        {
+          "command": "eventStorming.exportPngTransparent",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "eventStorming@4"
+        },
+        {
+          "command": "eventStorming.exportJson",
+          "when": "activeCustomEditorId == eventStorming.boardEditor",
+          "group": "eventStorming@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "eventStorming.openSource",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        },
+        {
+          "command": "eventStorming.openBoard",
+          "when": "editorLangId == event-storming-dsl"
+        },
+        {
+          "command": "eventStorming.fitView",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        },
+        {
+          "command": "eventStorming.exportPng",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        },
+        {
+          "command": "eventStorming.exportSvg",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        },
+        {
+          "command": "eventStorming.exportPngTransparent",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        },
+        {
+          "command": "eventStorming.exportJson",
+          "when": "activeCustomEditorId == eventStorming.boardEditor"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "getStarted",
+        "title": "Get Started with Event Storming",
+        "description": "Event Storming is a workshop format for exploring a business domain with sticky notes: domain events, the commands that trigger them, and the people and systems involved. This extension lets you create and edit Event Storming boards in VS Code as plain-text .storm files.",
+        "steps": [
+          {
+            "id": "new",
+            "title": "Create a board",
+            "description": "Start from an empty board: a plain-text .storm file that opens as a canvas.\n[Create empty board](command:eventStorming.newBoard)",
+            "media": {
+              "markdown": "media/walkthrough/new.md"
+            },
+            "completionEvents": [
+              "onCommand:eventStorming.newBoard"
+            ]
+          },
+          {
+            "id": "example",
+            "title": "Open the example",
+            "description": "See a finished design-level board: a checkout flow with every sticky kind.\n[Create board from example](command:eventStorming.newBoardFromExample)",
+            "media": {
+              "markdown": "media/walkthrough/example.md"
+            },
+            "completionEvents": [
+              "onCommand:eventStorming.newBoardFromExample"
+            ]
+          },
+          {
+            "id": "source",
+            "title": "Open the source to the side",
+            "description": "The text is the board: edit it beside the canvas and watch both stay in sync.\n[Open Source to the Side](command:eventStorming.openSource)",
+            "media": {
+              "markdown": "media/walkthrough/source.md"
+            },
+            "completionEvents": [
+              "onCommand:eventStorming.openSource"
+            ]
+          },
+          {
+            "id": "learn",
+            "title": "Learn the basics",
+            "description": "Add stickies for events, commands and aggregates, connect them with arrows, then export the board as PNG, SVG or JSON.",
+            "media": {
+              "markdown": "media/walkthrough/learn.md"
+            },
+            "completionEvents": [
+              "onStepSelected"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "notices": "node scripts/third-party-notices.mjs",
+    "vscode:prepublish": "node esbuild.config.mjs --production",
+    "package": "vsce package --no-dependencies -o event-storming-modeler.vsix"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@miragon/event-storming-dsl": "0.3.1",
+    "@miragon/event-storming-renderer": "0.5.0",
+    "@miragon/event-storming-schema-model": "0.2.2",
+    "@miragon/modeler-shell": "0.4.1",
+    "diagram-js": "15.28.1",
+    "didi": "12.0.0",
+    "tiny-svg": "4.1.4",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/vscode": "1.96.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1",
+    "typescript": "6.0.3"
+  }
+}

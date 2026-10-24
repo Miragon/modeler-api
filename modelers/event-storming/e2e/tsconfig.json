@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@miragon/event-storming-schema-model": ["../packages/schema-model/src/index.ts"],
+      "@miragon/event-storming-dsl": ["../packages/dsl/src/index.ts"],
+      "@miragon/event-storming-transforms": ["../packages/transforms/src/index.ts"],
+      "@miragon/event-storming-renderer": ["../packages/renderer/src/index.ts"]
+    }
+  },
+  "include": ["tests/**/*.ts", "webview/**/*.ts", "playwright.config.ts"]
+}
