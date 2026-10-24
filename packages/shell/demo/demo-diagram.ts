@@ -56,6 +56,17 @@ export interface DemoFlaws {
   commitLabelOnViewChange: boolean;
   /** The label editor closes without a commit on every view change, dropping the typed text (case `labelEditor`). */
   closeLabelOnViewChange: boolean;
+  /**
+   * The context pad's note prompt follows a pan or zoom instead of closing, so it stays above the
+   * palette (case `overlayLayers`, guide §5.13).
+   */
+  notePromptFollowsView: boolean;
+  /**
+   * The note prompt only hides while the view changes and shows again once
+   * `canvas.viewbox.changed` arrives, 300ms late under `deferUpdate` (case `overlayLayers`, guide
+   * §5.13).
+   */
+  notePromptHidesWhileViewChanges: boolean;
 }
 
 /** What the demo modeler reads from the page around it, at the moment it needs it. */
@@ -212,27 +223,119 @@ class DemoRules extends RuleProvider {
   }
 }
 
-/** One Delete entry; a locked canvas opens no context pad at all (guide §13.5). */
+/** How late diagram-js fires `canvas.viewbox.changed` under `deferUpdate`. */
+const DEFERRED_VIEWBOX_CHANGED_MS = 300;
+
+interface NotePrompt {
+  element: HTMLElement;
+  anchor: Element;
+  /** Hidden while the view changes (flaw `notePromptHidesWhileViewChanges`). */
+  hidden: boolean;
+  showAgain?: ReturnType<typeof setTimeout> | undefined;
+}
+
+/**
+ * A Note entry and a Delete entry; a locked canvas opens no context pad at all (guide §13.5). The
+ * note prompt is a popup above the palette that closes on a pan or zoom (guide §5.13).
+ */
 class DemoContextPadProvider {
-  static $inject = ["contextPad", "modeling", "rules", "eventBus", "demoHooks"];
+  static $inject = ["contextPad", "modeling", "rules", "eventBus", "canvas", "demoHooks"];
+
+  private notePrompt: NotePrompt | undefined;
 
   constructor(
     contextPad: ContextPad,
     private readonly modeling: Modeling,
     private readonly rules: Rules,
     eventBus: EventBus,
+    private readonly canvas: Canvas,
     private readonly hooks: DemoHooks,
   ) {
     contextPad.registerProvider(this);
     eventBus.on("contextPad.open.allowed", () => (isCanvasLocked(this.hooks) ? false : undefined));
+    eventBus.on("canvas.viewbox.changing", () => {
+      const { flaws } = this.hooks;
+      if (flaws.notePromptHidesWhileViewChanges) this.hideNotePromptWhileViewChanges();
+      else if (!flaws.notePromptFollowsView) this.closeNotePrompt();
+    });
+    eventBus.on("canvas.viewbox.changed", () => this.placeNotePrompt());
+    eventBus.on(["selection.changed", "element.mousedown", "diagram.destroy"], () =>
+      this.closeNotePrompt(),
+    );
   }
 
   getContextPadEntries(element: Element): ContextPadEntries {
-    return this.deleteEntry([element]);
+    return {
+      note: {
+        group: "edit",
+        title: "Note…",
+        html: `<div class="entry">${iconMarkup("plus")}</div>`,
+        action: { click: (event: Event) => this.openNotePrompt(event) },
+      },
+      ...this.deleteEntry([element]),
+    };
   }
 
   getMultiElementContextPadEntries(elements: Element[]): ContextPadEntries {
     return this.deleteEntry(elements);
+  }
+
+  private openNotePrompt(event: Event): void {
+    this.closeNotePrompt();
+    const anchor = ((event as Event & { delegateTarget?: Element }).delegateTarget ??
+      event.target) as Element;
+    const element = document.createElement("div");
+    element.className = "demo-note-prompt";
+    const field = document.createElement("textarea");
+    field.setAttribute("aria-label", "Note");
+    field.addEventListener("keydown", (keyEvent) => {
+      if (keyEvent.key !== "Escape") return;
+      keyEvent.preventDefault();
+      this.closeNotePrompt();
+    });
+    field.addEventListener("blur", () => {
+      if (!this.notePrompt?.hidden) this.closeNotePrompt();
+    });
+    element.append(field);
+    this.canvas.getContainer().append(element);
+    this.notePrompt = { element, anchor, hidden: false };
+    this.placeNotePrompt();
+    field.focus();
+  }
+
+  /** Beside its pad entry, which moves with the element. */
+  private placeNotePrompt(): void {
+    if (!this.notePrompt) return;
+    const { element, anchor } = this.notePrompt;
+    const container = this.canvas.getContainer().getBoundingClientRect();
+    const entry = anchor.getBoundingClientRect();
+    element.style.left = `${entry.right - container.left + 8}px`;
+    element.style.top = `${entry.top - container.top}px`;
+  }
+
+  /** The flaw: a deferred `canvas.viewbox.changed` shows the prompt again, 300ms after the change. */
+  private hideNotePromptWhileViewChanges(): void {
+    const prompt = this.notePrompt;
+    if (!prompt) return;
+    prompt.hidden = true;
+    prompt.element.style.display = "none";
+    clearTimeout(prompt.showAgain);
+    prompt.showAgain = setTimeout(() => {
+      prompt.hidden = false;
+      prompt.element.style.display = "";
+      this.placeNotePrompt();
+      prompt.element.querySelector("textarea")?.focus();
+    }, DEFERRED_VIEWBOX_CHANGED_MS);
+  }
+
+  private closeNotePrompt(): void {
+    const prompt = this.notePrompt;
+    if (!prompt) return;
+    this.notePrompt = undefined;
+    clearTimeout(prompt.showAgain);
+    const hadFocus = prompt.element.contains(document.activeElement);
+    prompt.element.remove();
+    if (hadFocus) this.canvas.focus();
   }
 
   private deleteEntry(elements: Element[]): ContextPadEntries {

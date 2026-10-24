@@ -111,6 +111,8 @@ import {
   webModeProblems,
 } from "./web-checks.js";
 import { labelEditorCase } from "./label-editor-case.js";
+import { forcedColorsCase, reducedMotionCase } from "./media-cases.js";
+import { overlayLayersCase } from "./overlay-layers-case.js";
 import { createWebCases } from "./web-cases.js";
 import {
   DEFAULT_SIZES,
@@ -124,12 +126,12 @@ import {
   finish,
   hover,
   menuEntries,
+  missingHooks,
   openHarness,
   openMenuByClick,
   pollUntil,
   shapes,
   sizeLabel,
-  unfed,
   webHookSkips,
 } from "./case-tools.js";
 
@@ -182,16 +184,6 @@ const ZOOM_LIMIT_MIN = 20;
 
 function appearanceLabel(appearance: Appearance): string {
   return appearance.kontrast ? `${appearance.theme} + ${appearance.kontrast}` : appearance.theme;
-}
-
-function missingHooks<P extends PageLike>(
-  harness: ShellConformanceHarness<P>,
-  what: string,
-): ShellSkip[] {
-  return SHOWN_ISLANDS.filter((island) => unfed(harness, island)).map((island) => ({
-    hook: island,
-    reason: `show.${island} is undefined: ${what} of the ${island} island not verified`,
-  }));
 }
 
 /** The visible islands of an ARIA snapshot that a harness may declare absent. */
@@ -1368,7 +1360,8 @@ const cleanupCase: ShellConformanceCase = {
 
 /**
  * The cases of every host: those of 0.1, extended for the web column, the focus hand-back of 0.2.2,
- * and the legend's start state and the label editor of 0.4.
+ * the legend's start state and the label editor of 0.4, and reduced motion, forced colours and the
+ * canvas's overlay layers, added after 0.5.0.
  */
 export function createBaseCases(): ShellConformanceCase[] {
   return [
@@ -1381,6 +1374,9 @@ export function createBaseCases(): ShellConformanceCase[] {
     labelEditorCase,
     readOnlyCase,
     appearanceCase,
+    reducedMotionCase,
+    forcedColorsCase,
+    overlayLayersCase,
     cleanupCase,
   ];
 }

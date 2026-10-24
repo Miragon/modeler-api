@@ -57,6 +57,10 @@ export interface PageTools {
   modeWatch?: ModeWatch | undefined;
   /** `newState` of every `beforetoggle` of the web app's toast stack since the kit started listening. */
   toastToggles?: string[] | undefined;
+  /** Animations the `reducedMotion` case saw running while it walked the modeler. */
+  motionWatch?: MotionWatch | undefined;
+  /** The views the canvas showed, frame by frame, while the `reducedMotion` case clicked Fit. */
+  viewWatch?: ViewWatch | undefined;
   frame(): Promise<void>;
   settle(): Promise<void>;
   visible(element: Element): boolean;
@@ -93,6 +97,29 @@ export interface ModeChange {
 
 export interface ModeWatch {
   changes: ModeChange[];
+  stop(): void;
+}
+
+/** A transition or an animation that moves: one a style sets, or one the page saw running. */
+export interface MotionRecord {
+  /** The animated element, with `::before` or `::after` for a pseudo-element. */
+  description: string;
+  /** A CSS `transition`, a CSS `animation`, or a `script` animation (`element.animate()`). */
+  kind: "transition" | "animation" | "script";
+  /** The transitioned property or the `@keyframes` name; empty for a script animation. */
+  name: string;
+  /** How long it runs, in ms; `Infinity` for an endless one. */
+  durationMs: number;
+}
+
+export interface MotionWatch {
+  records(): MotionRecord[];
+  stop(): void;
+}
+
+export interface ViewWatch {
+  /** The viewport layer's matrix (`LabelEditorFacts.view`) whenever a frame showed a new one. */
+  views: string[];
   stop(): void;
 }
 

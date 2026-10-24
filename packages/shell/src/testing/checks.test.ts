@@ -26,6 +26,7 @@ import {
   menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  overlayLayerProblems,
   paletteColorProblems,
   paletteShortcutProblems,
   readOnlyMenuProblems,
@@ -2937,6 +2938,90 @@ describe("web-column bookkeeping", () => {
       "the root keeps data-zoom-row after destroy",
       "the root keeps data-empty-state after destroy",
       "the root keeps data-drop after destroy",
+    ]);
+  });
+});
+
+describe("overlayLayerProblems", () => {
+  const toolbar = { description: "div.note-toolbar", zIndex: 300 };
+  const popup = { description: "div.djs-popup", zIndex: 200 };
+  const prompt = { description: "div.pad-prompt", zIndex: 210 };
+  const rule =
+    "above the palette at 110; an overlay that stays (a toolbar, a prompt, a label editor) lies at 100 or below, only a popup that closes on a pan or zoom may cover the palette (guide §5.13)";
+
+  it("passes a state without layers above the limit, and popups that close on a zoom", () => {
+    expect(
+      overlayLayerProblems({ state: "as opened", palette: 110, before: [], afterZoom: null }),
+    ).toEqual([]);
+    expect(
+      overlayLayerProblems({
+        state: 'after a click on context-pad entry "change-kind" of "a"',
+        palette: 110,
+        before: [popup],
+        afterZoom: { stays: [], back: [] },
+      }),
+    ).toEqual([]);
+  });
+
+  it("fails a layer above the limit that stays when the view zooms, not one that came with the zoom", () => {
+    expect(
+      overlayLayerProblems({
+        state: 'with "a" selected',
+        palette: 110,
+        before: [toolbar, popup],
+        afterZoom: {
+          stays: [toolbar, { description: "div.hover-tooltip", zIndex: 1000 }],
+          back: [],
+        },
+      }),
+    ).toEqual([
+      `canvas: div.note-toolbar lies at z-index 300 in .djs-container with "a" selected and stays when the view zooms, ${rule}`,
+    ]);
+  });
+
+  it("fails a layer above the limit that only hides while the view changes", () => {
+    expect(
+      overlayLayerProblems({
+        state: 'after a click on context-pad entry "note" of "a"',
+        palette: 110,
+        before: [prompt, popup],
+        afterZoom: {
+          stays: [],
+          back: [prompt, { description: "div.hover-tooltip", zIndex: 1000 }],
+        },
+      }),
+    ).toEqual([
+      `canvas: div.pad-prompt lies at z-index 210 in .djs-container after a click on context-pad entry "note" of "a" and comes back once the zoomed view has settled, ${rule}`,
+    ]);
+  });
+
+  it("puts a layer above the palette only where its z-index is, the limit otherwise", () => {
+    const stays = (zIndex: number, palette: number | null) => {
+      const layer = { description: "div.pad-prompt", zIndex };
+      return overlayLayerProblems({
+        state: 'with "a" selected',
+        palette,
+        before: [layer],
+        afterZoom: { stays: [layer], back: [] },
+      }).map((problem) => problem.slice(0, problem.indexOf(";")));
+    };
+    const start = "canvas: div.pad-prompt lies at z-index";
+    const middle = 'in .djs-container with "a" selected and stays when the view zooms';
+    expect(stays(105, 110)).toEqual([
+      `${start} 105 ${middle}, above the limit of 100 (the palette lies at 110)`,
+    ]);
+    expect(stays(110, 110)).toEqual([
+      `${start} 110 ${middle}, above the limit of 100 (the palette lies at 110)`,
+    ]);
+    expect(stays(111, 110)).toEqual([`${start} 111 ${middle}, above the palette at 110`]);
+    expect(stays(300, null)).toEqual([`${start} 300 ${middle}, above the limit of 100`]);
+  });
+
+  it("reports a state whose layers no zoom could test", () => {
+    expect(
+      overlayLayerProblems({ state: "as opened", palette: null, before: [popup], afterZoom: null }),
+    ).toEqual([
+      "canvas: neither Cmd/Ctrl+Plus nor Cmd/Ctrl+Minus at the canvas changed the view as opened, so whether div.djs-popup at z-index 200 closes on a zoom was not verified",
     ]);
   });
 });

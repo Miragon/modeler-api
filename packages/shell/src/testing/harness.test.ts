@@ -7,6 +7,7 @@ import {
   type ShellConformanceHarness,
   type ShellSkip,
 } from "./harness.js";
+import { hostReduceMotionProbe } from "./media-facts.js";
 import type { PageLike } from "./page.js";
 
 /** A page whose shell root never appears: every probe finds nothing. */
@@ -57,6 +58,9 @@ describe("shellConformanceCases", () => {
       "labelEditor",
       "readOnly",
       "appearance",
+      "reducedMotion",
+      "forcedColors",
+      "overlayLayers",
       "cleanup",
       "webChrome",
       "emptyState",
@@ -87,6 +91,9 @@ describe("registerShellConformance", () => {
       "shell conformance: labelEditor",
       "shell conformance: readOnly",
       "shell conformance: appearance",
+      "shell conformance: reducedMotion",
+      "shell conformance: forcedColors",
+      "shell conformance: overlayLayers",
       "shell conformance: cleanup",
       "shell conformance: webChrome",
       "shell conformance: emptyState",
@@ -432,5 +439,81 @@ describe("registerShellConformance", () => {
       { theme: "dark", kontrast: "hoch" },
       { theme: "light", kontrast: "hoch" },
     ]);
+  });
+
+  it("emulates reduced motion before opening and turns it off again when the case fails", async () => {
+    const calls: string[] = [];
+    const page: PageLike = {
+      ...emptyPage(),
+      emulateMedia: async (options) => {
+        calls.push(`emulate reducedMotion ${String(options.reducedMotion)}`);
+      },
+    };
+    const open = vi.fn(async () => {
+      calls.push("open");
+    });
+    await expect(
+      register(harness({ host: "web", open })).get("shell conformance: reducedMotion")!({ page }),
+    ).rejects.toThrow(/reducedMotion \(web host\)/);
+    expect(calls).toEqual([
+      "emulate reducedMotion reduce",
+      "emulate reducedMotion undefined",
+      "open",
+      "emulate reducedMotion null",
+    ]);
+  });
+
+  it("takes VS Code's reduce motion off the body again when the case fails", async () => {
+    const classes: string[] = [];
+    const page: PageLike = {
+      ...emptyPage(),
+      evaluate: async <R, Arg>(pageFunction: (arg: Arg) => unknown, arg: Arg) => {
+        if (pageFunction === hostReduceMotionProbe)
+          classes.push(`vscode-reduce-motion ${String(arg)}`);
+        return null as R;
+      },
+    };
+    await expect(
+      register(harness()).get("shell conformance: reducedMotion")!({ page }),
+    ).rejects.toThrow(/reducedMotion \(ide host\)/);
+    expect(classes).toEqual(["vscode-reduce-motion true", "vscode-reduce-motion false"]);
+  });
+
+  it("emulates forced colours before opening and turns them off again when the case fails", async () => {
+    const calls: string[] = [];
+    const page: PageLike = {
+      ...emptyPage(),
+      emulateMedia: async (options) => {
+        calls.push(`emulate forcedColors ${String(options.forcedColors)}`);
+      },
+    };
+    const open = vi.fn(async () => {
+      calls.push("open");
+    });
+    await expect(
+      register(harness({ open })).get("shell conformance: forcedColors")!({ page }),
+    ).rejects.toThrow(/forcedColors \(ide host\)/);
+    expect(calls).toEqual(["emulate forcedColors active", "open", "emulate forcedColors null"]);
+  });
+
+  it("skips reduced motion and forced colours without page.emulateMedia, but still checks VS Code's reduce motion", async () => {
+    const onSkip = vi.fn();
+    const open = vi.fn(async () => {});
+    const tests = register(
+      harness({ host: "embedded", open, absent: ["legend", "problems", "status", "inspector"] }),
+      onSkip,
+    );
+    await tests.get("shell conformance: forcedColors")!({ page: emptyPage() });
+    expect(onSkip).toHaveBeenCalledWith("forcedColors", [
+      {
+        hook: "open",
+        reason: "page.emulateMedia is undefined: the modeler under forced colours was not verified",
+      },
+    ]);
+    expect(open).not.toHaveBeenCalled();
+    await expect(
+      register(harness({ open })).get("shell conformance: reducedMotion")!({ page: emptyPage() }),
+    ).rejects.toThrow(/reducedMotion \(ide host\)\n- no element matches the shell root selector/);
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });

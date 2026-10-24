@@ -976,8 +976,22 @@ it the palette lies above context pad and label editor.
   palette while they are open, as diagram-js's own popup menu does. Everything stays inside
   `.djs-container`, and so below every island. This is the rule of guide §5.13 since design system
   1.13.0. Event Storming shipped its note toolbar and colour picker at 300,
-  above the palette, and nothing flagged it; a kit check for it is a later candidate. A flat "100 at
-  most" would flag diagram-js's popup menu itself, hence the split into persistent and transient.
+  above the palette, and nothing flagged it. A flat "100 at most" would flag diagram-js's popup menu
+  itself, hence the split into persistent and transient.
+- The kit's `overlayLayers` case (added after shell 0.5.0) draws that line by behaviour, since it
+  cannot know which overlay a modeler means to be transient: it looks as opened, with the label
+  editor open, with one element selected per kind of context pad (a connection among them, since
+  relationships often have entries of their own) and after a click on each of their entries (but a
+  deleting one), and every layer of `.djs-container` above 100 must be gone once a zoom at the
+  canvas changed the view, and stay gone. What stays is persistent and so too high, and so is an
+  overlay that only hides while the view changes and comes back on `canvas.viewbox.changed`: that
+  event arrives up to 300ms late, so the case watches for 500ms after the zoom. It reads the
+  outermost stacking context below the container: a `z-index` inside another one (diagram-js's
+  overlay container carries a transform) cannot reach above the palette and does not count. An
+  entry it cannot click again fails the case instead of going unchecked. Value Chain's links
+  showed why: once one is selected, diagram-js's bendpoint and segment handles cover the middle
+  and both quarters of its L-shaped line, so the case reads the selection from the `selected`
+  marker, not from a click.
 
 ## Modeler dialogs
 
@@ -1077,6 +1091,10 @@ a `CanvasText` border, icons stay visible.
 - The status bar gets `forced-color-adjust: none` and `background: CanvasText`.
 - Islands get `border-color: CanvasText`.
 - Icons use `stroke="currentColor"` and so follow the system text colour without extra rules.
+- The kit's `forcedColors` case (added after shell 0.5.0) emulates `forced-colors: active` and
+  checks these marks, the open dropdown and every modeler dialog the menu opens. It compares against
+  system colours it resolves on probe elements and asserts only what the CSS sets: WebKit matches
+  the media query but forces no colours, Chromium does both.
 
 ## Narrow and low containers
 
@@ -1620,11 +1638,14 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   stub as a nonce'd script in `body` that also records `securitypolicyviolation`), and fails on any
   violation, page error or missing font (recipe in [`API.md`](../../packages/shell/API.md),
   `./vscode/extension`). A kit helper for it is a later candidate.
-- Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on` holds
-  without it) and hands the result to the webview only as the body class `vscode-reduce-motion`;
-  `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole session as a class of
-  your own on `<html>` (`cd-shell-reduce-motion`; never style with the host's class), stop the
-  chrome's animations under it as under the media query, and let an explicit fit jump.
+- Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on`
+  holds without it) and hands the result to the webview only as the body class
+  `vscode-reduce-motion`; `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole
+  session as a class of your own on `<html>` (`cd-shell-reduce-motion`; never style with the host's
+  class), stop the chrome's animations under it as under the media query, and let an explicit fit
+  jump. The kit's `reducedMotion` case (added after shell 0.5.0) checks both routes: the media query
+  in every host and, in the IDE host, the body class. A modeler's own element outside the shell root
+  (a panel in `<body>`) needs its own rule for both, because the shell's rules reach only its root.
 - Hidden tabs: register the custom editor with
   `webviewOptions: { retainContextWhenHidden: true }`, so a hidden tab keeps its document, view and
   selection. A hidden tab then reports a 0 × 0 container: skip fitting and measuring while hidden

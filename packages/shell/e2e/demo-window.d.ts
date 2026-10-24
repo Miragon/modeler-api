@@ -1,4 +1,6 @@
 // The demo's debug handle, as far as the e2e specs read it.
+import type Diagram from "diagram-js";
+
 import type { DiagramJsConnection } from "../src/diagram-js.js";
 import type { Bounds, ShellHandle, ToastStatus } from "../src/index.js";
 import type { VsCodeWebviewStub } from "../src/testing-vscode-stub.js";
@@ -10,6 +12,8 @@ declare global {
       calls: string[];
       shell: ShellHandle;
       connection: DiagramJsConnection;
+      /** The demo modeler, for saboteurs that add to the document or the context pad. */
+      diagram: Diagram;
       /** The stubbed VS Code around the `ide` host. */
       vscode?: VsCodeWebviewStub;
       /**
@@ -27,6 +31,10 @@ declare global {
         commitLabelOnViewChange: boolean;
         /** The label editor closes without a commit on every view change (case `labelEditor`). */
         closeLabelOnViewChange: boolean;
+        /** The note prompt follows a pan or zoom instead of closing (case `overlayLayers`). */
+        notePromptFollowsView: boolean;
+        /** The note prompt hides while the view changes, back 300ms later (case `overlayLayers`). */
+        notePromptHidesWhileViewChanges: boolean;
       };
       /** Commands that changed the diagram so far, the demo's document changes (case `labelEditor`). */
       documentChanges(): number;

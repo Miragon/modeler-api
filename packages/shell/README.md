@@ -358,12 +358,15 @@ menu entry returns it to the menu trigger, that nothing is ever half-dark (the p
 surround and the palette's colours included), that Enter on a creating palette entry adds one
 selected element, that the shell's zoom, fit and refit never commit an open label editor (contract
 L5) and leave it open with the typed text (L5 recommends it, the kit requires it), that an invalid
-file locks the canvas, and that `destroy()` leaves nothing behind. Five more cases cover the web
-column (`webChrome`, `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded
-hosts they assert that none of it shows. Every `aria-keyshortcuts` the kit reads must name keys,
-not characters: a `?` chip is `Shift+/ Shift+ß`, the keys of US and German, and no shortcut chip may
-show a character that needs AltGr or ⌥, sits on a dead key or is missing in one of them, such as `@`
-(guide §5.6, design system 1.21.0).
+file locks the canvas, that nothing moves under reduced motion (also VS Code's) and an explicit fit
+jumps, that under forced colours the islands, the dropdown and the modeler's dialogs keep their
+border and the pressed tool, the focus and the status box their marks, that what stays on the canvas
+(a toolbar, a prompt, the label editor) lies under the palette, and that `destroy()` leaves nothing
+behind. Five more cases cover the web column (`webChrome`, `emptyState`, `toasts`, `problemsList`,
+`dropZone`); in the IDE and embedded hosts they assert that none of it shows. Every
+`aria-keyshortcuts` the kit reads must name keys, not characters: a `?` chip is `Shift+/ Shift+ß`,
+the keys of US and German, and no shortcut chip may show a character that needs AltGr or ⌥, sits on
+a dead key or is missing in one of them, such as `@` (guide §5.6, design system 1.21.0).
 
 For the `ide` host the suite serves a test page that puts a stand-in for VS Code around the
 modeler's webview code: VS Code's default webview styles, `<html>` as `renderWebviewHtml` writes it,
@@ -545,6 +548,19 @@ field it misses (`{ hook: "legend", reason }`; `hook: "labelEditor"` without a `
 `readOnly`); without `onSkip`
 the kit warns on the console. What each case asserts, and what the kit installs in the page, is
 listed in [API.md][api].
+
+`reducedMotion` and `forcedColors` (added after 0.5.0) emulate `prefers-reduced-motion` and
+`forced-colors` through `page.emulateMedia` in every host and turn the emulation off again, even
+when they fail; a page without `emulateMedia` skips them with `hook: "open"` (in the IDE host
+`reducedMotion` still checks VS Code's reduce motion, the body class it sets on the host page).
+`overlayLayers` (also added after 0.5.0) selects one shape or connection a pointer reaches per kind
+of context pad, a connection among them where the document has one, and clicks each entry of those
+pads once for shapes and once for connections, except one whose `data-action` names a delete or a
+removal, so what the entries open (popup menus, colour pickers, prompts) is checked as well. When an
+earlier entry closed the pad or took the element away, it opens the pad again or uses another
+element with the same pad; an entry no element shows any more fails the case instead of going
+unchecked. An overlay above the palette must close when the view zooms and stay closed past
+diagram-js's late `canvas.viewbox.changed`. None of the three needs a new harness field.
 
 `registerShellConformance` declares every test inside the kit, so a runner reports them at the kit's
 source (the package ships `src/` without its tests, so the location resolves). For test locations in
@@ -790,7 +806,9 @@ host requests (`theme`, `kontrast=hoch`; embedded: the foreign page's own mode),
 `colorTheme` setting and `reduceMotion`, and the state to start in (`legend=open`, `inspector`,
 `problems=2:1`, `status=danger`, `invalid`, `empty`, which opens at 100 %). In the `ide` host it runs
 inside the stub of `./testing/vscode-stub`, and keeps view and legend state through
-`acquireVsCodeApi()`.
+`acquireVsCodeApi()`. Its context pad has a Note entry, whose prompt covers the palette until a pan
+or zoom closes it, and its Help group opens a modal "Keyboard shortcuts…" dialog with a table per
+group, so the kit's `overlayLayers` and `forcedColors` cases meet both.
 
 The web demo (`/web.html`) is the same modeler as a Miragon web app passes it to `mountShell`: the
 whole web column, the head markup of `webHeadMarkup` through the Vite config, and `window.__webDemo`

@@ -16,7 +16,8 @@ export interface PageLike {
   waitForTimeout(timeout: number): Promise<void>;
   /**
    * Playwright's `page.emulateMedia`; the web-host cases need it for the system's mode and contrast
-   * (`appearance`) and report a skip with `hook: "open"` without it.
+   * (`appearance`), `reducedMotion` and `forcedColors` in every host for their media features, and
+   * each reports a skip with `hook: "open"` without it.
    */
   emulateMedia?(options: {
     colorScheme?: "light" | "dark" | "no-preference" | null;
