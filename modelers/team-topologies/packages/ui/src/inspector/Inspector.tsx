@@ -59,6 +59,7 @@ interface InspectorServices {
   ttModeling: TtModeling;
   removeAndFocusCanvas: (elements: Element[]) => void;
   closeAndFocusCanvas: () => void;
+  focusCanvas: () => void;
 }
 
 function inspectorServices(modeler: Modeler): InspectorServices {
@@ -74,6 +75,11 @@ function inspectorServices(modeler: Modeler): InspectorServices {
       modeler.get<Selection>("selection").select(null);
       canvas.focus();
     },
+    /**
+     * After Enter in a single-line field, as after Enter in the label editor: the canvas keys act
+     * only while the canvas has the focus, and a field that only blurred would leave it on `<body>`.
+     */
+    focusCanvas: () => canvas.focus(),
   };
 }
 
@@ -132,7 +138,7 @@ interface PanelProps {
 }
 
 function TeamInspector({ team, services, readOnly }: PanelProps & { team: TtTeam }) {
-  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas } = services;
+  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas, focusCanvas } = services;
   const type = team.teamType;
   const spec = TEAM_TYPE_SPECS[type];
 
@@ -164,6 +170,7 @@ function TeamInspector({ team, services, readOnly }: PanelProps & { team: TtTeam
             value={team.ttLabel ?? ""}
             placeholder="Team name"
             onCommit={(label) => ttModeling.updateLabel(team, label.trim())}
+            afterEnter={focusCanvas}
           />
         </label>
 
@@ -214,7 +221,7 @@ function InteractionInspector({
   services,
   readOnly,
 }: PanelProps & { interaction: TtInteraction }) {
-  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas } = services;
+  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas, focusCanvas } = services;
   const mode = interaction.mode;
   const spec = INTERACTION_MODE_SPECS[mode];
 
@@ -252,6 +259,7 @@ function InteractionInspector({
             value={interaction.ttLabel ?? ""}
             placeholder="What is provided or discovered"
             onCommit={(label) => ttModeling.updateLabel(interaction, label.trim())}
+            afterEnter={focusCanvas}
           />
         </label>
 
@@ -267,7 +275,7 @@ function InteractionInspector({
 }
 
 function FlowInspector({ flow, services, readOnly }: PanelProps & { flow: TtFlow }) {
-  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas } = services;
+  const { ttModeling, removeAndFocusCanvas, closeAndFocusCanvas, focusCanvas } = services;
 
   return (
     <div className="tt-inspector__content" key={flow.id}>
@@ -285,6 +293,7 @@ function FlowInspector({ flow, services, readOnly }: PanelProps & { flow: TtFlow
             value={flow.ttLabel ?? ""}
             placeholder="Flow of change"
             onCommit={(label) => ttModeling.updateLabel(flow, label.trim())}
+            afterEnter={focusCanvas}
           />
         </label>
 
@@ -413,6 +422,48 @@ function useCanvasCatchesDroppedFocus(modeler: Modeler, contentKey: string | nul
   }, [modeler, contentKey]);
 }
 
+/**
+ * The same for a control that goes away while the element stays, such as "Reset colours" or
+ * "Detach" once they have acted. Chromium reports the removal of a focused element as a `focusout`
+ * while it is still connected and other engines report nothing, so the removal itself is what
+ * counts: a `focusout` forgets the control only if it is still there right after.
+ */
+function useCanvasCatchesFocusOfRemovedControls(
+  modeler: Modeler,
+  panelRef: RefObject<HTMLElement | null>,
+) {
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    const ownerDocument = panel.ownerDocument;
+    let focused: Node | null = null;
+    const remember = (event: FocusEvent) => {
+      focused = event.target as Node | null;
+    };
+    const forget = (event: FocusEvent) => {
+      const left = event.target;
+      queueMicrotask(() => {
+        if (focused === left && focused?.isConnected) focused = null;
+      });
+    };
+    const observer = new MutationObserver(() => {
+      const lost = focused;
+      if (!lost || lost.isConnected) return;
+      focused = null;
+      if (ownerDocument.activeElement !== ownerDocument.body || !ownerDocument.hasFocus()) return;
+      modeler.get<Canvas>("canvas").focus();
+    });
+    panel.addEventListener("focusin", remember);
+    panel.addEventListener("focusout", forget);
+    observer.observe(panel, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      panel.removeEventListener("focusin", remember);
+      panel.removeEventListener("focusout", forget);
+    };
+  }, [modeler, panelRef]);
+}
+
 interface InspectorProps {
   /** The modeler whose selection the panel edits. */
   modeler: Modeler;
@@ -445,6 +496,7 @@ function useInspectorContent(
 
   useKeepSelectionVisible(modeler, shownArea, panelRef);
   useCanvasCatchesDroppedFocus(modeler, shownArea?.id ?? null);
+  useCanvasCatchesFocusOfRemovedControls(modeler, panelRef);
 
   const panelProps = { services, readOnly };
   let body: ReactNode | null = null;
@@ -462,7 +514,7 @@ function useInspectorContent(
 
   // Escape that a field didn't use (to undo its draft) closes the panel, like it does on the canvas.
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key !== "Escape" || event.defaultPrevented) return;
+    if (event.key !== "Escape" || event.defaultPrevented || event.nativeEvent.isComposing) return;
     event.preventDefault();
     services.closeAndFocusCanvas();
   };

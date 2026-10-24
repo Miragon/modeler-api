@@ -13,6 +13,8 @@ export interface CommitInputProps {
   multiline?: boolean;
   ariaLabel?: string;
   className?: string;
+  /** Runs once Enter has committed a single-line field and left it, e.g. to pass the focus on. */
+  afterEnter?: () => void;
 }
 
 export function CommitInput({
@@ -22,6 +24,7 @@ export function CommitInput({
   multiline,
   ariaLabel,
   className = "tt-field__control",
+  afterEnter,
 }: CommitInputProps) {
   const [draft, setDraft] = useState(value);
 
@@ -34,6 +37,7 @@ export function CommitInput({
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "Escape" && draft !== value) {
       event.preventDefault();
       setDraft(value);
@@ -42,6 +46,7 @@ export function CommitInput({
     if (event.key === "Enter" && !multiline) {
       event.preventDefault();
       event.currentTarget.blur();
+      afterEnter?.();
     }
   };
 
