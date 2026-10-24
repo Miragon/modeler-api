@@ -263,7 +263,10 @@ describe("theme.sync — MIRAGON mirrors the vendored design-system tokens", () 
 
   it("draws every canvas colour from the tokens, apart from the pinned notation status colours", () => {
     const tokens = new Set(Object.values(vendoredJson.fest).map(norm));
-    const notationStatus = new Set(["#0b7a55", "#92610a", "#c92a2a"]);
+    // Their hex values are pinned by the next cases.
+    const notationStatus = new Set(
+      [COLORS.accelerator, COLORS.movement, ATTITUDE_COLORS["settlers"]!.stroke].map(norm),
+    );
     for (const [key, value] of Object.entries(COLORS)) {
       const channels = /^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/.exec(norm(value));
       const hex = channels
