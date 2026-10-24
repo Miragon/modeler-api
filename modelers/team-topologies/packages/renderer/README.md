@@ -57,7 +57,9 @@ further diagonally while that spot is taken, selects it and opens its label edit
 **Embedded in a page.** Layout reads the modeler's container, not the page: in a container up to
 760px wide the renderer's own palette takes a second row, whatever the window's width. Its tooltip
 stands 8px below the palette, centred on its entry and 12px from the container's sides. Without
-`freeArea: { insets }`, the context pad keeps inside the container.
+`freeArea: { insets }`, the context pad keeps inside the container. A host that resizes the
+container calls diagram-js's `canvas.resized()`, as for any diagram-js canvas; the pad then keeps
+inside the new size as well.
 
 **Label editor and the view.** A change of the view (a host's `setViewState` or fit, a wheel zoom or
 scroll) never commits an open label editor: it stays open with what was typed and moves with its

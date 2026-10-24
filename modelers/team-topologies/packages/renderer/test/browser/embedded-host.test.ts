@@ -19,6 +19,8 @@ const PAD_GAP = 8;
 const CONTAINER_EDGE = 12;
 const PALETTE_GAP = 8;
 
+const NO_INSETS: FreeAreaInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 const CORNER_TEAM = "team_corner";
 const SHAPE_EDGE = 12;
 
@@ -74,22 +76,34 @@ function oneTeamDocument(): TtDocument {
   };
 }
 
-/** Scrolls the view at 100 % so the team's bottom right corner sits `SHAPE_EDGE` from the container's. */
-function moveTeamToBottomRight(modeler: Modeler): void {
-  const canvas = modeler.get<Canvas>("canvas");
-  const { width, height } = canvas.getSize();
-  const team = modeler.get<ElementRegistry>("elementRegistry").get(CORNER_TEAM) as unknown as {
+function teamBounds(modeler: Modeler) {
+  return modeler.get<ElementRegistry>("elementRegistry").get(CORNER_TEAM) as unknown as {
     x: number;
     y: number;
     width: number;
     height: number;
   };
+}
+
+/** Sets the view at `scale` so the team's bottom right corner sits `SHAPE_EDGE` from the container's. */
+function moveTeamToBottomRight(modeler: Modeler, scale = 1): void {
+  const canvas = modeler.get<Canvas>("canvas");
+  const { width, height } = canvas.getSize();
+  const team = teamBounds(modeler);
   canvas.viewbox({
-    x: team.x + team.width + SHAPE_EDGE - width,
-    y: team.y + team.height + SHAPE_EDGE - height,
-    width,
-    height,
+    x: team.x + team.width - (width - SHAPE_EDGE) / scale,
+    y: team.y + team.height - (height - SHAPE_EDGE) / scale,
+    width: width / scale,
+    height: height / scale,
   });
+}
+
+/** Sets the view at 100 % so the team's top left corner sits at `at`, in px from the container's. */
+function moveTeamTo(modeler: Modeler, at: { x: number; y: number }): void {
+  const canvas = modeler.get<Canvas>("canvas");
+  const { width, height } = canvas.getSize();
+  const team = teamBounds(modeler);
+  canvas.viewbox({ x: team.x - at.x, y: team.y - at.y, width, height });
 }
 
 function select(modeler: Modeler, id: string): void {
@@ -212,8 +226,127 @@ test("without insets from the host, the pad keeps inside the container", async (
   await settle();
 
   const pad = openPad(container);
-  expectInside(boxIn(pad, container), WIDGET, { top: 0, right: 0, bottom: 0, left: 0 });
+  expectInside(boxIn(pad, container), WIDGET, NO_INSETS);
   expectEveryEntryReachable(pad);
+});
+
+test("the pad is never shown where diagram-js first puts it, outside the free area", async () => {
+  await page.viewport(WIDGET.width, WIDGET.height);
+  const { container, modeler } = mountHost(
+    { left: 0, top: 0, ...WIDGET },
+    { insets: () => WIDGET_INSETS },
+  );
+  modeler.importDocument(oneTeamDocument());
+  moveTeamTo(modeler, { x: 200, y: 200 });
+  select(modeler, CORNER_TEAM);
+  await settle();
+
+  // Each write to the pad's position is seen here before the page paints again.
+  const pad = openPad(container);
+  const positionsBeforePaint: DOMRect[] = [];
+  const observer = new MutationObserver(() => positionsBeforePaint.push(boxIn(pad, container)));
+  observer.observe(pad, { attributes: true, attributeFilter: ["style"] });
+  moveTeamToBottomRight(modeler);
+  await settle();
+  observer.disconnect();
+
+  expect(positionsBeforePaint.length).toBeGreaterThan(0);
+  for (const position of positionsBeforePaint) expectInside(position, WIDGET, WIDGET_INSETS);
+});
+
+test("a pad above the free area moves down to its top and stays beside its shape", async () => {
+  await page.viewport(WIDGET.width, WIDGET.height);
+  const { container, modeler } = mountHost(
+    { left: 0, top: 0, ...WIDGET },
+    { insets: () => WIDGET_INSETS },
+  );
+  modeler.importDocument(oneTeamDocument());
+  moveTeamTo(modeler, { x: 200, y: WIDGET_INSETS.top - 40 });
+
+  select(modeler, CORNER_TEAM);
+  await settle();
+
+  const padBox = boxIn(openPad(container), container);
+  const shapeBox = boxIn(graphicsOf(modeler, CORNER_TEAM), container);
+  expect(shapeBox.top).toBeLessThan(WIDGET_INSETS.top);
+  expect(padBox.top).toBeCloseTo(WIDGET_INSETS.top, 0);
+  expect(padBox.left).toBeCloseTo(shapeBox.right + PAD_GAP, 0);
+});
+
+test("where the free area is smaller than the pad, its top left corner wins", async () => {
+  await page.viewport(WIDGET.width, WIDGET.height);
+  const tinyInsets = { top: 200, right: WIDGET.width - 40, bottom: 260, left: 24 };
+  const { container, modeler } = mountHost(
+    { left: 0, top: 0, ...WIDGET },
+    { insets: () => tinyInsets },
+  );
+  modeler.importDocument(oneTeamDocument());
+  moveTeamTo(modeler, { x: 200, y: 200 });
+
+  select(modeler, CORNER_TEAM);
+  await settle();
+
+  const padBox = boxIn(openPad(container), container);
+  expect(padBox.height).toBeGreaterThan(WIDGET.height - tinyInsets.top - tinyInsets.bottom);
+  expect(padBox.width).toBeGreaterThan(WIDGET.width - tinyInsets.left - tinyInsets.right);
+  expect(padBox.left).toBeCloseTo(tinyInsets.left, 0);
+  expect(padBox.top).toBeCloseTo(tinyInsets.top, 0);
+});
+
+test("at 50 % a corner shape's pad flips with the gap scaled to the zoom", async () => {
+  await page.viewport(WIDGET.width, WIDGET.height);
+  const { host, container, modeler } = mountHost(
+    { left: 0, top: 0, ...WIDGET },
+    { insets: () => WIDGET_INSETS },
+  );
+  addZoomGroup(host);
+  modeler.importDocument(oneTeamDocument());
+  moveTeamToBottomRight(modeler, 0.5);
+  expect(modeler.get<Canvas>("canvas").zoom()).toBeCloseTo(0.5, 3);
+
+  select(modeler, CORNER_TEAM);
+  await settle();
+
+  const pad = openPad(container);
+  const padBox = boxIn(pad, container);
+  expectInside(padBox, WIDGET, WIDGET_INSETS);
+  expect(padBox.right).toBeCloseTo(
+    boxIn(graphicsOf(modeler, CORNER_TEAM), container).left - PAD_GAP * 0.5,
+    0,
+  );
+  expectEveryEntryReachable(pad);
+});
+
+test("a pad keeps inside the container when the host resizes it without moving the view", async () => {
+  await page.viewport(1280, 800);
+  const wide = { width: 900, height: 520 };
+  const narrow = { width: 690, height: 520 };
+  const { host, container, modeler } = mountHost({ left: 0, top: 0, ...wide });
+  modeler.importDocument(oneTeamDocument());
+  moveTeamTo(modeler, { x: 500, y: 200 });
+  select(modeler, CORNER_TEAM);
+  await settle();
+
+  const canvas = modeler.get<Canvas>("canvas");
+  const shapeBox = boxIn(graphicsOf(modeler, CORNER_TEAM), container);
+  const besideShape = shapeBox.right + PAD_GAP;
+  expect(boxIn(openPad(container), container).left).toBeCloseTo(besideShape, 0);
+  expect(besideShape + openPad(container).offsetWidth).toBeGreaterThan(narrow.width);
+
+  // As the shell's viewport does: the view stays, only the container changes.
+  host.style.width = `${narrow.width}px`;
+  canvas.resized();
+  await settle();
+
+  const pad = openPad(container);
+  expectInside(boxIn(pad, container), narrow, NO_INSETS);
+  expectEveryEntryReachable(pad);
+
+  host.style.width = `${wide.width}px`;
+  canvas.resized();
+  await settle();
+
+  expect(boxIn(openPad(container), container).left).toBeCloseTo(besideShape, 0);
 });
 
 test("a shape under a side panel keeps its pad at the free area's edge, not beside it", async () => {
@@ -339,6 +472,28 @@ test("in a narrow container inside a wide page the tooltip follows the container
   const tooltipBox = boxIn(tooltip, container);
   expect(entryBox.left + entryBox.width / 2 - tooltipBox.width / 2).toBeLessThan(CONTAINER_EDGE);
   expect(tooltipBox.left).toBeCloseTo(CONTAINER_EDGE, 0);
+});
+
+test("in a narrow container the last visible entry's tooltip keeps 12px from the right edge", async () => {
+  await page.viewport(1280, 800);
+  const narrow = { left: 600, top: 100, width: 360, height: 480 };
+  const { container, modeler } = mountHost(narrow);
+  modeler.importDocument(oneTeamDocument());
+
+  const paletteBox = boxIn(container.querySelector<HTMLElement>(".djs-palette")!, container);
+  const lastVisibleEntry = [...container.querySelectorAll<HTMLElement>(".djs-palette .entry")]
+    .filter((entry) => boxIn(entry, container).right <= paletteBox.right)
+    .at(-1);
+  const action = lastVisibleEntry?.getAttribute("data-action");
+  if (!action) throw new Error("No palette entry is fully visible.");
+
+  const { entry, tooltip } = await hoverPaletteEntry(container, action);
+  const entryBox = boxIn(entry, container);
+  const tooltipBox = boxIn(tooltip, container);
+  const rightEdge = narrow.width - CONTAINER_EDGE;
+  expect(entryBox.left + entryBox.width / 2 + tooltipBox.width / 2).toBeGreaterThan(rightEdge);
+  expect(tooltipBox.right).toBeCloseTo(rightEdge, 0);
+  expect(tooltipBox.top).toBeCloseTo(paletteBox.bottom + PALETTE_GAP, 0);
 });
 
 test("in a wide container the tooltip stands below the top-row palette, centred on its entry", async () => {

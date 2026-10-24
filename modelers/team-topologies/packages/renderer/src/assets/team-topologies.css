@@ -178,8 +178,9 @@
 }
 
 /* TtPaletteTooltip places the palette tooltip in the canvas container's coordinates (diagram-js
-   would fix it to the page): 8px below the palette in either row, centred on its entry and kept
-   12px from the container's sides (guide §5.6). A host chrome replaces this tooltip with its own. */
+   would fix it to the page), at the position of guide §5.6: 8px below the palette in either row,
+   centred on its entry and kept 12px from the container's sides. Only the position follows §5.6,
+   not yet the type and padding. A host chrome replaces this tooltip with its own. */
 .tt-djs-container .djs-hover-tooltip {
   width: max-content;
   max-width: 280px;

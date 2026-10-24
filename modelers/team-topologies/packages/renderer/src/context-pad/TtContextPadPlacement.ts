@@ -6,6 +6,10 @@
  * out of the container. Here a pad that would pass the right edge flips to the left of its
  * element, one that would pass the bottom moves up and one above the top moves down; where the
  * free area is too small, its top left corner wins, so the first entries stay reachable.
+ *
+ * diagram-js writes the pad's position in a task of its own. The pad moves in the microtask right
+ * after that write, before the page paints, so it never shows where diagram-js put it. A resized
+ * container, which diagram-js gives no new position, places it again from diagram-js's last one.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -34,6 +38,12 @@ interface OpenPad {
   html: HTMLElement;
 }
 
+/** px from the canvas container's top left, as diagram-js writes the pad's `left` and `top`. */
+interface Position {
+  left: number;
+  top: number;
+}
+
 interface Box {
   left: number;
   top: number;
@@ -45,10 +55,19 @@ function isConnection(target: Element | Element[]): boolean {
   return !Array.isArray(target) && "waypoints" in target;
 }
 
+function positionOf(html: HTMLElement): Position | undefined {
+  const left = parseFloat(html.style.left);
+  const top = parseFloat(html.style.top);
+  return Number.isFinite(left) && Number.isFinite(top) ? { left, top } : undefined;
+}
+
 export default class TtContextPadPlacement {
   static $inject = ["config.ttContextPad", "eventBus", "canvas", "scheduler"];
 
   private openPad: OpenPad | undefined;
+  /** Where diagram-js last put the open pad; every placement starts from it. */
+  private diagramJsPosition: Position | undefined;
+  private positionWrites: MutationObserver | undefined;
 
   constructor(
     private readonly config: TtContextPadConfig | undefined,
@@ -56,17 +75,34 @@ export default class TtContextPadPlacement {
     private readonly canvas: Canvas,
     private readonly scheduler: Scheduler,
   ) {
-    eventBus.on("contextPad.open", AFTER_DIAGRAM_JS, (event: { current: OpenPad }) => {
-      this.openPad = event.current;
-      this.schedulePlacement();
-    });
-    eventBus.on(["contextPad.show", "canvas.viewbox.changed"], AFTER_DIAGRAM_JS, () =>
-      this.schedulePlacement(),
+    eventBus.on("contextPad.open", (event: { current: OpenPad }) => this.follow(event.current));
+    // diagram-js may write the same position again, which changes nothing to observe, while the
+    // free area has changed; a resize gets no new position at all.
+    eventBus.on(
+      ["contextPad.show", "canvas.viewbox.changed", "canvas.resized"],
+      AFTER_DIAGRAM_JS,
+      () => this.schedulePlacement(),
     );
-    eventBus.on("contextPad.close", () => {
-      this.openPad = undefined;
-      this.scheduler.cancel(PLACEMENT_TASK);
+    eventBus.on(["contextPad.close", "diagram.destroy"], () => this.stopFollowing());
+  }
+
+  private follow(pad: OpenPad): void {
+    this.stopFollowing();
+    this.openPad = pad;
+    const positionWrites = new MutationObserver(() => {
+      this.diagramJsPosition = positionOf(pad.html);
+      this.keepInsideFreeArea();
     });
+    positionWrites.observe(pad.html, { attributes: true, attributeFilter: ["style"] });
+    this.positionWrites = positionWrites;
+  }
+
+  private stopFollowing(): void {
+    this.positionWrites?.disconnect();
+    this.positionWrites = undefined;
+    this.openPad = undefined;
+    this.diagramJsPosition = undefined;
+    this.scheduler.cancel(PLACEMENT_TASK);
   }
 
   private schedulePlacement(): void {
@@ -75,9 +111,14 @@ export default class TtContextPadPlacement {
 
   private keepInsideFreeArea(): void {
     const pad = this.openPad;
-    if (!pad || !pad.html.classList.contains("open")) return;
+    const from = this.diagramJsPosition;
+    if (!pad || !from || !pad.html.classList.contains("open")) return;
     const containerBox = this.canvas.getContainer().getBoundingClientRect();
     if (!(containerBox.width > 0 && containerBox.height > 0)) return;
+    this.moveTo(pad.html, this.placementFor(pad, from, containerBox));
+  }
+
+  private placementFor(pad: OpenPad, from: Position, containerBox: DOMRect): Position {
     const target = this.targetBox(pad.target, containerBox);
     // An element scrolled out of the container takes its pad along, as diagram-js places it.
     if (
@@ -87,12 +128,8 @@ export default class TtContextPadPlacement {
       target.left > containerBox.width ||
       target.top > containerBox.height
     ) {
-      return;
+      return from;
     }
-
-    const left = parseFloat(pad.html.style.left);
-    const top = parseFloat(pad.html.style.top);
-    if (!Number.isFinite(left) || !Number.isFinite(top)) return;
 
     const insets = this.config?.freeArea?.insets?.() ?? NO_INSETS;
     const free: Box = {
@@ -105,19 +142,27 @@ export default class TtContextPadPlacement {
     const height = pad.html.offsetHeight;
     const gap = PAD_GAP * this.canvas.zoom();
 
-    let placedLeft = left;
+    let left = from.left;
     if (left + width > free.right) {
       // A connection's pad sits at its end point, so it flips around that point.
       const anchorLeft = isConnection(pad.target) ? left - gap : target.left;
       const flipped = anchorLeft - gap - width;
       const flippedFits = flipped >= free.left && flipped + width <= free.right;
-      placedLeft = flippedFits ? flipped : free.right - width;
+      left = flippedFits ? flipped : free.right - width;
     }
-    placedLeft = Math.max(free.left, placedLeft);
-    const placedTop = Math.max(free.top, Math.min(top, free.bottom - height));
+    return {
+      left: Math.max(free.left, left),
+      top: Math.max(free.top, Math.min(from.top, free.bottom - height)),
+    };
+  }
 
-    if (placedLeft !== left) pad.html.style.left = `${placedLeft}px`;
-    if (placedTop !== top) pad.html.style.top = `${placedTop}px`;
+  private moveTo(html: HTMLElement, position: Position): void {
+    const current = positionOf(html);
+    if (current?.left === position.left && current.top === position.top) return;
+    html.style.left = `${position.left}px`;
+    html.style.top = `${position.top}px`;
+    // Only diagram-js's writes count as its position, never this one.
+    this.positionWrites?.takeRecords();
   }
 
   /** The box around the pad's element(s) in px from the container's top left, as diagram-js reads it. */

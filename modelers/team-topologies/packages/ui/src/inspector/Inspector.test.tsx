@@ -26,6 +26,7 @@ function fakeModeler() {
     restoreFocus: vi.fn(),
     getContainer: () => document.body,
     viewbox: () => ({ x: 0, y: 0, width: 1000, height: 800, scale: 1 }),
+    getGraphics: () => undefined,
     scroll: vi.fn(),
   };
   const ttModeling = {

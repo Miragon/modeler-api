@@ -1,10 +1,12 @@
 /**
- * The palette tooltip for hosts without chrome of their own (guide §5.6); the modeler shell
- * replaces it with its own. It replaces diagram-js's `paletteTooltip`, which puts the tooltip right
- * of the entry, made for a vertical palette, where it would cover the neighbouring tools here.
- * This one stands 8px below the palette, in either row, centred on its entry and shifted to keep
- * 12px from the sides of the canvas container. It is placed in the container's coordinates, so a
- * modeler embedded in a narrow part of a wide page shows it at its entry, not at the page's.
+ * The palette tooltip for hosts without chrome of their own; the modeler shell replaces it with its
+ * own. It replaces diagram-js's `paletteTooltip`, which puts the tooltip right of the entry, made
+ * for a vertical palette, where it would cover the neighbouring tools here. This one stands where
+ * guide §5.6 puts the chrome's tooltip: 8px below the palette, in either row, centred on its entry
+ * and shifted to keep 12px from the sides of the canvas container. It is placed in the container's
+ * coordinates, so a modeler embedded in a narrow part of a wide page shows it at its entry, not at
+ * the page's. Only the position follows §5.6; type, timing and the hover-only trigger stay
+ * diagram-js's.
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -18,7 +20,7 @@ import { html } from "diagram-js/lib/ui";
 
 const PALETTE_ENTRY_SELECTOR = ".djs-palette-entries .entry";
 const TOOLTIP_SELECTOR = ".djs-hover-tooltip";
-/** Guide §5.6: the gap to the palette and the distance to the container's sides. */
+/** Guide §5.6, position: the gap to the palette and the distance to the container's sides. */
 const PALETTE_GAP = 8;
 const CONTAINER_EDGE = 12;
 
