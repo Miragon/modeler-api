@@ -56,6 +56,10 @@ function labelInput(): HTMLInputElement | HTMLTextAreaElement | null {
   return document.querySelector(".wardley-label-input");
 }
 
+function linkInput(): HTMLInputElement | null {
+  return document.querySelector(".wardley-link-input");
+}
+
 const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("Keyboard and in-place label editing (real browser DOM)", () => {
@@ -648,6 +652,7 @@ pipeline Platform [0.3, 0.8]
       service<WardleyLinkEditing>("wardleyLinkEditing").activate(platform);
       const field = document.querySelector<HTMLInputElement>(".wardley-link-input")!;
       field.value = "https://exa";
+      field.setSelectionRange(4, 4);
       const at = field.getBoundingClientRect();
 
       service<Canvas>("canvas").scroll({ dx: 40, dy: 25 });
@@ -657,6 +662,7 @@ pipeline Platform [0.3, 0.8]
       expect(service<WardleyLinkEditing>("wardleyLinkEditing").getActiveEdit()).toEqual({
         elementId: platform.id,
         value: "https://exa",
+        selection: { start: 4, end: 4 },
       });
       expect(field.getBoundingClientRect().left - at.left).toBeCloseTo(40, 0);
       expect(field.getBoundingClientRect().top - at.top).toBeCloseTo(25, 0);
@@ -820,11 +826,19 @@ pipeline Platform [0.3, 0.8]
 
   describe("editor state across a re-import (external edit)", () => {
     const CHANGED = `${DSL}\n// added in the text editor`;
+    const CUSTOMER = "anchor Customer [0.95, 0.45]";
+    const CUSTOMER_MOVED = "anchor Customer [0.9, 0.4]";
+    const MOVED_BY_PEER = DSL.replace(CUSTOMER, CUSTOMER_MOVED);
 
     async function reimport(text: string): Promise<void> {
       const state = setAsideEditorState(modeler);
       await modeler.importDSL(text);
       restoreEditorState(modeler, state);
+    }
+
+    /** What a key press does in a text field: replaces the selection and leaves the caret after it. */
+    function typeAtCaret(field: HTMLInputElement | HTMLTextAreaElement, text: string): void {
+      field.setRangeText(text, field.selectionStart ?? 0, field.selectionEnd ?? 0, "end");
     }
 
     it("keeps the selection and the typed name with its caret", async () => {
@@ -845,16 +859,62 @@ pipeline Platform [0.3, 0.8]
       expect(modeler.exportDSL()).toContain("component Bees [0.55, 0.62]");
     });
 
-    it("keeps an open link annotation editor, matched by its ends", async () => {
+    it("keeps an open link annotation editor with its caret, matched by its ends", async () => {
       const link = service<ElementRegistry>("elementRegistry").find(isWardleyConnection)!;
       service<WardleyLabelEditing>("wardleyLabelEditing").activateConnection(link as never);
-      labelInput()!.value = "needs review";
+      const field = labelInput()!;
+      field.value = "needs revie";
+      field.setSelectionRange(11, 11);
 
-      await reimport(CHANGED);
+      await reimport(MOVED_BY_PEER);
 
-      expect(labelInput()?.value).toBe("needs review");
-      pressKey(labelInput()!, "Enter");
+      const restored = labelInput()!;
+      expect(restored.value).toBe("needs revie");
+      expect([restored.selectionStart, restored.selectionEnd]).toEqual([11, 11]);
+      typeAtCaret(restored, "w");
+      pressKey(restored, "Enter");
       expect(modeler.exportDSL()).toContain("Customer -> Platform; needs review");
+    });
+
+    it("keeps an open link address editor with its caret", async () => {
+      const platform = select("Platform");
+      service<WardleyLinkEditing>("wardleyLinkEditing").activate(platform);
+      const field = linkInput()!;
+      field.value = "https://example.com/te";
+      field.setSelectionRange(22, 22);
+
+      await reimport(MOVED_BY_PEER);
+
+      const restored = linkInput()!;
+      expect(restored.value).toBe("https://example.com/te");
+      expect([restored.selectionStart, restored.selectionEnd]).toEqual([22, 22]);
+      expect(document.activeElement).toBe(restored);
+      typeAtCaret(restored, "a");
+      pressKey(restored, "Enter");
+      const exported = modeler.exportDSL();
+      expect(exported).toContain("url Platform URL [https://example.com/tea]");
+      expect(exported).toContain(CUSTOMER_MOVED);
+    });
+
+    it("selects a stored address on open and keeps a part selected across a re-import", async () => {
+      const platform = select("Platform");
+      const linkEditing = service<WardleyLinkEditing>("wardleyLinkEditing");
+      linkEditing.setLink(platform, "https://example.com/tea");
+      linkEditing.activate(platform);
+      const field = linkInput()!;
+      expect([field.selectionStart, field.selectionEnd]).toEqual([0, 23]);
+      field.setSelectionRange(20, 23);
+
+      await reimport(modeler.exportDSL().replace(CUSTOMER, CUSTOMER_MOVED));
+
+      const restored = linkInput()!;
+      expect(restored.value).toBe("https://example.com/tea");
+      expect([restored.selectionStart, restored.selectionEnd]).toEqual([20, 23]);
+      typeAtCaret(restored, "cup");
+      pressKey(restored, "Enter");
+      const exported = modeler.exportDSL();
+      expect(exported).toContain("url Platform URL [https://example.com/cup]");
+      expect(exported).toContain(CUSTOMER_MOVED);
     });
 
     it("selects what still exists and focuses the canvas when the edited element is gone", async () => {

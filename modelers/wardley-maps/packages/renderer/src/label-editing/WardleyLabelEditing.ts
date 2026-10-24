@@ -58,7 +58,14 @@ export interface ActivateOptions {
   selection?: FieldSelection;
 }
 
-function focusField(field: HTMLInputElement | HTMLTextAreaElement, options: ActivateOptions): void {
+/**
+ * A field the user opens selects its whole text; a field reopened by a re-import keeps the caret
+ * and selection the user had, so the next key does not replace what was typed.
+ */
+export function focusField(
+  field: HTMLInputElement | HTMLTextAreaElement,
+  options: ActivateOptions,
+): void {
   field.focus();
   if (options.selection) {
     const length = field.value.length;

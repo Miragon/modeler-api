@@ -5,7 +5,7 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type { ComponentElement, MapElement, SubmapElement } from "@miragon/wardley-schema-model";
 import type { WardleyShape } from "../model/di-types.js";
 import type WardleyModeling from "../modeling/WardleyModeling.js";
-import { createFieldError } from "../label-editing/index.js";
+import { createFieldError, focusField, type FieldSelection } from "../label-editing/index.js";
 import { isAllowedLinkUrl, sanitizeLinkUrl } from "./link-url.js";
 
 interface ActiveLinkEdit {
@@ -103,8 +103,14 @@ export default class WardleyLinkEditing {
     return true;
   }
 
-  /** @param options.value field content to restore instead of the current link (re-import). */
-  activate(shape: WardleyShape, options: { value?: string } = {}): void {
+  /**
+   * @param options.value field content to restore instead of the current link (re-import).
+   * @param options.selection caret or selection to restore; without it the whole text is selected.
+   */
+  activate(
+    shape: WardleyShape,
+    options: { value?: string; selection?: FieldSelection } = {},
+  ): void {
     if (!canHaveLink(shape) || isReadOnly(this.injector)) return;
     this.active?.commit();
 
@@ -129,8 +135,7 @@ export default class WardleyLinkEditing {
     };
     placeField();
     container.appendChild(field);
-    field.focus();
-    field.select();
+    focusField(field, options);
 
     let done = false;
     const cleanup = () => {
@@ -212,9 +217,13 @@ export default class WardleyLinkEditing {
     this.active?.commit();
   }
 
-  getActiveEdit(): { elementId: string; value: string } | null {
-    return this.active
-      ? { elementId: this.active.elementId, value: this.active.field.value }
-      : null;
+  getActiveEdit(): { elementId: string; value: string; selection: FieldSelection } | null {
+    if (!this.active) return null;
+    const { elementId, field } = this.active;
+    return {
+      elementId,
+      value: field.value,
+      selection: { start: field.selectionStart ?? 0, end: field.selectionEnd ?? 0 },
+    };
   }
 }
