@@ -23,7 +23,6 @@ const CONNECTABLE_TYPES: ReadonlySet<string> = new Set([
 
 const HOST_TYPES: ReadonlySet<string> = new Set(HOST_STICKY_KINDS);
 
-/** "an actor", "a note": the element kind as the validation messages name it. */
 function withArticle(elementType: string | undefined): string {
   return `${/^[aeiou]/.test(elementType ?? "") ? "an" : "a"} ${elementType}`;
 }
