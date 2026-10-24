@@ -5,12 +5,12 @@ description: >-
   (stream-aligned, enabling, complicated-subsystem, platform), the three interaction modes
   (collaboration, X-as-a-Service, facilitating), cognitive load, Conway's law, fracture planes and
   how interactions evolve; designs a team topology from a description of an organisation, a system
-  or a codebase; and reviews an existing topology — strengths, weaknesses, next steps — writing the
+  or a codebase; and reviews an existing topology (strengths, weaknesses, next steps), writing the
   feedback as annotations into the `.tt` file. Use whenever the user wants to model, draw, sketch,
   design, critique or improve a team structure or org design with Team Topologies, or asks about team
   types, interaction modes, platform or enabling teams, team cognitive load or the inverse Conway
-  manoeuvre. For the `.tt` / `.ttm.json` file format itself — fields, coordinates, layout, the checker
-  — use the `tt-format` skill.
+  manoeuvre. For the `.tt` / `.ttm.json` file format itself (fields, coordinates, layout, the checker),
+  use the `tt-format` skill.
 ---
 
 # Team Topologies
@@ -19,7 +19,7 @@ Team Topologies (Skelton & Pais, 2019) is a way to organise technology teams for
 change**: few, well-defined team types, explicit and deliberate interactions between them, and team
 boundaries sized to what a team can hold in its head. This skill lets you (1) explain it, (2) design
 a topology from what the user tells you, and (3) review an existing diagram. Writing or editing the
-`.tt` file is the `tt-format` skill's job — load it alongside this one whenever you touch a file.
+`.tt` file is the `tt-format` skill's job: load it alongside this one whenever you touch a file.
 
 ## The four team types
 
@@ -32,11 +32,11 @@ a topology from what the user tells you, and (3) review an existing diagram. Wri
 
 ## The three interaction modes
 
-| Mode               | Meaning                                                         | When                                              | Duration                               |
-| ------------------ | --------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| **Collaboration**  | Two teams work closely together on a shared goal                | discovery, new technology, fuzzy boundaries       | temporary — expensive, blurs ownership |
-| **X-as-a-Service** | One team consumes what the other provides, with minimal contact | well-understood, stable boundary with a clear API | long-lived — the target for most pairs |
-| **Facilitating**   | One team helps the other learn or remove an impediment          | capability gaps; typical for enabling teams       | temporary — ends when the team is able |
+| Mode               | Meaning                                                         | When                                              | Duration                              |
+| ------------------ | --------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------- |
+| **Collaboration**  | Two teams work closely together on a shared goal                | discovery, new technology, fuzzy boundaries       | temporary: expensive, blurs ownership |
+| **X-as-a-Service** | One team consumes what the other provides, with minimal contact | well-understood, stable boundary with a clear API | long-lived: the target for most pairs |
+| **Facilitating**   | One team helps the other learn or remove an impediment          | capability gaps; typical for enabling teams       | temporary: ends when the team is able |
 
 Typical defaults (deviate on purpose, not by accident):
 
@@ -52,28 +52,28 @@ collaboration has a purpose and an end; enabling teams almost never provide X-as
 
 ## Designing a topology
 
-1. **Find the streams of change** — products, customer journeys, user segments, business domains
+1. **Find the streams of change:** products, customer journeys, user segments, business domains
    (bounded contexts). Each gets a stream-aligned team, named after the stream. If the user describes
    a codebase, its domains and deployables are candidates; its technical layers are not.
 2. **Check cognitive load.** Can one team of 5–9 people own the stream end to end? If not, split
    it along a fracture plane (see `reference/concepts.md`). If two streams are tiny, merge them.
-   A team the user states as smaller than 5 (a few specialists) stays as stated — flag it with a
+   A team the user states as smaller than 5 (a few specialists) stays as stated; flag it with a
    `Risk:` annotation (fragile, a single point of failure) instead of merging it away.
-3. **Pull out what every stream needs but should not build** — runtime, CI/CD, observability, data
-   pipelines — into a platform, consumed X-as-a-Service. Start thin.
-4. **Isolate genuine specialist subsystems** into complicated-subsystem teams — only where the
+3. **Pull out what every stream needs but should not build** (runtime, CI/CD, observability, data
+   pipelines) into a platform, consumed X-as-a-Service. Start thin.
+4. **Isolate genuine specialist subsystems** into complicated-subsystem teams, only where the
    expertise is scarce and deep.
 5. **Close capability gaps** with enabling teams that facilitate, time-boxed.
 6. **Choose one interaction per pair that actually needs one**, with its purpose. Mark every
    temporary one (collaboration, facilitating) with an annotation saying what ends it and what
    follows ("Collaboration until the fraud rules are stable, then X-as-a-Service"). When several
-   share one purpose and one end — an enabling team facilitating two teams on one time box — one
+   share one purpose and one end (an enabling team facilitating two teams on one time box), one
    annotation on the team they share covers them all.
 7. **Draw it** with the `tt-format` skill, like the book: flow of change on top, stream-aligned
    teams stacked below it as parallel lanes (each owns its stream end to end), enabling teams at the
    left side beside exactly the lanes they facilitate, complicated-subsystem teams to the right of
-   the lane they collaborate with — or under an extension of that lane once they provide
-   X-as-a-Service — and the platform below the stack; then run its checker. Business areas that
+   the lane they collaborate with (or under an extension of that lane once they provide
+   X-as-a-Service) and the platform below the stack; then run its checker. Business areas that
    share a platform stay in one stack, each area named by an annotation; separate stacks, one per
    area, only when each area really has a platform of its own.
 
@@ -85,7 +85,7 @@ beside the diagram.
 
 ## Reviewing a topology (the core job)
 
-1. **Read the file** (or the user's description) and run the `tt-format` checker — its readings
+1. **Read the file** (or the user's description) and run the `tt-format` checker: its readings
    list which teams each interaction really connects. Work from those, not from the ids. A platform
    drawn under a stack of stream-aligned lanes serves **every** lane of the stack, even with a
    single triangle into the lowest lane; the readings list each one (`stacked above …`).
@@ -97,10 +97,10 @@ beside the diagram.
    purposeful? Platform consumed as a service rather than through permanent collaboration? Enabling
    teams facilitating, not doing the work?
 5. **Check the flow.** Does any stream-aligned team need several other teams to ship (hand-offs)?
-   Stream-aligned teams drawn side by side or staggered along one flow suggest exactly that — work
+   Stream-aligned teams drawn side by side or staggered along one flow suggest exactly that: work
    passing from one team to the next; the checker warns about it. Ask whether the chain is real (then fix the
    boundaries) or only the drawing (then stack the teams as parallel lanes). Teams with no
-   interaction at all — independent, or forgotten? Is a flow of change drawn?
+   interaction at all: independent, or forgotten? Is a flow of change drawn?
 6. **Look for evolution.** Which collaborations should become X-as-a-Service, which enabling
    engagements should end, which subsystem has outgrown its team?
 7. **Deliver feedback two ways:**
@@ -117,7 +117,7 @@ Annotations have no colour, so the kind of feedback goes into a prefix:
 | `Strength:` | well modelled, keep it                                 |
 | `Risk:`     | works today but will hurt (load, coupling, bottleneck) |
 | `Problem:`  | wrong type or mode, missing interaction, contradiction |
-| `Question:` | the diagram cannot answer it — ask the team            |
+| `Question:` | the diagram cannot answer it; ask the team             |
 | `Idea:`     | an opportunity or a next evolution step                |
 
 Give review annotations ids `ann_review_<n>` so they can be found and removed in one go, place them
@@ -126,7 +126,7 @@ in free space next to their element (the `tt-format` layout rules), and re-run t
 ```json
 {
   "id": "ann_review_1",
-  "text": "Risk: three permanent collaborations — the platform is not self-service yet.",
+  "text": "Risk: three permanent collaborations; the platform is not self-service yet.",
   "position": { "x": 1100, "y": 470 },
   "size": { "width": 220, "height": 64 },
   "attachedTo": "team_platform"
@@ -135,15 +135,15 @@ in free space next to their element (the `tt-format` layout rules), and re-run t
 
 ## Naming
 
-- **Teams**: the stream or capability they own, in the user's language — `Checkout & Payments`,
+- **Teams**: the stream or capability they own, in the user's language: `Checkout & Payments`,
   `Driver Onboarding`, `Fraud Detection`. Not `Team A`, not `Backend`.
 - **Descriptions**: one sentence of purpose ("Owns the checkout journey end to end."). They appear
   in the editor's inspector, not on the canvas.
-- **Interaction labels**: optional, one or two words on what flows — `fraud rules`, `CI/CD`,
+- **Interaction labels**: optional, one or two words on what flows: `fraud rules`, `CI/CD`,
   `observability`. Longer explanations belong in annotations.
 
 ## Reference files (read on demand)
 
-- `reference/concepts.md` — cognitive load, Conway's law and the inverse Conway manoeuvre, the eight
+- `reference/concepts.md`: cognitive load, Conway's law and the inverse Conway manoeuvre, the eight
   fracture planes, team API, thinnest viable platform, interaction evolution and a catalogue of
   anti-patterns with what to suggest instead.

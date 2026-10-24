@@ -1,4 +1,4 @@
-# Team Topologies Modeler — Web App
+# Team Topologies Modeler: Web App
 
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE)
 
@@ -63,7 +63,7 @@ npm run team-topologies dev:webapp                # stable per-worktree https://
 ```
 
 `npm run team-topologies dev:webapp` serves the app via [Portless](https://portless.sh) at a
-stable per-worktree `.localhost` URL (needs Node ≥ 24 + a one-time `npx portless service install` —
+stable per-worktree `.localhost` URL (needs Node ≥ 24 + a one-time `npx portless service install`;
 see the suite's [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md#dev-servers)). For plain Vite on a
 fixed port instead:
 
@@ -105,7 +105,7 @@ shell's inspector slot:
   that SVG on a canvas with Geist embedded. Downloads are named after the diagram's title.
 
 The renderer, schema-model and ui packages are aliased to their **TypeScript source** in
-`vite.config.ts`, so there is no separate library build step — `npm run team-topologies dev:webapp` and the Netlify
+`vite.config.ts`, so there is no separate library build step: `npm run team-topologies dev:webapp` and the Netlify
 build compile the whole monorepo from source.
 
 ## Deployment

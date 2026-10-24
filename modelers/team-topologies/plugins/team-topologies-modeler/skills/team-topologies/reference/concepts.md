@@ -1,4 +1,4 @@
-# Team Topologies — concepts in depth
+# Team Topologies: concepts in depth
 
 Background for designing and reviewing topologies. The vocabulary follows _Team Topologies_ by
 Matthew Skelton and Manuel Pais.
@@ -16,10 +16,10 @@ Matthew Skelton and Manuel Pais.
 
 The amount of mental effort a team must spend to do its work. Three kinds:
 
-- **Intrinsic** — the essential difficulty of the domain or technology.
-- **Extraneous** — effort that adds no value: manual deployments, unclear environments, waiting.
+- **Intrinsic:** the essential difficulty of the domain or technology.
+- **Extraneous:** effort that adds no value: manual deployments, unclear environments, waiting.
   Platforms and good tooling remove it.
-- **Germane** — learning the business domain itself, which is where a stream-aligned team should
+- **Germane:** learning the business domain itself, which is where a stream-aligned team should
   spend its capacity.
 
 Signals of overload: many domains per team, frequent context switches, several on-call areas, a
@@ -34,20 +34,20 @@ teams for the architecture you want** (the inverse Conway manoeuvre): if two ser
 independent, they need different owning teams with an X-as-a-Service boundary; if teams must
 constantly collaborate, the system will grow a matching coupling.
 
-## Fracture planes — where to split
+## Fracture planes: where to split
 
 Natural seams along which a system (and the team owning it) can be split:
 
-1. **Business domain** (bounded context) — the default and usually the best.
-2. **Regulatory compliance** — isolate the parts under audit (e.g. payment card data).
-3. **Change cadence** — parts that change at very different speeds.
-4. **Team location** — time zones and co-location.
-5. **Risk** — different appetites for risk (experimentation vs. core ledger).
-6. **Performance isolation** — parts with special scaling or latency needs.
-7. **Technology** — only when the technology really differs (e.g. embedded vs. cloud).
-8. **User personas** — distinct groups of users with distinct needs.
+1. **Business domain** (bounded context): the default and usually the best.
+2. **Regulatory compliance:** isolate the parts under audit (e.g. payment card data).
+3. **Change cadence:** parts that change at very different speeds.
+4. **Team location:** time zones and co-location.
+5. **Risk:** different appetites for risk (experimentation vs. core ledger).
+6. **Performance isolation:** parts with special scaling or latency needs.
+7. **Technology:** only when the technology really differs (e.g. embedded vs. cloud).
+8. **User personas:** distinct groups of users with distinct needs.
 
-Splitting by technical layer (UI, backend, database) is **not** a fracture plane — it creates
+Splitting by technical layer (UI, backend, database) is **not** a fracture plane: it creates
 hand-offs on every change.
 
 ## Team API
@@ -61,7 +61,7 @@ makes X-as-a-Service possible.
 A platform is a product for internal customers, as small as possible: sometimes a wiki page of
 conventions and a set of managed services is enough. It grows only where it measurably reduces the
 cognitive load of stream-aligned teams. Its success is adoption by choice, not by mandate. Large
-platforms are themselves built by several teams — a platform grouping with stream-aligned,
+platforms are themselves built by several teams: a platform grouping with stream-aligned,
 enabling and complicated-subsystem teams inside, whose customers are the other teams.
 
 ## Interactions evolve

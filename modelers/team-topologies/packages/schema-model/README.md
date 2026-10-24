@@ -7,7 +7,7 @@ The **DOM-free core** of the [Team Topologies Modeler](../../README.md): the dat
 specification, runtime validation, version migrations and deterministic JSON serialization for
 [Team Topologies](https://teamtopologies.com/) diagrams.
 
-This package has **no view, no DOM and no diagram-js** — it is plain TypeScript that runs anywhere
+This package has **no view, no DOM and no diagram-js**: it is plain TypeScript that runs anywhere
 (browser, Node, an edge function, a CLI). The browser renderer
 ([`@miragon/team-topologies-renderer`](../renderer)), the web app and the VS Code extension all build
 on top of it. The DOM-freedom is enforced in CI (ESLint `no-restricted-imports` /
@@ -22,23 +22,23 @@ npm install @miragon/team-topologies-schema-model
 
 ## What's inside
 
-- **The notation spec** — the four team types and three interaction modes, with their official
+- **The notation spec:** the four team types and three interaction modes, with their official
   shapes, colours and stroke styles as plain data you can read and render against.
-- **The document model** — a small, stable shape (`TtDocument`) with `version`, `title`, `nodes`,
+- **The document model:** a small, stable shape (`TtDocument`) with `version`, `title`, `nodes`,
   `interactions`, `flows` and `annotations`.
-- **Runtime validation** — Zod schemas + `parseDocument()` for everything that comes from a file, a
+- **Runtime validation:** Zod schemas + `parseDocument()` for everything that comes from a file, a
   URL or `localStorage`.
-- **Forward migrations** — `parseDocument()` migrates older documents up to the current version
+- **Forward migrations:** `parseDocument()` migrates older documents up to the current version
   before validating, keyed by the document `version`.
-- **Deterministic serialization** — sorted, rounded and version-stamped output, so `.tt` /
+- **Deterministic serialization:** sorted, rounded and version-stamped output, so `.tt` /
   `.ttm.json` files diff cleanly and share URLs stay stable.
-- **Factories & a sample** — helpers that create well-formed elements and documents, plus a complete
+- **Factories & a sample:** helpers that create well-formed elements and documents, plus a complete
   example topology.
 
 ## The document format
 
 A diagram is a single JSON object. Interactions are **placed shapes** that overlap the teams they
-relate to (spatial overlap, the Team Topologies convention) — there is no source/target reference.
+relate to (spatial overlap, the Team Topologies convention); there is no source/target reference.
 
 ```jsonc
 {
@@ -86,13 +86,13 @@ relate to (spatial overlap, the Team Topologies convention) — there is no sour
 ## Notation
 
 The single source of truth for the visual notation. Shapes and colours follow the official
-[Team-Shape-Templates](https://github.com/TeamTopologies/Team-Shape-Templates) — every element is
+[Team-Shape-Templates](https://github.com/TeamTopologies/Team-Shape-Templates): every element is
 distinguished by shape **and** colour, so diagrams survive colour-vision deficiency and greyscale
 printing. Team shapes are **solid** (long-lived); interaction shapes are **dashed** (short-lived).
 An interaction spec carries the templates' fill opacity (`opacity: 0.5`); the renderer premixes the
 fill over white at that opacity and draws it opaque.
 
-### Team types — `TEAM_TYPE_SPECS`
+### Team types: `TEAM_TYPE_SPECS`
 
 | `type`                  | Label                 | Shape                        | Fill / Stroke         |
 | ----------------------- | --------------------- | ---------------------------- | --------------------- |
@@ -101,7 +101,7 @@ fill over white at that opacity and draws it opaque.
 | `complicated-subsystem` | Complicated Subsystem | octagon                      | `#FFC08B` / `#E88814` |
 | `platform`              | Platform              | square-cornered rectangle    | `#B7CDF1` / `#6D9EEB` |
 
-### Interaction modes — `INTERACTION_MODE_SPECS`
+### Interaction modes: `INTERACTION_MODE_SPECS`
 
 | `mode`           | Label          | Glyph                                 | Fill / Stroke         |
 | ---------------- | -------------- | ------------------------------------- | --------------------- |
@@ -110,7 +110,7 @@ fill over white at that opacity and draws it opaque.
 | `facilitating`   | Facilitating   | circle                                | `#C9DFBE` / `#78996B` |
 
 The **flow of change** is described separately by `FLOW_SPEC` (a left-to-right dashed band), and
-text annotations by `ANNOTATION_SPEC` (default and minimum size — they are not part of the official
+text annotations by `ANNOTATION_SPEC` (default and minimum size; they are not part of the official
 notation, so they carry no notation colours).
 
 ## Usage
@@ -130,7 +130,7 @@ const doc = emptyDocument("Online shop");
 doc.nodes.push(createTeamNode("stream-aligned", { x: 560, y: 202 }));
 doc.interactions.push(createInteractionShape("x-as-a-service", { x: 636, y: 286 }));
 
-// Serialize deterministically (sorted, rounded, version-stamped) — diff- and URL-stable
+// Serialize deterministically (sorted, rounded, version-stamped): diff- and URL-stable
 const json = serializeDocument(doc);
 
 // Validate + migrate anything untrusted (file / URL / localStorage)
@@ -163,26 +163,26 @@ console.log(SAMPLE_DOCUMENT.title);
 
 ## Determinism & migrations
 
-- **Determinism** — `serializeDocument()` runs `canonicalize()` first: arrays are sorted by `id`,
+- **Determinism:** `serializeDocument()` runs `canonicalize()` first: arrays are sorted by `id`,
   coordinates are rounded to two decimals, optional fields with no value are dropped, and keys are
   written in a fixed order. The same logical diagram always produces byte-identical JSON, which is
   what makes Git diffs small and share URLs stable. The pretty form (the default) is the file on
   disk and ends with a line break; the compact form (`serializeDocument(doc, false)`) has none.
-- **Unknown fields** — fields a document carries that this package does not know (a vendor's
+- **Unknown fields:** fields a document carries that this package does not know (a vendor's
   `"x-vendor"` on the root or on an element) pass `parseDocument()` untouched and are written after
   the known fields, sorted by name (nested keys too), so another tool's data survives a save.
-- **Ids** — `parseDocument()` rejects a document whose ids would collide on the canvas: an id used
+- **Ids:** `parseDocument()` rejects a document whose ids would collide on the canvas: an id used
   twice, the diagram's own id `tt-root` (`DIAGRAM_ROOT_ID`), ids starting with `__implicitroot`,
   `assoc_<annotation id>` (`associationId()`), the id of that annotation's connector, and the names
   of JavaScript's built-in object properties (`constructor`, `toString`, `__proto__`, …), which the
   canvas's element registry, a plain object, already resolves. `documentIdProblems()` lists them
   with their path.
-- **Migrations** — `parseDocument()` upgrades older documents before validating (keyed by `version`).
+- **Migrations:** `parseDocument()` upgrades older documents before validating (keyed by `version`).
   The `1 → 2` step drops the legacy `showFlowOfChange` flag and the old edge-based interactions,
   keeping only interactions that carry geometry (the placed-shape model). Only a version 1 file
   loses interactions this way: from version 2 on, an interaction without `position` or `size` is
   refused at its path like any other missing field, so it never vanishes on the next save. The
-  `2 → 3` step adds an empty `annotations` list — and because an empty list is not written back,
+  `2 → 3` step adds an empty `annotations` list, and because an empty list is not written back,
   re-saving a v2 file changes nothing but its `version`. Issue paths always count in the input: an
   invalid interaction after a dropped one is reported at its index in the file.
 

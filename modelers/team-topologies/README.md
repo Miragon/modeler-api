@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@miragon/team-topologies-renderer)](https://www.npmjs.com/package/@miragon/team-topologies-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.team-topologies-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.team-topologies-modeler)
 
-A fast, offline-friendly modeler for **Team Topologies** diagrams — the four team types and three
+A fast, offline-friendly modeler for **Team Topologies** diagrams: the four team types and three
 team-interaction modes from the book by Matthew Skelton & Manuel Pais. Ships as a **web app** and a
 **VS Code extension** sharing one diagram-js core.
 
@@ -44,12 +44,12 @@ diagrams stay readable with colour-vision deficiency.
 
 ## Targets
 
-- **Web app** ([`apps/webapp`](apps/webapp/README.md)) — a Vite editor with a full-bleed canvas,
+- **Web app** ([`apps/webapp`](apps/webapp/README.md)): a Vite editor with a full-bleed canvas,
   palette, inspector, legend, PNG/SVG/JSON export and a shareable, self-contained URL (LZ-compressed,
   no backend), inside the shared chrome of the Miragon modelers
   ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell), web host).
   Deployed on Netlify.
-- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)) — a custom editor for `.tt` /
+- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)): a custom editor for `.tt` /
   `.ttm.json` files with the same chrome, inspector and legend as the web app (the shell's IDE host):
   the JSON file stays the source of truth (save, Git, diff and undo keep working), its problems show
   in the Problems view, and editable embedded-PNG diagrams (`*.tt.png`) let you drop a diagram into a
@@ -102,7 +102,7 @@ e2e/                                       — Playwright end-to-end tests: the 
 ```
 
 The `schema-model` package compiles **without the DOM lib**, so a stray browser import fails
-type-checking. The DOM boundary is enforced twice — by ESLint and by dependency-cruiser. The apps and
+type-checking. The DOM boundary is enforced twice, by ESLint and by dependency-cruiser. The apps and
 tests consume the packages straight from their TS source via Vite/esbuild/tsconfig aliases, so there
 is no separate library build step for development (`npm run team-topologies build` is only needed to
 publish the libs).
@@ -113,7 +113,7 @@ Design choices:
   diff-friendly and gives stable share URLs.
 - **Runtime validation** (Zod) on everything imported from files / URLs / localStorage, with a
   forward-migration hook keyed by document `version`.
-- **diagram-js** (MIT) as the editor engine — palette, move, resize, context pad,
+- **diagram-js** (MIT) as the editor engine: palette, move, resize, context pad,
   inline label editing and undo/redo for free.
 
 ## Document format

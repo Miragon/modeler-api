@@ -10,7 +10,7 @@ and full editor for [Team Topologies](https://teamtopologies.com/) diagrams, bui
 It renders the canonical document from
 [`@miragon/team-topologies-schema-model`](../schema-model) and gives you palette, move, resize,
 connect-by-overlap, multi-selection (lasso, select all) with group move, text annotations, context
-pad, in-place label editing and undo/redo — with no UI framework required.
+pad, in-place label editing and undo/redo, with no UI framework required.
 Mount it into any `<div>`; the web app and the VS Code extension both wrap this exact package. It
 hands a chrome such as [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)
 its menu entries, legend rows and dialogs without importing it (see
@@ -101,7 +101,7 @@ modeler.redo();
 
 > **The CSS is required.** Import `@miragon/team-topologies-renderer/assets/team-topologies.css`
 > (it also pulls in the Miragon design tokens, `diagram-js`'s own stylesheet and `cd-canvas.css`, in
-> that order) — without it the palette, context pad and label editor are unstyled. Every colour is a
+> that order); without it the palette, context pad and label editor are unstyled. Every colour is a
 > `--cd-ui-*` role of design system 1.20.1, vendored unchanged under `src/theme/`. The tokens sit in
 > the cascade layer `team-topologies-tokens`, so a host page's own `--cd-*` tokens (unlayered) win
 > over this copy.
@@ -115,7 +115,7 @@ modeler.redo();
 
 ## API
 
-### Constructor — `TtViewerOptions`
+### Constructor: `TtViewerOptions`
 
 ```ts
 new Modeler({
@@ -182,7 +182,7 @@ estimated from the characters rather than measured. A host that fits the view it
 | `contentBounds()`                  | `ElementBounds \| undefined`    | The tight box around every element and its label text in diagram coordinates (contract 1.3), `undefined` without elements.             |
 | `exportDocument()`                 | `TtDocument`                    | Rebuild the canonical model from the live canvas.                                                                                      |
 | `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot of the `contentBounds()` box, label text included, plus a 40px margin.                                     |
-| `setMeta(partial)` / `getMeta()`   | — / `RootBusinessObject`        | Read/write diagram-level metadata (`title`); `setMeta` is deprecated, rename with `get("ttModeling").setTitle(title)` (one undo step). |
+| `setMeta(partial)` / `getMeta()`   | `void` / `RootBusinessObject`   | Read/write diagram-level metadata (`title`); `setMeta` is deprecated, rename with `get("ttModeling").setTitle(title)` (one undo step). |
 | `attachTo(el)` / `detach()`        | `void`                          | Move the canvas in/out of the DOM (keeps state).                                                                                       |
 | `clear()` / `destroy()`            | `void`                          | Empty the canvas / tear it down.                                                                                                       |
 | `on(event, cb)` / `off(event, cb)` | `void`                          | Subscribe to diagram-js events.                                                                                                        |
@@ -267,7 +267,7 @@ const removeLegend = renderLegend(legendBody);
 - **Runtime element types:** `TtTeam`, `TtInteraction`, `TtFlow`, `TtAnnotation`, `TtElement`, and
   `TtAssociation` (the connector from an annotation to the element it is attached to).
 - **Palette icon generators:** `teamIconSvg(type)`, `interactionIconSvg(mode)`, `flowIconSvg()`,
-  `annotationIconSvg()` — WYSIWYG SVG glyphs matching what the canvas draws. The annotation glyph
+  `annotationIconSvg()`: WYSIWYG SVG glyphs matching what the canvas draws. The annotation glyph
   strokes in `currentColor`.
 - **Functional icons:** `iconMarkup(icon, { size?, strokeWidth?, className? })` returns inline SVG
   markup (Lucide style: 24 × 24 grid, stroke 2.5, `currentColor`) for the bundled `ICON_*` Lucide
@@ -300,7 +300,7 @@ viewer via `additionalModules`:
 | `ttModelModule`        | Element factory with notation defaults (`TtElementFactory`).                           |
 | `ttDrawModule`         | SVG rendering of teams, interactions, flow and annotations (`TeamTopologiesRenderer`). |
 | `ioModule`             | Document ↔ canvas bridge (`TtImporter`, `TtExporter`, `saveSVG`, `TtViewport`).        |
-| `ttModelingModule`     | High-level mutations — label, type, mode, colours, description, annotations.           |
+| `ttModelingModule`     | High-level mutations: label, type, mode, colours, description, annotations.            |
 | `ttRulesModule`        | Editing rules (what can move / resize / be created / be attached).                     |
 | `ttBehaviorsModule`    | Keeps the model **flat** and annotation connectors cropped, one per annotation.        |
 | `ttPaletteModule`      | The lasso tool and the drag-to-create palette.                                         |

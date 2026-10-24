@@ -19,7 +19,7 @@ All UI/visual work follows the Miragon product design system (the
 
 The design system **1.20.1** is **vendored** from that skill, byte-identical:
 [`packages/renderer/src/theme/cd-tokens.generated.css`](packages/renderer/src/theme/cd-tokens.generated.css),
-`cd-tokens.generated.json` and `cd-canvas.css` — do **not** fork or reformat them; re-copy all three
+`cd-tokens.generated.json` and `cd-canvas.css`. Do **not** fork or reformat them; re-copy all three
 from the skill to update and update their hashes in the drift test
 (`packages/renderer/src/theme/theme.sync.test.ts`), which also checks that
 [`palette.ts`](packages/renderer/src/theme/palette.ts) (the pure-TS mirror for canvas colours) and the
@@ -68,9 +68,9 @@ still links them to the local workspace); how a release keeps them in step is in
 | `apps/webapp`                           | Vite demo editor on the modeler shell's web host                                               | yes |
 | `apps/vscode`                           | VS Code extension: custom editor for `.tt`/`.ttm.json`                                         | yes |
 
-**P1 — DOM boundary:** the DOM-free package (`schema-model`) must **never** import `diagram-js`/DOM
-libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced twice — ESLint
-(`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser` — so a violating import
+**P1, the DOM boundary:** the DOM-free package (`schema-model`) must **never** import `diagram-js`/DOM
+libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced twice, by ESLint
+(`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`, so a violating import
 fails `npm run team-topologies lint` and `npm run team-topologies depcruise`.
 
 What the modeler puts into a host's chrome, apart from the inspector, is the renderer's, so every
@@ -89,7 +89,7 @@ by `dependency-cruiser`, the shell ban also by ESLint, so the pre-commit hook ca
 
 ## Commands
 
-- `npm run team-topologies build` — packages (schema-model, then renderer) ·
+- `npm run team-topologies build`: packages (schema-model, then renderer) ·
   `npm run team-topologies build:webapp` · `npm run team-topologies build:vscode`
 - `npm run team-topologies dev:webapp` (alias: `npm run team-topologies dev`) serves the webapp via
   [Portless](https://portless.sh) at a stable per-worktree
@@ -98,10 +98,10 @@ by `dependency-cruiser`, the shell ban also by ESLint, so the pre-commit hook ca
   the one-time setup in the suite's [`CONTRIBUTING.md`](../../CONTRIBUTING.md#dev-servers)).
   `npm run team-topologies dev:webapp:plain` for plain Vite on `:5181`. ·
   `npm run team-topologies dev:vscode`
-- `npm run team-topologies test` — Vitest (unit) · `npm run team-topologies test:browser` —
-  renderer and the contract kit in Chromium · `npm run team-topologies test:e2e` — Playwright,
+- `npm run team-topologies test`: Vitest (unit) · `npm run team-topologies test:browser`:
+  renderer and the contract kit in Chromium · `npm run team-topologies test:e2e`: Playwright,
   projects `webapp` and `vscode-webview` (ports `E2E_PORT`, `E2E_WEBVIEW_PORT`)
-- `npm run team-topologies test:vscode` — the packed extension in a real VS Code (Vitest project
+- `npm run team-topologies test:vscode`: the packed extension in a real VS Code (Vitest project
   `vscode`, `apps/vscode/test-smoke/`, the shell's `./testing/vscode-electron`): open, edit, save,
   undo and the four default themes, screenshots in `test-results/vscode-smoke/`. Opt-in: it opens a
   VS Code window (on Linux without a display: `xvfb-run -a`) and downloads VS Code once into the OS
@@ -116,9 +116,9 @@ by `dependency-cruiser`, the shell ban also by ESLint, so the pre-commit hook ca
   When CI runs it is in the suite's [docs/ci-and-releases.md](../../docs/ci-and-releases.md); see
   [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - `npm run team-topologies typecheck` · `npm run team-topologies lint` (ESLint + typecheck)
-- `npm run team-topologies format` — Prettier · `npm run team-topologies depcruise` — check the
+- `npm run team-topologies format`: Prettier · `npm run team-topologies depcruise`: check the
   module graph
-- `npm run team-topologies check:release-notes -- <number>` — release-please's parser on a pull
+- `npm run team-topologies check:release-notes -- <number>`: release-please's parser on a pull
   request: names every breaking change the squash merge would lose (the rules in the suite's
   [`CONTRIBUTING.md`](../../CONTRIBUTING.md#commits-and-pull-requests))
 
@@ -148,7 +148,7 @@ shared version up to 0.13.2.
   marketplace in [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json):
   `team-topologies` for the method, `tt-format` for the file format plus its checker
   (`skills/tt-format/scripts/check.mjs`). The checker hand-mirrors `schema-model` (notation sizes,
-  schema, serializer) — when you change those, update it;
+  schema, serializer), so when you change those, update it;
   `packages/schema-model/src/plugin-check.sync.test.ts` fails on drift. Install with
   `/plugin marketplace add Miragon/modeler-suite` and
   `/plugin install team-topologies-modeler@modeler-suite`; the skill files are readable directly
