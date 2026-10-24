@@ -172,6 +172,28 @@ test.describe("VS Code webview: protocol and chrome", () => {
     expect(countOf(await postedMessages(page), "edit")).toBe(editsBefore);
   });
 
+  test("Delete right after a pointer on the pad's relation switch removes the relation", async ({
+    page,
+  }) => {
+    await openWebview(page);
+    const hasRelation = () =>
+      page.evaluate(() =>
+        Boolean(
+          window.modeler!.diagram.get<{ get(id: string): unknown }>("elementRegistry").get("seq-1"),
+        ),
+      );
+    await page.evaluate(() => {
+      const diagram = window.modeler!.diagram;
+      const relation = diagram.get<{ get(id: string): unknown }>("elementRegistry").get("seq-1");
+      diagram.get<{ select(element: unknown): void }>("selection").select(relation);
+    });
+    await page.locator('.djs-context-pad.open [data-action="toggle-type"]').click();
+    await waitForPosted(page, "edit");
+
+    await page.keyboard.press("Delete");
+    await expect.poll(hasRelation).toBe(false);
+  });
+
   test("Cmd/Ctrl+A on the canvas selects every element and never reaches VS Code", async ({
     page,
   }) => {

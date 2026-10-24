@@ -99,6 +99,18 @@ Cmd/Ctrl+A select all, the arrows move the selection (Shift: in large steps), Cm
 the canvas, Delete/Backspace, copy, cut, paste and duplicate, and undo/redo unless `undoRedoKeys` is
 false. `diagramShortcuts()` lists them for a dialog.
 
+- The keys act only while the canvas itself has the focus, as diagram-js 15's keyboard binds them
+  to the canvas `<svg>`. Keys with nothing focused (`<body>`), on a host's chrome, on the palette,
+  the context pad or an editor pass, and so do keys someone already handled (`defaultPrevented`),
+  keys of an IME composition and a `keydown` without a key.
+- A pointer on a palette or context-pad entry hands the focus to the canvas before the entry runs,
+  so Delete and `Cmd/Ctrl+Z` act at once; a label editor or menu the entry opens takes it from
+  there. Enter or Space on an entry leave the focus on it, unless the entry's action left it on
+  `<body>`.
+- A host that hides the canvas without destroying the modeler makes its container `inert` or
+  `display: none`, not only transparent: a hidden or inert canvas cannot hold the focus, so no key
+  reaches it.
+
 ## Edit lock
 
 `modeler.get('vcReadOnly').setReadOnly(true)` locks every edit while the document behind the canvas
