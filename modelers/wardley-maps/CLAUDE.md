@@ -97,6 +97,10 @@ to `v0.5.0`) and is no longer written.
 
 - Keep core packages (`schema-model`, `dsl`, `transforms`) strictly DOM-free (P1, above).
 - The OWM-DSL round-trip must stay lossless; JSON serialization must be deterministic.
+- Texts users read (diagnostics, warnings, toasts, tooltips, labels) join without an em dash
+  (guide §2, brand-lint A2). brand-lint reads only the colours of a `.ts` file, so
+  [`packages/renderer/test/user-texts.sync.test.ts`](packages/renderer/test/user-texts.sync.test.ts)
+  checks every string literal of the packages and apps.
 - Pins follow the suite's rule, including the `peerDependencies` exception (ranged `zod` and
   `diagram-js`/`didi`/`tiny-svg` peers, each mirrored by an exact `devDependency` and pinned exactly
   by the apps). Neither npm inside the workspace nor `pin-check` notices a peer range that rejects
