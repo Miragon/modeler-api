@@ -56,10 +56,10 @@ export type ConnectionType = "sequence" | "hierarchy" | "assignment";
 
 /**
  * A relation between diagram elements:
- * - `sequence`   — "ist Vorgänger von" between steps, dashed with an arrowhead.
- * - `hierarchy`  — "ist prozessorientiert übergeordnet" between steps, solid with an
- *                  arrowhead (rendered as a rake below the superior step).
- * - `assignment` — links an organizational unit to a step, plain solid line.
+ * - `sequence`: "ist Vorgänger von" between steps, dashed with an arrowhead.
+ * - `hierarchy`: "ist prozessorientiert übergeordnet" between steps, solid with an arrowhead
+ *   (rendered as a rake below the superior step).
+ * - `assignment`: links an organizational unit to a step, plain solid line.
  */
 export interface ChainConnection {
   readonly id: string;
