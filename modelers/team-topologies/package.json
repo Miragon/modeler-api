@@ -1,5 +1,5 @@
 {
-  "name": "team-topologies-modeler",
+  "name": "@miragon/team-topologies-modeler-workspace",
   "version": "0.13.2",
   "private": true,
   "description": "A web-based modeler and VS Code extension for the Team Topologies notation (team types & interaction modes).",
@@ -8,14 +8,6 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "workspaces": [
-    "packages/schema-model",
-    "packages/renderer",
-    "packages/ui",
-    "apps/webapp",
-    "apps/vscode",
-    "e2e"
-  ],
   "scripts": {
     "build": "npm run build -w packages/schema-model -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",
@@ -72,12 +64,5 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.0",
     "vitest": "5.0.5"
-  },
-  "overrides": {
-    "@types/node": "26.6.5",
-    "vite": "8.3.4",
-    "tsup": {
-      "esbuild": "0.25.12"
-    }
   }
 }

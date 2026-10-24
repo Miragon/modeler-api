@@ -1,5 +1,5 @@
 {
-  "name": "@miragon/value-chain-modeler",
+  "name": "@miragon/value-chain-modeler-workspace",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -7,13 +7,6 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "workspaces": [
-    "packages/schema-model",
-    "packages/renderer",
-    "apps/webapp",
-    "apps/vscode",
-    "e2e"
-  ],
   "scripts": {
     "build": "npm run build -w packages/schema-model -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",

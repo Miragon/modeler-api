@@ -1,5 +1,5 @@
 {
-  "name": "context-maps-modeler",
+  "name": "@miragon/context-maps-modeler-workspace",
   "version": "0.0.1",
   "private": true,
   "description": "A web-based modeler and VS Code extension for DDD Context Maps (bounded contexts & context-mapping relationship patterns), interoperable with Context Mapper CML.",
@@ -8,14 +8,6 @@
   "engines": {
     "node": ">=24.15.0"
   },
-  "workspaces": [
-    "packages/schema-model",
-    "packages/cml",
-    "packages/renderer",
-    "apps/webapp",
-    "apps/vscode",
-    "e2e"
-  ],
   "scripts": {
     "build": "npm run build -w packages/schema-model -w packages/cml -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",
@@ -66,12 +58,5 @@
     "typescript-eslint": "8.72.0",
     "vite": "8.3.4",
     "vitest": "5.0.5"
-  },
-  "overrides": {
-    "@types/node": "26.6.5",
-    "vite": "8.3.4",
-    "tsup": {
-      "esbuild": "0.25.12"
-    }
   }
 }
