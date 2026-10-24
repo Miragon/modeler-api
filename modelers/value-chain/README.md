@@ -34,9 +34,12 @@ collaborative hosts.
 
 ## Quick start
 
+The Value Chain Modeler is developed in the [Miragon modeler suite](../../README.md) as
+`modelers/value-chain`. From the root of the suite:
+
 ```sh
-npm install
-npm run dev:webapp        # editor at http://localhost:5181
+npm ci && npm run build:shared   # once: every workspace, the shared packages
+npm run value-chain dev:webapp   # editor at http://localhost:5181
 ```
 
 ## Usage (library)
@@ -80,15 +83,24 @@ it back. Undo and redo are the canvas keys (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z).
 
 ## Commands
 
-- `npm run build` — build the library packages · `npm run build:webapp` · `npm run build:vscode`
-- `npm run dev:webapp` — editor at http://localhost:5181 · `npm run dev:vscode` — extension watch
-- `npm test` — unit tests · `npm run test:browser` — Chromium integration tests and the
-  `@miragon/modeler-api` conformance kit · `npm run test:e2e` — Playwright end-to-end, the
-  `@miragon/modeler-shell` conformance kit included · `npm run test:vscode` — the packaged
-  extension in a real VS Code (downloads VS Code, opens a window; on Linux under
-  `xvfb-run -a`) · `npm run test:vscode:docker` — the same in a Docker container, without a
-  window (see [CONTRIBUTING.md](CONTRIBUTING.md#vs-code-smoke-test))
-- `npm run lint` — ESLint + typecheck · `npm run depcruise` — module-graph rules
-- `npm run format` — Prettier
+From the root of the suite (or as `npm run <script>` inside `modelers/value-chain`):
 
-Requirements: Node ≥ 22.13, npm. Contributor guide: [CONTRIBUTING.md](CONTRIBUTING.md).
+- `npm run value-chain build` — build the library packages · `npm run value-chain build:webapp` ·
+  `npm run value-chain build:vscode`
+- `npm run value-chain dev:webapp` — editor at http://localhost:5181 ·
+  `npm run value-chain dev:vscode` — extension watch
+- `npm run value-chain test` — unit tests · `npm run value-chain test:browser` — Chromium
+  integration tests and the `@miragon/modeler-api` conformance kit ·
+  `npm run value-chain test:e2e` — Playwright end-to-end, the `@miragon/modeler-shell` conformance
+  kit included · `npm run value-chain test:vscode` — the packaged extension in a real VS Code
+  (downloads VS Code, opens a window; on Linux under `xvfb-run -a`) ·
+  `npm run value-chain test:vscode:docker` — the same in a Docker container, without a window (see
+  [CONTRIBUTING.md](CONTRIBUTING.md#vs-code-smoke-test))
+- `npm run value-chain lint` — ESLint + typecheck · `npm run value-chain depcruise` — module-graph
+  rules
+- `npm run value-chain format` — Prettier
+
+Requirements: Node `^22.22.2` or `>=24.15.0`, npm. Contributor guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+for this modeler, the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md) for setup, scripts, hooks and
+conventions, [docs/ci-and-releases.md](../../docs/ci-and-releases.md) for CI and releases. Issues go
+to [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues).

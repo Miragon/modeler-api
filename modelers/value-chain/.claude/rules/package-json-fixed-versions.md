@@ -11,7 +11,7 @@ Always pin to an exact version (e.g. `"eslint": "9.39.4"`).
 This applies to `dependencies` and `devDependencies` — including internal
 `@miragon/value-chain-*` workspace deps, which are pinned to the exact current workspace version
 (not `*` or `workspace:*`); npm links them locally because the versions match, and release-please
-bumps them in lockstep.
+bumps them on release (see the suite's [docs/ci-and-releases.md](../../../../docs/ci-and-releases.md)).
 
 **Exception — `peerDependencies`:** the runtime libs a host shares with the packages are declared
 as **ranged** peers — `zod` in `schema-model` and `renderer`, `diagram-js`, `didi` and `tiny-svg`
