@@ -9,6 +9,7 @@ import {
   openHarness,
 } from "./case-tools.js";
 import {
+  isViewAtActualSize,
   labelEditorCommitProblems,
   labelEditorOpenProblems,
   labelEditorStepProblems,
@@ -46,6 +47,8 @@ const MIN_RESIZED_WIDTH = 320;
 
 interface ViewStep {
   name: string;
+  /** Whether the step is due in the view before it (`LabelEditorFacts.view`); without it, always. */
+  due?(view: string | null): boolean;
   /** Changes the view through the shell; `false` when there is nothing to trigger it with. */
   run(page: PageLike, root: string): Promise<boolean>;
 }
@@ -80,13 +83,19 @@ const ZOOM_IN_KEY: CanvasKey = { key: "=", code: "Equal", ctrlKey: true };
 /**
  * The shell's own view changes. The kit triggers them without moving the focus (a scripted click,
  * keys dispatched at the canvas), so a modeler that commits on blur is not blamed for the click a
- * user makes elsewhere. Each zoom in takes the view off the fitted one and off 100 %, so the fit,
- * the 100 % and the refit after it change the view again.
+ * user makes elsewhere. Each zoom in takes the view off the fitted one, so the fit and the refit
+ * after it change the view again. A zoom step snaps to the raster of guide §5.8 first, so from a
+ * fit between about 64 % and 86 % the first one lands on exactly 100 %; one more then takes the
+ * view off 100 %, so that Cmd/Ctrl+0 changes it too.
  */
 const VIEW_STEPS: readonly ViewStep[] = [
   chromeClick("a click on zoom in", "zoom-in"),
   chromeClick("a click on Fit", "zoom-fit"),
   canvasKey("Cmd/Ctrl+Plus on the canvas", ZOOM_IN_KEY),
+  {
+    ...canvasKey("one more Cmd/Ctrl+Plus on the canvas (the first landed on 100 %)", ZOOM_IN_KEY),
+    due: isViewAtActualSize,
+  },
   canvasKey("Cmd/Ctrl+0 on the canvas", { key: "0", code: "Digit0", ctrlKey: true }),
   canvasKey("a second Cmd/Ctrl+Plus on the canvas", ZOOM_IN_KEY),
   canvasKey("Shift+1 on the canvas", { key: "!", code: "Digit1", shiftKey: true }),
@@ -148,9 +157,10 @@ async function openEditor<P extends PageLike>(
 
 /**
  * Contract L5 through the shell's own view changes: over a label editor with typed text, zoom in
- * and Fit (clicked), Cmd/Ctrl+Plus, Cmd/Ctrl+0 and Shift+1 (at the canvas) and a container resize
- * (the refit) never commit it (L5), nor take it down (L5 only recommends that, the shell kit
- * requires it); then a click on the canvas, the user's commit, must change the document.
+ * and Fit (clicked), Cmd/Ctrl+Plus (twice when the first lands on 100 %), Cmd/Ctrl+0 and Shift+1
+ * (at the canvas) and a container resize (the refit) never commit it (L5), nor take it down (L5
+ * only recommends that, the shell kit requires it); then a click on the canvas, the user's commit,
+ * must change the document.
  */
 export const labelEditorCase: ShellConformanceCase = {
   name: "labelEditor",
@@ -180,6 +190,7 @@ export const labelEditorCase: ShellConformanceCase = {
 
     for (const step of VIEW_STEPS) {
       const before = await editorFacts(page, root, harness.host);
+      if (step.due && !step.due(before.view)) continue;
       if (!(await step.run(page, root))) {
         problems.push(`label editor: ${step.name} found nothing to act on`);
         continue;

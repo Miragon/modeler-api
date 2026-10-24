@@ -184,6 +184,57 @@ function toastsLiftedBy(reading: ToastReading): ShellConformanceHarness<Page> {
   };
 }
 
+/**
+ * The demo's label editor commits (through its blur) 300ms after every change of the view, so a
+ * step that leaves the view as it was commits nothing.
+ */
+function commitLabelLateAfterEveryViewChange(): void {
+  const viewport = document.querySelector<SVGGraphicsElement>(".djs-container > svg > .viewport");
+  if (!viewport) throw new Error("demo: no diagram-js viewport layer");
+  // canvas.viewbox(box) writes transform.baseVal, which queues no MutationRecord in Chromium
+  const viewOf = () => {
+    const matrix = viewport.getCTM();
+    return matrix ? `${matrix.a} ${matrix.d} ${matrix.e} ${matrix.f}` : "";
+  };
+  let seen = viewOf();
+  const watch = () => {
+    const view = viewOf();
+    if (view !== seen) {
+      seen = view;
+      window.setTimeout(() => {
+        const field = document.activeElement;
+        if (field instanceof HTMLElement && field.classList.contains("demo-label-editor"))
+          field.blur();
+      }, 300);
+    }
+    window.requestAnimationFrame(watch);
+  };
+  window.requestAnimationFrame(watch);
+}
+
+/**
+ * A size at which the demo fits at about 74 %: diagram-js's zoom raster snaps that to its 74 % step
+ * and goes one step on to exactly 100 %, as from Context Maps' example (68 % at 1280 × 900) and
+ * Event Storming's board (84 %).
+ */
+const ONE_STEP_TO_ACTUAL_SIZE = [{ width: 610, height: 900 }] as const;
+
+/** The fit at `ONE_STEP_TO_ACTUAL_SIZE` is off 100 %, and one zoom in from it lands on 100 %. */
+async function expectOneZoomStepToActual(
+  page: Page,
+  harness: ShellConformanceHarness<Page>,
+): Promise<void> {
+  await harness.open(page, { size: ONE_STEP_TO_ACTUAL_SIZE[0], requested: { theme: "light" } });
+  const zooms = await page.evaluate(() => {
+    const viewport = window.__demo!.connection.viewport;
+    const fitted = viewport.zoom();
+    viewport.stepZoom(1);
+    return { fitted, stepped: viewport.zoom() };
+  });
+  expect(zooms.fitted).toBeLessThan(0.99);
+  expect(zooms.stepped).toBeCloseTo(1, 3);
+}
+
 test.describe("saboteurs", () => {
   test.describe.configure({ timeout: 60_000 });
 
@@ -704,31 +755,7 @@ test.describe("saboteurs", () => {
       page,
     }) => {
       // a commit 300ms after each view change lands after the view held still, while the case moves on
-      const harness = sabotaged(() => {
-        const viewport = document.querySelector<SVGGraphicsElement>(
-          ".djs-container > svg > .viewport",
-        );
-        if (!viewport) throw new Error("demo: no diagram-js viewport layer");
-        // canvas.viewbox(box) writes transform.baseVal, which queues no MutationRecord in Chromium
-        const viewOf = () => {
-          const matrix = viewport.getCTM();
-          return matrix ? `${matrix.a} ${matrix.d} ${matrix.e} ${matrix.f}` : "";
-        };
-        let seen = viewOf();
-        const watch = () => {
-          const view = viewOf();
-          if (view !== seen) {
-            seen = view;
-            window.setTimeout(() => {
-              const field = document.activeElement;
-              if (field instanceof HTMLElement && field.classList.contains("demo-label-editor"))
-                field.blur();
-            }, 300);
-          }
-          window.requestAnimationFrame(watch);
-        };
-        window.requestAnimationFrame(watch);
-      });
+      const harness = sabotaged(commitLabelLateAfterEveryViewChange);
       const failure = await expectOnlyCaseFails(page, harness, "labelEditor", [
         /label editor: a click on zoom in committed the open label editor/,
         /label editor: a click on Fit committed the open label editor/,
@@ -875,6 +902,37 @@ test.describe("saboteurs", () => {
     await expect(runCase("labelEditor", page, harness)).rejects.toThrow(
       /label editor: a click on an empty spot of the canvas after the view changes left labelEditor\.documentChanged false, so the case proved nothing/,
     );
+  });
+
+  test("labelEditor passes at a fit from where one zoom step lands on 100 %", async ({ page }) => {
+    // Cmd/Ctrl+0 right after that step would leave the view as it was and prove nothing
+    const harness: ShellConformanceHarness<Page> = {
+      ...demoHarness("ide"),
+      sizes: ONE_STEP_TO_ACTUAL_SIZE,
+    };
+    await expectOneZoomStepToActual(page, harness);
+    await expect(runCase("labelEditor", page, harness)).resolves.toBeUndefined();
+  });
+
+  test("labelEditor catches a commit on Cmd/Ctrl+0 at a fit from where one zoom step lands on 100 %", async ({
+    page,
+  }) => {
+    const harness: ShellConformanceHarness<Page> = {
+      ...sabotaged(commitLabelLateAfterEveryViewChange),
+      sizes: ONE_STEP_TO_ACTUAL_SIZE,
+    };
+    await expectOneZoomStepToActual(page, harness);
+    const failure = await runCase("labelEditor", page, harness).then(
+      () => "passed",
+      (error: unknown) => String(error),
+    );
+    expect(failure).toMatch(
+      /label editor: one more Cmd\/Ctrl\+Plus on the canvas \(the first landed on 100 %\) committed the open label editor/,
+    );
+    expect(failure).toMatch(
+      /label editor: Cmd\/Ctrl\+0 on the canvas committed the open label editor/,
+    );
+    expect(failure).not.toMatch(/left the view as it was/);
   });
 
   test("legendStart fails a harness whose open keeps the document, and passes it from about:blank", async ({

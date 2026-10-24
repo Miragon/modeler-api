@@ -805,6 +805,12 @@ text.
 - Each step is judged once the view held still and 500ms more, so a late commit (a debounced resize
   handler) counts against the step that caused it. Stopping at the first commit would open the
   editor for the next step while that step's commits are still pending, and blame the next step.
+- Every step has to change the view, or it proves nothing. A zoom step first snaps to the raster of
+  [§5.8][guide-5.8], so from a fit between about 64 % and 86 % (Context Maps' example at 68 % and
+  Event Storming's board at 84 % in 1280 × 900) the Cmd/Ctrl+Plus before Cmd/Ctrl+0 lands on
+  exactly 100 %. The case then presses Cmd/Ctrl+Plus once more, itself a checked step, instead of
+  asking the modelers for a document or a window size that fits at 100 %
+  ([#71](https://github.com/Miragon/modeler-suite/issues/71)).
 - The case requires the keep-open that L5 only recommends: an editor the view change closes without
   a commit drops the typed text, so `labelEditor` fails it, where the contract kit's L5 case only
   advises.

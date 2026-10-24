@@ -1,5 +1,6 @@
 import {
   INVALID_STATUS_DELAY_MS,
+  VIEW_TOLERANCE,
   type Appearance,
   type ShellHost,
   type Size,
@@ -967,6 +968,17 @@ export function labelEditorStepProblems(facts: LabelEditorStepFacts): string[] {
     );
   }
   return problems;
+}
+
+/**
+ * Whether `view` (`LabelEditorFacts.view`, the viewport layer's matrix as six numbers) shows 100 %,
+ * within `VIEW_TOLERANCE`; `false` for a view that is no such matrix.
+ */
+export function isViewAtActualSize(view: string | null): boolean {
+  const values = view?.trim().split(/\s+/).map(Number) ?? [];
+  if (values.length !== 6 || !values.every(Number.isFinite)) return false;
+  const [scaleX = 0, , , scaleY = 0] = values;
+  return Math.abs(scaleX - 1) <= VIEW_TOLERANCE && Math.abs(scaleY - 1) <= VIEW_TOLERANCE;
 }
 
 /**
