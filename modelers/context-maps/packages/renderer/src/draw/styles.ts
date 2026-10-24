@@ -13,7 +13,8 @@ export const TT_RENDER_PRIORITY = 1500;
 export const ACCENT = MIRAGON.blau;
 
 export const INK = MIRAGON.schwarz;
-export const INK_SOFT = "#5B5B5B";
+/** Secondary text (the team caption): at least 4.5:1 on white, grau and every subdomain fill. */
+export const INK_SOFT = MIRAGON.textLeise;
 
 export const FONT = {
   /**
@@ -43,6 +44,9 @@ export const CONTEXT_TEAM_RESERVE = 18;
 /** Paper colour used for the label halo so text stays legible over lines. */
 export const PAPER = MIRAGON.weiss;
 
-/** Box colours for contexts without a subdomain classification (canvas + icons). */
-export const NEUTRAL_FILL = "#F1F1EE";
-export const NEUTRAL_STROKE = "#8A8577";
+/**
+ * Box colours for contexts without a subdomain classification (canvas + icons): the element fill
+ * of guide §10.1 and a contour that keeps 3:1 against the canvas around it.
+ */
+export const NEUTRAL_FILL = MIRAGON.weiss;
+export const NEUTRAL_STROKE = MIRAGON.kontur;

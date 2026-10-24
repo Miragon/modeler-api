@@ -26,7 +26,7 @@ didi 11. A single copy needs diagram-js on didi 12, or the devDependency and the
 on 11.x.
 
 Shared toolchain deps (`typescript`, `vitest`, `tsup`, `vite`, `playwright`) live **only** in the
-root `package.json` — never re-add them to workspace manifests. Keep the root `overrides` entry for
+root `package.json`; never re-add them to workspace manifests. Keep the root `overrides` entry for
 `vite` identical to the root devDependency.
 
 When adding a new dependency: install it first with `npm install <pkg>` (the root `.npmrc` sets

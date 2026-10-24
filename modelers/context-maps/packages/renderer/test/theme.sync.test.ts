@@ -97,12 +97,14 @@ describe("theme.sync — MIRAGON mirrors the vendored tokens", () => {
     }
   });
 
-  it("takes the status layer and the line colour of the release", () => {
+  it("takes the status layer, the line, the contour and the quiet text of the release", () => {
     expect(MIRAGON.success).toBe(tokens.fest["--cd-success"]);
     expect(MIRAGON.warning).toBe(tokens.fest["--cd-warning"]);
     expect(MIRAGON.danger).toBe(tokens.fest["--cd-danger"]);
     expect(MIRAGON.info).toBe(tokens.fest["--cd-info"]);
     expect(MIRAGON.linie).toBe(tokens.fest["--cd-linie"]);
+    expect(MIRAGON.kontur).toBe(tokens.fest["--cd-kontur"]);
+    expect(MIRAGON.textLeise).toBe(tokens.fest["--cd-text-leise"]);
   });
 });
 
@@ -160,6 +162,8 @@ describe("theme.sync — context-maps.css", () => {
   it("keeps its persistent canvas overlays at or below z-index 100 (guide §5.13)", () => {
     expect(zIndexOf('.djs-palette:not([data-chrome="palette"])')).toBe(110);
     expect(zIndexOf(".cm-djs-container .djs-direct-editing-parent")).toBeLessThanOrEqual(100);
+    // The description prompt stays open through a pan or zoom, like the label editor.
+    expect(zIndexOf(".cm-pad-prompt")).toBeLessThanOrEqual(100);
   });
 
   it("scopes every rule of its own palette away from the shell skin", () => {

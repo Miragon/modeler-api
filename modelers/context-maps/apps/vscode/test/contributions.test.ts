@@ -13,13 +13,16 @@ interface Manifest {
   };
 }
 
-const manifest = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-) as Manifest;
+const manifestText = readFileSync(new URL("../package.json", import.meta.url), "utf8");
+const manifest = JSON.parse(manifestText) as Manifest;
 
 beforeEach(() => vscodeMock.reset());
 
 describe("the extension's contributions (guide §13.5)", () => {
+  it("shows no em dash in a title or description of the manifest", () => {
+    expect(manifestText).not.toContain("\u2014");
+  });
+
   it("registers every contributed command on activation", () => {
     activate({ subscriptions: [], extensionUri: { path: "/extension" } } as never);
     expect(vscodeMock.registeredCommandIds().sort()).toEqual(

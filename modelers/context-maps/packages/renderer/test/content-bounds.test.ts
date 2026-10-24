@@ -74,7 +74,7 @@ describe("contentBoundsOf", () => {
   it("widens it on both sides where the team row runs past them, centred as drawn", () => {
     const team = "Customer Experience Platform Engineering Squad";
     const bounds = contentBoundsOf([context("a", 100, 50, 200, 110, { team })])!;
-    // The renderer centres the people icon (14), its gap (5) and the estimated name on the box.
+    // The renderer centres the team glyph (14), its gap (5) and the estimated name on the box.
     expect(bounds.x).toBeCloseTo(200 - (14 + 5 + team.length * 11 * 0.55) / 2, 9);
     expect(bounds.x + bounds.width).toBeGreaterThan(300);
     expect({ y: bounds.y, height: bounds.height }).toEqual({ y: 50, height: 110 });

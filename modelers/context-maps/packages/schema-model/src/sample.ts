@@ -15,7 +15,7 @@ const size = (t: keyof typeof SUBDOMAIN_TYPE_SPECS) => ({ ...SUBDOMAIN_TYPE_SPEC
 
 export const SAMPLE_DOCUMENT: CmDocument = {
   version: DOCUMENT_VERSION,
-  title: "Conference event planner — context map",
+  title: "Conference event planner: context map",
   contexts: [
     {
       id: "ctx_auth",

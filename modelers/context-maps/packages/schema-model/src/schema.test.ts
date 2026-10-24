@@ -315,3 +315,48 @@ describe("validateDocument — the 13 semantic rules", () => {
     expect(validateDocument(doc).errors).toEqual([]);
   });
 });
+
+describe("texts a person reads carry no em dash", () => {
+  it("keeps the 'not valid JSON' prefix and follows it with a colon", () => {
+    const result = parseDocumentText("{ broken");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/^\(root\): not valid JSON: \S/);
+    expect(result.error).not.toContain("—");
+  });
+
+  it("words every rule's finding without one", () => {
+    const crossTeamKernel = mapWith({ pattern: "shared-kernel" });
+    crossTeamKernel.contexts[0].team = "Team Red";
+    crossTeamKernel.contexts[1].team = "Team Blue";
+    const conformingCore = mapWith({ downstreamRoles: ["CF"] });
+    conformingCore.contexts[1].subdomainType = "core";
+    const duplicate = mapWith({});
+    duplicate.relationships.push({ id: "r2", from: "b", to: "a", pattern: "partnership" });
+    const maps = [
+      mapWith({ downstreamRoles: ["ACL", "CF"] }),
+      mapWith({ pattern: "shared-kernel", upstreamRoles: ["OHS"] }),
+      mapWith({ pattern: "customer-supplier", downstreamRoles: ["CF"] }),
+      mapWith({ pattern: "customer-supplier", upstreamRoles: ["OHS"] }),
+      mapWith({ pattern: "customer-supplier", downstreamRoles: ["ACL"] }),
+      crossTeamKernel,
+      conformingCore,
+      duplicate,
+    ];
+    const findings = maps.flatMap((doc) => {
+      const report = validateDocument(doc);
+      return [...report.errors, ...report.warnings];
+    });
+    expect(new Set(findings.map((finding) => finding.rule)).size).toBeGreaterThanOrEqual(8);
+    expect(
+      findings.find((finding) => finding.rule === "shared-kernel-team-coupling")?.message,
+    ).toBe(
+      "A shared kernel across two teams (Team Red, Team Blue) couples them tightly; consider a partnership or an upstream-downstream relationship.",
+    );
+    for (const finding of findings) expect(finding.message, finding.rule).not.toContain("—");
+  });
+
+  it("titles the sample map without one", () => {
+    expect(SAMPLE_DOCUMENT.title).toBe("Conference event planner: context map");
+  });
+});

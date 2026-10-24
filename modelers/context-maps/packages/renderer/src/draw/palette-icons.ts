@@ -18,15 +18,11 @@ import type {
   UpstreamRole,
 } from "@miragon/context-maps-schema-model";
 import { FONT, NEUTRAL_FILL, NEUTRAL_STROKE } from "./styles.js";
+import { HAND_PATH, STAR_PATH } from "./subdomainGlyphs.js";
 
 function svg(inner: string, size = 24): string {
   return `<svg class="cm-palette-svg" width="${size}" height="${size}" viewBox="0 0 26 26" aria-hidden="true">${inner}</svg>`;
 }
-
-// Kaiser subdomain glyphs (Material star / pan_tool), 24×24 viewBox.
-const STAR = "M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z";
-const HAND =
-  "M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z";
 
 /** The subdomain glyph centred at (cx, cy) at `size` px: star / hand / dotted circle. */
 function subdomainGlyph(
@@ -42,7 +38,7 @@ function subdomainGlyph(
   const scale = size / 24;
   const rot = type === "supporting" ? ` rotate(90 12 12)` : "";
   const t = `translate(${cx - 12 * scale} ${cy - 12 * scale}) scale(${scale})${rot}`;
-  return `<path d="${type === "core" ? STAR : HAND}" fill="${color}" transform="${t}"/>`;
+  return `<path d="${type === "core" ? STAR_PATH : HAND_PATH}" fill="${color}" transform="${t}"/>`;
 }
 
 /** No (or unknown) type → the neutral box an unclassified context gets on the canvas. */
@@ -66,7 +62,7 @@ export function subdomainIconSvg(type: SubdomainType, size = 18): string {
   const inner =
     !s || type === "generic"
       ? `<circle cx="12" cy="12" r="9" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="2.4 2.4"/>`
-      : `<path d="${type === "core" ? STAR : HAND}" fill="${color}"/>`;
+      : `<path d="${type === "core" ? STAR_PATH : HAND_PATH}" fill="${color}"/>`;
   return `<svg class="cm-palette-svg" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
 }
 

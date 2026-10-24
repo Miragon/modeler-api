@@ -32,15 +32,22 @@ import {
   CONTEXT_TEAM_RESERVE,
   FONT,
   INK,
-  INK_SOFT,
-  NEUTRAL_FILL,
   NEUTRAL_STROKE,
   PAPER,
   TT_RENDER_PRIORITY,
 } from "./styles.js";
+import {
+  contextFill,
+  contextNameColour,
+  contextStroke,
+  contextTeamColour,
+} from "./contextColours.js";
 import { endRoleChipLayout } from "./endRoleChips.js";
+import { LUCIDE, LUCIDE_STROKE_WIDTH } from "./lucide.js";
+import { HAND_PATH, STAR_PATH } from "./subdomainGlyphs.js";
 import { TEAM_ICON_SIZE, TYPE_LABEL, teamRowLayout } from "./contextLayout.js";
 import { textWidth } from "./textMetrics.js";
+import { MIRAGON } from "../theme/index.js";
 import {
   isCmContext,
   isCmElement,
@@ -70,7 +77,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     const rect = svgAttr(svgCreate("rect"), {
       width: element.width,
       height: element.height,
-      fill: "#eee",
+      fill: MIRAGON.grau,
     });
     svgAppend(visuals, rect);
     return rect;
@@ -114,8 +121,8 @@ export default class ContextMapsRenderer extends BaseRenderer {
       height: h - sw,
       rx: 8,
       ry: 8,
-      fill: ctx.fill ?? spec?.fill ?? NEUTRAL_FILL,
-      stroke: ctx.stroke ?? spec?.stroke ?? NEUTRAL_STROKE,
+      fill: contextFill(ctx),
+      stroke: contextStroke(ctx),
       "stroke-width": sw,
       "stroke-linejoin": "round",
     });
@@ -123,6 +130,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
 
     this.appendLabel(visuals, ctx.cmLabel ?? "", w, h, Boolean(ctx.team), {
       "font-weight": "650",
+      fill: contextNameColour(ctx),
     });
     if (ctx.subdomainType && spec) {
       // Kaiser subdomain icon at the top-left corner (star / open hand / dotted
@@ -143,9 +151,10 @@ export default class ContextMapsRenderer extends BaseRenderer {
       svgAppend(visuals, badge);
     }
     if (ctx.team) {
-      // People icon + team name, centred as a unit at the bottom of the box.
+      // Team glyph + team name, centred as a unit at the bottom of the box.
       const row = teamRowLayout(w, h, ctx.team);
-      const icon = peopleIcon(row.iconCenterX, row.centerY, TEAM_ICON_SIZE, INK_SOFT);
+      const teamColour = contextTeamColour(ctx);
+      const icon = teamGlyph(row.iconCenterX, row.centerY, TEAM_ICON_SIZE, teamColour);
       svgAttr(icon, { class: "cm-team" });
       svgAppend(visuals, icon);
 
@@ -155,7 +164,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
         y: row.centerY,
         "font-family": FONT.family,
         "font-size": FONT.small,
-        fill: INK_SOFT,
+        fill: teamColour,
         "text-anchor": "start",
         "dominant-baseline": "central",
       });
@@ -259,7 +268,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
       ry: 6,
       fill: PAPER,
       "fill-opacity": 0.96,
-      stroke: "#d9d5cc",
+      stroke: MIRAGON.linie,
       "stroke-width": 1,
     });
     svgAppend(visuals, parent);
@@ -273,7 +282,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     });
   }
 
-  /** A fixed-size coloured sub-label (own colour + border) inside a parent box. */
+  /** A fixed-size coloured sub-label inside a parent box. */
   private miniChip(
     visuals: SVGElement,
     cx: number,
@@ -291,7 +300,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
       rx: 3,
       ry: 3,
       fill,
-      stroke: darken(fill),
+      stroke: fill,
       "stroke-width": 1,
     });
     svgAppend(visuals, bg);
@@ -401,23 +410,6 @@ export default class ContextMapsRenderer extends BaseRenderer {
 
 // --- helpers ---------------------------------------------------------------
 
-/** Darkens a #rrggbb colour toward black by factor `f` (0..1) for chip borders. */
-function darken(hex: string, f = 0.7): string {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  const r = Math.round(((n >> 16) & 255) * f);
-  const g = Math.round(((n >> 8) & 255) * f);
-  const b = Math.round((n & 255) * f);
-  return `rgb(${r},${g},${b})`;
-}
-
-// Material star + pan_tool (open hand) paths (Apache-2.0), 24×24 viewBox.
-const STAR_PATH =
-  "M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z";
-const HAND_PATH =
-  "M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z";
-
 /**
  * Kaiser subdomain icon centred on (cx, cy) at `size` px: a filled star for a
  * core domain, an open hand for a supporting subdomain, a dotted circle for a
@@ -459,18 +451,20 @@ function subdomainIcon(
   return g;
 }
 
-// Material "people" icon (Apache-2.0), 24×24 viewBox.
-const PEOPLE_PATH =
-  "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z";
-
-/** A people glyph centred on (cx, cy), rendered at `size` px in the given colour. */
-function peopleIcon(cx: number, cy: number, size: number, color: string): SVGElement {
+/**
+ * Lucide `users` centred on (cx, cy) at `size` px, stroked in `colour` like every Lucide icon of the
+ * modeler (guide §11), the same glyph the context pad's team entry shows.
+ */
+function teamGlyph(cx: number, cy: number, size: number, colour: string): SVGElement {
   const scale = size / 24;
-  const g = svgCreate("g");
-  svgAttr(g, { transform: `translate(${cx - 12 * scale} ${cy - 12 * scale}) scale(${scale})` });
-  const path = svgAttr(svgCreate("path"), { d: PEOPLE_PATH, fill: color });
-  svgAppend(g, path);
-  return g;
+  return svgAttr(svgCreate(`<g>${LUCIDE.users}</g>`), {
+    transform: `translate(${cx - 12 * scale} ${cy - 12 * scale}) scale(${scale})`,
+    fill: "none",
+    stroke: colour,
+    "stroke-width": LUCIDE_STROKE_WIDTH,
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  });
 }
 
 function ellipsize(line: string, maxWidth: number, fontSize: number, fontWeight: string): string {

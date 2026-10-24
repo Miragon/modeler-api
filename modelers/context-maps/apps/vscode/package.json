@@ -228,7 +228,7 @@
       {
         "id": "getStarted",
         "title": "Get Started with Context Maps Modeler",
-        "description": "Create and edit Context Maps diagrams — bounded contexts by subdomain type, connected by context-mapping relationship patterns — directly in VS Code, as plain .cm JSON files.",
+        "description": "Create and edit Context Maps diagrams directly in VS Code, as plain .cm JSON files: bounded contexts by subdomain type, connected by context-mapping relationship patterns.",
         "steps": [
           {
             "id": "new",

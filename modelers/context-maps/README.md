@@ -5,13 +5,13 @@
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
 
-A fast, offline-friendly modeler for **Context Maps** diagrams — the strategic Domain-Driven Design
+A fast, offline-friendly modeler for **Context Maps** diagrams, the strategic Domain-Driven Design
 context maps: bounded contexts coloured by subdomain type, connected by context-mapping relationship
 patterns. Ships as a **web app**
 and a **VS Code extension** sharing one diagram-js core.
 
 Built with a "full-bleed canvas + floating chrome" editing feel, a clean DOM-free domain model, and
-lossless, version-controllable files — all around the Context Maps notation — as
+lossless, version-controllable files, all around the Context Maps notation, as
 `modelers/context-maps` of the [Miragon modeler suite](../../README.md).
 
 **[Try the web app →](https://context-maps.modeler.miragon.io)**
@@ -30,11 +30,11 @@ single source of truth for the colours and strokes below is
 
 ### Subdomain types
 
-| Type                 | Icon          | Fill / Outline        | Purpose                                    |
-| -------------------- | ------------- | --------------------- | ------------------------------------------ |
-| Core Domain          | star          | `#FDE0D5` / `#E8663D` | Business-critical and differentiating.     |
-| Supporting Subdomain | open hand     | `#FFF4CC` / `#E8B84B` | Specialised, but not differentiating.      |
-| Generic Subdomain    | dotted circle | `#DCE9F5` / `#5B8DC7` | Solved / off-the-shelf — buy, don't build. |
+| Type                 | Icon          | Fill / Outline        | Purpose                                   |
+| -------------------- | ------------- | --------------------- | ----------------------------------------- |
+| Core Domain          | star          | `#FDE0D5` / `#E8663D` | Business-critical and differentiating.    |
+| Supporting Subdomain | open hand     | `#FFF4CC` / `#E8B84B` | Specialised, but not differentiating.     |
+| Generic Subdomain    | dotted circle | `#DCE9F5` / `#5B8DC7` | Solved / off-the-shelf: buy, don't build. |
 
 ### Relationship patterns
 
@@ -48,20 +48,20 @@ single source of truth for the colours and strokes below is
 
 Asymmetric relationships carry **integration roles** at their ends: upstream can be an
 **Open Host Service (OHS)** and/or a **Published Language (PL)**; downstream can apply an
-**Anticorruption Layer (ACL)** or be a **Conformist (CF)** (the two are mutually exclusive). Thirteen
-semantic rules — ten adopted from Context Mapper (OHS/PL only upstream, ACL/CF only downstream,
-symmetric patterns carry no roles, etc.), two advisory warnings (a core domain should not conform, a
-shared kernel should not span two teams), and at most one relationship per pair of contexts — are
-checked by `validateDocument()`.
+**Anticorruption Layer (ACL)** or be a **Conformist (CF)** (the two are mutually exclusive).
+`validateDocument()` checks thirteen semantic rules: ten adopted from Context Mapper (OHS/PL only
+upstream, ACL/CF only downstream, symmetric patterns carry no roles, etc.), two advisory warnings (a
+core domain should not conform, a shared kernel should not span two teams), and at most one
+relationship per pair of contexts.
 
 ## Targets
 
-- **Web app** ([`apps/webapp`](apps/webapp/README.md)) — a Vite editor in the same Miragon modeler
+- **Web app** ([`apps/webapp`](apps/webapp/README.md)): a Vite editor in the same Miragon modeler
   chrome ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell), web
   host): a full-bleed canvas with palette, context pad, legend, zoom panel and problems list, a
   start screen, a page-wide drop zone for `.cm`, `.json` and `.cml` files, PNG/SVG/JSON/CML
   export and a shareable, self-contained URL (LZ-compressed, no backend). Deployed on Netlify.
-- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)) — a custom editor for `.cm` and
+- **VS Code extension** ([`apps/vscode`](apps/vscode/README.md)): a custom editor for `.cm` and
   `.cm.json` files inside the shared Miragon modeler chrome
   ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)): the JSON file
   stays the source of truth (save, Git, diff and undo keep working), the semantic rules show in the
@@ -121,7 +121,7 @@ e2e/                                       — Playwright end-to-end tests: the 
 ```
 
 The `schema-model` package compiles **without the DOM lib**, so a stray browser import fails
-type-checking. The DOM boundary is enforced twice — by ESLint and by dependency-cruiser. The apps and
+type-checking. The DOM boundary is enforced twice, by ESLint and by dependency-cruiser. The apps and
 tests consume the packages straight from their TS source via Vite/esbuild/tsconfig aliases, so there
 is no separate library build step for development (`npm run context-maps build` is only needed to
 publish the libs).
@@ -132,7 +132,7 @@ Design choices:
   diff-friendly and gives stable share URLs.
 - **Runtime validation** (Zod) on everything imported from files / URLs / localStorage, with a
   forward-migration hook keyed by document `version`.
-- **diagram-js** (MIT) as the editor engine — palette, move, context pad,
+- **diagram-js** (MIT) as the editor engine: palette, move, context pad,
   inline label editing and undo/redo for free.
 
 ## Document format
@@ -143,7 +143,7 @@ Design choices:
 ```jsonc
 {
   "version": 1,
-  "title": "Conference event planner — context map",
+  "title": "Conference event planner: context map",
   "contexts": [
     {
       "id": "ctx_cfp",

@@ -19,7 +19,7 @@ All UI/visual work follows the Miragon product design system: the
 
 Its files are **vendored unchanged** in [`packages/renderer/src/theme/`](packages/renderer/src/theme):
 `cd-tokens.generated.css`, `cd-tokens.generated.json` and `cd-canvas.css` (the same bytes from
-1.13.0 to 1.15.0) — never edit them, re-copy them from the skill's `assets/`. [`assets/context-maps.css`](packages/renderer/src/assets/context-maps.css)
+1.13.0 to 1.15.0). Never edit them, re-copy them from the skill's `assets/`. [`assets/context-maps.css`](packages/renderer/src/assets/context-maps.css)
 loads them in the order of guide §10.3 (tokens in a cascade layer, then `diagram-js.css`, then
 `cd-canvas.css`) and reads only the `--cd-ui-*` roles and the mode-independent tokens: no colour
 literal, no fixed palette token. The pure-TS mirror
@@ -34,6 +34,19 @@ strokes and integration-role marker colours in
 Context Maps notation** and stay as they are, for fidelity to the official notation. A document
 never carries them: it serializes only a bounded context's optional `fill` / `stroke` override. The
 design system applies to everything else (chrome, typography, selection, neutrals, the app icon).
+
+The renderer's own canvas colours come from `MIRAGON`: an unclassified context is `weiss` with a
+`kontur` outline, the team caption and its glyph are `text-leise`, the role chips' frame is `linie`,
+and [`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails on a
+colour literal anywhere else in the renderer's `src/`. On a fill the author set, a context's name
+and team are black or white, whichever has more contrast (guide §10.6, `draw/contextColours.ts`).
+Icons are Lucide (`draw/lucide.ts`), on the canvas too: the team glyph is `users`. The subdomain
+glyphs (a filled star for core, an open hand for supporting, a dotted circle for generic) are
+notation, not function icons, and keep their shapes (guide §3.6, §11); the star and the hand are the
+Material Icons paths `star` and `pan_tool` (Apache-2.0) in `draw/subdomainGlyphs.ts`, named in the
+renderer README's licence notice, in the VSIX's `THIRD_PARTY_NOTICES.md` (written by
+`apps/vscode/scripts/third-party-notices.mjs`) and in a legal comment the web app's bundle keeps
+(`check:build`).
 
 ## Contract and chrome
 
@@ -102,10 +115,10 @@ The workspaces are `packages/*`, `apps/*` and `e2e` of this folder. Internal
 `package.json` (npm still links them to the local workspace).
 
 Shared toolchain deps (`typescript`, `vitest`, `tsup`, `vite`, `playwright`) are pinned **once** in
-the suite's root `package.json` and hoisted to the workspaces — don't re-add them to workspace
+the suite's root `package.json` and hoisted to the workspaces; don't re-add them to workspace
 manifests. `vite` is additionally listed in the root `overrides` so transitive copies (vitest,
 plugins) resolve to the same version; keep the two entries identical. The vscode app pins its own `esbuild` (its
-bundler), separate from tsup's `esbuild` pinned via `overrides` — intentional, don't unify; `e2e`
+bundler), separate from tsup's `esbuild` pinned via `overrides`. That is intentional, don't unify; `e2e`
 pins the same `esbuild` as the vscode app for its smoke test of the shipped webview bundle. The
 vscode app also pins `playwright-core` and `@vscode/test-electron`, the optional peers of the shell's
 VS Code smoke driver; keep `playwright-core` equal to the root `playwright`.
@@ -118,14 +131,14 @@ VS Code smoke driver; keep `playwright-core` equal to the root `playwright`.
 | `apps/webapp`                        | Vite demo editor on the modeler shell (web host)                             | yes |
 | `apps/vscode`                        | VS Code extension: custom editors for `.cm`/`.cm.json` and `*.cm.png`        | yes |
 
-**P1 — DOM boundary:** the DOM-free packages (`schema-model`, `cml`) must **never** import
+**P1, the DOM boundary:** the DOM-free packages (`schema-model`, `cml`) must **never** import
 `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced
-twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser` — so a
+twice, by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`, so a
 violating import fails `npm run context-maps lint` and `npm run context-maps depcruise`.
 
 ## Commands
 
-- `npm run context-maps build` — packages (schema-model, cml, then renderer) ·
+- `npm run context-maps build`: packages (schema-model, cml, then renderer) ·
   `npm run context-maps build:webapp` (then `npm run check:build -w modelers/context-maps/apps/webapp`:
   mode markup and licence comment in the bundle) · `npm run context-maps build:vscode`
 - `npm run context-maps dev:webapp` (alias: `npm run context-maps dev`) serves the webapp via
@@ -133,22 +146,22 @@ violating import fails `npm run context-maps lint` and `npm run context-maps dep
   `http://<worktree>.context-maps-modeler.localhost:8080` URL (Portless-derived from the git
   worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json)). The `dev` script
   sets `PORTLESS_HTTPS=0 PORTLESS_PORT=8080`, so Portless runs plain HTTP on the non-privileged
-  port 8080 and auto-starts — no `sudo`/`service install` (needs Node ≥ 24.15; see
+  port 8080 and auto-starts, with no `sudo`/`service install` (needs Node ≥ 24.15; see
   [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run context-maps dev:webapp:plain` for plain Vite on
   `:5181`. · `npm run context-maps dev:vscode`
-- `npm run context-maps test` — Vitest (unit; includes the VS Code host against a `vscode` mock) ·
-  `npm run context-maps test:browser` — renderer and the contract kit in Chromium ·
-  `npm run context-maps test:e2e` — Playwright: the web app (`chromium`, `webkit`, port `E2E_PORT`,
+- `npm run context-maps test`: Vitest (unit; includes the VS Code host against a `vscode` mock) ·
+  `npm run context-maps test:browser`: renderer and the contract kit in Chromium ·
+  `npm run context-maps test:e2e`: Playwright, the web app (`chromium`, `webkit`, port `E2E_PORT`,
   default 5180) and the VS Code webview (`vscode-webview`, port `E2E_WEBVIEW_PORT`, default 5190) ·
-  `npm run context-maps test:vscode:docker` — the packaged extension in a real VS Code inside
+  `npm run context-maps test:vscode:docker`: the packaged extension in a real VS Code inside
   Docker, without a window (the local way; `-- --env VSCODE_VERSION=1.96.0` picks the version) ·
-  `npm run context-maps test:vscode` — the same on the host, for CI (Linux under `xvfb-run -a`)
+  `npm run context-maps test:vscode`: the same on the host, for CI (Linux under `xvfb-run -a`)
   and for a visible window on macOS (`VSCODE_VERSION` picks the version; see
   [`CONTRIBUTING.md`](CONTRIBUTING.md))
-- `npm run notices -w modelers/context-maps/apps/vscode` — regenerate
+- `npm run notices -w modelers/context-maps/apps/vscode`: regenerate
   `apps/vscode/THIRD_PARTY_NOTICES.md` (a unit test fails when it is stale)
 - `npm run context-maps typecheck` · `npm run context-maps lint` (ESLint + typecheck)
-- `npm run context-maps format` — Prettier · `npm run context-maps depcruise` — check the module
+- `npm run context-maps format`: Prettier · `npm run context-maps depcruise`: check the module
   graph
 
 The packages are consumed from **source** (Vite/esbuild/tsconfig aliases), so neither the apps nor

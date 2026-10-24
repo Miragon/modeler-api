@@ -80,8 +80,9 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
-    // The shell inlines Lucide's icon geometry (ISC, partly Feather, MIT) and names both licences
-    // in a legal comment; the bundle carries it, as the shell's notices ask.
+    // The shell and the renderer inline Lucide's icon geometry (ISC, partly Feather, MIT), the
+    // renderer also Material's star and hand (Apache-2.0), and name the licences in legal
+    // comments; the bundle keeps them, as the licences ask.
     rolldownOptions: { output: { comments: { legal: true } } },
   },
 });
