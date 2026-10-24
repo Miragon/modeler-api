@@ -58,8 +58,8 @@ Other diagnostics and what causes them:
 
 - `Coordinate … is outside [0,1] and was clamped`: usually percentages (`[80, 30]`) or pixel
   values instead of fractions. Swapped `[maturity, visibility]` pairs inside `0..1` raise **no**
-  diagnostic: find them by reading. Look for a user need low on the map, a commodity at the top, links
-  pointing uphill.
+  diagnostic: find them by reading. Look for a user need low on the map, a commodity at the
+  top, links pointing uphill.
 - `Line not understood: kept as written`: syntax the modeler does not know, e.g. the legacy
   pixel form `pioneers [0.9, 0.1] 120 30`. The line survives but draws nothing.
 - `Ignored text after the coordinates: "…"`: words, an unknown or misspelt decorator
