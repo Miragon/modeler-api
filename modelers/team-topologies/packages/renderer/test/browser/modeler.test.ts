@@ -1217,6 +1217,29 @@ test("interactions draw their fill premixed over white and opaque, their own fil
   }
 });
 
+test("an interaction's own fill that is not hex keeps the template opacity, as it cannot be mixed", () => {
+  const { modeler, container } = mountModeler();
+  try {
+    modeler.importDocument({
+      ...SAMPLE_DOCUMENT,
+      interactions: SAMPLE_DOCUMENT.interactions.map((interaction) =>
+        interaction.id === "int_checkout_fraud"
+          ? { ...interaction, fill: "rebeccapurple" }
+          : interaction,
+      ),
+    });
+
+    const glyph = getComputedStyle(
+      container.querySelector(`[data-element-id="int_checkout_fraud"] .djs-visual > *`)!,
+    );
+    expect(glyph.fill).toBe("rgb(102, 51, 153)");
+    expect(glyph.fillOpacity).toBe("0.5");
+  } finally {
+    modeler.destroy();
+    container.remove();
+  }
+});
+
 // --- canvas focus and name ---------------------------------------------------
 
 test("the canvas is named, leaves its role to the host and rings only when reached by Tab", () => {

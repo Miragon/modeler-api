@@ -5,8 +5,8 @@ import {
   FLOW_SPEC,
 } from "@miragon/team-topologies-schema-model";
 import type { TtElement } from "../model/di-types.js";
-import { MIRAGON } from "../theme/index.js";
 import vendoredTokens from "../theme/cd-tokens.generated.json";
+import { contrastRatio, interactionPaint, parseHexColour, type Rgb } from "./colour.js";
 import { labelLayout } from "./label-layout.js";
 import { STROKE_MUTED } from "./styles.js";
 
@@ -30,76 +30,44 @@ const OFFICIAL_STROKES_BELOW_NON_TEXT_CONTRAST: Record<string, string> = {
   facilitating: "#78996B",
 };
 
-type Rgb = readonly [number, number, number];
-
 function rgb(colour: string): Rgb {
-  const match = /^#([0-9a-f]{6})$/i.exec(colour);
-  if (!match) throw new Error(`expected a six-digit hex colour, got ${colour}`);
-  const channel = (offset: number) => parseInt(match[1].slice(offset, offset + 2), 16);
-  return [channel(0), channel(2), channel(4)];
+  const parsed = parseHexColour(colour);
+  if (!parsed) throw new Error(`expected a hex colour, got ${colour}`);
+  return parsed;
 }
 
-function composite(colour: string, opacity: number, backdrop: string): Rgb {
-  const foreground = rgb(colour);
-  const background = rgb(backdrop);
-  const mix = (index: 0 | 1 | 2) => foreground[index] * opacity + background[index] * (1 - opacity);
-  return [mix(0), mix(1), mix(2)];
-}
-
-function relativeLuminance([red, green, blue]: Rgb): number {
-  const linear = (channel: number) => {
-    const value = channel / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue);
-}
-
-function contrast(first: Rgb, second: Rgb): number {
-  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort(
-    (a, b) => b - a,
-  );
-  return (lighter + 0.05) / (darker + 0.05);
+function contrast(first: string, second: string): number {
+  return contrastRatio(rgb(first), rgb(second));
 }
 
 function element(fields: Record<string, unknown>): TtElement {
   return { id: "element", x: 0, y: 0, width: 240, height: 96, ...fields } as unknown as TtElement;
 }
 
-const teamFills = ALL_TEAM_SPECS.map((spec) => [`the ${spec.type} team`, spec.fill] as const);
-
-// Interactions are translucent and sit across team boundaries, so their labels can land on the
-// ground, on an exported SVG's white page or on any team.
-const interactionBackdrops = [
-  ["the canvas ground", CANVAS_GROUND],
-  ["a white page", MIRAGON.weiss],
-  ...teamFills,
-] as const;
-
 describe("label text on the notation", () => {
   it.each(ALL_TEAM_SPECS.map((spec) => [spec.type, spec] as const))(
     "reaches 4.5:1 on the %s team fill",
     (_type, spec) => {
       const label = labelLayout(element({ ttKind: "team", teamType: spec.type }));
-      expect(contrast(rgb(label.fill), rgb(spec.fill))).toBeGreaterThanOrEqual(TEXT_CONTRAST);
+      expect(contrast(label.fill, spec.fill)).toBeGreaterThanOrEqual(TEXT_CONTRAST);
     },
   );
 
+  // Interactions are drawn opaque, their fill premixed over white (guide §10.6), so their labels
+  // sit on that fill whatever lies below: the ground, an exported SVG's white page or a team.
   it.each(ALL_INTERACTION_SPECS.map((spec) => [spec.mode, spec] as const))(
-    "reaches 4.5:1 on the %s interaction fill over every backdrop",
+    "reaches 4.5:1 on the %s interaction's premixed fill",
     (_mode, spec) => {
       const label = labelLayout(element({ ttKind: "interaction", mode: spec.mode }));
-      for (const [backdropName, backdrop] of interactionBackdrops) {
-        const fill = composite(spec.fill, spec.opacity, backdrop);
-        expect(contrast(rgb(label.fill), fill), `over ${backdropName}`).toBeGreaterThanOrEqual(
-          TEXT_CONTRAST,
-        );
-      }
+      expect(contrast(label.fill, interactionPaint(spec).fill)).toBeGreaterThanOrEqual(
+        TEXT_CONTRAST,
+      );
     },
   );
 
   it.each(["flow", "annotation"])("reaches 4.5:1 for a %s on the canvas ground", (ttKind) => {
     const label = labelLayout(element({ ttKind }));
-    expect(contrast(rgb(label.fill), rgb(CANVAS_GROUND))).toBeGreaterThanOrEqual(TEXT_CONTRAST);
+    expect(contrast(label.fill, CANVAS_GROUND)).toBeGreaterThanOrEqual(TEXT_CONTRAST);
   });
 });
 
@@ -114,7 +82,7 @@ describe("structural strokes on the canvas ground", () => {
   it("reach 3:1, except exactly the official Team-Shape-Templates strokes below it", () => {
     const below = Object.fromEntries(
       strokes
-        .filter(([, stroke]) => contrast(rgb(stroke), rgb(CANVAS_GROUND)) < NON_TEXT_CONTRAST)
+        .filter(([, stroke]) => contrast(stroke, CANVAS_GROUND) < NON_TEXT_CONTRAST)
         .map(([name, stroke]) => [name, stroke.toUpperCase()]),
     );
     expect(below).toEqual(OFFICIAL_STROKES_BELOW_NON_TEXT_CONTRAST);

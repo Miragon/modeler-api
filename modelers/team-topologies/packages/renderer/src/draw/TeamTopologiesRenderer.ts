@@ -23,7 +23,7 @@ import {
   dashArray,
 } from "@miragon/team-topologies-schema-model";
 import { MIRAGON } from "../theme/index.js";
-import { interactionFill } from "./colour.js";
+import { interactionPaint } from "./colour.js";
 import { FONT, STROKE_MUTED, TT_RENDER_PRIORITY } from "./styles.js";
 import {
   LINE_HEIGHT,
@@ -134,8 +134,10 @@ export default class TeamTopologiesRenderer extends BaseRenderer {
     const h = Math.max(el.height, 1);
     const sw = 2;
     const i = sw / 2;
+    const paint = interactionPaint(el);
     const common: Attrs = {
-      fill: interactionFill(el),
+      fill: paint.fill,
+      ...(paint.fillOpacity < 1 ? { "fill-opacity": paint.fillOpacity } : {}),
       stroke: el.stroke ?? spec.stroke,
       "stroke-width": sw,
       "stroke-dasharray": dashArray(spec.strokeStyle, sw) || "6 4",

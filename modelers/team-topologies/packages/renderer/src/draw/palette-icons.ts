@@ -11,7 +11,7 @@ import {
   dashArray,
 } from "@miragon/team-topologies-schema-model";
 import type { InteractionMode, TeamType } from "@miragon/team-topologies-schema-model";
-import { premixOverWhite } from "./colour.js";
+import { PREMIXED_INTERACTION_FILLS } from "../theme/index.js";
 import { ICON_SQUARE_DASHED_MOUSE_POINTER, iconMarkup } from "./icons.js";
 
 /**
@@ -70,7 +70,7 @@ export function interactionIconSvg(mode: InteractionMode): string {
   const s = INTERACTION_MODE_SPECS[mode];
   const dash = dashArray(s.strokeStyle, 1.5);
   const common =
-    `fill="${premixOverWhite(s.fill, s.opacity)}" stroke="${s.stroke}" stroke-width="1.5"` +
+    `fill="${PREMIXED_INTERACTION_FILLS[mode]}" stroke="${s.stroke}" stroke-width="1.5"` +
     (dash ? ` stroke-dasharray="${dash}"` : "");
   switch (s.shape) {
     case "circle":

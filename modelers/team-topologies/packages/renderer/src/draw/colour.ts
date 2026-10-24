@@ -5,7 +5,7 @@
 
 import { INTERACTION_MODE_SPECS } from "@miragon/team-topologies-schema-model";
 import type { TtInteraction } from "../model/di-types.js";
-import { MIRAGON } from "../theme/index.js";
+import { MIRAGON, PREMIXED_INTERACTION_FILLS } from "../theme/index.js";
 
 export type Rgb = readonly [number, number, number];
 
@@ -45,18 +45,37 @@ export function contrastRatio(first: Rgb, second: Rgb): number {
 }
 
 /**
- * `fill` at `opacity` over white, as one opaque colour. Guide §10.6 draws notation fills that use
- * opacity premixed like this: translucent over a dark canvas, they would turn into a tinted tone.
+ * `fill` at `opacity` over white, as one opaque colour, or `undefined` for a value that is not a hex
+ * colour. Guide §10.6 draws notation fills that use opacity premixed like this: translucent over a
+ * dark canvas, they would turn into a tinted tone.
  */
-export function premixOverWhite(fill: string, opacity: number): string {
+export function premixOverWhite(fill: string, opacity: number): string | undefined {
   const colour = parseHexColour(fill);
   const paper = parseHexColour(MIRAGON.weiss);
-  if (!colour || !paper) return fill;
+  if (!colour || !paper) return undefined;
   return hexColour(blendOver(colour, paper, opacity));
 }
 
-/** The opaque fill of an interaction: its own fill or its mode's, at the mode's opacity. */
-export function interactionFill(interaction: Pick<TtInteraction, "mode" | "fill">): string {
+export interface InteractionPaint {
+  fill: string;
+  fillOpacity: number;
+}
+
+/**
+ * How an interaction's fill is drawn: its mode's premixed fill, or its own fill premixed at the
+ * mode's opacity, both opaque. An own fill that is not hex cannot be mixed, so it keeps the
+ * template's opacity instead of turning solid; the schema rejects such a fill, but a host can import
+ * a document without validating it.
+ */
+export function interactionPaint(
+  interaction: Pick<TtInteraction, "mode" | "fill">,
+): InteractionPaint {
   const spec = INTERACTION_MODE_SPECS[interaction.mode] ?? INTERACTION_MODE_SPECS.collaboration;
-  return premixOverWhite(interaction.fill ?? spec.fill, spec.opacity);
+  if (interaction.fill === undefined) {
+    return { fill: PREMIXED_INTERACTION_FILLS[spec.mode], fillOpacity: 1 };
+  }
+  const premixed = premixOverWhite(interaction.fill, spec.opacity);
+  return premixed
+    ? { fill: premixed, fillOpacity: 1 }
+    : { fill: interaction.fill, fillOpacity: spec.opacity };
 }

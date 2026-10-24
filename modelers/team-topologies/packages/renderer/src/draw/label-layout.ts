@@ -14,7 +14,7 @@ import {
   type TtTeam,
 } from "../model/di-types.js";
 import { MIRAGON } from "../theme/index.js";
-import { contrastRatio, interactionFill, parseHexColour } from "./colour.js";
+import { contrastRatio, interactionPaint, parseHexColour } from "./colour.js";
 import { FONT, INK, INK_MUTED } from "./styles.js";
 
 /** Horizontal padding between a shape's outline and its centred label. */
@@ -60,7 +60,7 @@ export function readableTextColour(fill: string): string {
 }
 
 function shapeTextColour(element: TtTeam | TtInteraction): string {
-  if (isTtInteraction(element)) return readableTextColour(interactionFill(element));
+  if (isTtInteraction(element)) return readableTextColour(interactionPaint(element).fill);
   const spec = TEAM_TYPE_SPECS[element.teamType] ?? TEAM_TYPE_SPECS["stream-aligned"];
   return readableTextColour(element.fill ?? spec.fill);
 }

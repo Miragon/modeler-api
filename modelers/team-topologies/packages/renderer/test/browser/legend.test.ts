@@ -25,6 +25,13 @@ function computedColour(value: string): string {
   return colour;
 }
 
+// The official interaction fills at the templates' 50 %, premixed over white (guide §10.6).
+const PREMIXED_INTERACTION_FILLS: Record<string, string> = {
+  collaboration: "#E3DFEF",
+  "x-as-a-service": "#DADADA",
+  facilitating: "#E4EFDF",
+};
+
 describe("legendGroups", () => {
   test("lists every shape of the notation in three groups, in reading order", () => {
     const groups = legendGroups();
@@ -49,7 +56,7 @@ describe("legendGroups", () => {
     ]);
   });
 
-  test("draws each team type and interaction mode in its official notation colours", () => {
+  test("draws each team type and interaction mode in its official notation colours, opaque", () => {
     const [teams, interactions] = legendGroups();
 
     ALL_TEAM_SPECS.forEach((spec, index) => {
@@ -59,7 +66,8 @@ describe("legendGroups", () => {
     });
     ALL_INTERACTION_SPECS.forEach((spec, index) => {
       const preview = interactions!.rows[index]!.preview;
-      expect(preview).toContain(`fill="${spec.fill}"`);
+      expect(preview).toContain(`fill="${PREMIXED_INTERACTION_FILLS[spec.mode]}"`);
+      expect(preview).not.toContain("opacity");
       expect(preview).toContain(`stroke="${spec.stroke}"`);
       // Interactions are the dashed, short-lived shapes.
       expect(preview).toContain("stroke-dasharray");

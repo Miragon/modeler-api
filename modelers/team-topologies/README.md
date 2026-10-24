@@ -21,8 +21,9 @@ and lossless, version-controllable files, as `modelers/team-topologies` of the
 
 Shapes, colours and stroke styles follow the official
 [Team-Shape-Templates](https://github.com/TeamTopologies/Team-Shape-Templates). Team shapes are
-**solid** (long-lived); interaction shapes are **dashed and translucent** (short-lived). Every element
-is distinguished by shape as well as colour, so diagrams stay readable with colour-vision deficiency.
+**solid** (long-lived); interaction shapes are **dashed** (short-lived), their 50 % template fill
+premixed over white and drawn opaque. Every element is distinguished by shape as well as colour, so
+diagrams stay readable with colour-vision deficiency.
 
 ### Team types
 
