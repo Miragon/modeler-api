@@ -144,14 +144,14 @@ changes the release notes ask for). GitHub Actions update monthly, all grouped, 
 hand as well: they change `.github/workflows`, which GitHub merges only for a token with the
 `workflows` permission, and the auto-merge token gets `contents` and `pull-requests` only.
 
-`dependabot-automerge.yml` enables auto-merge with a token of the release-please app: GitHub merges
-in the name of whoever enabled auto-merge, and a merge made with `GITHUB_TOKEN` starts no workflow
-on `main`, so neither `ci-ok` nor CodeQL nor release-please would see the update. It runs on
-`pull_request_target`, because a run Dependabot starts on `pull_request` gets only Dependabot
-secrets; that event runs the workflow from `main` with the Actions secrets, so it must never check
-out or run code of the pull request. GitHub blocks `pull_request_target` in public repositories
-from 2 December 2026: give a public repository an Actions policy (Settings → Actions → Policies)
-that allows the event for `.github/workflows/dependabot-automerge.yml`.
+`dependabot-automerge.yml` enables auto-merge for npm updates only, with a token of the
+release-please app: GitHub merges in the name of whoever enabled auto-merge, and a merge made with
+`GITHUB_TOKEN` starts no workflow on `main`, so neither `ci-ok` nor CodeQL nor release-please would
+see the update. It runs on `pull_request_target`, because a run Dependabot starts on `pull_request`
+gets only Dependabot secrets; that event runs the workflow from `main` with the Actions secrets, so
+it must never check out or run code of the pull request. GitHub blocks `pull_request_target` in
+public repositories from 2 December 2026: give a public repository an Actions policy (Settings →
+Actions → Policies) that allows the event for `.github/workflows/dependabot-automerge.yml`.
 
 ## Commits
 

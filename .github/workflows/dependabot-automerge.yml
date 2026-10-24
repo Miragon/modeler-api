@@ -2,8 +2,9 @@ name: Dependabot auto-merge
 
 # A run Dependabot starts on pull_request gets Dependabot secrets only, without the app's key.
 # pull_request_target runs this file as it is on main, with the Actions secrets, so it must never
-# check out or run code of the pull request. GitHub blocks pull_request_target in public
-# repositories unless an Actions policy (Settings → Actions → Policies) allows it for this workflow.
+# check out or run code of the pull request. From 2 December 2026 GitHub blocks pull_request_target
+# in public repositories unless an Actions policy (Settings → Actions → Policies) allows it for
+# this workflow.
 on: pull_request_target
 
 permissions:
@@ -21,13 +22,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # GitHub merges in the name of whoever enabled auto-merge, and a merge made with GITHUB_TOKEN
-      # starts no workflow on main: no ci-ok, no CodeQL, no release-please. A GitHub Actions update
-      # changes .github/workflows, which GitHub merges only for a token with the workflows
-      # permission: those updates are merged by hand.
+      # starts no workflow on main: no ci-ok, no CodeQL, no release-please. Only npm updates get the
+      # token: a GitHub Actions update changes .github/workflows, which GitHub merges only for a
+      # token with the workflows permission, and an ecosystem added later stays manual until it is
+      # named here.
       - name: Create a release-please app token for npm patch and minor updates
         id: app-token
         if: >-
-          steps.meta.outputs.package-ecosystem != 'github_actions' &&
+          steps.meta.outputs.package-ecosystem == 'npm_and_yarn' &&
           (steps.meta.outputs.update-type == 'version-update:semver-patch' ||
           steps.meta.outputs.update-type == 'version-update:semver-minor')
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

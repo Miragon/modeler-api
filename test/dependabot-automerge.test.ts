@@ -3,9 +3,10 @@
  * of whoever enabled auto-merge, and a merge made with GITHUB_TOKEN starts no workflow on main (no
  * ci-ok, CodeQL or release-please), so auto-merge is enabled with the release-please app's token. A
  * run Dependabot starts on `pull_request` sees only Dependabot secrets, so the workflow runs on
- * `pull_request_target`, with the Actions secrets: it must never run code of the pull request. A
- * GitHub Actions update changes .github/workflows, which GitHub merges only for a token with the
- * `workflows` permission, so those updates are merged by hand.
+ * `pull_request_target`, with the Actions secrets: it must never run code of the pull request. Only
+ * npm updates are auto-merged: a GitHub Actions update changes .github/workflows, which GitHub
+ * merges only for a token with the `workflows` permission, and an ecosystem added later starts
+ * manual.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -20,7 +21,7 @@ const RELEASE = ".github/workflows/release-please.yml";
 const APP_TOKEN_ACTION = "actions/create-github-app-token";
 const DEPENDABOT_ONLY =
   "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'";
-const NOT_GITHUB_ACTIONS = "steps.meta.outputs.package-ecosystem != 'github_actions'";
+const NPM_ONLY = "steps.meta.outputs.package-ecosystem == 'npm_and_yarn'";
 const NOT_MODELER_PLATFORM = "!contains(steps.meta.outputs.dependency-names, '@miragon/modeler-')";
 const PATCH_OR_MINOR =
   "(steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor')";
@@ -58,12 +59,8 @@ const mergeStep = (workflow: Workflow): Step | undefined =>
   stepsOf(workflow).find((step) => /\bgh pr merge --auto\b/.test(step.run ?? ""));
 
 describe.each([
-  ["the suite", ROOT, [NOT_GITHUB_ACTIONS, PATCH_OR_MINOR]],
-  [
-    "the modeler-kit template",
-    TEMPLATE,
-    [NOT_GITHUB_ACTIONS, NOT_MODELER_PLATFORM, PATCH_OR_MINOR],
-  ],
+  ["the suite", ROOT, [NPM_ONLY, PATCH_OR_MINOR]],
+  ["the modeler-kit template", TEMPLATE, [NPM_ONLY, NOT_MODELER_PLATFORM, PATCH_OR_MINOR]],
 ])("Dependabot auto-merge in %s", (_, root, mergedUpdates) => {
   const workflow = readWorkflow(root, AUTO_MERGE);
 
@@ -109,7 +106,7 @@ describe.each([
     });
   });
 
-  it("mints it only for npm patch and minor updates, never for a GitHub Actions update", () => {
+  it("mints it only for npm patch and minor updates, never for GitHub Actions or another ecosystem", () => {
     expect(appTokenStep(workflow)?.if).toBe(mergedUpdates.join(" && "));
   });
 

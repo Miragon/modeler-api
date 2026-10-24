@@ -24,7 +24,7 @@ special to its notation (packages, DSL or file format, renderer architecture, te
 | `plugins/modeler-kit`             | Claude plugin: the `new-modeler` skill and its template                                                      | [README](plugins/modeler-kit/README.md)                          |
 | `.claude-plugin/marketplace.json` | the suite's one Claude plugin marketplace (`modeler-suite`)                                                  |                                                                  |
 | `tooling/`                        | the ESLint and dependency-cruiser presets every modeler's config calls                                       |                                                                  |
-| `test/`                           | repository-level checks: the modeler-kit drift test, every modeler's boundaries                              |                                                                  |
+| `test/`                           | repository-level checks: the modeler-kit drift test, every modeler's boundaries, Dependabot auto-merge       |                                                                  |
 | `docs/`                           | [shell implementation notes](docs/shell/implementation-notes.md), [CI and releases](docs/ci-and-releases.md) |                                                                  |
 
 Each modeler folder holds `packages/` (its npm libraries), `apps/webapp`, `apps/vscode`, `e2e/`
