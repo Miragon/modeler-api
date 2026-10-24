@@ -157,8 +157,8 @@ Reply in chat with this structure. Keep it to about one screen; tables beat pros
 | Component | Stage | Maturity | Rationale (evidence) |
 | --------- | ----- | -------- | -------------------- |
 
-**Key observations**: 3–5 insights from the map's shape, such as clusters of Genesis components, single
-points of failure, components under evolution pressure, where the chain stops early.
+**Key observations**: 3–5 insights from the map's shape, such as clusters of Genesis components,
+single points of failure, components under evolution pressure, where the chain stops early.
 
 **Doctrine check**: the 2–3 most relevant principles (user needs clear? duplication? methods
 matched to stages? bias towards one stage?).

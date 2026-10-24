@@ -326,9 +326,9 @@ the old order by hand.
   re-render live. VS Code does not show parser diagnostics, so check the file before you hand it
   over.
 - **Web app** (https://wardley-maps.modeler.miragon.io): **Menu → Open…** or drag and drop the
-  file. Diagnostics appear as an "Imported with N warnings" toast and are listed under the problems pill
-  bottom left and in the browser console. Or hand the user a share link: the map itself, deflate-raw compressed and
-  base64url-encoded (no padding) behind `#mz=`:
+  file. Diagnostics appear as an "Imported with N warnings" toast and are listed under the
+  problems pill bottom left and in the browser console. Or hand the user a share link: the map
+  itself, deflate-raw compressed and base64url-encoded (no padding) behind `#mz=`:
 
   ```bash
   node -e "const fs=require('fs'),zlib=require('zlib');const text=fs.readFileSync(process.argv[1],'utf8');console.log('https://wardley-maps.modeler.miragon.io/#mz='+zlib.deflateRawSync(Buffer.from(text,'utf8')).toString('base64url'))" map.wmap
@@ -340,9 +340,9 @@ the old order by hand.
 
 ## Reference files (read on demand)
 
-- `reference/grammar.md`: the exhaustive spec: every statement and suffix with its model element,
-  line classification and precedence, comments, escaping, id allocation, serializer order and
-  canonicalisation, and the full diagnostics catalogue including the silent cases.
+- `reference/grammar.md`: the exhaustive spec. Every statement and suffix with its model
+  element, line classification and precedence, comments, escaping, id allocation, serializer order
+  and canonicalisation, and the full diagnostics catalogue including the silent cases.
 - `reference/layout.md`: canvas geometry in pixels and map units, spacing rules, label offsets,
   pipelines and team regions, review-note placement, the note colour table and a full worked map.
 - `reference/api.md`: the programmatic API (`parseDSL`, `parseDSLWithDiagnostics`, `serializeDSL`,

@@ -128,10 +128,10 @@ catalogue:
 **Purpose → Landscape → Climate → Doctrine → Leadership → act → observe again.**
 
 - **Purpose**: why are we doing this (the strategic question).
-- **Landscape**: the map: user, needs, value chain, evolution.
-- **Climate**: the patterns above: how the landscape will change.
+- **Landscape**: the map, with user, needs, value chain and evolution.
+- **Climate**: the patterns above, how the landscape will change.
 - **Doctrine**: universal principles that apply whatever the landscape (`doctrine.md`).
-- **Leadership**: context-specific choices: the gameplay below.
+- **Leadership**: context-specific choices, the gameplay below.
 
 The cycle repeats: act, observe the result, redraw. A map is a snapshot, not a plan.
 

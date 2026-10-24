@@ -39,7 +39,7 @@ so.
 ## Components that stay left
 
 - **Domain-specific business logic**: rules that live in people's heads and in decades of code.
-- **Agent orchestration and tool use in production**: Custom-Built `0.2–0.35`: frameworks exist,
+- **Agent orchestration and tool use in production**: Custom-Built `0.2–0.35`; frameworks exist,
   a settled practice does not.
 - **Evaluation of AI systems (evals)**: Custom-Built; the practice is emerging.
 - **Domain context and proprietary data pipelines**: Custom-Built; generic retrieval is
@@ -83,9 +83,9 @@ so.
 - **Prefer a conservative position plus an `evolve` arrow** over an optimistic position.
   `Foundation Model [0.36, 0.64]` with `evolve Foundation Model 0.8` says more than placing it at
   `0.8`.
-- **Split model, data and practice**, since they evolve on different axes: the model as an activity, the
-  training or context data as data (unmodelled → modelled), prompting and evals as practices
-  (novel → best).
+- **Split model, data and practice**, since they evolve on different axes: the model as an
+  activity, the training or context data as data (unmodelled → modelled), prompting and evals as
+  practices (novel → best).
 - **A model API is rarely the differentiator.** The candidates are the user's data, context,
   evaluation and workflow.
 - **Date the map** when AI components dominate it: put the date in the title ("AI Coding Agent
