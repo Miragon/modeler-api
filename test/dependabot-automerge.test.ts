@@ -3,7 +3,9 @@
  * of whoever enabled auto-merge, and a merge made with GITHUB_TOKEN starts no workflow on main (no
  * ci-ok, CodeQL or release-please), so auto-merge is enabled with the release-please app's token. A
  * run Dependabot starts on `pull_request` sees only Dependabot secrets, so the workflow runs on
- * `pull_request_target`, with the Actions secrets: it must never run code of the pull request.
+ * `pull_request_target`, with the Actions secrets: it must never run code of the pull request. A
+ * GitHub Actions update changes .github/workflows, which GitHub merges only for a token with the
+ * `workflows` permission, so those updates are merged by hand.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -16,10 +18,12 @@ const TEMPLATE = join(ROOT, "plugins/modeler-kit/skills/new-modeler/assets/templ
 const AUTO_MERGE = ".github/workflows/dependabot-automerge.yml";
 const RELEASE = ".github/workflows/release-please.yml";
 const APP_TOKEN_ACTION = "actions/create-github-app-token";
-const DEPENDABOT_ONLY = [
-  "github.event.pull_request.user.login == 'dependabot[bot]'",
-  "github.actor == 'dependabot[bot]'",
-];
+const DEPENDABOT_ONLY =
+  "github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'";
+const NOT_GITHUB_ACTIONS = "steps.meta.outputs.package-ecosystem != 'github_actions'";
+const NOT_MODELER_PLATFORM = "!contains(steps.meta.outputs.dependency-names, '@miragon/modeler-')";
+const PATCH_OR_MINOR =
+  "(steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor')";
 
 interface Step {
   id?: string;
@@ -54,9 +58,13 @@ const mergeStep = (workflow: Workflow): Step | undefined =>
   stepsOf(workflow).find((step) => /\bgh pr merge --auto\b/.test(step.run ?? ""));
 
 describe.each([
-  ["the suite", ROOT],
-  ["the modeler-kit template", TEMPLATE],
-])("Dependabot auto-merge in %s", (_, root) => {
+  ["the suite", ROOT, [NOT_GITHUB_ACTIONS, PATCH_OR_MINOR]],
+  [
+    "the modeler-kit template",
+    TEMPLATE,
+    [NOT_GITHUB_ACTIONS, NOT_MODELER_PLATFORM, PATCH_OR_MINOR],
+  ],
+])("Dependabot auto-merge in %s", (_, root, mergedUpdates) => {
   const workflow = readWorkflow(root, AUTO_MERGE);
 
   it("runs on pull_request_target only, so a run Dependabot starts gets the Actions secrets", () => {
@@ -71,9 +79,7 @@ describe.each([
   });
 
   it("runs only for a pull request Dependabot opened, on an event Dependabot started", () => {
-    for (const job of jobsOf(workflow)) {
-      for (const condition of DEPENDABOT_ONLY) expect(job.if).toContain(condition);
-    }
+    for (const job of jobsOf(workflow)) expect(job.if).toBe(DEPENDABOT_ONLY);
   });
 
   it("never checks out, fetches or runs code of the pull request", () => {
@@ -103,11 +109,13 @@ describe.each([
     });
   });
 
-  it("mints it only for the updates it merges, and enables auto-merge with it, never with GITHUB_TOKEN", () => {
+  it("mints it only for npm patch and minor updates, never for a GitHub Actions update", () => {
+    expect(appTokenStep(workflow)?.if).toBe(mergedUpdates.join(" && "));
+  });
+
+  it("enables auto-merge with that token only, never with GITHUB_TOKEN", () => {
     const token = appTokenStep(workflow);
     const merge = mergeStep(workflow);
-    expect(token?.if).toContain("steps.meta.outputs.update-type == 'version-update:semver-patch'");
-    expect(token?.if).toContain("steps.meta.outputs.update-type == 'version-update:semver-minor'");
     expect(merge?.if).toBe(`steps.${token?.id}.outcome == 'success'`);
     expect(merge?.env?.GH_TOKEN).toBe(`\${{ steps.${token?.id}.outputs.token }}`);
   });
@@ -117,11 +125,16 @@ describe("the template's Dependabot auto-merge", () => {
   it("works as the suite's: same trigger, permissions, guard, app token and merge token", () => {
     const suite = readWorkflow(ROOT, AUTO_MERGE);
     const template = readWorkflow(TEMPLATE, AUTO_MERGE);
-    const withoutCondition = (step: Step | undefined) => ({ ...step, if: undefined });
+    // Dependabot bumps only the suite's pins; each copy follows its own release-please.yml.
+    const unpinned = (step: Step | undefined) => ({
+      ...step,
+      if: undefined,
+      uses: step && actionOf(step),
+    });
     expect(template.on).toEqual(suite.on);
     expect(template.permissions).toEqual(suite.permissions);
     expect(jobsOf(template).map((job) => job.if)).toEqual(jobsOf(suite).map((job) => job.if));
-    expect(withoutCondition(appTokenStep(template))).toEqual(withoutCondition(appTokenStep(suite)));
+    expect(unpinned(appTokenStep(template))).toEqual(unpinned(appTokenStep(suite)));
     expect(mergeStep(template)?.if).toBe(mergeStep(suite)?.if);
     expect(mergeStep(template)?.env).toEqual(mergeStep(suite)?.env);
   });
