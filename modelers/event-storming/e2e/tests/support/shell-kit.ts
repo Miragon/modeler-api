@@ -1,18 +1,5 @@
 import { expect, type Page } from "@playwright/test";
 
-/**
- * The shell kit's default sizes (wide, narrow, very narrow), led by one where the example board
- * fits whole at 100 %: the cases that open a single size take the first. At 1280 × 900 the board
- * fits at 84 %, from where one zoom step of diagram-js's raster lands on exactly 100 %, so the
- * labelEditor case's Cmd/Ctrl+0 after its Cmd/Ctrl+Plus would change nothing and prove nothing.
- */
-export const SHELL_KIT_SIZES = [
-  { width: 1600, height: 900 },
-  { width: 1280, height: 900 },
-  { width: 720, height: 700 },
-  { width: 420, height: 700 },
-] as const;
-
 /** The centre of a domain event's sticky that a pointer reaches, no chrome or sticky above it. */
 async function reachableDomainEvent(page: Page): Promise<{ x: number; y: number }> {
   const point = await page.evaluate(() => {

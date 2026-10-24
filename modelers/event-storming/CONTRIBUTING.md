@@ -52,12 +52,10 @@ toasts, problems list and drop zone). The harnesses declare what Event Storming 
 (the legend and the inspector; in the web app also the invalid-file state and a problem row that
 selects an element, since its problems name lines, never elements; in the webview a menu action
 that hands the focus to the canvas, since its Model group holds only the Level radios and the Type
-captions checkbox), and any skip fails the suite. Both lead the kit's sizes with 1600 × 900, where
-the example fits whole at 100 % (the reason is in
-[`e2e/tests/support/shell-kit.ts`](e2e/tests/support/shell-kit.ts)). Next to the kit run the
-webview's protocol and chrome specs and the web app's own (`webapp-chrome.spec.ts`: share link,
-the fit to what the board draws, replace with undo, open, drop, exports, app keys, Delete after a
-click on + or a palette entry). Run one project with
+captions checkbox), and any skip fails the suite. Next to the kit run the webview's protocol and
+chrome specs and the web app's own (`webapp-chrome.spec.ts`: share link, the fit to what the board
+draws, replace with undo, open, drop, exports, app keys, Delete after a click on + or a palette
+entry). Run one project with
 `npm run event-storming test:e2e -- --project=vscode-webview`. Locally an already running server
 on a port is reused, so pick free ports
 (`E2E_PORT=5387 E2E_WEBVIEW_PORT=5397 npm run event-storming test:e2e`) when another app occupies
