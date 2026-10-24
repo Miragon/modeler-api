@@ -127,12 +127,13 @@ When several actors or systems act in parallel, give each its own horizontal ban
 - ~220 px between lane centres (110-high boxes plus air).
 - Keep the **same x columns** across lanes, so causally aligned stickies line up vertically.
 - Mark the lane with a left-aligned `note` at the lane's y, x well to the left of the first column
-  (e.g. `x = −60`), or draw the separator with a `line`.
+  (e.g. `x = −60`), or draw the separator with a `line` in `#8F8A8A`, a grey that stays visible on
+  the canvas.
 
 ```
 note **Customer** [-60, 300] (align left middle)
 note **Warehouse** [-60, 520] (align left middle)
-line [[40, 410], [1500, 410]] (dashed) (color #C4C4C4)
+line [[40, 410], [1500, 410]] (dashed) (color #8F8A8A)
 ```
 
 ## Pinning offsets
