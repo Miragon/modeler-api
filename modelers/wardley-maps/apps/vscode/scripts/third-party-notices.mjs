@@ -16,8 +16,9 @@ const output = join(app, "THIRD_PARTY_NOTICES.md");
 // Inlined as geometry (no npm dependency), so not visible in the metafile.
 const LUCIDE = `## Lucide (lucide-static 1.59.0)
 
-The palette's tool icons and the dialogs' Close icon (\`@miragon/wardley-renderer\`) and the chrome
-icons (\`@miragon/modeler-shell\`) are Lucide icons, copied into the sources.
+The palette's tool icons, the dialogs' Close icon and the context pad's icons
+(\`@miragon/wardley-renderer\`) and the chrome icons (\`@miragon/modeler-shell\`) are Lucide icons,
+copied into the sources.
 
 ISC License
 
@@ -35,7 +36,8 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-The icons \`check\`, \`circle-x\`, \`maximize\`, \`minus\`, \`plus\`, \`triangle-alert\` and \`x\` are
+The icons \`arrow-right\`, \`check\`, \`chevrons-right\`, \`circle-plus\`, \`circle-x\`,
+\`external-link\`, \`link\`, \`maximize\`, \`minus\`, \`plus\`, \`trash\`, \`triangle-alert\` and \`x\` are
 derived from the Feather project:
 
 The MIT License (MIT)
@@ -63,8 +65,9 @@ SOFTWARE.
 
 const MATERIAL = `## Material Icons
 
-The context pad and notation icons of \`@miragon/wardley-renderer\` are paths from Google's
-Material Icons (https://github.com/google/material-design-icons), copied into the sources.
+The notation glyphs of \`@miragon/wardley-renderer\` (anchor, accelerator and deaccelerator) are
+paths from Google's Material Icons (https://github.com/google/material-design-icons), copied into
+the sources.
 
 Copyright Google LLC. Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use these files except in compliance with the License. You may obtain a copy of the License at
