@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0](https://github.com/Miragon/modeler-suite/compare/event-storming-webapp-v0.6.1...event-storming-webapp-v0.7.0) (2026-10-24)
+
+
+### Features
+
+* **shell:** treat EditContext and Monaco editors as text fields ([#137](https://github.com/Miragon/modeler-suite/issues/137)) ([ebacfca](https://github.com/Miragon/modeler-suite/commit/ebacfcacbadb6359d6acb2401486a6e9a8da5669))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/event-storming-dsl bumped from 0.3.1 to 0.3.2
+    * @miragon/event-storming-renderer bumped from 0.5.0 to 0.5.1
+    * @miragon/event-storming-schema-model bumped from 0.2.2 to 0.2.3
+    * @miragon/modeler-shell bumped from 0.5.0 to 0.6.0
+
 ## [0.6.1](https://github.com/Miragon/event-storming-modeler/compare/webapp-v0.6.0...webapp-v0.6.1) (2026-10-23)
 
 
