@@ -8,6 +8,14 @@
   "engines": {
     "node": ">=22.13.0"
   },
+  "modelerSuite": {
+    "domFreePackages": [
+      "schema-model"
+    ],
+    "shellImportingPackages": [
+      "ui"
+    ]
+  },
   "scripts": {
     "build": "npm run build -w packages/schema-model -w packages/renderer",
     "build:webapp": "npm run build -w apps/webapp",

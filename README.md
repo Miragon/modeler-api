@@ -81,12 +81,12 @@ Node `^22.22.2` or `>=24.15.0` and npm. From the repository root:
 
 ```sh
 npm ci
-npm run build:shared               # @miragon/modeler-api and @miragon/modeler-shell, which every modeler links
-npm run wardley-maps dev:webapp:plain   # the Wardley Maps web app on Vite, http://127.0.0.1:5180
-npm run wardley-maps build              # Wardley's packages: its tests resolve them from dist
-npm run wardley-maps test               # its unit tests
-npm test                           # the shared packages, the plugin drift test and every modeler's unit tests
-npm run lint                       # type checks and ESLint, everywhere
+npm run build:shared                   # @miragon/modeler-api and @miragon/modeler-shell, which every modeler links
+npm run wardley-maps dev:webapp:plain  # the Wardley Maps web app on Vite, http://127.0.0.1:5180
+npm run wardley-maps build             # the Wardley Maps packages: its tests resolve them from dist
+npm run wardley-maps test              # its unit tests
+npm test                               # the shared packages, the repository checks and every modeler's unit tests
+npm run lint                           # type checks and ESLint, everywhere
 ```
 
 `npm run <modeler> <script>` runs a script of one modeler (`wardley-maps`, `event-storming`,
@@ -102,14 +102,15 @@ packages/
   api/                 @miragon/modeler-api: the collaborative-modeler contract and its conformance kit
   shell/               @miragon/modeler-shell: the shared chrome, its conformance kit, the VS Code smoke driver
 modelers/
-  wardley/             Wardley Maps          ─┐ each: packages/ (npm libraries), apps/webapp,
-  event-storming/      Event Storming         │ apps/vscode, e2e/, example/, docs/, and
-  team-topologies/     Team Topologies        │ README.md, CLAUDE.md, CONTRIBUTING.md for what is
-  context-maps/        Context Maps           │ special to its notation
-  value-chain/         Value Chain           ─┘
+  wardley-maps/        ─┐ each: packages/ (npm libraries), apps/webapp, apps/vscode, e2e/,
+  event-storming/       │ example/, docs/, and README.md, CLAUDE.md, CONTRIBUTING.md for what
+  team-topologies/      │ is special to its notation
+  context-maps/         │
+  value-chain/         ─┘
+tooling/               the ESLint and dependency-cruiser presets; each modeler names its DOM-free packages in package.json
 plugins/modeler-kit/   the Claude Code plugin with the new-modeler skill and its template
 .claude-plugin/        the suite's Claude Code marketplace
-test/                  repository-level checks (the modeler-kit drift test)
+test/                  repository-level checks: the modeler-kit drift test, every modeler's boundaries
 docs/                  shell implementation notes, CI and releases
 ```
 
