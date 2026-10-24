@@ -1633,11 +1633,21 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   that bundles zod 4 runs `z.config({ jitless: true })` in a module of its own that it imports before
   any schema module (Event Storming's `zod-jitless.ts`, the first import of `main.ts`).
 - A test page served by Vite runs the webview from source without a CSP, so a loader or CSP mistake
-  of the shipped bundle shows only behind the real HTML: a smoke test builds the production bundle,
-  serves it through Playwright's `page.route` behind `renderWebviewHtml` (a fixed nonce, the VS Code
-  stub as a nonce'd script in `body` that also records `securitypolicyviolation`), and fails on any
-  violation, page error or missing font (recipe in [`API.md`](../../packages/shell/API.md),
-  `./vscode/extension`). A kit helper for it is a later candidate.
+  of the shipped bundle shows only behind the real HTML. The kit's `csp` case (0.6) covers it: the
+  harness's `csp.open` builds the production bundle and opens it with `openWebviewBundle`
+  (`./testing/webview-bundle`), which answers `https://webview.test` through Playwright's
+  `page.route` with `renderWebviewHtml`'s document, VS Code's default styles written ahead of the
+  policy (as VS Code writes them, so a strict `style-src` never blocks them) and the VS Code stub as
+  the first nonce'd script of `body`, a classic script the package ships prebuilt. From its install
+  on the stub records every `securitypolicyviolation`, uncaught error, unhandled rejection, failed
+  load and `console.error`. The case then walks what renders late (a tooltip, a shape's context pad
+  and label editor, every enabled menu entry that is not destructive, so the exports, the dialogs
+  and the Legend, zoom and Fit) and fails on anything recorded, on a shell font that loads no face
+  or comes from a `data:` URL, and on any font face whose load failed. It replaced the smoke test
+  each modeler kept for it. The real VS Code of the smoke driver (`./testing/vscode-electron`) only
+  quotes the webview's errors when its open fails, a CSP block among them, and fails on none of them
+  by itself: the policy is the one `renderWebviewHtml` writes in both, and the kit's walk reaches
+  more of the bundle on every pull request.
 - Reduced motion: VS Code resolves `workbench.reduceMotion` itself (`auto` follows the OS, `on`
   holds without it) and hands the result to the webview only as the body class
   `vscode-reduce-motion`; `prefers-reduced-motion` alone misses `on`. Mirror the class for the whole
