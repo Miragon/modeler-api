@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.5.0...renderer-v0.6.0) (2026-10-23)
+
+
+### Features
+
+* **renderer:** start the legend card closed on every canvas size ([#95](https://github.com/Miragon/context-maps-modeler/issues/95)) ([52b1ce3](https://github.com/Miragon/context-maps-modeler/commit/52b1ce3fb2f51ff97e819fbb3b15352a70b1e809))
+
 ## [0.5.0](https://github.com/Miragon/context-maps-modeler/compare/renderer-v0.4.1...renderer-v0.5.0) (2026-10-23)
 
 

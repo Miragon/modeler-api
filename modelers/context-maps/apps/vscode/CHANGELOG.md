@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.8.1...vscode-v0.9.0) (2026-10-23)
+
+
+### Features
+
+* **renderer:** start the legend card closed on every canvas size ([#95](https://github.com/Miragon/context-maps-modeler/issues/95)) ([52b1ce3](https://github.com/Miragon/context-maps-modeler/commit/52b1ce3fb2f51ff97e819fbb3b15352a70b1e809))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/context-maps-renderer bumped from 0.5.0 to 0.6.0
+
 ## [0.8.1](https://github.com/Miragon/context-maps-modeler/compare/vscode-v0.8.0...vscode-v0.8.1) (2026-10-23)
 
 
