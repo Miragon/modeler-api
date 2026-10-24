@@ -1,18 +1,19 @@
-# Netlify deployment of the demo webapp (apps/webapp).
-# npm-workspaces monorepo: based on package-lock.json, Netlify runs `npm install`
-# automatically, then the build command builds the webapp.
+# Netlify deployment of the Value Chain web app (apps/webapp). The site's package directory is
+# modelers/value-chain, its base directory the repository root: Netlify reads this file from the package
+# directory, installs the suite's one npm workspace from the root lockfile and runs command, publish
+# and ignore from the root.
 
 [build]
-  # Force base to the repo root (overrides any base possibly set in the Netlify UI such as
-  # "packages/renderer", otherwise publish resolves wrong). publish is relative to base.
-  base = "/"
-  # The webapp bundles the @miragon/value-chain-* packages from source via Vite aliases
-  # (see vite.config.ts), so it is self-contained -> no prior lib build needed.
-  command = "npm run build:webapp"
-  publish = "apps/webapp/dist"
+  # The web app bundles the modeler's packages from source (Vite aliases, see apps/webapp/vite.config.ts)
+  # and @miragon/modeler-api and @miragon/modeler-shell from their build.
+  command = "npm run build:shared && npm run value-chain build:webapp"
+  publish = "modelers/value-chain/apps/webapp/dist"
+  # Every push to the repository reaches every site; build only when the web app's inputs changed:
+  # this modeler, the shared packages or the root install. Exit 0 skips the build; without a
+  # previous build to compare with, or for a rebuild of the same commit, it builds.
+  ignore = "test -n \"$CACHED_COMMIT_REF\" && test \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" && git diff --quiet \"$CACHED_COMMIT_REF\" \"$COMMIT_REF\" -- modelers/value-chain packages package.json package-lock.json .npmrc"
 
 [build.environment]
-  # Vite 8 requires Node 20.19+ / 22.12+.
   NODE_VERSION = "22"
 
 # Single-page app: the catch-all serves index.html for any path (robust against deep links).
