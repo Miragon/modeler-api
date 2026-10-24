@@ -60,7 +60,7 @@ export const SHELL: ShellSizes = {
 
 // Shell sizes are pixels ("12px") or plain z-index numbers ("20"); any other unit would make
 // parseFloat silently return a number with the wrong meaning.
-const PIXEL_OR_PLAIN_NUMBER = /^\s*-?(?:\d+\.?\d*|\.\d+)(?:px)?\s*$/;
+const PIXEL_OR_PLAIN_NUMBER = /^\s*-?(?:\d+(?:\.\d*)?|\.\d+)(?:px)?\s*$/;
 
 /**
  * Reads the `shell` group of `cd-tokens.generated.json` (`{ "--cd-shell-rand": "12px", … }`) into

@@ -44,6 +44,18 @@ describe("shellSizesFromTokens", () => {
     expect(sizes.layerToast).toBe(61);
   });
 
+  it.each([
+    ["12", 12],
+    ["12.", 12],
+    ["12.px", 12],
+    [".5px", 0.5],
+    ["-3", -3],
+    ["-.5", -0.5],
+    [" 007px ", 7],
+  ])("reads %j as %d", (value, expected) => {
+    expect(shellSizesFromTokens(withValue("--cd-shell-zeile", value)).row).toBe(expected);
+  });
+
   it.each(Object.entries(SHELL_TOKENS) as [ShellSizeName, string][])(
     "throws when %s (%s) is missing",
     (_, token) => {
@@ -51,14 +63,32 @@ describe("shellSizesFromTokens", () => {
     },
   );
 
-  it.each(["", "px", "abc", "12em", "1rem", "calc(12px + 4px)", "12 px"])(
-    "throws on the non-numeric value %j",
-    (value) => {
-      expect(() => shellSizesFromTokens(withValue("--cd-shell-zeile", value))).toThrow(
-        "--cd-shell-zeile",
-      );
-    },
-  );
+  it.each([
+    "",
+    "px",
+    "abc",
+    "12em",
+    "1rem",
+    "calc(12px + 4px)",
+    "12 px",
+    ".",
+    "-",
+    "1.2.3",
+    "1..2",
+  ])("throws on the non-numeric value %j", (value) => {
+    expect(() => shellSizesFromTokens(withValue("--cd-shell-zeile", value))).toThrow(
+      "--cd-shell-zeile",
+    );
+  });
+
+  it("rejects a long run of digits with a wrong unit in linear time", () => {
+    const value = `${"1".repeat(100_000)}em`;
+    const start = performance.now();
+    expect(() => shellSizesFromTokens(withValue("--cd-shell-zeile", value))).toThrow(
+      "--cd-shell-zeile",
+    );
+    expect(performance.now() - start).toBeLessThan(200);
+  });
 
   it("ignores tokens it does not know", () => {
     expect(shellSizesFromTokens({ ...tokens.shell, "--cd-shell-new": "7px" })).toEqual(SHELL);

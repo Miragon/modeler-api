@@ -13,7 +13,10 @@ export interface WebviewHtmlOptions {
   lang: string;
   /** Resolved appearance (`currentAppearance`), written before the first paint. */
   appearance: Appearance;
-  /** Markup inside `<body>` before the script; default `<div id="app"></div>`. */
+  /**
+   * Markup inside `<body>` before the script; default `<div id="app"></div>`. Inserted as is, so
+   * it is the extension's own markup: never interpolate document content or other untrusted text.
+   */
   body?: string | undefined;
   /** Script nonce; default `createNonce()`. */
   nonce?: string | undefined;
@@ -31,6 +34,11 @@ const NONCE_LENGTH = 32;
 const UNBIASED_BYTE_LIMIT = 256 - (256 % NONCE_ALPHABET.length);
 /** The `base64-value` of a CSP `nonce-source`. */
 const CSP_NONCE = /^[A-Za-z0-9+/_-]+={0,2}$/;
+/**
+ * Ends a directive (`;`) or a policy (`,`): a source with one would add directives of its own, and
+ * a `script-src` it adds before the nonce'd one wins.
+ */
+const CSP_SEPARATOR = /[;,]/;
 
 const DEFAULT_BODY = '<div id="app"></div>';
 
@@ -75,12 +83,17 @@ function contentSecurityPolicy(cspSource: string, nonce: string, inlineStyles: b
  * `'unsafe-inline'` unless `inlineStyles: false`, `font-src <cspSource> data:`,
  * `script-src 'nonce-…'`), the stylesheets, `body` and the nonce'd script. Attribute values and the
  * title are escaped; `body` is markup and is not. Throws for a `nonce` that is not a CSP base64
- * value.
+ * value and for a `cspSource` with a `;` or `,`.
  */
 export function renderWebviewHtml(options: WebviewHtmlOptions): string {
   const nonce = options.nonce ?? createNonce();
   if (!CSP_NONCE.test(nonce)) {
     throw new Error(`@miragon/modeler-shell: renderWebviewHtml got an invalid nonce "${nonce}"`);
+  }
+  if (CSP_SEPARATOR.test(options.cspSource)) {
+    throw new Error(
+      `@miragon/modeler-shell: renderWebviewHtml got an invalid cspSource "${options.cspSource}"`,
+    );
   }
   const appearance = appearanceAttributes(options.appearance);
   const kontrast = appearance["data-cd-kontrast"];

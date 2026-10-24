@@ -22,7 +22,7 @@ export interface ParseResult {
   diagnostics: Diagnostic[];
 }
 
-const TITLE = /^title\s+(.+)$/;
+const TITLE = /^title\s+(\S.*)$/;
 const NODE =
   /^node\s+([A-Za-z_][A-Za-z0-9_-]*)\s+"((?:[^"\\]|\\.)*)"\s*\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]$/;
 
