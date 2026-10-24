@@ -322,6 +322,21 @@ describe("the canvas name, the tab sequence, palette shortcuts and menu keys", (
     ]);
   });
 
+  it("wants a palette entry's aria-keyshortcuts to name keys, not characters", () => {
+    expect(
+      paletteShortcutProblems([
+        { action: "lasso-tool", chip: "L", keyShortcuts: "Shift+?" },
+        { action: "hand-tool", chip: "H", keyShortcuts: "Equal" },
+        { action: "create.note", chip: "/", keyShortcuts: "/" },
+        { action: "create.box", chip: "B", keyShortcuts: "B" },
+      ]),
+    ).toEqual([
+      'palette: entry "lasso-tool" has aria-keyshortcuts="Shift+?", which names the character "?", not a key (guide §5.6)',
+      'palette: entry "hand-tool" has aria-keyshortcuts="Equal", a KeyboardEvent code; name the key as WAI-ARIA does (guide §5.6)',
+      'palette: entry "create.note" has aria-keyshortcuts="/" for the chip "/", expected "/ Shift+7": the keys of the US, then the German layout (guide §5.6)',
+    ]);
+  });
+
   it("reports menu keys that reached a document listener", () => {
     const recorded = (key: string): RecordedKey => ({
       key,
@@ -502,7 +517,7 @@ describe("menu checks", () => {
           name: "Keyboard shortcuts…",
           haspopup: "dialog",
           shortcut: "?",
-          keyShortcuts: "?",
+          keyShortcuts: "Shift+/ Shift+ß",
         }),
         action({ name: "Print", shortcut: "⌘P" }),
         action({
@@ -517,6 +532,45 @@ describe("menu checks", () => {
       'menu: "Print" shows the shortcut "⌘P" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
       'menu: "About" shows the shortcut "F1" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)',
     ]);
+  });
+
+  it("requires aria-keyshortcuts to name the keys of a chip's character, for US and German", () => {
+    const dialog = (keyShortcuts: string, shortcut = "?"): MenuItemFacts => ({
+      role: "menuitem",
+      name: "Keyboard shortcuts…",
+      checked: null,
+      disabled: null,
+      haspopup: "dialog",
+      group: null,
+      shortcut,
+      keyShortcuts,
+      description: "",
+    });
+    const problems = (item: MenuItemFacts) => menuOpenProblems(openMenu({ items: [item] }));
+    expect(problems(dialog("Shift+/ Shift+ß"))).toEqual([]);
+    expect(problems(dialog("?"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="?", which names the character "?", not a key; expected "Shift+/ Shift+ß" (guide §5.6)',
+    ]);
+    expect(problems(dialog("Shift+?"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Shift+?", which names the character "?", not a key; expected "Shift+/ Shift+ß" (guide §5.6)',
+    ]);
+    expect(problems(dialog("Shift+/"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Shift+/" for the chip "?", expected "Shift+/ Shift+ß": the keys of the US, then the German layout (guide §5.6)',
+    ]);
+    expect(problems(dialog("Shift+ß Shift+/"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Shift+ß Shift+/" for the chip "?", expected "Shift+/ Shift+ß": the keys of the US, then the German layout (guide §5.6)',
+    ]);
+    expect(problems(dialog("Meta+= Meta+Plus", "⌘+"))).toEqual([]);
+    expect(problems(dialog("Meta+Shift+= Meta+Plus", "⌘+"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Meta+Shift+= Meta+Plus" for the chip "⌘+", expected "Meta+= Meta+Plus": the keys of the US, then the German layout (guide §5.6)',
+    ]);
+    expect(problems(dialog("Meta++", "⌘+"))).toEqual([
+      'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Meta++", which names the character "+", not a key; expected "Meta+= Meta+Plus" (guide §5.6)',
+    ]);
+    // A chip whose character needs AltGr gets no aria-keyshortcuts; the chip describes the entry.
+    expect(problems({ ...dialog("Shift+2", "@"), keyShortcuts: null, description: "@" })).toEqual(
+      [],
+    );
   });
 
   it("requires the closed menu to hand the focus back to the trigger", () => {
@@ -2112,6 +2166,14 @@ describe("the start screen (guide §8)", () => {
       openLink: { name: "Datei öffnen…", keyShortcuts: "Meta+O", chip: "⌘O", underlined: true },
     };
     expect(startScreenOpenProblems(german, fileOpen, "de")).toEqual([]);
+  });
+
+  it("wants the link's aria-keyshortcuts to name keys, not characters", () => {
+    const shifted = { ...fileOpen, shortcut: "⌘?", keyShortcuts: "Meta+?" };
+    const link = { name: "Open a file…", keyShortcuts: "Meta+?", chip: "⌘?", underlined: true };
+    expect(startScreenOpenProblems({ ...conforming(), openLink: link }, shifted, "en")).toEqual([
+      'empty-state: "Open a file…" has aria-keyshortcuts="Meta+?", which names the character "?", not a key; expected "Meta+Shift+/ Meta+Shift+ß" (guide §5.6)',
+    ]);
   });
 
   it("wants the link underlined at rest, as its colour alone barely parts it from the hint", () => {

@@ -697,7 +697,8 @@ describe("menu: read-only opt-out and key shortcuts", () => {
     const chip = entry?.querySelector(".cd-shell-menu-shortcut");
     expect(chip?.textContent).toBe("?");
     expect(chip?.getAttribute("aria-hidden")).toBe("true");
-    expect(entry?.getAttribute("aria-keyshortcuts")).toBe("?");
+    // Guide §5.6 (design system 1.21.0): the keys that type "?" on the US and the German layout.
+    expect(entry?.getAttribute("aria-keyshortcuts")).toBe("Shift+/ Shift+ß");
     expect(entry?.getAttribute("aria-haspopup")).toBe("dialog");
   });
 });

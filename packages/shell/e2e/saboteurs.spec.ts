@@ -1032,6 +1032,61 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("aria fails for a palette entry whose aria-keyshortcuts names a character", async ({
+    page,
+  }) => {
+    const harness = sabotaged(() => {
+      document
+        .querySelector('[data-chrome="palette"] [data-action="lasso-tool"]')!
+        .setAttribute("aria-keyshortcuts", "Shift+?");
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /palette: entry "lasso-tool" has aria-keyshortcuts="Shift\+\?", which names the character "\?", not a key \(guide §5\.6\)/,
+    );
+  });
+
+  test("aria fails for a menu entry that names the character of its chip, not its keys", async ({
+    page,
+  }) => {
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        help: [
+          {
+            kind: "dialog",
+            id: "shortcuts",
+            label: "Keyboard shortcuts…",
+            shortcut: "?",
+            ariaKeyShortcuts: "?",
+            onSelect() {},
+          },
+        ],
+      });
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: "Keyboard shortcuts…" has aria-keyshortcuts="\?", which names the character "\?", not a key; expected "Shift\+\/ Shift\+ß" \(guide §5\.6\)/,
+    );
+  });
+
+  test("aria fails for a menu entry that names the keys of one layout only", async ({ page }) => {
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        help: [
+          {
+            kind: "dialog",
+            id: "shortcuts",
+            label: "Keyboard shortcuts…",
+            shortcut: "?",
+            ariaKeyShortcuts: "Shift+/",
+            onSelect() {},
+          },
+        ],
+      });
+    });
+    await expect(runCase("aria", page, harness)).rejects.toThrow(
+      /menu: "Keyboard shortcuts…" has aria-keyshortcuts="Shift\+\/" for the chip "\?", expected "Shift\+\/ Shift\+ß": the keys of the US, then the German layout \(guide §5\.6\)/,
+    );
+  });
+
   test("aria fails for a dialog entry without the ellipsis, whatever its shortcut chip", async ({
     page,
   }) => {

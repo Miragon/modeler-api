@@ -24,6 +24,7 @@ import {
 } from "./facts.js";
 import { GEOMETRY_TOLERANCE_PX, type Rectangle } from "./geometry.js";
 import type { AbsentFeature, ShellConformanceHarness, ShowHook } from "./harness.js";
+import { keyShortcutsValueProblems } from "./key-shortcut-checks.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
 import type { PageLike } from "./page.js";
 import { legalAriaProblems, primaryAriaProblems } from "./web-checks.js";
@@ -390,14 +391,24 @@ export interface PaletteShortcutFacts {
   keyShortcuts: string | null;
 }
 
-/** Guide §5.6: an entry whose tooltip shows a shortcut carries `aria-keyshortcuts`. */
+/**
+ * Guide §5.6: an entry whose tooltip shows a shortcut carries `aria-keyshortcuts`, which names keys
+ * (`keyShortcutsValueProblems`).
+ */
 export function paletteShortcutProblems(entries: readonly PaletteShortcutFacts[]): string[] {
-  return entries
-    .filter((entry) => entry.chip && !entry.keyShortcuts)
-    .map(
-      (entry) =>
-        `palette: entry "${entry.action}" shows the shortcut "${entry.chip}" in its tooltip but has no aria-keyshortcuts (guide §5.6)`,
-    );
+  return entries.flatMap((entry) => {
+    if (entry.keyShortcuts)
+      return keyShortcutsValueProblems(
+        `palette: entry "${entry.action}"`,
+        entry.chip,
+        entry.keyShortcuts,
+      );
+    return entry.chip
+      ? [
+          `palette: entry "${entry.action}" shows the shortcut "${entry.chip}" in its tooltip but has no aria-keyshortcuts (guide §5.6)`,
+        ]
+      : [];
+  });
 }
 
 /**
@@ -420,7 +431,7 @@ export function menuKeysAtDocumentProblems(
 
 /**
  * An open menu (guide §5.4): expanded trigger, labelled `role="menu"`, named items, shortcut chips
- * that assistive technology hears, focus.
+ * that assistive technology hears, by keys and not characters (§5.6), focus.
  */
 export function menuOpenProblems(facts: MenuFacts, focus?: "first" | "last"): string[] {
   const problems: string[] = [];
@@ -451,6 +462,11 @@ export function menuOpenProblems(facts: MenuFacts, focus?: "first" | "last"): st
     if (item.shortcut && !item.keyShortcuts && !item.description.includes(item.shortcut)) {
       problems.push(
         `menu: "${label}" shows the shortcut "${item.shortcut}" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)`,
+      );
+    }
+    if (item.keyShortcuts) {
+      problems.push(
+        ...keyShortcutsValueProblems(`menu: "${label}"`, item.shortcut, item.keyShortcuts),
       );
     }
   });

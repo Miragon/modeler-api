@@ -653,22 +653,95 @@ describe("ariaKeyShortcutsFromLabel", () => {
     ["Ctrl+Shift+E", "Control+Shift+E"],
     ["Strg+Umschalt+E", "Control+Shift+E"],
     ["Shift+1", "Shift+1"],
-    ["Ctrl++", "Control+Plus"],
+    ["⇧1", "Shift+1"],
     ["Del", "Delete"],
     ["Esc", "Escape"],
     ["Space", "Space"],
-    ["?", "?"],
     ["F2", "F2"],
     ["⇧ L", "Shift+L"],
     ["Ctrl + Shift + E", "Control+Shift+E"],
     ["Ctrl\t+\u00a0Shift +E", "Control+Shift+E"],
-    ["Ctrl + +", "Control+Plus"],
+    [",", ","],
+    [".", "."],
+    ["-", "-"],
   ])("maps the chip %j to %j", (label, expected) => {
     expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
   });
 
-  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+", "Ctrl+Shift E", "Ctrl + Page Up"])(
-    "gives nothing for %j",
+  it.each([
+    ["?", "Shift+/ Shift+ß"],
+    ["/", "/ Shift+7"],
+    ["⇧?", "Shift+/ Shift+ß"],
+    ["⌘?", "Meta+Shift+/ Meta+Shift+ß"],
+    ["Ctrl+Shift+?", "Control+Shift+/ Control+Shift+ß"],
+    ["!", "Shift+1"],
+    ['"', "Shift+' Shift+2"],
+    ["#", "Shift+3 #"],
+    ["$", "Shift+4"],
+    ["Ctrl+%", "Control+Shift+5"],
+    ["&", "Shift+7 Shift+6"],
+    ["'", "' Shift+#"],
+    ["(", "Shift+9 Shift+8"],
+    [")", "Shift+0 Shift+9"],
+    ["*", "Shift+8 Shift+Plus"],
+    ["+", "Shift+= Plus"],
+    [":", "Shift+; Shift+."],
+    [";", "; Shift+,"],
+    ["<", "Shift+, <"],
+    ["=", "= Shift+0"],
+    [">", "Shift+. Shift+<"],
+    ["_", "Shift+-"],
+  ])("names the keys of the US, then the German layout for the chip %j: %j", (label, expected) => {
+    expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
+  });
+
+  it.each([
+    ["⌘+", "Meta+= Meta+Plus"],
+    ["⌘=", "Meta+= Meta+Plus"],
+    ["⌘Plus", "Meta+= Meta+Plus"],
+    ["⌃+", "Control+= Control+Plus"],
+    ["Ctrl++", "Control+= Control+Plus"],
+    ["Ctrl + +", "Control+= Control+Plus"],
+    ["Ctrl+Plus", "Control+= Control+Plus"],
+    ["Strg+Plus", "Control+= Control+Plus"],
+    ["⌘−", "Meta+-"],
+    ["Ctrl+Minus", "Control+-"],
+  ])("gives the zoom chip %j the zoom panel's %j, with ⇧ only where needed", (label, expected) => {
+    expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
+  });
+
+  it("maps every chip of the zoom panel to the zoom panel's own aria-keyshortcuts", () => {
+    const germanKeyNames = { ctrl: "Strg", shift: "Umschalt", plus: "Plus", minus: "Minus" };
+    for (const platform of ["mac", "other"] as const) {
+      for (const keyNames of [defaultMessages.keyNames, germanKeyNames]) {
+        for (const key of ["zoomIn", "zoomOut", "zoomToActual", "fit"] as const) {
+          expect(ariaKeyShortcutsFromLabel(shortcutLabel(key, platform, keyNames))).toBe(
+            ariaKeyShortcuts(key, platform),
+          );
+        }
+      }
+    }
+  });
+
+  it.each([
+    "",
+    "  ",
+    "G then D",
+    "1–9",
+    "⌘",
+    "Hyper+K",
+    "Ctrl+",
+    "Ctrl+Shift E",
+    "Ctrl + Page Up",
+    "constructor",
+    "Constructor+K",
+    "__proto__",
+  ])("gives nothing for %j", (label) => {
+    expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
+  });
+
+  it.each(["@", "⌘@", "[", "]", "{", "}", "\\", "|", "^", "~", "`", "ß", "ä", "Ö", "§", "€"])(
+    "gives nothing for %j, which needs AltGr or ⌥, sits on a dead key or is missing in US or German",
     (label) => {
       expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
     },

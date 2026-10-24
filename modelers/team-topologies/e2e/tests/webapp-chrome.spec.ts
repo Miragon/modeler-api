@@ -197,7 +197,7 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     );
     const shortcutsEntry = dropdown.locator('[data-menu-id="keyboard-shortcuts"]');
     await expect(shortcutsEntry).toHaveText(/Keyboard shortcuts…\s*\?/);
-    await expect(shortcutsEntry).toHaveAttribute("aria-keyshortcuts", "?");
+    await expect(shortcutsEntry).toHaveAttribute("aria-keyshortcuts", "Shift+/ Shift+ß");
     await expect(
       dropdown.getByRole("menuitem", { name: "Keyboard shortcuts…", exact: true }),
     ).toHaveAttribute("data-menu-id", "keyboard-shortcuts");

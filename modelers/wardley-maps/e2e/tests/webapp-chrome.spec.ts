@@ -242,7 +242,8 @@ test.describe("the menu", () => {
     const shortcuts = dropdown.locator('[data-menu-id="keyboard-shortcuts"]');
     await expect(shortcuts).toHaveText(/Keyboard shortcuts…\s*\?$/);
     await expect(shortcuts).toHaveAccessibleName("Keyboard shortcuts…");
-    await expect(shortcuts).toHaveAttribute("aria-keyshortcuts", "?");
+    // The keys that type "?" on a US, then a German keyboard (guide §5.6, design system 1.21.0).
+    await expect(shortcuts).toHaveAttribute("aria-keyshortcuts", "Shift+/ Shift+ß");
     await expect(dropdown.locator('[data-menu-group="appearance"]')).toHaveCount(0);
     await expect(dropdown.getByRole("menuitem", { name: /undo|redo/i })).toHaveCount(0);
   });
