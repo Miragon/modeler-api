@@ -40,6 +40,7 @@ import {
   demoContentBounds,
   type DemoFlaws,
 } from "./demo-diagram.js";
+import { openShortcutsDialog } from "./demo-dialog.js";
 
 /**
  * The demo page the shell's own e2e suite drives. Query parameters:
@@ -126,7 +127,10 @@ const menu: MenuGroups = {
       label: "Keyboard shortcuts…",
       icon: "keyboard",
       shortcut: "?",
-      onSelect: () => calls.push("shortcuts"),
+      onSelect: () => {
+        calls.push("shortcuts");
+        openShortcutsDialog(root);
+      },
     },
   ],
 };
@@ -167,6 +171,7 @@ const flaws: DemoFlaws = {
   noSelectAll: false,
   commitLabelOnViewChange: false,
   closeLabelOnViewChange: false,
+  notePromptFollowsView: false,
 };
 
 // the diagram first, so document keydown listeners of a modeler would precede the shell's

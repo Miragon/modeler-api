@@ -798,3 +798,118 @@ export const menuEntriesProbe = ({ root }: { root: string }): MenuEntryFacts[] |
   }
   return entries;
 };
+
+/** A stacking context directly in the canvas container's own, above the guide's limit. */
+export interface CanvasLayerFacts {
+  /** The element that carries the layer (its outermost stacking context below `.djs-container`). */
+  description: string;
+  /** Its `z-index` in `.djs-container`'s stacking context; `auto` counts as 0. */
+  zIndex: number;
+}
+
+export interface CanvasLayersFacts {
+  /** The palette's `z-index`; `null` without a palette. */
+  palette: number | null;
+  /** Every visible layer above `limit` other than the palette. */
+  layers: CanvasLayerFacts[];
+}
+
+/**
+ * The layers inside `.djs-container` (an isolated stacking context, guide §5.13) above `limit`:
+ * each outermost stacking context below the container whose `z-index` exceeds it and that shows
+ * something. A descendant's own `z-index` is local to that context and does not count; the
+ * content of the canvas `<svg>` paints inside the `<svg>`. `null` without a canvas container.
+ */
+export const canvasLayersProbe = ({
+  root,
+  limit,
+}: {
+  root: string;
+  limit: number;
+}): CanvasLayersFacts | null => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const container = document.querySelector(root)?.querySelector(".djs-container");
+  if (!container) return null;
+  const zIndexOf = (style: CSSStyleDeclaration): number | null =>
+    !style.zIndex || style.zIndex === "auto" ? null : Number(style.zIndex);
+  const stacks = (style: CSSStyleDeclaration, parent: CSSStyleDeclaration): boolean => {
+    const position = style.position || "static";
+    if (position === "fixed" || position === "sticky") return true;
+    if (zIndexOf(style) !== null && (position !== "static" || /flex|grid/.test(parent.display)))
+      return true;
+    if (Number(style.opacity || "1") < 1 || style.isolation === "isolate") return true;
+    if ((style.mixBlendMode || "normal") !== "normal") return true;
+    const backdrop =
+      style.backdropFilter ||
+      (style as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter;
+    if (
+      [style.transform, style.filter, backdrop, style.perspective, style.clipPath, style.maskImage]
+        .map((value) => value || "none")
+        .some((value) => value !== "none")
+    )
+      return true;
+    if (
+      /transform|opacity|filter|perspective|isolation|mask|clip-path/.test(style.willChange || "")
+    )
+      return true;
+    if (/layout|paint|strict|content/.test(style.contain || "")) return true;
+    return ["size", "inline-size"].includes(style.containerType || "");
+  };
+  const shows = (element: Element): boolean =>
+    tools.visible(element) ||
+    [...element.querySelectorAll("*")].some((child) => tools.visible(child));
+  const layers: CanvasLayerFacts[] = [];
+  const visit = (element: Element, parent: CSSStyleDeclaration): void => {
+    if (element.hasAttribute("data-modeler-shell-conformance")) return;
+    const style = getComputedStyle(element);
+    if (style.display === "none") return;
+    if (stacks(style, parent)) {
+      const zIndex = zIndexOf(style) ?? 0;
+      if (zIndex > limit && !element.matches(".djs-palette") && shows(element))
+        layers.push({ description: tools.describe(element), zIndex });
+      return;
+    }
+    if (element instanceof SVGElement) return;
+    for (const child of element.children) visit(child, style);
+  };
+  const containerStyle = getComputedStyle(container);
+  for (const child of container.children) visit(child, containerStyle);
+  const palette = container.querySelector(".djs-palette");
+  return { palette: palette ? zIndexOf(getComputedStyle(palette)) : null, layers };
+};
+
+/** A visible entry of the open context pad. */
+export interface ContextPadEntryFacts {
+  /** `data-action` of the entry. */
+  action: string;
+  /** Viewport coordinates of the centre, for `page.mouse`. */
+  client: { x: number; y: number };
+}
+
+export const contextPadEntriesProbe = ({ root }: { root: string }): ContextPadEntryFacts[] => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const container = document.querySelector(root)?.querySelector(".djs-container");
+  if (!container) return [];
+  return [...container.querySelectorAll(".djs-context-pad .entry[data-action]")]
+    .filter((entry) => tools.visible(entry))
+    .map((entry) => {
+      const rect = entry.getBoundingClientRect();
+      return {
+        action: entry.getAttribute("data-action") ?? "",
+        client: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      };
+    });
+};
+
+/**
+ * While the kit clicks context-pad entries, `window.open` opens nothing: an entry that opens a
+ * link would leave the page for a foreign one. Restored by `removeInjectedProbe`.
+ */
+export const holdWindowOpenProbe = (_: null): void => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const open = window.open;
+  window.open = () => null;
+  tools.cleanups.push(() => {
+    window.open = open;
+  });
+};

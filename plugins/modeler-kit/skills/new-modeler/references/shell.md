@@ -115,7 +115,8 @@ kit's harness, and the kit asserts that they never show.
 state, ARIA and keys, keys that never reach VS Code, focus hand-back, appearance (the kit requests
 dark, dark with high contrast and light with high contrast: a light-only modeler stays light, never
 half-dark), keyboard creation, the label editor across the shell's zoom, fit and refit, the
-read-only lock, the web column and a clean `destroy`.
+read-only lock, reduced motion and forced colours, the canvas's overlay layers, the web column and
+a clean `destroy`.
 
 - `ide`: a Vite test page runs the webview's `main.ts` inside `installVsCodeWebviewStub` (with
   `stubOptionsFromSearch`), opened with `vsCodeStubSearch(requested)`; the page, not the bundle,
@@ -130,6 +131,12 @@ read-only lock, the web column and a clean `destroy`.
   fits and resizes through the shell and expects no commit (L5) and the typed text still in the
   editor (L5 recommends it, the shell kit requires it), so the label editor stays open across a view
   change, follows its element and commits only on the user's gestures.
+- Reduced motion, forced colours and the overlay layers (a modeler-shell release after 0.5.0) need no
+  harness field: the kit emulates both media features itself and clicks every context-pad entry of
+  a shape but a deleting one. So keep what stays on the canvas (a toolbar, a prompt, the label
+  editor) at `z-index` 100 or below and close a popup above the palette on
+  `canvas.viewbox.changing`; give each dialog its own forced-colours border (`CanvasText`), and an
+  element outside the shell root its own reduced-motion rule.
 - `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap. In VS Code
   a menu without a Model action (no File group there) adds `absent: ["canvasMenuAction"]`
   (modeler-shell 0.4.0 or later).

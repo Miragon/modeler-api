@@ -9,6 +9,7 @@ import {
   DOM_ORDER,
   type AppearanceFacts,
   type AriaFacts,
+  type CanvasLayerFacts,
   type CanvasStateFacts,
   type FocusPlaceFacts,
   type LabelEditorFacts,
@@ -1110,4 +1111,46 @@ export function lockedShapeProblems(facts: LockedShapeFacts): string[] {
       problems.push(`read-only: ${key} on the canvas deleted "${before.id}" (guide §13.5)`);
   }
   return problems;
+}
+
+/**
+ * Guide §5.13: the highest `z-index` an overlay that stays in the canvas may take (a toolbar, its
+ * own context pad, a prompt, the label editor), under the palette at 110.
+ */
+export const OVERLAY_LAYER_LIMIT = 100;
+
+/** The canvas layers above `OVERLAY_LAYER_LIMIT` in one state, before and after a zoom. */
+export interface OverlayLayerFacts {
+  /** Where the kit looked: `as opened`, `with "box" selected`, `after a click on context-pad entry "note"`. */
+  state: string;
+  /** The palette's `z-index`. */
+  palette: number | null;
+  /** The layers above the limit in that state. */
+  before: readonly CanvasLayerFacts[];
+  /** The layers above the limit once a zoom at the canvas changed the view; `null` when no zoom key did. */
+  after: readonly CanvasLayerFacts[] | null;
+}
+
+/**
+ * Guide §5.13: above the palette lie only popups a user opens briefly, which close on a pan or zoom
+ * (and tooltips while the pointer rests, which the kit parks away). A layer above the limit that is
+ * still there after the view zoomed stays, and so must lie at the limit or below.
+ */
+export function overlayLayerProblems(facts: OverlayLayerFacts): string[] {
+  if (facts.before.length === 0) return [];
+  const listed = facts.before
+    .map((layer) => `${layer.description} at z-index ${layer.zIndex}`)
+    .join(", ");
+  if (facts.after === null) {
+    return [
+      `canvas: neither Cmd/Ctrl+Plus nor Cmd/Ctrl+Minus at the canvas changed the view ${facts.state}, so whether ${listed} closes on a zoom was not verified`,
+    ];
+  }
+  const palette = facts.palette === null ? "the palette" : `the palette at ${facts.palette}`;
+  return facts.after
+    .filter((layer) => facts.before.some((seen) => seen.description === layer.description))
+    .map(
+      (layer) =>
+        `canvas: ${layer.description} lies at z-index ${layer.zIndex} in .djs-container ${facts.state} and stays when the view zooms, above ${palette}; an overlay that stays (a toolbar, a prompt, a label editor) lies at ${OVERLAY_LAYER_LIMIT} or below, only a popup that closes on a pan or zoom may cover the palette (guide §5.13)`,
+    );
 }

@@ -6,9 +6,12 @@ import { menuOpenProblems } from "./checks.js";
 import {
   ariaProbe,
   appearanceProbe,
+  canvasLayersProbe,
   canvasStateProbe,
+  contextPadEntriesProbe,
   emptyCanvasSpotProbe,
   focusPlaceProbe,
+  holdWindowOpenProbe,
   labelEditorProbe,
   menuEntriesProbe,
   menuProbe,
@@ -22,6 +25,17 @@ import {
   MODE_ROLES,
 } from "./facts.js";
 import { measureChrome } from "./geometry.js";
+import {
+  dialogPanelsProbe,
+  focusRingProbe,
+  forcedColorsProbe,
+  hostReduceMotionProbe,
+  motionStylesProbe,
+  motionWatchProbe,
+  viewWatchProbe,
+  watchMotionProbe,
+  watchViewProbe,
+} from "./media-facts.js";
 import type { PageLike } from "./page.js";
 import {
   afterPressProbe,
@@ -718,6 +732,186 @@ describe("probes in a page", () => {
     });
     (document.activeElement as HTMLElement).blur();
     await expect(at()).resolves.toEqual({ focused: "<body>", canvas: false, control: false });
+  });
+
+  it("finds the canvas's layers above a limit by their outermost stacking context", async () => {
+    const root = buildShell();
+    const container = root.querySelector<HTMLElement>(".djs-container")!;
+    root.querySelector<HTMLElement>(".djs-palette")!.style.cssText =
+      "position:absolute;z-index:110";
+    container.insertAdjacentHTML(
+      "beforeend",
+      `<div class="djs-context-pad" style="position:absolute;z-index:100"><div class="entry" data-action="note"></div><div class="entry" data-action="delete"></div></div>
+       <div class="toolbar" style="position:absolute;z-index:300"></div>
+       <div class="djs-overlay-container" style="position:absolute;transform:matrix(1, 0, 0, 1, 10, 10)"><div class="trapped" style="position:absolute;z-index:500"></div></div>
+       <div class="closed-popup" style="position:absolute;z-index:200;display:none"></div>
+       <div class="wrapper"><div class="prompt" style="position:fixed;z-index:210"></div></div>`,
+    );
+    for (const selector of [".toolbar", ".trapped", ".closed-popup", ".prompt", ".entry"])
+      for (const element of container.querySelectorAll(selector)) place(element, 300, 300, 20, 20);
+
+    await expect(
+      inPage(page, canvasLayersProbe, { root: ".cd-shell", limit: 100 }),
+    ).resolves.toEqual({
+      palette: 110,
+      layers: [
+        { description: "div.toolbar", zIndex: 300 },
+        { description: "div.prompt", zIndex: 210 },
+      ],
+    });
+    await expect(
+      inPage(page, canvasLayersProbe, { root: ".nothing", limit: 100 }),
+    ).resolves.toBeNull();
+    await expect(inPage(page, contextPadEntriesProbe, { root: ".cd-shell" })).resolves.toEqual([
+      { action: "note", client: { x: 310, y: 310 } },
+      { action: "delete", client: { x: 310, y: 310 } },
+    ]);
+  });
+
+  it("holds window.open while the kit clicks context-pad entries and gives it back", async () => {
+    const open = window.open;
+    await inPage(page, holdWindowOpenProbe, null);
+    expect(window.open("https://example.com")).toBeNull();
+    expect(window.open).not.toBe(open);
+    await inPage(page, removeInjectedProbe, null);
+    expect(window.open).toBe(open);
+  });
+
+  it("lists the motion computed styles set, in the root or in the whole document", async () => {
+    const root = buildShell();
+    root.querySelector<HTMLElement>('[data-chrome="zoom"]')!.style.cssText =
+      "transition-property: opacity, transform; transition-duration: 0.001ms, 200ms";
+    root.querySelector<HTMLElement>('[data-chrome="legend"]')!.style.cssText =
+      "animation-name: slide; animation-duration: 0.25s";
+    const outside = document.createElement("div");
+    outside.className = "side-panel";
+    outside.style.cssText = "transition-property: opacity; transition-duration: 150ms";
+    document.body.append(outside);
+    const scope = { root: ".cd-shell", thresholdMs: 0.01 };
+
+    await expect(
+      inPage(page, motionStylesProbe, { ...scope, wholeDocument: false }),
+    ).resolves.toEqual([
+      {
+        description: 'section[data-chrome="legend"]',
+        kind: "animation",
+        name: "slide",
+        durationMs: 250,
+      },
+      {
+        description: 'div[data-chrome="zoom"]',
+        kind: "transition",
+        name: "transform",
+        durationMs: 200,
+      },
+    ]);
+    const whole = await inPage(page, motionStylesProbe, { ...scope, wholeDocument: true });
+    expect(whole?.map((record) => record.description)).toContain("div.side-panel");
+    await expect(
+      inPage(page, motionStylesProbe, { ...scope, root: ".nothing", wholeDocument: true }),
+    ).resolves.toBeNull();
+  });
+
+  it("records running animations and the canvas's views until the kit reads them", async () => {
+    const root = buildShell();
+    const svg = root.querySelector(".djs-container > svg")!;
+    svg.innerHTML = '<g class="viewport" transform="matrix(1 0 0 1 0 0)"></g>';
+    const scope = { root: ".cd-shell", wholeDocument: true, thresholdMs: 0.01 };
+    const watching = await inPage(page, watchMotionProbe, scope);
+    expect(watching).toBe(typeof document.getAnimations === "function");
+    await expect(inPage(page, motionWatchProbe, null)).resolves.toEqual([]);
+
+    await expect(inPage(page, watchViewProbe, { root: ".cd-shell" })).resolves.toBe(true);
+    svg.querySelector("g")!.setAttribute("transform", "matrix(2 0 0 2 10 10)");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await expect(inPage(page, viewWatchProbe, null)).resolves.toEqual([
+      "matrix(1 0 0 1 0 0)",
+      "matrix(2 0 0 2 10 10)",
+    ]);
+    await expect(inPage(page, viewWatchProbe, null)).resolves.toEqual([]);
+    await expect(inPage(page, watchViewProbe, { root: ".nothing" })).resolves.toBe(false);
+  });
+
+  it("toggles VS Code's reduce motion on the host page's body", async () => {
+    await inPage(page, hostReduceMotionProbe, true);
+    expect(document.body.classList.contains("vscode-reduce-motion")).toBe(true);
+    await inPage(page, hostReduceMotionProbe, false);
+    expect(document.body.classList.contains("vscode-reduce-motion")).toBe(false);
+  });
+
+  it("reads borders, palette entries and the status bar under forced colours", async () => {
+    const root = buildShell();
+    root.querySelector<HTMLElement>('[data-chrome="zoom"]')!.style.cssText =
+      "border: 1px solid rgb(0, 0, 0)";
+    const lasso = root.querySelector<HTMLElement>('[data-action="lasso-tool"]')!;
+    lasso.setAttribute("aria-pressed", "true");
+    lasso.style.boxShadow = "rgb(5, 0, 73) 0px 0px 0px 2px inset";
+    lasso.innerHTML = '<svg viewBox="0 0 20 20"></svg>';
+
+    const facts = await inPage(page, forcedColorsProbe, { root: ".cd-shell" });
+    expect(Object.keys(facts?.system ?? {})).toEqual([
+      "canvas",
+      "canvasText",
+      "highlight",
+      "buttonText",
+    ]);
+    expect(facts?.parts.map((part) => part.name)).toEqual(
+      expect.arrayContaining(["menu", "palette", "zoom", "dropdown"]),
+    );
+    expect(facts?.parts.find((part) => part.name === "zoom")?.border.top).toEqual({
+      width: 1,
+      style: "solid",
+      color: "rgb(0, 0, 0)",
+    });
+    expect(
+      facts?.entries.map((entry) => [entry.action, entry.pressed, entry.icon?.kind ?? null]),
+    ).toEqual([
+      ["lasso-tool", true, "svg"],
+      ["hand-tool", false, null],
+    ]);
+    expect(facts?.entries[0]?.boxShadow).toContain("inset");
+    expect(facts?.statusBar).toBeNull();
+    expect(root.querySelector("[data-modeler-shell-conformance]")).toBeNull();
+    await expect(inPage(page, forcedColorsProbe, { root: ".nothing" })).resolves.toBeNull();
+  });
+
+  it("reads the focus ring of the focused element", async () => {
+    const root = buildShell();
+    const readout = root.querySelector<HTMLElement>('[data-zoom="actual"]')!;
+    readout.style.cssText = "outline: 2px solid rgb(5, 0, 73)";
+    readout.focus();
+    await expect(inPage(page, focusRingProbe, { root: ".cd-shell" })).resolves.toEqual({
+      focused: "button",
+      inRoot: true,
+      outline: { width: 2, style: "solid", color: "rgb(5, 0, 73)" },
+    });
+    readout.blur();
+    await expect(inPage(page, focusRingProbe, { root: ".cd-shell" })).resolves.toEqual({
+      focused: "<body>",
+      inRoot: false,
+      outline: { width: 0, style: "none", color: "" },
+    });
+  });
+
+  it("finds a dialog's panel: the dialog, or the first child down that draws a border", async () => {
+    const root = buildShell();
+    root.insertAdjacentHTML(
+      "beforeend",
+      `<dialog open class="framed" style="border: 0"><div class="panel" style="border: 1px solid rgb(0, 0, 0)"><h2>Shortcuts</h2></div></dialog>
+       <div role="dialog" class="own" style="border: 2px solid rgb(1, 2, 3)"></div>
+       <div role="dialog" class="closed" hidden style="border: 1px solid rgb(0, 0, 0)"></div>`,
+    );
+    for (const selector of ["dialog", ".panel", ".own", ".closed"])
+      place(root.querySelector(selector)!, 100, 100, 300, 200);
+
+    const panels = await inPage(page, dialogPanelsProbe, {
+      root: ".cd-shell",
+      wholeDocument: false,
+    });
+    expect(panels.map((panel) => [panel.description, panel.border.top])).toEqual([
+      ["div.panel", { width: 1, style: "solid", color: "rgb(0, 0, 0)" }],
+      ["div.own", { width: 2, style: "solid", color: "rgb(1, 2, 3)" }],
+    ]);
   });
 });
 

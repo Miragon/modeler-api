@@ -27,6 +27,8 @@ declare global {
         commitLabelOnViewChange: boolean;
         /** The label editor closes without a commit on every view change (case `labelEditor`). */
         closeLabelOnViewChange: boolean;
+        /** The note prompt follows a pan or zoom instead of closing (case `overlayLayers`). */
+        notePromptFollowsView: boolean;
       };
       /** Commands that changed the diagram so far, the demo's document changes (case `labelEditor`). */
       documentChanges(): number;

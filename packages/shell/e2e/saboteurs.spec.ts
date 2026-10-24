@@ -33,13 +33,39 @@ function runCase(name: string, page: Page, harness: ShellConformanceHarness<Page
   return found.run(page, harness);
 }
 
+/** The case's failure, or "passed". */
+function failureOf(
+  name: string,
+  page: Page,
+  harness: ShellConformanceHarness<Page>,
+): Promise<string> {
+  return runCase(name, page, harness).then(
+    () => "passed",
+    (error: unknown) => String(error),
+  );
+}
+
+/**
+ * Cases that run only for the saboteurs that expect them: the other saboteurs break nothing they
+ * read, and their seconds per run, times every saboteur, would cost this suite minutes. The demo
+ * passes them in conformance.spec.ts.
+ */
+const OWN_SABOTEURS_ONLY: ReadonlySet<string> = new Set([
+  "reducedMotion",
+  "forcedColors",
+  "overlayLayers",
+]);
+
 /** Runs every case; the failure (or skips) of each case that did not pass, by case name. */
 async function failures(
   page: Page,
   harness: ShellConformanceHarness<Page>,
+  expected: ReadonlySet<string>,
 ): Promise<Map<string, string>> {
   const failed = new Map<string, string>();
   for (const conformanceCase of allCases()) {
+    if (OWN_SABOTEURS_ONLY.has(conformanceCase.name) && !expected.has(conformanceCase.name))
+      continue;
     try {
       const outcome = await conformanceCase.run(page, harness);
       const skipped = outcome?.skipped ?? [];
@@ -79,7 +105,7 @@ async function expectOnlyCasesFail(
   harness: ShellConformanceHarness<Page>,
   expected: Readonly<Record<string, readonly RegExp[]>>,
 ): Promise<Map<string, string>> {
-  const failed = await failures(page, harness);
+  const failed = await failures(page, harness, new Set(Object.keys(expected)));
   expect([...failed.entries()].filter(([name]) => !(name in expected))).toEqual([]);
   for (const [caseName, patterns] of Object.entries(expected)) {
     const failure = failed.get(caseName);
@@ -1355,5 +1381,155 @@ test.describe("saboteurs", () => {
     await expect(runCase("cleanup", page, harness)).rejects.toThrow(
       /Control\+Equal after destroy arrived prevented: a shell listener is still installed/,
     );
+  });
+
+  test("reducedMotion fails for a transition outside the shell root that reduced motion does not stop", async ({
+    page,
+  }) => {
+    // a modeler panel in <body>: the shell's reduced-motion rule covers only its own root
+    const harness = sabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent = ".demo-side-panel { transition: opacity 200ms; }";
+      document.head.append(style);
+      const panel = document.createElement("div");
+      panel.className = "demo-side-panel";
+      document.body.append(panel);
+    });
+    const failure = await failureOf("reducedMotion", page, harness);
+    expect(failure).toMatch(
+      /\[prefers-reduced-motion\] motion: div\.demo-side-panel sets a transition of 200ms on "opacity" as opened; under reduced motion nothing moves \(guide §5\.14, §7\)/,
+    );
+    expect(failure).toMatch(
+      /\[VS Code's reduce motion\] motion: div\.demo-side-panel sets a transition of 200ms on "opacity" as opened/,
+    );
+  });
+
+  test("reducedMotion fails for an element.animate() that reduced motion cannot stop", async ({
+    page,
+  }) => {
+    // a selection that pulses through the Web Animations API, which no CSS rule reaches
+    const harness = sabotaged(() => {
+      const container = document.querySelector(".djs-container")!;
+      new MutationObserver((records) => {
+        for (const record of records) {
+          const target = record.target as Element;
+          if (target.matches(".djs-shape.selected"))
+            target.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 400 });
+        }
+      }).observe(container, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    });
+    const failure = await failureOf("reducedMotion", page, harness);
+    expect(failure).toMatch(
+      /\[prefers-reduced-motion\] motion: g\S*\.djs-shape\S* ran an element\.animate\(\) animation of 400ms with "[^"]+" selected/,
+    );
+    expect(failure).toMatch(
+      /\[VS Code's reduce motion\] motion: g\S*\.djs-shape\S* ran an element\.animate\(\) animation of 400ms with "[^"]+" selected/,
+    );
+  });
+
+  test("reducedMotion fails when an explicit fit glides under prefers-reduced-motion", async ({
+    page,
+  }) => {
+    // a fit that ignores the media query, as with connectDiagramJs's prefersReducedMotion: () => false
+    const harness = sabotaged(() => {
+      const matchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) =>
+        query.includes("prefers-reduced-motion")
+          ? ({ ...matchMedia(query), matches: false } as MediaQueryList)
+          : matchMedia(query);
+    });
+    const failure = await failureOf("reducedMotion", page, harness);
+    expect(failure).toMatch(
+      /\[prefers-reduced-motion\] fit: a click on Fit passed through \d+ views; under reduced motion an explicit fit jumps \(guide §5\.9, §7\)/,
+    );
+    expect(failure).not.toMatch(/\[VS Code's reduce motion\] fit:/);
+  });
+
+  test("forcedColors fails for an island whose border vanishes under forced colours", async ({
+    page,
+  }) => {
+    const harness = sabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent =
+        '@media (forced-colors: active) { .cd-shell [data-chrome="zoom"] { forced-color-adjust: none; border-color: transparent !important; } }';
+      document.head.append(style);
+    });
+    const failure = await failureOf("forcedColors", page, harness);
+    expect(failure).toMatch(
+      /\[as opened\] forced colours: island "zoom" \(div\S*\[data-chrome="zoom"\]\) has its top, right, bottom, left border in rgba\(0, 0, 0, 0\), expected CanvasText \(rgb\([^)]*\)\); islands keep their border in system colours, nothing disappears \(guide §5\.14\)/,
+    );
+  });
+
+  test("forcedColors fails for a pressed tool whose ring the browser drops", async ({ page }) => {
+    // a ring without forced-color-adjust: none is a box-shadow, which forced colours remove
+    const harness = sabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent =
+        '@media (forced-colors: active) { .djs-palette[data-chrome="palette"] .entry[aria-pressed="true"] { box-shadow: none !important; } }';
+      document.head.append(style);
+    });
+    const failure = await failureOf("forcedColors", page, harness);
+    expect(failure).toMatch(
+      /forced colours: the pressed tool "lasso-tool" shows box-shadow "none", expected its ring as a 2px inset shadow in Highlight \(rgba?\([^)]*\)\), with forced-color-adjust: none so the browser keeps it \(guide §5\.14\)/,
+    );
+  });
+
+  test("forcedColors fails for a modeler dialog that keeps its own border colour", async ({
+    page,
+  }) => {
+    // forced-color-adjust: none on the dialog keeps the light border, which vanishes on a light Canvas
+    const harness = sabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent =
+        ".demo-dialog { forced-color-adjust: none; border-color: rgb(228, 231, 236) !important; }";
+      document.head.append(style);
+    });
+    const failure = await failureOf("forcedColors", page, harness);
+    expect(failure).toMatch(
+      /forced colours: the dialog of "Keyboard shortcuts…" \(dialog\.demo-dialog\) has its top, right, bottom, left border in rgb\(228, 231, 236\), expected CanvasText \(rgb\([^)]*\)\); a modeler's dialog sets its forced-colours rules itself/,
+    );
+  });
+
+  test("overlayLayers fails for an element toolbar above the palette", async ({ page }) => {
+    // Event Storming's note toolbar at z-index 300, which nothing flagged
+    const harness = sabotaged(() => {
+      const container = document.querySelector<HTMLElement>(".djs-container")!;
+      const toolbar = document.createElement("div");
+      toolbar.className = "demo-element-toolbar";
+      toolbar.style.cssText =
+        "position:absolute;z-index:300;width:96px;height:32px;display:none;background:white;";
+      container.append(toolbar);
+      new MutationObserver(() => {
+        const selected = container.querySelector(".djs-shape.selected");
+        if (!selected) {
+          toolbar.style.display = "none";
+          return;
+        }
+        const box = selected.getBoundingClientRect();
+        const origin = container.getBoundingClientRect();
+        toolbar.style.display = "block";
+        toolbar.style.left = `${box.left - origin.left}px`;
+        toolbar.style.top = `${box.top - origin.top - 40}px`;
+      }).observe(container, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: div\.demo-element-toolbar lies at z-index 300 in \.djs-container with "[^"]+" selected and stays when the view zooms, above the palette at 110; an overlay that stays \(a toolbar, a prompt, a label editor\) lies at 100 or below, only a popup that closes on a pan or zoom may cover the palette \(guide §5\.13\)/,
+    );
+    expect(failure).not.toMatch(/as opened/);
+  });
+
+  test("overlayLayers fails for a context-pad prompt that follows the view instead of closing", async ({
+    page,
+  }) => {
+    // Context Maps' description prompt at z-index 210, which followed a pan or zoom
+    const harness = sabotaged(() => {
+      window.__demo!.flaws.notePromptFollowsView = true;
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: div\.demo-note-prompt lies at z-index 210 in \.djs-container after a click on context-pad entry "note" of "[^"]+" and stays when the view zooms, above the palette at 110/,
+    );
+    expect(failure.match(/lies at z-index/g)).toHaveLength(1);
   });
 });

@@ -26,6 +26,7 @@ import {
   menuKeysAtDocumentProblems,
   menuOpenProblems,
   optionalIslandProblems,
+  overlayLayerProblems,
   paletteColorProblems,
   paletteShortcutProblems,
   readOnlyMenuProblems,
@@ -2937,6 +2938,46 @@ describe("web-column bookkeeping", () => {
       "the root keeps data-zoom-row after destroy",
       "the root keeps data-empty-state after destroy",
       "the root keeps data-drop after destroy",
+    ]);
+  });
+});
+
+describe("overlayLayerProblems", () => {
+  const toolbar = { description: "div.note-toolbar", zIndex: 300 };
+  const popup = { description: "div.djs-popup", zIndex: 200 };
+
+  it("passes a state without layers above the limit, and popups that close on a zoom", () => {
+    expect(
+      overlayLayerProblems({ state: "as opened", palette: 110, before: [], after: null }),
+    ).toEqual([]);
+    expect(
+      overlayLayerProblems({
+        state: 'after a click on context-pad entry "change-kind" of "a"',
+        palette: 110,
+        before: [popup],
+        after: [],
+      }),
+    ).toEqual([]);
+  });
+
+  it("fails a layer above the limit that stays when the view zooms, not one that came with the zoom", () => {
+    expect(
+      overlayLayerProblems({
+        state: 'with "a" selected',
+        palette: 110,
+        before: [toolbar, popup],
+        after: [toolbar, { description: "div.hover-tooltip", zIndex: 1000 }],
+      }),
+    ).toEqual([
+      'canvas: div.note-toolbar lies at z-index 300 in .djs-container with "a" selected and stays when the view zooms, above the palette at 110; an overlay that stays (a toolbar, a prompt, a label editor) lies at 100 or below, only a popup that closes on a pan or zoom may cover the palette (guide §5.13)',
+    ]);
+  });
+
+  it("reports a state whose layers no zoom could test", () => {
+    expect(
+      overlayLayerProblems({ state: "as opened", palette: null, before: [popup], after: null }),
+    ).toEqual([
+      "canvas: neither Cmd/Ctrl+Plus nor Cmd/Ctrl+Minus at the canvas changed the view as opened, so whether div.djs-popup at z-index 200 closes on a zoom was not verified",
     ]);
   });
 });

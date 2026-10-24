@@ -84,6 +84,17 @@ export function unfed<P extends PageLike>(
   return !harness.show?.[hook] && !harness.absent?.includes(hook);
 }
 
+/** One skip per island hook neither given nor declared absent, with what it would have verified. */
+export function missingHooks<P extends PageLike>(
+  harness: ShellConformanceHarness<P>,
+  what: string,
+): ShellSkip[] {
+  return SHOWN_ISLANDS.filter((island) => unfed(harness, island)).map((island) => ({
+    hook: island,
+    reason: `show.${island} is undefined: ${what} of the ${island} island not verified`,
+  }));
+}
+
 /**
  * Opens the harness. In the web host the system's mode and contrast come first, through
  * `page.emulateMedia` where the page has it (API.md, `./testing`): the page's head script reads

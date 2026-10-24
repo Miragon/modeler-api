@@ -30,6 +30,7 @@ import {
   createDemoModeler,
   type DemoFlaws,
 } from "./demo-diagram.js";
+import { openShortcutsDialog } from "./demo-dialog.js";
 
 /**
  * The web-app variant of the demo (`/web.html`): every 0.2 web-host option of `mountShell`, the way
@@ -58,6 +59,7 @@ const flaws: DemoFlaws = {
   noSelectAll: false,
   commitLabelOnViewChange: false,
   closeLabelOnViewChange: false,
+  notePromptFollowsView: false,
 };
 
 // The diagram first, so a modeler's document keydown listeners would precede the shell's.
@@ -162,7 +164,10 @@ const menu: MenuGroups = {
       label: "Keyboard shortcuts…",
       icon: "keyboard",
       shortcut: "?",
-      onSelect: () => calls.push("shortcuts"),
+      onSelect: () => {
+        calls.push("shortcuts");
+        openShortcutsDialog(app);
+      },
     },
   ],
 };

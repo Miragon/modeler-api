@@ -179,8 +179,13 @@ export interface ShellConformanceCase {
  * and leave it open with the typed text, which L5 recommends and the shell kit requires),
  * `readOnly` (the invalid-file lock of guide §13.5), `appearance` (dark requested from a light-only
  * modeler: nothing turns dark, `color-scheme` light everywhere, the canvas surround and the
- * palette's tool colours from the roles; the web app's mode and its Appearance group) and `cleanup`
- * (after `destroy` no shell element, class, attribute or key handling remains); then the web
+ * palette's tool colours from the roles; the web app's mode and its Appearance group),
+ * `reducedMotion` (under `prefers-reduced-motion` and VS Code's reduce motion nothing moves and an
+ * explicit fit jumps), `forcedColors` (under `forced-colors: active` islands, dropdown and the
+ * modeler's dialogs keep their border, the pressed tool, the focus and the status box their marks),
+ * `overlayLayers` (what stays on the canvas lies at `z-index` 100 or below, under the palette; only a
+ * popup that closes on a pan or zoom covers it) and `cleanup` (after `destroy` no shell element,
+ * class, attribute or key handling remains); then the web
  * column's `webChrome`, `emptyState`, `toasts`, `problemsList` and `dropZone`, which assert in the
  * other hosts that nothing of them shows.
  */
