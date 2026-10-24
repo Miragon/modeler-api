@@ -9,12 +9,15 @@ import {
   FONT,
   NOTE_BULLET_INDENT,
   NOTE_STYLE,
+  PROVISIONAL_STICKY,
   STICKY_CHAR_WIDTH,
   STICKY_LINE_HEIGHT,
   STICKY_PADDING,
   STICKY_RADIUS,
+  STICKY_SHADOW,
   STICKY_STYLES,
 } from "./styles.js";
+import { textColorOn } from "./contrast.js";
 import { parseNoteMarkdown, type NoteLine, type NoteRun } from "./note-markdown.js";
 import {
   HOTSPOT_ROTATION_DEG,
@@ -44,14 +47,8 @@ export const KIND_CAPTION_CLASS = "event-storming-kind-caption";
  */
 const CAPTION_FONT_SIZE = 9;
 const CAPTION_FONT_WEIGHT = 300;
-const CAPTION_FILL = COLORS.stickyText;
 /** Caption baseline sits this many px above the sticky's bottom edge. */
 const CAPTION_BOTTOM_OFFSET = 7;
-
-/** Provisional (blank append) sticky: neutral paper with a dashed hint border, no kind yet. */
-const PROVISIONAL_FILL = "#FBFBFB";
-const PROVISIONAL_STROKE = "#B9B9B9";
-const PROVISIONAL_DASH = "6 4";
 
 /** Soft drop shadow that makes stickies read as paper on the board (defs id, per canvas SVG). */
 export const STICKY_SHADOW_FILTER_ID = "event-storming-sticky-shadow";
@@ -68,10 +65,10 @@ function ensureStickyShadowFilter(visuals: SVGElement): boolean {
   if (svg.querySelector(`#${STICKY_SHADOW_FILTER_ID}`)) return true;
   const drop = svgAttr(svgCreate("feDropShadow"), {
     dx: 0,
-    dy: 5,
-    stdDeviation: 5,
-    "flood-color": "#000000",
-    "flood-opacity": 0.2,
+    dy: STICKY_SHADOW.dy,
+    stdDeviation: STICKY_SHADOW.blur,
+    "flood-color": STICKY_SHADOW.color,
+    "flood-opacity": STICKY_SHADOW.opacity,
   });
   // Widened filter region: the default -10%/120% box would clip the soft blur below the sticky.
   const filter = svgAttr(svgCreate("filter"), {
@@ -129,9 +126,10 @@ export default class EventStormingRenderer extends BaseRenderer {
   }
 
   /**
-   * Every sticky (and the free note) is a rounded rectangle with centered, wrapped dark text
-   * inside — the label lives IN the sticky, never beside it. A user-picked `color` overrides
-   * the kind's fill; the border stays the kind's own (so the type remains recognizable).
+   * Every sticky (and the free note) is a rounded rectangle with centered, wrapped text inside —
+   * the label lives IN the sticky, never beside it. A user-picked `color` overrides the kind's
+   * fill and turns the text black or white, whichever reads better on it; the border stays the
+   * kind's own (so the type remains recognizable).
    */
   private drawSticky(visuals: SVGElement, shape: EventStormingShape): SVGElement {
     const kind = shape.eventStormingType;
@@ -151,16 +149,17 @@ export default class EventStormingRenderer extends BaseRenderer {
       parent = group;
     }
 
+    const fill = shape.color ?? style.fill;
     const rect = svgAttr(svgCreate("rect"), {
       x: 0,
       y: 0,
       width: Math.max(shape.width, 1),
       height: Math.max(shape.height, 1),
       rx: STICKY_RADIUS,
-      fill: provisional ? PROVISIONAL_FILL : (shape.color ?? style.fill),
-      stroke: provisional ? PROVISIONAL_STROKE : style.stroke,
+      fill: provisional ? PROVISIONAL_STICKY.fill : fill,
+      stroke: provisional ? PROVISIONAL_STICKY.stroke : style.stroke,
       "stroke-width": 1.5,
-      ...(provisional ? { "stroke-dasharray": PROVISIONAL_DASH } : {}),
+      ...(provisional ? { "stroke-dasharray": PROVISIONAL_STICKY.dash } : {}),
     });
     // Attribute (not tiny-svg attr, which routes `filter` into inline style) so exports carry it.
     if (ensureStickyShadowFilter(visuals)) {
@@ -170,8 +169,9 @@ export default class EventStormingRenderer extends BaseRenderer {
 
     if (provisional) return rect;
 
-    if (kind === "note") drawNoteText(parent, shape);
-    else drawStickyText(parent, shape);
+    const textColor = textColorOn(fill);
+    if (kind === "note") drawNoteText(parent, shape, textColor);
+    else drawStickyText(parent, shape, textColor);
 
     // Small kind caption at the bottom — the 8 sticky kinds only (a note explains itself,
     // drawings never reach this method). Appended to `parent` so it tilts with a hotspot.
@@ -183,7 +183,7 @@ export default class EventStormingRenderer extends BaseRenderer {
         {
           "text-anchor": "middle",
           "font-size": CAPTION_FONT_SIZE,
-          fill: CAPTION_FILL,
+          fill: textColor,
         },
       );
       // Plain attributes (tiny-svg attr routes `font-weight` into inline style): the class is
@@ -273,7 +273,7 @@ function wrapParagraph(paragraph: string, maxChars: number): string[] {
  * word-wrapped into the padded box, and overflowing lines are clipped (fixed-size stickies never
  * grow). Notes render via `drawNoteText` instead.
  */
-function drawStickyText(parent: SVGElement, shape: EventStormingShape): void {
+function drawStickyText(parent: SVGElement, shape: EventStormingShape, color: string): void {
   const innerWidth = shape.width - 2 * STICKY_PADDING;
   const maxChars = Math.max(1, Math.floor(innerWidth / STICKY_CHAR_WIDTH));
   const maxLines = Math.max(
@@ -294,7 +294,7 @@ function drawStickyText(parent: SVGElement, shape: EventStormingShape): void {
       parent,
       label(line, cx, y0 + i * STICKY_LINE_HEIGHT, {
         "text-anchor": "middle",
-        fill: COLORS.stickyText,
+        fill: color,
       }),
     );
   });
@@ -327,7 +327,7 @@ interface NoteRow {
  * top/middle/bottom inside `STICKY_PADDING`. Defaults: left/top. Wrapping (hand-shrunken boxes)
  * splits runs at the wrap point so styling survives; overflowing rows are clipped like stickies.
  */
-function drawNoteText(parent: SVGElement, shape: EventStormingShape): void {
+function drawNoteText(parent: SVGElement, shape: EventStormingShape, color: string): void {
   const innerWidth = shape.width - 2 * STICKY_PADDING;
   const maxChars = Math.max(1, Math.floor(innerWidth / STICKY_CHAR_WIDTH));
   const maxLines = Math.max(
@@ -364,7 +364,7 @@ function drawNoteText(parent: SVGElement, shape: EventStormingShape): void {
       y: blockTop + i * STICKY_LINE_HEIGHT + NOTE_ROW_BASELINE,
       "font-family": FONT.family,
       "font-size": FONT.label,
-      fill: COLORS.stickyText,
+      fill: color,
       "text-anchor": anchor,
     });
     const runs: NoteRun[] = row.marker

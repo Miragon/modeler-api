@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { MIRAGON } from "../src/theme/palette.js";
+import {
+  COLORS,
+  NOTE_STYLE,
+  PROVISIONAL_STICKY,
+  STICKY_SHADOW,
+  STICKY_STYLES,
+} from "../src/draw/styles.js";
 
 /**
  * Drift guard: `assets/event-storming.css` reads the design-system roles only, and `MIRAGON`
@@ -240,6 +247,8 @@ describe("theme.sync — MIRAGON mirrors the vendored design-system tokens", () 
         "schwarz",
         "weiss",
         "linie",
+        "kontur",
+        "textLeise",
         "success",
         "warning",
         "danger",
@@ -256,5 +265,76 @@ describe("theme.sync — MIRAGON mirrors the vendored design-system tokens", () 
     expect(MIRAGON.warning).toBe(tokens.fest["--cd-warning"]);
     expect(MIRAGON.danger).toBe(tokens.fest["--cd-danger"]);
     expect(MIRAGON.info).toBe(tokens.fest["--cd-info"]);
+  });
+});
+
+/** WCAG 2.x contrast ratio of two opaque hex colours. */
+function contrast(foreground: string, background: string): number {
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((index) => {
+      const channel = parseInt(hex.slice(index, index + 2), 16) / 255;
+      return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+/** The canvas ground of both apps and of the PNG export, and the white of the plain export. */
+const CANVAS_GROUNDS = [MIRAGON.grau, MIRAGON.weiss];
+
+const STICKY_LOOKS = [
+  ...Object.entries(STICKY_STYLES),
+  ["note", NOTE_STYLE],
+  ["provisional", PROVISIONAL_STICKY],
+] as const;
+
+describe("theme.sync — notation contrast (guide §3.6, §10.1, §10.6)", () => {
+  it("draws edges in kontur and their annotation in text-leise, as the canvas table says", () => {
+    expect(COLORS.arrow).toBe(MIRAGON.kontur);
+    expect(COLORS.inkSoft).toBe(MIRAGON.textLeise);
+  });
+
+  it("takes the provisional sticky and the sticky shadow from the design-system colours", () => {
+    expect(PROVISIONAL_STICKY.fill).toBe(MIRAGON.weiss);
+    expect(PROVISIONAL_STICKY.stroke).toBe(MIRAGON.kontur);
+    expect(STICKY_SHADOW.color).toBe(MIRAGON.schwarz);
+  });
+
+  it("sticky text reaches 4.5:1 on every fill the notation draws", () => {
+    for (const [kind, look] of STICKY_LOOKS) {
+      expect(contrast(COLORS.stickyText, look.fill), kind).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("the arrow annotation reaches 4.5:1 and the arrow 3:1 on the canvas ground", () => {
+    for (const ground of CANVAS_GROUNDS) {
+      expect(contrast(COLORS.inkSoft, ground), ground).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(COLORS.arrow, ground), ground).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("every sticky border reaches 3:1 on the canvas ground, since the light fills barely do", () => {
+    for (const [kind, look] of STICKY_LOOKS) {
+      for (const ground of CANVAS_GROUNDS) {
+        expect(contrast(look.stroke, ground), `${kind} on ${ground}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it("keeps the colour literals in theme/palette.ts and the notation in draw/styles.ts", () => {
+    const sourceRoot = fileURLToPath(new URL("../src/", import.meta.url));
+    const sources = readdirSync(sourceRoot, { recursive: true, encoding: "utf8" })
+      .filter((path) => path.endsWith(".ts"))
+      .map((path) => path.replaceAll("\\", "/"));
+    expect(sources).toContain("draw/EventStormingRenderer.ts");
+    const withLiterals = sources.filter((path) => {
+      const code = readSource(`../src/${path}`)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|[^:"'\\])\/\/[^\n]*/gm, "$1");
+      return /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i.test(code);
+    });
+    expect(withLiterals.sort()).toEqual(["draw/styles.ts", "theme/palette.ts"]);
   });
 });

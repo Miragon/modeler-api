@@ -18,27 +18,44 @@ export interface StickyStyle {
  * size and fill/border. Single source for the renderer, element factory, palette previews and
  * the color-picker swatches. Aggregate, policy and external system share the large block format —
  * they occupy the same slot in the grammar (receive commands / react to events); actors are the
- * small corner stickies.
+ * small corner stickies. Each border is the fill's hue, dark enough for 3:1 on the canvas ground:
+ * the light fills barely differ from the ground, so the border carries the sticky's outline.
  */
+// The sticky colours are notation, not palette colours (guide §10.6), and theme.sync checks them.
+// brand-lint-disable
 export const STICKY_STYLES: Record<StickyKind, StickyStyle> = {
-  event: { label: "Domain Event", width: 130, height: 90, fill: "#FFB84D", stroke: "#E89A2E" },
-  command: { label: "Command", width: 130, height: 90, fill: "#7EC8F0", stroke: "#4FA8D8" },
-  actor: { label: "Actor", width: 100, height: 65, fill: "#FFF9B1", stroke: "#E6DB7A" },
-  aggregate: { label: "Aggregate", width: 180, height: 110, fill: "#FFE066", stroke: "#E0BE3F" },
+  event: { label: "Domain Event", width: 130, height: 90, fill: "#FFB84D", stroke: "#CA7E16" },
+  command: { label: "Command", width: 130, height: 90, fill: "#7EC8F0", stroke: "#2F98D1" },
+  actor: { label: "Actor", width: 100, height: 65, fill: "#FFF9B1", stroke: "#9E911E" },
+  aggregate: { label: "Aggregate", width: 180, height: 110, fill: "#FFE066", stroke: "#AB8C1C" },
   policy: { label: "Policy", width: 180, height: 110, fill: "#C9A0DC", stroke: "#A97CC4" },
-  readmodel: { label: "Read Model", width: 130, height: 90, fill: "#A8D08D", stroke: "#7FB35D" },
+  readmodel: { label: "Read Model", width: 130, height: 90, fill: "#A8D08D", stroke: "#6A9D4A" },
   external: {
     label: "External System",
     width: 180,
     height: 110,
     fill: "#F4A6C0",
-    stroke: "#DE7EA2",
+    stroke: "#D96C95",
   },
   hotspot: { label: "Hotspot", width: 130, height: 90, fill: "#E85D75", stroke: "#C43B55" },
 } as const;
 
 /** Free-text note: grows with its text (see `noteMetrics`) unless resized by hand, neutral grey. */
-export const NOTE_STYLE = { label: "Note", fill: "#ECECEC", stroke: "#C4C4C4" } as const;
+export const NOTE_STYLE = { label: "Note", fill: "#ECECEC", stroke: MIRAGON.kontur } as const;
+// brand-lint-enable
+
+/**
+ * Provisional (blank append) sticky: plain paper with a dashed border in `kontur`, no kind yet.
+ * The border is all that sets it off the canvas ground, so it keeps 3:1 there (guide §3.6).
+ */
+export const PROVISIONAL_STICKY = {
+  fill: MIRAGON.weiss,
+  stroke: MIRAGON.kontur,
+  dash: "6 4",
+} as const;
+
+/** Soft drop shadow that makes stickies read as paper, in the ink of the design system's shadows. */
+export const STICKY_SHADOW = { color: MIRAGON.schwarz, opacity: 0.2, dy: 5, blur: 5 } as const;
 
 /** Smallest hand-resized note box — keeps a shrunken note grabbable and its handles apart. */
 export const NOTE_MIN_RESIZE = { width: 60, height: 40 } as const;
@@ -108,14 +125,19 @@ export function isManualNoteBox(label: string, box: { width: number; height: num
 export const COLORS = {
   paper: MIRAGON.grau,
   ink: MIRAGON.schwarz,
-  inkSoft: "#5B5B5B",
+  /** Arrow annotations: secondary text (guide §10.1). */
+  inkSoft: MIRAGON.textLeise,
   surface: MIRAGON.weiss,
   stroke: MIRAGON.schwarz,
-  /** The single connection style: gray arrowed line. */
-  arrow: "#9E9E9E",
+  /** The single connection style: an arrowed line in `kontur`, as edges are (guide §10.1). */
+  arrow: MIRAGON.kontur,
   accent: MIRAGON.blau,
   accentSoft: "rgba(51,93,229,0.12)",
-  /** Text inside every sticky: #1D1D1D reaches 4.5:1 on all eight fills, the hotspot included. */
+  /**
+   * Text inside a sticky on its kind's fill: #1D1D1D reaches 4.5:1 on all eight fills, the hotspot
+   * included. A fill the user picks gets black or white text, whichever reads better
+   * (`textColorOn`).
+   */
   stickyText: MIRAGON.schwarz,
 } as const;
 
