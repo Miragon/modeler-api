@@ -59,7 +59,11 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
   `draw/geometry.ts`; visual constants in `draw/styles.ts`: ink and fill are the light
   `--cd-ui-text` / `--cd-ui-plot` roles read from the vendored `cd-tokens.generated.json`, 2px
   round strokes, labels 12px in `'Geist Variable', 'Geist', …` set on every text node (guide §4),
-  as presentation values, so exports stay light. Labels drawn before the web font arrived are laid
+  as presentation values, so exports stay light. A shape's own `color` is its fill (guide §10.6,
+  `draw/fill.ts`): the contour stays ink, the label is black or white, whichever contrasts more,
+  and a stored value the picker no longer offers (the former `hsl()` accents) keeps rendering. The
+  picker (`COLOR_OPTIONS`) offers "Default", then the palette and status colours from the vendored
+  tokens; `test/color-options.test.ts` pins them. Labels drawn before the web font arrived are laid
   out again once it has. Tool and chrome icons are Lucide, inlined in `draw/lucide.ts`.
 - `src/theme/` holds the design system's `cd-tokens.generated.css`/`.json` and `cd-canvas.css`
   (1.20.1), vendored unchanged with a header; re-copy them from the

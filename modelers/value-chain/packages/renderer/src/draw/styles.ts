@@ -1,4 +1,4 @@
-import { hell } from "../theme/cd-tokens.generated.json";
+import { fest, hell } from "../theme/cd-tokens.generated.json";
 
 /**
  * Canvas colours, the light roles of the vendored design tokens (guide §10.1): contours,
@@ -25,12 +25,22 @@ export const STROKE_WIDTH = 2;
 
 export const LABEL_PADDING = 7;
 
-/** Accent colors offered by the color picker (stroke + label tint; fill stays white). */
+/**
+ * The colour picker (guide §10.6): "Default" stores no colour and follows the roles, then the
+ * palette and the status colours as fill colours, each once (info is blau, success is gruen).
+ * Grau and weiss are left out: on the white plot they look the same as Default.
+ */
 export const COLOR_OPTIONS: ReadonlyArray<{ label: string; color?: string }> = [
   { label: "Default" },
-  { label: "Blue", color: "hsl(205, 100%, 45%)" },
-  { label: "Green", color: "hsl(150, 86%, 34%)" },
-  { label: "Orange", color: "hsl(29, 89%, 44%)" },
-  { label: "Red", color: "hsl(360, 100%, 45%)" },
-  { label: "Purple", color: "hsl(287, 65%, 44%)" },
+  { label: "Blue", color: fest["--cd-blau"] },
+  { label: "Green", color: fest["--cd-gruen"] },
+  { label: "Black", color: fest["--cd-schwarz"] },
+  { label: "Amber", color: fest["--cd-warning"] },
+  { label: "Red", color: fest["--cd-danger"] },
 ];
+
+/** Label colours on a fill of the shape's own (guide §10.6), whichever contrasts more. */
+export const LABEL_ON_FILL = {
+  dark: fest["--cd-schwarz"],
+  light: fest["--cd-weiss"],
+} as const;

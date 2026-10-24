@@ -1,19 +1,9 @@
 import type { Bounds } from "@miragon/value-chain-schema-model";
+import { canvasContext } from "./canvas2d.js";
 import { FONT } from "./styles.js";
 
 /** The font diagram-js lays the labels out in (`TextUtil` builds the same string). */
 const LABEL_FONT = `${FONT.size}px ${FONT.family}`;
-
-let measuringContext: CanvasRenderingContext2D | null | undefined;
-
-function canvasContext(): CanvasRenderingContext2D | null {
-  // jsdom has no canvas and logs an error for every getContext call: ask only a real browser.
-  measuringContext ??=
-    typeof document !== "undefined" && typeof CanvasRenderingContext2D !== "undefined"
-      ? document.createElement("canvas").getContext("2d")
-      : null;
-  return measuringContext;
-}
 
 /**
  * The box the lines of a laid-out label cover, in the coordinates of the shape it labels: every

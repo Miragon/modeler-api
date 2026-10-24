@@ -1,5 +1,6 @@
 import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type { Element } from "diagram-js/lib/model/Types";
+import { shapeColors } from "../draw/fill.js";
 import { COLOR_OPTIONS, COLORS } from "../draw/styles.js";
 import { isVcShape } from "../model/di-types.js";
 import type VcModeling from "../modeling/VcModeling.js";
@@ -13,11 +14,12 @@ interface PopupMenuEntry {
   action: () => void;
 }
 
-function swatch(color: string): string {
+/** The fill as the canvas draws it, inside the ink contour. */
+function swatch(color: string | undefined): string {
   return (
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">` +
-    `<rect x="1" y="1" width="14" height="14" rx="2" fill="${COLORS.fill}" ` +
-    `stroke="${color}" stroke-width="2"/></svg>`
+    `<rect x="1" y="1" width="14" height="14" rx="2" fill="${shapeColors(color).fill}" ` +
+    `stroke="${COLORS.ink}" stroke-width="2"/></svg>`
   );
 }
 
@@ -41,7 +43,7 @@ export default class VcColorPickerProvider {
     for (const option of COLOR_OPTIONS) {
       entries[`color-${option.label.toLowerCase()}`] = {
         label: option.label,
-        imageHtml: swatch(option.color ?? COLORS.ink),
+        imageHtml: swatch(option.color),
         action: () => this.vcModeling.setColor(element, option.color),
       };
     }
