@@ -630,6 +630,9 @@ appearance and the screenshot, `timings` per step); `runVsCodeSmoke` never throw
 check, only for options it cannot run with. An extension that fails to activate in VS Code (a module
 its bundle cannot load, a throw in `activate`) fails the open step at once, with VS Code's own error
 from its extension host log; `keepTemporaryFiles: true` keeps the profile with all of VS Code's logs.
+A webview that throws on start fails it 3 s after the throw instead of after `timeoutMs`, and every
+failure of the open step quotes the webview's uncaught errors and console errors with their stacks,
+which none of VS Code's logs holds.
 A theme switch VS Code does not pick up is retried within the run (0.4.1): the driver writes the
 setting again, then switches through another theme and back, before the theme fails with the theme
 requested and the one VS Code shows. A modeler needs no retry of its own for a missed theme switch.

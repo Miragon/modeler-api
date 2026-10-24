@@ -101,12 +101,12 @@ about 5 seconds and takes the focus, so leave it alone until it closes.
 
 Either way the log names each step, then the VS Code version, the timings and every theme with its
 screenshot; a failure names its step (`open: …`, `save: …`), and a failed open leaves
-`event-storming-open-failure.png` with VS Code's error from the extension host. With
-`VSCODE_SMOKE_KEEP=1` it also names the folder of VS Code's logs (main process, renderer, extension
-host; from Docker they come back in `vscode-logs/`); an exception inside the webview is not in
-them, it shows only in the webview's developer tools (**Developer: Open Webview Developer Tools**
-while the extension runs in VS Code). Keep `playwright-core` in `apps/vscode/package.json` at the
-root `playwright` version.
+`event-storming-open-failure.png` with VS Code's error from the extension host. An exception or a
+`console.error` inside the webview is in none of VS Code's logs: the failed open quotes them itself,
+with their stacks, and a webview that throws on start fails the open 3 s later instead of after the
+driver's 30 s. With `VSCODE_SMOKE_KEEP=1` it also names the folder of VS Code's logs (main process,
+renderer, extension host; from Docker they come back in `vscode-logs/`). Keep `playwright-core` in
+`apps/vscode/package.json` at the root `playwright` version.
 
 The test is not retried: every failure fails the run at once. The driver's save step
 (`@miragon/modeler-shell` 0.4.1) reads the file only after the editor tab turned clean, which VS

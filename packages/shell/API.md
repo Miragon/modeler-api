@@ -2645,9 +2645,32 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    editor and opens the fixture again from the Explorer, every 2 s until the custom editor shows.
    When the extension fails to activate, the step fails at once and quotes VS Code's error from the
    extension host log (`exthost.log`: "Activating extension <id> failed due to an error: Error:
-   Cannot find module …"); a webview that never shows otherwise fails after `timeoutMs`. Either
-   failure names the webview frames the workbench has, with a `screenshotDir`
-   `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
+   Cannot find module …"). What the extension's webview reports is in none of VS Code's logs, so
+   the driver collects it from the first window on: Playwright's `pageerror` (uncaught exceptions
+   and unhandled rejections) and its `console` messages of type `error` (`console.error` calls, a
+   file that failed to load, a CSP block), which Playwright reports for every frame of the window,
+   VS Code's two webview frames included. An error counts when its console location, or the
+   topmost frame of its stack, is a file of the extension's folder
+   (`https://file+.vscode-resource.vscode-cdn.net/<folder>/…`, the folder as given or its real
+   path) or a document of its webview (`vscode-webview://…?…&extensionId=<id>…`); the workbench's
+   own errors and those of other webviews do not. Once the webview has thrown, the step does not
+   wait for `timeoutMs`: it fails when the menu is still missing 3 s later ("the custom editor never
+   showed the shell's menu, still missing 3 s after its webview threw"); a webview that never shows
+   otherwise fails after `timeoutMs`. Each of these failures names the webview frames the
+   workbench has, with a `screenshotDir` `<name>-open-failure.png`, and `keepTemporaryFiles`, which
+   keeps VS Code's logs. Every failure of the step (no menu, `ready`, a missing island) ends with
+   the webview's errors: how many of each kind, then the first three, the uncaught ones first, each
+   with its stack (12 lines at most) on indented lines of its own:
+
+   ```text
+   open: the custom editor never showed the shell's menu, still missing 3 s after its webview threw (1 webview frames in the workbench, 1 of miragon-gmbh.event-storming-modeler, screenshot …/event-storming-open-failure.png; keepTemporaryFiles keeps VS Code's logs); the webview reported 1 uncaught error and 1 console error:
+       uncaught TypeError: Cannot read properties of undefined (reading 'lanes')
+           at https://file+.vscode-resource.vscode-cdn.net/…/extension/dist/webview.js:406:113575
+           at https://file+.vscode-resource.vscode-cdn.net/…/extension/dist/webview.js:408:2480
+       console.error: Failed to load resource: net::ERR_FILE_NOT_FOUND
+           at https://file+.vscode-resource.vscode-cdn.net/…/extension/dist/webview.css:1:1
+   ```
+
 4. **edit**: `edit`, then the editor tab turns dirty (the document changed).
 5. **save** (0.3.1): the platform's save key; the tab turns clean, then the driver reads the file
    until it holds still: a read counts once two reads 100 ms apart see the same size, mtime and text
