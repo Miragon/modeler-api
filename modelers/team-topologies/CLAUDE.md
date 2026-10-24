@@ -17,7 +17,7 @@ All UI/visual work follows the Miragon product design system (the
 **`miragon-brand:modeler-tool-design`** skill; see the suite's
 [`CLAUDE.md`](../../CLAUDE.md#design-system-mandatory)). Here:
 
-The design system **1.13.0** is **vendored** from that skill, byte-identical:
+The design system **1.20.1** is **vendored** from that skill, byte-identical:
 [`packages/renderer/src/theme/cd-tokens.generated.css`](packages/renderer/src/theme/cd-tokens.generated.css),
 `cd-tokens.generated.json` and `cd-canvas.css` — do **not** fork or reformat them; re-copy all three
 from the skill to update and update their hashes in the drift test
