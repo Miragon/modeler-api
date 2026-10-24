@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "title": "Ride-hailing — with platform grouping",
+  "title": "Ride-hailing with platform grouping",
   "nodes": [
     {
       "id": "grp_platform",

@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "title": "Ride-hailing — team topology",
+  "title": "Ride-hailing team topology",
   "nodes": [
     {
       "id": "team_booking",

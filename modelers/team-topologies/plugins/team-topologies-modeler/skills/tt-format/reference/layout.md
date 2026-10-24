@@ -239,7 +239,7 @@ grouping's left and right edges, 40 px apart — two teams of 240 at `x = 260` a
 Checker output:
 
 ```
-examples/ride-hailing.tt — "Ride-hailing — team topology"
+examples/ride-hailing.tt: "Ride-hailing team topology"
   6 teams, 4 interactions, 1 flow, 2 annotations
 
   collaboration   "Booking & Dispatch" ↔ "Pricing Engine"  (surge pricing)
@@ -259,7 +259,7 @@ grouping (`grp_platform`, 600 × 260 at `y = 552`) of two platform teams, `team_
 `team_maps` (each 240 × 90 at `y = 702`):
 
 ```
-examples/ride-hailing-platform-grouping.tt — "Ride-hailing — with platform grouping"
+examples/ride-hailing-platform-grouping.tt: "Ride-hailing with platform grouping"
   8 teams, 4 interactions, 1 flow, 2 annotations
 
   grouping        "Maps & Geodata" sits inside "Mobility Platform"
@@ -287,7 +287,7 @@ as Checkout handing its work over to Fulfilment.
 ```
 
 ```
-  warning  team_fulfilment: "Checkout" and "Fulfilment" sit one after the other along the flow of change (side by side or staggered); that reads as a hand-off — stack stream-aligned teams as parallel lanes, one below the other
+  warning  team_fulfilment: "Checkout" and "Fulfilment" sit one after the other along the flow of change (side by side or staggered), which reads as a hand-off; stack stream-aligned teams as parallel lanes, one below the other
 ```
 
 **Right** — stack them as parallel lanes of one width, 30 px apart; each owns its stream end to end.

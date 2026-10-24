@@ -444,7 +444,7 @@ function checkStreamAlignedRows(teams, warnings) {
       if (neighbourInBetween) continue;
       warnings.push({
         path: right.id,
-        message: `${teamName(left)} and ${teamName(right)} sit one after the other along the flow of change (side by side or staggered); that reads as a hand-off — stack stream-aligned teams as parallel lanes, one below the other`,
+        message: `${teamName(left)} and ${teamName(right)} sit one after the other along the flow of change (side by side or staggered), which reads as a hand-off; stack stream-aligned teams as parallel lanes, one below the other`,
       });
     }
   }
@@ -902,7 +902,7 @@ function checkFile(path, { write }) {
     return `${count} ${kind}${count === 1 ? "" : "s"}`;
   });
   lines.push(
-    `${path} — "${typeof input.title === "string" ? input.title : "Untitled team topology"}"`,
+    `${path}: "${typeof input.title === "string" ? input.title : "Untitled team topology"}"`,
   );
   lines.push(`  ${counts.join(", ")}`);
   if (result.readings.length > 0) {
