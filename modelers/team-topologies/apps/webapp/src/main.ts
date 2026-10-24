@@ -98,11 +98,12 @@ if (!app) throw new Error("index.html has no #app root.");
 
 // 1. The diagram first: the renderer's keyboard listens on document and must run before the
 //    chrome's key listener. The web app keeps the canvas's own undo and redo keys. The shell's
-//    viewport fits, so imports pass `fit: false`; keyboard creation asks it for the free centre.
+//    viewport fits, so imports pass `fit: false`. The shell's fit insets are the free area:
+//    keyboard creation places into its centre and the context pad keeps inside it.
 const modeler = new Modeler({
   height: "100%",
   additionalModules: [shellModule],
-  freeArea: { center: () => connection.viewport.freeRectCenter() },
+  freeArea: { insets: () => shell.fitInsets() },
 });
 modeler.get("canvas");
 const registry = modeler.get<ElementRegistryLike>("elementRegistry");

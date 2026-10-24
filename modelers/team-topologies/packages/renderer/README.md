@@ -54,6 +54,11 @@ triggers an entry with a click whose `detail` is 0. On a creating entry that cli
 element in the centre of the free part of the canvas (`freeArea`, else the centre of the view), 24px
 further diagonally while that spot is taken, selects it and opens its label editor.
 
+**Embedded in a page.** Layout reads the modeler's container, not the page: in a container up to
+760px wide the renderer's own palette takes a second row, whatever the window's width. Its tooltip
+stands 8px below the palette, centred on its entry and 12px from the container's sides. Without
+`freeArea: { insets }`, the context pad keeps inside the container.
+
 **Label editor and the view.** A change of the view (a host's `setViewState` or fit, a wheel zoom or
 scroll) never commits an open label editor: it stays open with what was typed and moves with its
 element. Enter, a click or drag on the canvas and leaving the field commit; Escape discards (law L5
@@ -143,7 +148,9 @@ Options: the contract's `CollaborativeModelerOptions` (1.2) and `additionalModul
 
 - `freeArea`: the part of the canvas no host chrome covers, `{ insets: () => shell.fitInsets() }`
   (px from the container's edges) or `{ center: () => viewport.freeRectCenter() }` (diagram
-  coordinates); keyboard creation lands in its centre. Default: the whole view.
+  coordinates); keyboard creation lands in its centre. Given as `insets`, the context pad also
+  keeps inside it: it flips to the left of its element or moves up or down instead of running
+  under the host's chrome. Default: the whole view.
 - `fitOnImport` (default true): a fit of at most 100 % that keeps the palette's strip free after
   every import; a host whose chrome fits the diagram itself passes false.
 - `undoRedoKeys` (default true): false when the host owns the history (VS Code).
