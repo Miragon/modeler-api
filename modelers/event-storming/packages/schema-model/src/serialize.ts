@@ -23,6 +23,10 @@ const CONNECTABLE_TYPES: ReadonlySet<string> = new Set([
 
 const HOST_TYPES: ReadonlySet<string> = new Set(HOST_STICKY_KINDS);
 
+function withArticle(elementType: string | undefined): string {
+  return `${/^[aeiou]/.test(elementType ?? "") ? "an" : "a"} ${elementType}`;
+}
+
 function round(n: number, digits = COORD_PRECISION): number {
   const f = 10 ** digits;
   return Math.round(n * f) / f;
@@ -52,7 +56,7 @@ export function validateBoard(data: unknown): EventStormingBoard {
     }
     if (!HOST_TYPES.has(typeById.get(el.attachedTo)!)) {
       throw new Error(
-        `Element ${el.id}: attachedTo "${el.attachedTo}" is a ${typeById.get(el.attachedTo)} — actors/hotspots/notes may only attach to host stickies.`,
+        `Element ${el.id}: attachedTo "${el.attachedTo}" is ${withArticle(typeById.get(el.attachedTo))}, but actors/hotspots/notes may only attach to host stickies.`,
       );
     }
   }
@@ -72,12 +76,12 @@ export function validateBoard(data: unknown): EventStormingBoard {
     }
     if (!CONNECTABLE_TYPES.has(typeById.get(edge.from)!)) {
       throw new Error(
-        `Edge ${edge.id}: source "${edge.from}" is a ${typeById.get(edge.from)} — arrows may only connect stickies.`,
+        `Edge ${edge.id}: source "${edge.from}" is ${withArticle(typeById.get(edge.from))}, but arrows may only connect stickies.`,
       );
     }
     if (!CONNECTABLE_TYPES.has(typeById.get(edge.to)!)) {
       throw new Error(
-        `Edge ${edge.id}: target "${edge.to}" is a ${typeById.get(edge.to)} — arrows may only connect stickies.`,
+        `Edge ${edge.id}: target "${edge.to}" is ${withArticle(typeById.get(edge.to))}, but arrows may only connect stickies.`,
       );
     }
   }

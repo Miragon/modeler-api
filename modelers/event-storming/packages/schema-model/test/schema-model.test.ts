@@ -155,7 +155,9 @@ describe("Validation", () => {
       ],
       edges: [{ id: "arrow_bad", edgeType: "arrow", from: "event_order_placed", to: "note_1" }],
     };
-    expect(() => loadBoard(bad)).toThrow(/arrows may only connect stickies/);
+    expect(() => loadBoard(bad)).toThrow(
+      'Edge arrow_bad: target "note_1" is a note, but arrows may only connect stickies.',
+    );
   });
 
   it("rejects an arrow starting at a drawing", () => {
@@ -176,7 +178,9 @@ describe("Validation", () => {
       ],
       edges: [{ id: "arrow_bad", edgeType: "arrow", from: "draw_1", to: "event_order_placed" }],
     };
-    expect(() => loadBoard(bad)).toThrow(/arrows may only connect stickies/);
+    expect(() => loadBoard(bad)).toThrow(
+      'Edge arrow_bad: source "draw_1" is a drawing, but arrows may only connect stickies.',
+    );
   });
 
   it("accepts unbounded pixel coordinates (negative and large)", () => {
@@ -588,7 +592,9 @@ describe("Attachments (pinning)", () => {
         },
       ],
     };
-    expect(() => loadBoard(bad)).toThrow(/may only attach to host stickies/);
+    expect(() => loadBoard(bad)).toThrow(
+      'Element hot_chained: attachedTo "actor_host" is an actor, but actors/hotspots/notes may only attach to host stickies.',
+    );
   });
 
   it("rejects attaching to a note (annotations are never hosts)", () => {
