@@ -361,8 +361,9 @@ L5) and leave it open with the typed text (L5 recommends it, the kit requires it
 file locks the canvas, and that `destroy()` leaves nothing behind. Five more cases cover the web
 column (`webChrome`, `emptyState`, `toasts`, `problemsList`, `dropZone`); in the IDE and embedded
 hosts they assert that none of it shows. Every `aria-keyshortcuts` the kit reads must name keys,
-not characters: a `?` chip is `Shift+/ Shift+ß`, the keys of US and German (guide §5.6, design
-system 1.21.0).
+not characters: a `?` chip is `Shift+/ Shift+ß`, the keys of US and German, and no shortcut chip may
+show a character that needs AltGr or ⌥, sits on a dead key or is missing in one of them, such as `@`
+(guide §5.6, design system 1.21.0).
 
 For the `ide` host the suite serves a test page that puts a stand-in for VS Code around the
 modeler's webview code: VS Code's default webview styles, `<html>` as `renderWebviewHtml` writes it,

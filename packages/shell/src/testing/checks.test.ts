@@ -329,11 +329,17 @@ describe("the canvas name, the tab sequence, palette shortcuts and menu keys", (
         { action: "hand-tool", chip: "H", keyShortcuts: "Equal" },
         { action: "create.note", chip: "/", keyShortcuts: "/" },
         { action: "create.box", chip: "B", keyShortcuts: "B" },
+        { action: "help", chip: "?", keyShortcuts: null },
+        { action: "create.mention", chip: "@", keyShortcuts: "Shift+2" },
+        { action: "create.list", chip: "[", keyShortcuts: null },
       ]),
     ).toEqual([
       'palette: entry "lasso-tool" has aria-keyshortcuts="Shift+?", which names the character "?", not a key (guide §5.6)',
       'palette: entry "hand-tool" has aria-keyshortcuts="Equal", a KeyboardEvent code; name the key as WAI-ARIA does (guide §5.6)',
       'palette: entry "create.note" has aria-keyshortcuts="/" for the chip "/", expected "/ Shift+7": the keys of the US, then the German layout (guide §5.6)',
+      'palette: entry "help" has no aria-keyshortcuts for the chip "?", expected "Shift+/ Shift+ß": the keys of the US, then the German layout (guide §5.6)',
+      'palette: entry "create.mention" shows the shortcut "@" on a character that needs AltGr or ⌥, sits on a dead key or is missing on the US or the German layout; guide §5.6 rules such a shortcut out',
+      'palette: entry "create.list" shows the shortcut "[" on a character that needs AltGr or ⌥, sits on a dead key or is missing on the US or the German layout; guide §5.6 rules such a shortcut out',
     ]);
   });
 
@@ -567,10 +573,20 @@ describe("menu checks", () => {
     expect(problems(dialog("Meta++", "⌘+"))).toEqual([
       'menu: "Keyboard shortcuts…" has aria-keyshortcuts="Meta++", which names the character "+", not a key; expected "Meta+= Meta+Plus" (guide §5.6)',
     ]);
-    // A chip whose character needs AltGr gets no aria-keyshortcuts; the chip describes the entry.
-    expect(problems({ ...dialog("Shift+2", "@"), keyShortcuts: null, description: "@" })).toEqual(
-      [],
-    );
+    // The opt-out ariaKeyShortcuts: "" makes the chip the description, which §5.6 does not allow
+    // for a character that needs ⇧.
+    expect(problems({ ...dialog("", "?"), keyShortcuts: null, description: "?" })).toEqual([
+      'menu: "Keyboard shortcuts…" has no aria-keyshortcuts for the chip "?", expected "Shift+/ Shift+ß": the keys of the US, then the German layout (guide §5.6)',
+    ]);
+    expect(
+      problems({ ...dialog("", "G then D"), keyShortcuts: null, description: "G then D" }),
+    ).toEqual([]);
+    const ruledOut =
+      'menu: "Keyboard shortcuts…" shows the shortcut "@" on a character that needs AltGr or ⌥, sits on a dead key or is missing on the US or the German layout; guide §5.6 rules such a shortcut out';
+    expect(problems({ ...dialog("", "@"), keyShortcuts: null, description: "@" })).toEqual([
+      ruledOut,
+    ]);
+    expect(problems(dialog("Shift+2", "@"))).toEqual([ruledOut]);
   });
 
   it("requires the closed menu to hand the focus back to the trigger", () => {
@@ -2173,6 +2189,13 @@ describe("the start screen (guide §8)", () => {
     const link = { name: "Open a file…", keyShortcuts: "Meta+?", chip: "⌘?", underlined: true };
     expect(startScreenOpenProblems({ ...conforming(), openLink: link }, shifted, "en")).toEqual([
       'empty-state: "Open a file…" has aria-keyshortcuts="Meta+?", which names the character "?", not a key; expected "Meta+Shift+/ Meta+Shift+ß" (guide §5.6)',
+    ]);
+    const ruledOut = { ...fileOpen, shortcut: "⌘@", keyShortcuts: null };
+    const ruledOutLink = { ...link, keyShortcuts: null, chip: "⌘@" };
+    expect(
+      startScreenOpenProblems({ ...conforming(), openLink: ruledOutLink }, ruledOut, "en"),
+    ).toEqual([
+      'empty-state: "Open a file…" shows the shortcut "⌘@" on a character that needs AltGr or ⌥, sits on a dead key or is missing on the US or the German layout; guide §5.6 rules such a shortcut out',
     ]);
   });
 

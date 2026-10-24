@@ -9,6 +9,7 @@ import {
   isTextField,
   isUndoRedoKey,
   matchChromeKey,
+  shortcutKeyKind,
   shortcutLabel,
   type ChromeKey,
   type KeyAction,
@@ -752,5 +753,72 @@ describe("ariaKeyShortcutsFromLabel", () => {
     const start = performance.now();
     expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
     expect(performance.now() - start).toBeLessThan(200);
+  });
+});
+
+describe("shortcutKeyKind (guide §5.6)", () => {
+  it.each([
+    "L",
+    "⌘O",
+    "Ctrl+Shift+E",
+    "⇧1",
+    "Del",
+    "F2",
+    "Space",
+    "↑",
+    ",",
+    "-",
+    "⌘−",
+    "Ctrl+Minus",
+  ])("calls the key of %j the same on US and German", (label) => {
+    expect(shortcutKeyKind(label)).toBe("same");
+  });
+
+  it.each(["?", "/", "⌘?", "!", "#", "_", "⌘+", "⌘=", "Ctrl+Plus", "Ctrl++"])(
+    "knows that the character of %j needs ⇧ on US or German",
+    (label) => {
+      expect(shortcutKeyKind(label)).toBe("shifted");
+    },
+  );
+
+  it.each([
+    "@",
+    "⌘@",
+    "[",
+    "]",
+    "{",
+    "}",
+    "\\",
+    "|",
+    "^",
+    "~",
+    "`",
+    "´",
+    "ß",
+    "ä",
+    "Ö",
+    "§",
+    "€",
+    "²",
+  ])(
+    "rules out %j, whose character needs AltGr or ⌥, sits on a dead key or is missing in US or German",
+    (label) => {
+      expect(shortcutKeyKind(label)).toBe("ruledOut");
+    },
+  );
+
+  it.each(["", "G then D", "1–9", "⌘", "⌘⏎", "⌫", "Hyper+K", "Ctrl+", "constructor"])(
+    "gives nothing for %j, which is not one key combination of a known key or character",
+    (label) => {
+      expect(shortcutKeyKind(label)).toBeUndefined();
+    },
+  );
+
+  it("agrees with ariaKeyShortcutsFromLabel, which names keys for every kind but a ruled-out one", () => {
+    for (const label of ["L", "?", "/", "⌘+", "Del", "@", "[", "ä", "G then D", "⌘⏎"]) {
+      const named = ariaKeyShortcutsFromLabel(label) !== undefined;
+      const kind = shortcutKeyKind(label);
+      expect(named).toBe(kind === "same" || kind === "shifted");
+    }
   });
 });

@@ -379,19 +379,13 @@ function zoomInKeyShortcuts(modifiers: readonly string[], character: string): st
   return character === "+" || character === "=" ? `${command}+= ${command}+Plus` : undefined;
 }
 
-/**
- * The `aria-keyshortcuts` value (WAI-ARIA names, guide §5.6) for a shortcut chip label: the keys,
- * not the character. `"L"` → `"L"`, `"⇧L"` → `"Shift+L"`, `"⌘⇧Z"` → `"Meta+Shift+Z"`,
- * `"Ctrl+Shift+E"` → `"Control+Shift+E"`, `"Del"` → `"Delete"`. A character that needs ⇧ on the
- * US or the German layout names the keys of both, US first, once where they agree (design system
- * 1.21.0): `"?"` → `"Shift+/ Shift+ß"`, `"/"` → `"/ Shift+7"`,
- * `"⌘?"` → `"Meta+Shift+/ Meta+Shift+ß"`, `"!"` → `"Shift+1"`; the zoom-in chip `"⌘+"` or
- * `"Ctrl+Plus"` gives the zoom panel's `"Meta+= Meta+Plus"` or `"Control+= Control+Plus"`.
- * `undefined` for a label that is not one key combination (`"G then D"`, `"1–9"`, empty) and for a
- * character that needs AltGr or ⌥, sits on a dead key or is missing in one of the layouts (`"@"`,
- * `"["`, `"^"`, `"ä"`): the chip then describes its entry.
- */
-export function ariaKeyShortcutsFromLabel(label: string): string | undefined {
+/** A chip label as one key combination; `key` is `"+"` for "Plus" and `"-"` for "−" or "Minus". */
+interface ChipKey {
+  modifiers: readonly string[];
+  key: string;
+}
+
+function parseChipLabel(label: string): ChipKey | undefined {
   let rest = label.trim();
   const modifiers: string[] = [];
   for (let symbol = lookUp(MAC_MODIFIER_SYMBOLS, rest.charAt(0)); symbol && rest.length > 1;) {
@@ -412,17 +406,65 @@ export function ariaKeyShortcutsFromLabel(label: string): string | undefined {
     if (!modifier) return undefined;
     modifiers.push(modifier);
   }
-  const unique = [...new Set(modifiers)];
-  const character = lookUp(CHARACTER_SPELLINGS, key.toLowerCase()) ?? key;
-  const zoomIn = zoomInKeyShortcuts(unique, character);
+  return {
+    modifiers: [...new Set(modifiers)],
+    key: lookUp(CHARACTER_SPELLINGS, key.toLowerCase()) ?? key,
+  };
+}
+
+/**
+ * The `aria-keyshortcuts` value (WAI-ARIA names, guide §5.6) for a shortcut chip label: the keys,
+ * not the character. `"L"` → `"L"`, `"⇧L"` → `"Shift+L"`, `"⌘⇧Z"` → `"Meta+Shift+Z"`,
+ * `"Ctrl+Shift+E"` → `"Control+Shift+E"`, `"Del"` → `"Delete"`. A character that needs ⇧ on the
+ * US or the German layout names the keys of both, US first, once where they agree (design system
+ * 1.21.0): `"?"` → `"Shift+/ Shift+ß"`, `"/"` → `"/ Shift+7"`,
+ * `"⌘?"` → `"Meta+Shift+/ Meta+Shift+ß"`, `"!"` → `"Shift+1"`; the zoom-in chip `"⌘+"` or
+ * `"Ctrl+Plus"` gives the zoom panel's `"Meta+= Meta+Plus"` or `"Control+= Control+Plus"`.
+ * `undefined` for a label that is not one key combination (`"G then D"`, `"1–9"`, empty) and for a
+ * character that needs AltGr or ⌥, sits on a dead key or is missing in one of the layouts (`"@"`,
+ * `"["`, `"^"`, `"ä"`): the chip then describes its entry.
+ */
+export function ariaKeyShortcutsFromLabel(label: string): string | undefined {
+  const chip = parseChipLabel(label);
+  if (!chip) return undefined;
+  const { modifiers, key } = chip;
+  const zoomIn = zoomInKeyShortcuts(modifiers, key);
   if (zoomIn) return zoomIn;
-  const layoutKeys = lookUp(SHIFTED_CHARACTER_KEYS, character);
+  const layoutKeys = lookUp(SHIFTED_CHARACTER_KEYS, key);
   if (layoutKeys) {
     const perLayout = layoutKeys.map(({ key: layoutKey, shift }) =>
-      combination(shift ? [...unique, "Shift"] : unique, layoutKey),
+      combination(shift ? [...modifiers, "Shift"] : modifiers, layoutKey),
     );
     return [...new Set(perLayout)].join(" ");
   }
-  const name = sameKeyName(character);
-  return name ? combination(unique, name) : undefined;
+  const name = sameKeyName(key);
+  return name ? combination(modifiers, name) : undefined;
+}
+
+/**
+ * How guide §5.6 sees the key of a shortcut chip on the US and the German layout:
+ * - `same`: both name it alike and reach it without ⇧ (a letter, a digit, a named key);
+ * - `shifted`: a character that needs ⇧ in one of them, so `aria-keyshortcuts` names the keys of
+ *   both;
+ * - `ruledOut`: a character that needs AltGr or ⌥, sits on a dead key or is missing in one of them
+ *   (`"@"`, `"["`, `"^"`, `"ä"`), which §5.6 rules out as a shortcut.
+ */
+export type ShortcutKeyKind = "same" | "shifted" | "ruledOut";
+
+// One character a keyboard types. Key symbols such as "⏎" and "⌫" (category So) name keys, so a
+// chip like "⌘⏎" is no ruled-out character, only one the label table does not know.
+const TYPED_CHARACTER = /^[\p{L}\p{N}\p{P}\p{Sc}\p{Sk}\p{Sm}]$/u;
+
+/**
+ * The `ShortcutKeyKind` of a shortcut chip label, by the same reading as
+ * `ariaKeyShortcutsFromLabel`: `"?"` and `"⌘+"` are `shifted`, `"L"` and `"⌘−"` `same`, `"@"` and
+ * `"⌘ä"` `ruledOut`. `undefined` for a label that is not one key combination (`"G then D"`) or
+ * whose key is neither a known key nor a character (`"⌘⏎"`).
+ */
+export function shortcutKeyKind(label: string): ShortcutKeyKind | undefined {
+  const chip = parseChipLabel(label);
+  if (!chip) return undefined;
+  if (Object.hasOwn(SHIFTED_CHARACTER_KEYS, chip.key)) return "shifted";
+  if (sameKeyName(chip.key)) return "same";
+  return TYPED_CHARACTER.test(chip.key) ? "ruledOut" : undefined;
 }

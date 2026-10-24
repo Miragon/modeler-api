@@ -653,11 +653,15 @@ key names.
   missing gets no `aria-keyshortcuts`: `@` is AltGr+Q on German Windows and Linux but ⌥L on macOS,
   so not even per layout is there one key to name, `^` is a dead key, `ä` is missing in US. §5.6
   rules such a character out as a shortcut; where a modeler still shows one, the chip describes the
-  menu entry.
-- The kit's `aria` case (and `emptyState` for the link) rejects a key name that is a character no
-  key of either layout types alone (`?`, `Shift+?`, `@`, the bare `+`) and a KeyboardEvent code
-  (`Equal`, `Slash`, `KeyA`), and wants exactly the two-layout value for a chip whose character
-  needs ⇧ in one of them.
+  menu entry, and the kit fails it.
+- The kit's `aria` case (palette entries and menu items; `emptyState` for the link) reads each chip
+  with `shortcutKeyKind`, which parses it as `ariaKeyShortcutsFromLabel` does, so the kit and the
+  derivation share one table. It fails a chip on a ruled-out character (`@`, `[`, `⌘ä`) whatever
+  the control carries, wants exactly the two-layout value for a chip whose character needs ⇧ in one
+  of the layouts, also where `ariaKeyShortcuts: ""` would leave the chip as description only, and
+  rejects a key name that is a character no key of either layout types alone (`?`, `Shift+?`, `@`,
+  the bare `+`) and a KeyboardEvent code (`Equal`, `Slash`, `KeyA`). Key symbols such as `⏎` and
+  `⌫` are no characters: a chip `⌘⏎`, which the derivation does not know, keeps its description.
 
 ## Fit
 

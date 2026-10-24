@@ -47,6 +47,7 @@ export type {
   KeyLike,
   NavigatorLike,
   Platform,
+  ShortcutKeyKind,
 } from "./keymap.js";
 export {
   TEXT_FIELD_SELECTOR,
@@ -58,6 +59,7 @@ export {
   isTextField,
   isUndoRedoKey,
   matchChromeKey,
+  shortcutKeyKind,
   shortcutLabel,
 } from "./keymap.js";
 

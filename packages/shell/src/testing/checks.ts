@@ -24,7 +24,7 @@ import {
 } from "./facts.js";
 import { GEOMETRY_TOLERANCE_PX, type Rectangle } from "./geometry.js";
 import type { AbsentFeature, ShellConformanceHarness, ShowHook } from "./harness.js";
-import { keyShortcutsValueProblems } from "./key-shortcut-checks.js";
+import { shortcutChipProblems } from "./key-shortcut-checks.js";
 import type { ElementFacts, LeftoverFacts, RecordedKey } from "./page-tools.js";
 import type { PageLike } from "./page.js";
 import { legalAriaProblems, primaryAriaProblems } from "./web-checks.js";
@@ -393,21 +393,16 @@ export interface PaletteShortcutFacts {
 
 /**
  * Guide §5.6: an entry whose tooltip shows a shortcut carries `aria-keyshortcuts`, which names keys
- * (`keyShortcutsValueProblems`).
+ * (`shortcutChipProblems`).
  */
 export function paletteShortcutProblems(entries: readonly PaletteShortcutFacts[]): string[] {
   return entries.flatMap((entry) => {
-    if (entry.keyShortcuts)
-      return keyShortcutsValueProblems(
-        `palette: entry "${entry.action}"`,
-        entry.chip,
-        entry.keyShortcuts,
-      );
-    return entry.chip
-      ? [
-          `palette: entry "${entry.action}" shows the shortcut "${entry.chip}" in its tooltip but has no aria-keyshortcuts (guide §5.6)`,
-        ]
-      : [];
+    const where = `palette: entry "${entry.action}"`;
+    const problems = shortcutChipProblems(where, entry.chip, entry.keyShortcuts);
+    if (problems.length > 0 || !entry.chip || entry.keyShortcuts) return problems;
+    return [
+      `${where} shows the shortcut "${entry.chip}" in its tooltip but has no aria-keyshortcuts (guide §5.6)`,
+    ];
   });
 }
 
@@ -464,11 +459,7 @@ export function menuOpenProblems(facts: MenuFacts, focus?: "first" | "last"): st
         `menu: "${label}" shows the shortcut "${item.shortcut}" but names it neither in aria-keyshortcuts nor in its description (guide §5.6)`,
       );
     }
-    if (item.keyShortcuts) {
-      problems.push(
-        ...keyShortcutsValueProblems(`menu: "${label}"`, item.shortcut, item.keyShortcuts),
-      );
-    }
+    problems.push(...shortcutChipProblems(`menu: "${label}"`, item.shortcut, item.keyShortcuts));
   });
   if (focus && facts.items.length > 0) {
     const expected = focus === "first" ? 0 : facts.items.length - 1;

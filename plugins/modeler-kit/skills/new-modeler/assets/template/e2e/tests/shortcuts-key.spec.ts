@@ -6,9 +6,8 @@ import { linkHash } from '../../apps/webapp/src/link.js';
 /**
  * The chip on Help › "Keyboard shortcuts…" names a key, so the key works: "?" opens the dialog in
  * the web app, except in a text field and on the start screen, where there is nothing to show. For
- * assistive technology the entry names the keys that type "?", as the shell derives them from the
- * chip: `Shift+/ Shift+ß`, US and German (guide §5.6). Taken from the shell, the expectation holds
- * for whichever release the template pins.
+ * assistive technology the entry names the keys that type "?" on US and German keyboards (guide
+ * §5.6). Shell 0.5, which the template may still pin, named the character itself.
  */
 const openExample = async (page: Page) => {
   await page.goto(`/${linkHash(EXAMPLE)}`);
@@ -24,7 +23,8 @@ test.describe('web app: the keyboard shortcuts key', () => {
     await openExample(page);
     await page.getByRole('button', { name: 'Menu' }).click();
     const entry = page.getByRole('menuitem', { name: 'Keyboard shortcuts…', exact: true });
-    await expect(entry).toHaveAttribute('aria-keyshortcuts', ariaKeyShortcutsFromLabel('?') ?? '');
+    const keys = ariaKeyShortcutsFromLabel('?') === '?' ? '?' : 'Shift+/ Shift+ß';
+    await expect(entry).toHaveAttribute('aria-keyshortcuts', keys);
     await expect(entry).toContainText('?');
     await page.keyboard.press('Escape');
 
