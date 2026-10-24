@@ -1,12 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
-  "bootstrap-sha": "176ab0ffaaf21d0e5a10d0104366f83f24291be2",
-  "include-component-in-tag": true,
   "bump-minor-pre-major": true,
+  "include-component-in-tag": true,
+  "separate-pull-requests": false,
+  "bootstrap-sha": "7594cf38fb9d90d26de2c6763ef65529c5c10495",
   "plugins": [
     {
-      "type": "node-workspace"
+      "type": "node-workspace",
+      "updatePeerDependencies": true
     }
   ],
   "packages": {
@@ -19,6 +21,41 @@
           "type": "json",
           "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/packages/renderer/package.json",
           "jsonpath": "$.dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/team-topologies/packages/renderer/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/renderer'].dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['packages/api'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/renderer'].dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/renderer'].dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/packages/renderer'].dependencies['@miragon/modeler-api']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/modeler-api']"
         }
       ]
     },
@@ -40,6 +77,683 @@
           "type": "json",
           "path": "/plugins/modeler-kit/skills/new-modeler/assets/template/e2e/package.json",
           "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/context-maps/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/e2e'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/event-storming/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/e2e'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/team-topologies/apps/vscode/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/vscode'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/team-topologies/apps/webapp/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/webapp'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/team-topologies/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/e2e'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/team-topologies/packages/ui/package.json",
+          "jsonpath": "$.dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/ui'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/value-chain/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/e2e'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/modelers/wardley/e2e/package.json",
+          "jsonpath": "$.devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/e2e'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['packages/shell'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/vscode'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/webapp'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/vscode'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/webapp'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies'].devDependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/vscode'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/webapp'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/modeler-shell']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/modeler-shell']"
+        }
+      ]
+    },
+    "modelers/wardley/packages/schema-model": {
+      "component": "wardley-schema-model",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/schema-model'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/dsl'].dependencies['@miragon/wardley-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/wardley-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/transforms'].dependencies['@miragon/wardley-schema-model']"
+        }
+      ]
+    },
+    "modelers/wardley/packages/dsl": {
+      "component": "wardley-dsl",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/dsl'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-dsl']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-dsl']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].dependencies['@miragon/wardley-dsl']"
+        }
+      ]
+    },
+    "modelers/wardley/packages/transforms": {
+      "component": "wardley-transforms",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/transforms'].version"
+        }
+      ]
+    },
+    "modelers/wardley/packages/renderer": {
+      "component": "wardley-renderer",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/packages/renderer'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].dependencies['@miragon/wardley-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].dependencies['@miragon/wardley-renderer']"
+        }
+      ]
+    },
+    "modelers/wardley/apps/vscode": {
+      "component": "wardley-vscode",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/vscode'].version"
+        }
+      ]
+    },
+    "modelers/wardley/apps/webapp": {
+      "component": "wardley-webapp",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/wardley/apps/webapp'].version"
+        }
+      ]
+    },
+    "modelers/event-storming/packages/schema-model": {
+      "component": "event-storming-schema-model",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/schema-model'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/vscode'].dependencies['@miragon/event-storming-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/webapp'].dependencies['@miragon/event-storming-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/dsl'].dependencies['@miragon/event-storming-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/renderer'].dependencies['@miragon/event-storming-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/transforms'].dependencies['@miragon/event-storming-schema-model']"
+        }
+      ]
+    },
+    "modelers/event-storming/packages/dsl": {
+      "component": "event-storming-dsl",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/dsl'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/vscode'].dependencies['@miragon/event-storming-dsl']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/webapp'].dependencies['@miragon/event-storming-dsl']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/renderer'].dependencies['@miragon/event-storming-dsl']"
+        }
+      ]
+    },
+    "modelers/event-storming/packages/transforms": {
+      "component": "event-storming-transforms",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/transforms'].version"
+        }
+      ]
+    },
+    "modelers/event-storming/packages/renderer": {
+      "component": "event-storming-renderer",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/packages/renderer'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/vscode'].dependencies['@miragon/event-storming-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/webapp'].dependencies['@miragon/event-storming-renderer']"
+        }
+      ]
+    },
+    "modelers/event-storming/apps/vscode": {
+      "component": "event-storming-vscode",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/vscode'].version"
+        }
+      ]
+    },
+    "modelers/event-storming/apps/webapp": {
+      "component": "event-storming-webapp",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/event-storming/apps/webapp'].version"
+        }
+      ]
+    },
+    "modelers/team-topologies": {
+      "component": "team-topologies",
+      "package-name": "team-topologies-modeler",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies'].version"
+        },
+        {
+          "type": "json",
+          "path": "packages/schema-model/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/schema-model'].version"
+        },
+        {
+          "type": "json",
+          "path": "packages/renderer/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/renderer/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/renderer'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/renderer'].dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "packages/ui/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/ui/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "packages/ui/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/ui'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/ui'].dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/packages/ui'].dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "apps/vscode/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/vscode/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "apps/vscode/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "apps/vscode/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-ui']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/vscode'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/vscode'].dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/vscode'].dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/vscode'].dependencies['@miragon/team-topologies-ui']"
+        },
+        {
+          "type": "json",
+          "path": "apps/webapp/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/webapp/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "apps/webapp/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "apps/webapp/package.json",
+          "jsonpath": "$.dependencies['@miragon/team-topologies-ui']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/webapp'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/webapp'].dependencies['@miragon/team-topologies-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/webapp'].dependencies['@miragon/team-topologies-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/apps/webapp'].dependencies['@miragon/team-topologies-ui']"
+        },
+        {
+          "type": "json",
+          "path": "e2e/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/team-topologies/e2e'].version"
+        },
+        {
+          "type": "json",
+          "path": "plugins/team-topologies-modeler/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": ".claude-plugin/marketplace.json",
+          "jsonpath": "$.plugins[0].version"
+        }
+      ]
+    },
+    "modelers/context-maps/packages/schema-model": {
+      "component": "context-maps-schema-model",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/schema-model'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/vscode'].dependencies['@miragon/context-maps-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/webapp'].dependencies['@miragon/context-maps-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/cml'].dependencies['@miragon/context-maps-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/renderer'].dependencies['@miragon/context-maps-schema-model']"
+        }
+      ]
+    },
+    "modelers/context-maps/packages/cml": {
+      "component": "context-maps-cml",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/cml'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/vscode'].dependencies['@miragon/context-maps-cml']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/webapp'].dependencies['@miragon/context-maps-cml']"
+        }
+      ]
+    },
+    "modelers/context-maps/packages/renderer": {
+      "component": "context-maps-renderer",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/packages/renderer'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/vscode'].dependencies['@miragon/context-maps-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/webapp'].dependencies['@miragon/context-maps-renderer']"
+        }
+      ]
+    },
+    "modelers/context-maps/apps/vscode": {
+      "component": "context-maps-vscode",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/vscode'].version"
+        }
+      ]
+    },
+    "modelers/context-maps/apps/webapp": {
+      "component": "context-maps-webapp",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/context-maps/apps/webapp'].version"
+        }
+      ]
+    },
+    "modelers/value-chain/packages/schema-model": {
+      "component": "value-chain-schema-model",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/packages/schema-model'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/vscode'].dependencies['@miragon/value-chain-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/webapp'].dependencies['@miragon/value-chain-schema-model']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/packages/renderer'].dependencies['@miragon/value-chain-schema-model']"
+        }
+      ]
+    },
+    "modelers/value-chain/packages/renderer": {
+      "component": "value-chain-renderer",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/packages/renderer'].version"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/vscode'].dependencies['@miragon/value-chain-renderer']"
+        },
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/webapp'].dependencies['@miragon/value-chain-renderer']"
+        }
+      ]
+    },
+    "modelers/value-chain/apps/vscode": {
+      "component": "value-chain-vscode",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/vscode'].version"
+        }
+      ]
+    },
+    "modelers/value-chain/apps/webapp": {
+      "component": "value-chain-webapp",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/package-lock.json",
+          "jsonpath": "$.packages['modelers/value-chain/apps/webapp'].version"
         }
       ]
     }

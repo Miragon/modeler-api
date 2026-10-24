@@ -16,6 +16,29 @@ import {
 
 const repositoryFile = (path: string) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+const suiteFile = (path: string) =>
+  readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
+
+const MODELER_PATH = "modelers/team-topologies";
+
+interface SuiteReleaseConfig {
+  packages: Record<string, { component: string }>;
+}
+
+// The suite's config narrowed to this modeler's component: the other components and the workspace
+// plugin read files the fixture does not hold, and none of them changes this modeler's notes.
+function modelerReleaseConfig(): { config: string; component: string } {
+  const suiteConfig = JSON.parse(suiteFile("release-please-config.json")) as SuiteReleaseConfig;
+  const modelerPackage = suiteConfig.packages[MODELER_PATH]!;
+  return {
+    config: JSON.stringify({
+      ...suiteConfig,
+      plugins: [],
+      packages: { [MODELER_PATH]: modelerPackage },
+    }),
+    component: modelerPackage.component,
+  };
+}
 
 interface FixtureHistory {
   previousVersion: string;
@@ -24,9 +47,11 @@ interface FixtureHistory {
 
 function fixtureGitHub({ previousVersion, commitsSincePreviousRelease }: FixtureHistory): GitHub {
   const releaseCommit = `release-${previousVersion}`;
+  const { config, component } = modelerReleaseConfig();
+  const releaseTag = `${component}-v${previousVersion}`;
   const files: Record<string, string> = {
-    "release-please-config.json": repositoryFile("release-please-config.json"),
-    ".release-please-manifest.json": JSON.stringify({ ".": previousVersion }),
+    "release-please-config.json": config,
+    ".release-please-manifest.json": JSON.stringify({ [MODELER_PATH]: previousVersion }),
   };
   const fileContents = (path: string) => {
     const parsedContent = files[path];
@@ -43,7 +68,7 @@ function fixtureGitHub({ previousVersion, commitsSincePreviousRelease }: Fixture
     getFileContentsOnBranch: async (path: string) => fileContents(path),
     getFileJson: async (path: string) => JSON.parse(fileContents(path).parsedContent),
     async *releaseIterator() {
-      yield { name: `v${previousVersion}`, tagName: `v${previousVersion}`, sha: releaseCommit };
+      yield { name: releaseTag, tagName: releaseTag, sha: releaseCommit };
     },
     async *mergeCommitIterator() {
       yield* commitsSincePreviousRelease;

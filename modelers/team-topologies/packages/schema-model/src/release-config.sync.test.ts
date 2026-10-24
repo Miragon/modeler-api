@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Drift guard for the lockstep release: release-please's `node` strategy bumps only the root
- * `package.json` (and a `package-lock.json` next to it, which the suite's one root lockfile
+ * Drift guard for the lockstep release: release-please's `node` strategy bumps only the modeler's
+ * own `package.json` (and a `package-lock.json` next to it, which the suite's one root lockfile
  * replaced). Every other place that carries the shared version has to be listed in `extra-files`,
  * or the release PR leaves it behind and the next `npm install` drags the correction into an
  * unrelated pull request. A path starting with `/` is release-please's path from the suite root.
@@ -41,10 +41,10 @@ const workspaceDirectories = Object.keys(readJson<{ packages: object }>(LOCKFILE
   .filter((path) => path.startsWith(`${modeler}/`) && !path.includes("node_modules/"))
   .map((path) => path.slice(modeler.length + 1));
 
-const releasedVersion = readJson<Record<string, string>>(".release-please-manifest.json")["."];
+const releasedVersion = readJson<Record<string, string>>("/.release-please-manifest.json")[modeler];
 const extraFiles = readJson<{ packages: Record<string, { "extra-files": ExtraFileEntry[] }> }>(
-  "release-please-config.json",
-).packages["."]["extra-files"];
+  "/release-please-config.json",
+).packages[modeler]!["extra-files"];
 const jsonExtraFiles = extraFiles.filter(
   (entry): entry is JsonLocation & { type: "json" } =>
     typeof entry === "object" && entry.type === "json" && !entry.glob,
