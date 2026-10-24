@@ -3,7 +3,8 @@
  * Relationships are drawn via the context pad's connect arrow, not from the palette. A pointer
  * drags or clicks a context onto the canvas; Enter or Space on an entry (a click without a
  * pointer, `detail === 0`, as the Miragon modeler shell sends it) places it in the centre of the
- * free rectangle instead, selected and with its name editor open (guide §5.5).
+ * free rectangle instead, selected and with its name editor open (guide §5.5). A pointer on any
+ * entry hands the focus to the canvas, also without the shell (guide §5.8).
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -27,6 +28,7 @@ import type CmLabelEditing from "../label-editing/CmLabelEditing.js";
 import type CmElementFactory from "../model/CmElementFactory.js";
 import { isCmContext, type CmContext } from "../model/di-types.js";
 import type { CmReadOnly } from "../read-only/index.js";
+import { handFocusToCanvas, isKeyboardClick } from "../keyboard/canvasFocus.js";
 
 /** diagram-js highlights tools only inside the group named exactly `tools`. */
 const GROUP_TOOLS = "tools";
@@ -49,11 +51,6 @@ function entryHtml(icon: string, draggable: boolean): string {
 /** "Supporting Subdomain" → "Supporting subdomain": tooltips are in sentence case (guide §5.6). */
 function sentenceCase(label: string): string {
   return label.charAt(0) + label.slice(1).toLowerCase();
-}
-
-/** A click the shell synthesises for Enter or Space on a palette entry (no pointer, detail 0). */
-function isKeyboardClick(event: Event): boolean {
-  return event.type === "click" && (event as MouseEvent).detail === 0;
 }
 
 export default class CmPaletteProvider implements PaletteProvider {
@@ -97,15 +94,22 @@ export default class CmPaletteProvider implements PaletteProvider {
       title: "Lasso",
       html: entryHtml(toolIcon("square-dashed-mouse-pointer"), false),
       action: {
-        click: (event: Event) => this.lassoTool.activateSelection(event as MouseEvent),
+        click: (event: Event) => {
+          this.lassoTool.activateSelection(event as MouseEvent);
+          handFocusToCanvas(this.canvas, event);
+        },
       },
     };
 
     for (const spec of ALL_SUBDOMAIN_SPECS) {
       const start = (event: Event) => {
         const shape = this.factory.createNewContext(spec.type, spec.label);
-        if (isKeyboardClick(event)) this.placeInFreeRect(shape);
-        else this.create.start(event as MouseEvent, shape as unknown as Element);
+        if (isKeyboardClick(event)) {
+          this.placeInFreeRect(shape);
+          return;
+        }
+        this.create.start(event as MouseEvent, shape as unknown as Element);
+        handFocusToCanvas(this.canvas, event);
       };
       entries[`context.${spec.type}`] = {
         group: GROUP_CONTEXTS,

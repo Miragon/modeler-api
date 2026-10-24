@@ -411,6 +411,30 @@ test.describe("VS Code webview: protocol and chrome", () => {
 });
 
 test.describe("VS Code webview: canvas", () => {
+  test("with nothing focused, Delete and Backspace leave the map and post no edit", async ({
+    page,
+  }) => {
+    await openWebview(page);
+    await page.locator('[data-element-id="ctx_cfp"]').first().click();
+    await expect(page.locator(".djs-context-pad.open")).toBeVisible();
+    await page.evaluate(() => (document.activeElement as HTMLElement | SVGElement | null)?.blur());
+    await page.keyboard.press("Delete");
+    await page.keyboard.press("Backspace");
+    expect(await contextIds(page)).toContain("ctx_cfp");
+    expect((await postedMessages(page)).some((message) => message.type === "edit")).toBe(false);
+  });
+
+  test("Delete after a pointer on a context-pad entry acts on the canvas", async ({ page }) => {
+    await openWebview(page);
+    await page.evaluate(() => window.modeler!.elements.reveal("rel_evaluation_schedule"));
+    await page.locator('.djs-context-pad.open [data-action="swap-ends"]').click();
+    await waitForPosted(page, "edit");
+    await page.keyboard.press("Delete");
+    await expect
+      .poll(() => page.evaluate(() => window.modeler!.elements.list().map((entry) => entry.id)))
+      .not.toContain("rel_evaluation_schedule");
+  });
+
   test("a failed import locks the canvas until the next valid one", async ({ page }) => {
     await openWebview(page);
     await postFromHost(page, { type: "update", text: INVALID_MAP });
