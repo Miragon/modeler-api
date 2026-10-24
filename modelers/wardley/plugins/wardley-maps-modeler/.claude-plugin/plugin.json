@@ -8,8 +8,8 @@
     "name": "Miragon",
     "url": "https://miragon.io"
   },
-  "homepage": "https://github.com/Miragon/wardley-maps-modeler",
-  "repository": "https://github.com/Miragon/wardley-maps-modeler",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley/plugins/wardley-maps-modeler#readme",
+  "repository": "https://github.com/Miragon/modeler-suite",
   "license": "MIT",
   "keywords": [
     "wardley-mapping",

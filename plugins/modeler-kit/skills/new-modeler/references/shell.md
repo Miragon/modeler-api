@@ -1,9 +1,9 @@
 # The chrome: `@miragon/modeler-shell`
 
 Both apps mount the shell; renderers never import it. Every option, type and rule is in the
-[README](https://github.com/Miragon/modeler-api/blob/main/packages/shell/README.md) and
-[API.md](https://github.com/Miragon/modeler-api/blob/main/packages/shell/API.md), the why in the
-[implementation notes](https://github.com/Miragon/modeler-api/blob/main/docs/shell/implementation-notes.md).
+[README](https://github.com/Miragon/modeler-suite/blob/main/packages/shell/README.md) and
+[API.md](https://github.com/Miragon/modeler-suite/blob/main/packages/shell/API.md), the why in the
+[implementation notes](https://github.com/Miragon/modeler-suite/blob/main/docs/shell/implementation-notes.md).
 Template: [`apps/webapp/src/main.ts`](../assets/template/apps/webapp/src/main.ts) and
 [`apps/vscode/src/webview/main.ts`](../assets/template/apps/vscode/src/webview/main.ts).
 
@@ -187,8 +187,8 @@ runs all three.
   after a failed theme; a modeler that added one on an older shell drops it with the upgrade.
 
 What each step checks and every option are in the shell's
-[README](https://github.com/Miragon/modeler-api/blob/main/packages/shell/README.md) (section "Smoke
-tests in a real VS Code") and [API.md](https://github.com/Miragon/modeler-api/blob/main/packages/shell/API.md)
+[README](https://github.com/Miragon/modeler-suite/blob/main/packages/shell/README.md) (section "Smoke
+tests in a real VS Code") and [API.md](https://github.com/Miragon/modeler-suite/blob/main/packages/shell/API.md)
 (`./testing/vscode-electron`).
 
 ## Upgrades

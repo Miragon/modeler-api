@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
-  "name": "modeler-api",
+  "name": "modeler-suite",
   "owner": {
     "name": "Miragon",
     "url": "https://miragon.io"
   },
-  "description": "Claude Code plugins of the Miragon modeler platform (@miragon/modeler-api and @miragon/modeler-shell).",
+  "description": "Claude Code plugins of the Miragon modeler suite: the method and file-format skills of the Wardley Maps, Event Storming and Team Topologies modelers, and the new-modeler skill for building a modeler on @miragon/modeler-api and @miragon/modeler-shell.",
   "plugins": [
     {
       "name": "modeler-kit",
@@ -15,11 +15,81 @@
         "name": "Miragon",
         "url": "https://miragon.io"
       },
-      "homepage": "https://github.com/Miragon/modeler-api/tree/main/plugins/modeler-kit#readme",
-      "repository": "https://github.com/Miragon/modeler-api",
+      "homepage": "https://github.com/Miragon/modeler-suite/tree/main/plugins/modeler-kit#readme",
+      "repository": "https://github.com/Miragon/modeler-suite",
       "license": "MIT",
       "category": "development",
       "keywords": ["modeler", "diagram-js", "modeler-api", "modeler-shell", "template", "miragon"]
+    },
+    {
+      "name": "wardley-maps-modeler",
+      "source": "./modelers/wardley/plugins/wardley-maps-modeler",
+      "description": "Wardley Mapping for Claude: the method (value chains, evolution, doctrine, gameplay, creating maps, map reviews with colour-coded feedback notes) plus the complete OWM text DSL — grammar, coordinates and layout, diagnostics, round-trip. Lets Claude read, write, review and generate Wardley Maps as plain text.",
+      "author": {
+        "name": "Miragon",
+        "url": "https://miragon.io"
+      },
+      "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley/plugins/wardley-maps-modeler#readme",
+      "repository": "https://github.com/Miragon/modeler-suite",
+      "license": "MIT",
+      "category": "modeling",
+      "keywords": [
+        "wardley-mapping",
+        "wardley-maps",
+        "owm",
+        "dsl",
+        "strategy",
+        "evolution",
+        "doctrine",
+        "modeling",
+        "miragon"
+      ]
+    },
+    {
+      "name": "event-storming-modeler",
+      "source": "./modelers/event-storming/plugins/event-storming-modeler",
+      "description": "Event Storming for Claude: the method (sticky grammar, the three workshop levels, board reviews with colour-coded feedback) plus the complete `.storm` text DSL — grammar, layout, diagnostics, round-trip. Lets Claude read, write, review and generate Event Storming boards as plain text.",
+      "author": {
+        "name": "Miragon",
+        "url": "https://miragon.io"
+      },
+      "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming/plugins/event-storming-modeler#readme",
+      "repository": "https://github.com/Miragon/modeler-suite",
+      "license": "MIT",
+      "category": "modeling",
+      "keywords": [
+        "event-storming",
+        "storm",
+        "dsl",
+        "domain-driven-design",
+        "ddd",
+        "modeling",
+        "brandolini",
+        "miragon"
+      ]
+    },
+    {
+      "name": "team-topologies-modeler",
+      "source": "./modelers/team-topologies/plugins/team-topologies-modeler",
+      "description": "Team Topologies for Claude: team types, interaction modes and topology reviews, plus the complete `.tt` / `.ttm.json` format with a layout grid and a dependency-free checker. Lets Claude design, draw, review and edit Team Topologies diagrams as plain JSON.",
+      "author": {
+        "name": "Miragon",
+        "url": "https://miragon.io"
+      },
+      "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies/plugins/team-topologies-modeler#readme",
+      "repository": "https://github.com/Miragon/modeler-suite",
+      "license": "MIT",
+      "category": "modeling",
+      "keywords": [
+        "team-topologies",
+        "team-types",
+        "interaction-modes",
+        "platform-team",
+        "org-design",
+        "cognitive-load",
+        "modeling",
+        "miragon"
+      ]
     }
   ]
 }

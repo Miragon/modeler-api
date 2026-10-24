@@ -8,8 +8,8 @@
     "name": "Miragon",
     "url": "https://miragon.io"
   },
-  "homepage": "https://github.com/Miragon/team-topologies-modeler",
-  "repository": "https://github.com/Miragon/team-topologies-modeler",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies/plugins/team-topologies-modeler#readme",
+  "repository": "https://github.com/Miragon/modeler-suite",
   "license": "MIT",
   "keywords": [
     "team-topologies",

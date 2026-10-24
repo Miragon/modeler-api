@@ -1,7 +1,7 @@
 # Event Storming Modeler — Claude Code plugin
 
 Two skills that teach Claude [Event Storming](https://www.eventstorming.com/) and the `.storm`
-text format used by the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler).
+text format used by the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming).
 
 | Skill            | What it covers                                                                                                                                                                                            |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,15 +14,15 @@ in any repository, not just this one.
 ## Install
 
 ```
-/plugin marketplace add Miragon/event-storming-modeler
-/plugin install event-storming-modeler@event-storming
+/plugin marketplace add Miragon/modeler-suite
+/plugin install event-storming-modeler@modeler-suite
 ```
 
-From a local checkout instead:
+From a local checkout of [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite) instead:
 
 ```
-/plugin marketplace add /path/to/event-storming-modeler
-/plugin install event-storming-modeler@event-storming
+/plugin marketplace add /path/to/modeler-suite
+/plugin install event-storming-modeler@modeler-suite
 ```
 
 Once installed the skills are available everywhere as `event-storming-modeler:event-storming` and
@@ -63,13 +63,14 @@ Open it in the [web editor](https://event-storming.modeler.miragon.io) or the
 The skills are plain markdown under `skills/`. After editing, validate them:
 
 ```bash
-claude plugin validate plugins/event-storming-modeler --strict
-claude plugin validate .            # the marketplace manifest
+claude plugin validate modelers/event-storming/plugins/event-storming-modeler --strict   # from the repository root
+claude plugin validate .                                               # the suite's marketplace
 ```
 
-Keep `version` in `.claude-plugin/plugin.json` and the matching entry in the repository's
-`.claude-plugin/marketplace.json` in sync — `claude plugin tag` enforces it.
+The plugin's `version` lives in `.claude-plugin/plugin.json` only: its entry in the suite's
+marketplace (`.claude-plugin/marketplace.json` at the repository root) carries none, which
+`npm run test:plugin` checks. Bump it there when the skills change.
 
 ## License
 
-MIT — see the [repository LICENSE](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE).
+MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE).

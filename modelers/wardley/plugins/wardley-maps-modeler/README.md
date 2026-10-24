@@ -1,7 +1,7 @@
 # Wardley Maps Modeler — Claude Code plugin
 
 Two skills that teach Claude [Wardley Mapping](https://learnwardleymapping.com/) and the OWM text
-format (`.wmap` / `.owm`) used by the [Wardley Maps Modeler](https://github.com/Miragon/wardley-maps-modeler).
+format (`.wmap` / `.owm`) used by the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley).
 
 | Skill             | What it covers                                                                                                                                                                                                                                |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -15,15 +15,15 @@ itself: it writes the `.wmap` / `.owm` file and the modeler draws it.
 ## Install
 
 ```
-/plugin marketplace add Miragon/wardley-maps-modeler
-/plugin install wardley-maps-modeler@wardley-maps
+/plugin marketplace add Miragon/modeler-suite
+/plugin install wardley-maps-modeler@modeler-suite
 ```
 
-From a local checkout instead:
+From a local checkout of [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite) instead:
 
 ```
-/plugin marketplace add /path/to/wardley-maps-modeler
-/plugin install wardley-maps-modeler@wardley-maps
+/plugin marketplace add /path/to/modeler-suite
+/plugin install wardley-maps-modeler@modeler-suite
 ```
 
 Once installed the skills are available everywhere as `wardley-maps-modeler:wardley-mapping` and
@@ -74,21 +74,22 @@ To process maps in code, parse them with
 The skills are plain markdown under `skills/`. After editing, validate them:
 
 ```bash
-claude plugin validate plugins/wardley-maps-modeler --strict
-claude plugin validate .            # the marketplace manifest
+claude plugin validate modelers/wardley/plugins/wardley-maps-modeler --strict   # from the repository root
+claude plugin validate .                                               # the suite's marketplace
 ```
 
 Every `owm`-tagged code block and every `*.wmap` / `*.owm` file in this plugin must parse with
-zero diagnostics and survive a serialize round-trip unchanged; the repository's test suite
-(`npm test`) enforces this, so run it after touching an example. Use `text` blocks for fragments
-and deliberately broken snippets.
+zero diagnostics and survive a serialize round-trip unchanged; the modeler's test suite
+(`npm run wardley test` from the repository root) enforces this, so run it after touching an
+example. Use `text` blocks for fragments and deliberately broken snippets.
 
-Keep `version` in `.claude-plugin/plugin.json` and the matching entry in the repository's
-`.claude-plugin/marketplace.json` in sync — `claude plugin tag` enforces it.
+The plugin's `version` lives in `.claude-plugin/plugin.json` only: its entry in the suite's
+marketplace (`.claude-plugin/marketplace.json` at the repository root) carries none, which
+`npm run test:plugin` checks. Bump it there when the skills change.
 
 ## License
 
-MIT — see the [repository LICENSE](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE).
+MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE).
 Parts of the method content and the example maps are adapted from
 [haberlah/wardley-mapping](https://github.com/haberlah/wardley-mapping) (MIT); the tea shop map
 follows the example map of [Online Wardley Maps](https://github.com/damonsk/onlinewardleymaps)

@@ -29,7 +29,7 @@ const TEMPLATE = join(SKILL, "assets/template");
 const SCRIPT = join(SKILL, "scripts/new-modeler.mjs");
 /** Links of the skill to this repository's docs: they must resolve in this checkout. */
 const OWN_GITHUB_URL =
-  /^https:\/\/github\.com\/Miragon\/modeler-api\/(?:blob|tree)\/main\/([^#?]*)(?:#(.*))?$/;
+  /^https:\/\/github\.com\/Miragon\/modeler-suite\/(?:blob|tree)\/main\/([^#?]*)(?:#(.*))?$/;
 
 type Json = Record<string, unknown>;
 type Manifest = Json & Partial<Record<DependencyField, Record<string, string>>>;
@@ -624,14 +624,25 @@ describe("the plugin manifests", () => {
         expect(() => new URL(manifest.homepage ?? "")).not.toThrow();
       });
 
-      // A version holds every installed copy until someone changes it, and nobody changes it for
-      // the template pins release-please rewrites in its release commit. Without one, Claude Code
-      // versions a relative-path plugin by the commit of its directory, so every merged change
-      // reaches `/plugin update`.
-      it("has no version in plugin.json or in the marketplace entry, so installs follow the commits", () => {
-        expect(manifest.version).toBeUndefined();
+      // plugin.json is the one place a plugin's version lives, so a release bumps one file and the
+      // marketplace can never disagree with it.
+      it("has no version in its marketplace entry", () => {
         expect(entry.version).toBeUndefined();
       });
+
+      if (entry.name === "modeler-kit") {
+        // A version holds every installed copy until someone changes it, and nobody changes it for
+        // the template pins release-please rewrites in its release commit. Without one, Claude Code
+        // versions a relative-path plugin by the commit of its directory, so every merged change
+        // reaches `/plugin update`.
+        it("has no version in plugin.json, so installs follow the commits", () => {
+          expect(manifest.version).toBeUndefined();
+        });
+      } else {
+        it("has an exact version in plugin.json, if it has one", () => {
+          if (manifest.version !== undefined) expect(manifest.version).toMatch(EXACT_VERSION);
+        });
+      }
 
       it("has skills with a valid SKILL.md each", () => {
         const skills = readdirSync(join(directory, "skills"));
@@ -640,20 +651,18 @@ describe("the plugin manifests", () => {
           const text = readText(join(directory, "skills", skill, "SKILL.md"));
           const frontmatter = /^---\n([\s\S]*?)\n---\n/.exec(text)?.[1];
           expect(frontmatter, `${skill}: frontmatter`).toBeDefined();
-          const fields = new Map(
-            [...frontmatter!.matchAll(/^([\w-]+):\s*(.*)$/gm)].map((match) => [
-              match[1]!,
-              match[2]!.trim(),
-            ]),
-          );
-          expect([...fields.keys()].filter((key) => !SKILL_KEYS.has(key))).toEqual([]);
-          expect(fields.get("name")).toBe(skill);
+          // The modelers' skills fold their descriptions over several lines (`description: >-`).
+          const fields = parseYaml(frontmatter!) as Record<string, unknown>;
+          expect(Object.keys(fields).filter((key) => !SKILL_KEYS.has(key))).toEqual([]);
+          expect(fields.name).toBe(skill);
           expect(skill).toMatch(KEBAB);
           expect(skill.length).toBeLessThanOrEqual(64);
-          const description = fields.get("description") ?? "";
+          const description = typeof fields.description === "string" ? fields.description : "";
           expect(description.length).toBeGreaterThan(0);
           expect(description.length).toBeLessThanOrEqual(1024);
-          expect(description).not.toMatch(/[<>]/);
+          // An XML tag is what the skill standard forbids; an arrow such as `->` in a DSL's
+          // description is not one.
+          expect(description).not.toMatch(/<\/?[A-Za-z][^<>]*>/);
         }
       });
     });

@@ -8,8 +8,8 @@
     "name": "Miragon",
     "url": "https://miragon.io"
   },
-  "homepage": "https://github.com/Miragon/event-storming-modeler",
-  "repository": "https://github.com/Miragon/event-storming-modeler",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming/plugins/event-storming-modeler#readme",
+  "repository": "https://github.com/Miragon/modeler-suite",
   "license": "MIT",
   "keywords": [
     "event-storming",

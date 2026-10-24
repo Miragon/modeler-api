@@ -10,15 +10,17 @@ diagram-js renderer shows and edits it, and two apps put the renderer in front o
 and a VS Code custom editor. Two shared packages keep the family uniform:
 [`@miragon/modeler-api`][api] (the collaborative-modeler contract every host binds, with its
 conformance kit) and [`@miragon/modeler-shell`][shell] (the chrome around the canvas, with its
-conformance kit). Five modelers follow this recipe; read the one closest to your notation:
+conformance kit). Five modelers follow this recipe, all in
+[Miragon/modeler-suite](https://github.com/Miragon/modeler-suite) next to the two packages; read
+the one closest to your notation:
 
-| Repository                              | Closest when your notation …                                              |
-| --------------------------------------- | ------------------------------------------------------------------------- |
-| [Miragon/event-storming-modeler][es]    | has a line DSL and stickies; the pilot, nearest to the template           |
-| [Miragon/value-chain-modeler][vc]       | is small and stored as JSON; uses diagram-js-direct-editing               |
-| [Miragon/team-topologies-modeler][tt]   | has a legend, an inspector and a JSON format; one release component       |
-| [Miragon/context-maps-modeler][cm]      | imports and exports a foreign format (Context Mapper CML) next to its own |
-| [Miragon/wardley-maps-modeler][wardley] | has a fixed plot (axes, stages), notes and a large DSL; the most complete |
+| Modeler                          | Closest when your notation …                                              |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| [`modelers/event-storming`][es]  | has a line DSL and stickies; the pilot, nearest to the template           |
+| [`modelers/value-chain`][vc]     | is small and stored as JSON; uses diagram-js-direct-editing               |
+| [`modelers/team-topologies`][tt] | has a legend, an inspector and a JSON format; one release component       |
+| [`modelers/context-maps`][cm]    | imports and exports a foreign format (Context Mapper CML) next to its own |
+| [`modelers/wardley`][wardley]    | has a fixed plot (axes, stages), notes and a large DSL; the most complete |
 
 ## Start from the template
 
@@ -121,12 +123,12 @@ The contract and the shell document their API in their own READMEs ([api], [shel
 [shell API][shell-api], [implementation notes][notes]); this skill tells you what to build and
 where it bites, and links there for every signature.
 
-[api]: https://github.com/Miragon/modeler-api/blob/main/packages/api/README.md
-[shell]: https://github.com/Miragon/modeler-api/blob/main/packages/shell/README.md
-[shell-api]: https://github.com/Miragon/modeler-api/blob/main/packages/shell/API.md
-[notes]: https://github.com/Miragon/modeler-api/blob/main/docs/shell/implementation-notes.md
-[es]: https://github.com/Miragon/event-storming-modeler
-[vc]: https://github.com/Miragon/value-chain-modeler
-[tt]: https://github.com/Miragon/team-topologies-modeler
-[cm]: https://github.com/Miragon/context-maps-modeler
-[wardley]: https://github.com/Miragon/wardley-maps-modeler
+[api]: https://github.com/Miragon/modeler-suite/blob/main/packages/api/README.md
+[shell]: https://github.com/Miragon/modeler-suite/blob/main/packages/shell/README.md
+[shell-api]: https://github.com/Miragon/modeler-suite/blob/main/packages/shell/API.md
+[notes]: https://github.com/Miragon/modeler-suite/blob/main/docs/shell/implementation-notes.md
+[es]: https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming
+[vc]: https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain
+[tt]: https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies
+[cm]: https://github.com/Miragon/modeler-suite/tree/main/modelers/context-maps
+[wardley]: https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley

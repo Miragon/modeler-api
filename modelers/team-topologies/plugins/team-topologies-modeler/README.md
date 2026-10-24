@@ -2,7 +2,7 @@
 
 Two skills that teach Claude [Team Topologies](https://teamtopologies.com/) and the `.tt` /
 `.ttm.json` file format used by the
-[Team Topologies Modeler](https://github.com/Miragon/team-topologies-modeler).
+[Team Topologies Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies).
 
 | Skill             | What it covers                                                                                                                                                                                                                                   |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -18,15 +18,15 @@ diagram it drew without seeing it. Two worked example diagrams live in `skills/t
 ## Install
 
 ```
-/plugin marketplace add Miragon/team-topologies-modeler
-/plugin install team-topologies-modeler@team-topologies
+/plugin marketplace add Miragon/modeler-suite
+/plugin install team-topologies-modeler@modeler-suite
 ```
 
-From a local checkout instead:
+From a local checkout of [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite) instead:
 
 ```
-/plugin marketplace add /path/to/team-topologies-modeler
-/plugin install team-topologies-modeler@team-topologies
+/plugin marketplace add /path/to/modeler-suite
+/plugin install team-topologies-modeler@modeler-suite
 ```
 
 Once installed the skills are available everywhere as `team-topologies-modeler:team-topologies` and
@@ -50,15 +50,17 @@ Open the result in the `miragon-gmbh.team-topologies-modeler` VS Code extension,
 The skills are plain markdown under `skills/`. After editing, validate them:
 
 ```bash
-claude plugin validate plugins/team-topologies-modeler --strict
-claude plugin validate .            # the marketplace manifest
+claude plugin validate modelers/team-topologies/plugins/team-topologies-modeler --strict   # from the repository root
+claude plugin validate .                                               # the suite's marketplace
 ```
 
 The checker hand-mirrors `@miragon/team-topologies-schema-model` (notation sizes, schema,
 serializer). `packages/schema-model/src/plugin-check.sync.test.ts` fails as soon as the two diverge,
-so `npm test` catches drift. The plugin `version` here and in the repository's
-`.claude-plugin/marketplace.json` is bumped by release-please together with the packages.
+so `npm test` catches drift. The plugin's `version` lives in `.claude-plugin/plugin.json` only:
+its entry in the suite's marketplace (`.claude-plugin/marketplace.json` at the repository root)
+carries none, which `npm run test:plugin` checks. How a release bumps it is in
+[docs/ci-and-releases.md](https://github.com/Miragon/modeler-suite/blob/main/docs/ci-and-releases.md).
 
 ## License
 
-MIT — see the [repository LICENSE](https://github.com/Miragon/team-topologies-modeler/blob/main/LICENSE).
+MIT — see the [modeler's LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE).

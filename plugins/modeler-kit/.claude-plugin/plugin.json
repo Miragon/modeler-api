@@ -7,8 +7,8 @@
     "name": "Miragon",
     "url": "https://miragon.io"
   },
-  "homepage": "https://github.com/Miragon/modeler-api/tree/main/plugins/modeler-kit#readme",
-  "repository": "https://github.com/Miragon/modeler-api",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/plugins/modeler-kit#readme",
+  "repository": "https://github.com/Miragon/modeler-suite",
   "license": "MIT",
   "keywords": [
     "modeler",
