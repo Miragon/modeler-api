@@ -142,6 +142,15 @@ Dependabot commits as `chore(deps)`, which release-please does not release, and 
 shell changes the chrome. Adopt it by hand as `fix(deps): adopt modeler-shell x.y` (with the code
 changes the release notes ask for). GitHub Actions update monthly, all grouped.
 
+`dependabot-automerge.yml` enables auto-merge with a token of the release-please app: GitHub merges
+in the name of whoever enabled auto-merge, and a merge made with `GITHUB_TOKEN` starts no workflow
+on `main`, so neither `ci-ok` nor CodeQL nor release-please would see the update. It runs on
+`pull_request_target`, because a run Dependabot starts on `pull_request` gets only Dependabot
+secrets; that event runs the workflow from `main` with the Actions secrets, so it never checks out
+or runs the pull request. GitHub blocks `pull_request_target` in public repositories from
+2 December 2026: give a public repository an Actions policy (Settings → Actions → Policies) that
+allows the event for `.github/workflows/dependabot-automerge.yml`.
+
 ## Commits
 
 Conventional Commits with a scope where it helps (`feat(renderer): …`). Every commit is signed

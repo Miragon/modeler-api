@@ -160,4 +160,11 @@ packages or the root install changed. Site settings (Site configuration → Buil
 - [`dependabot.yml`](../.github/dependabot.yml): npm weekly (minor and patch grouped, each major on
   its own, the suite's `@miragon/*` workspaces ignored), GitHub Actions monthly.
   [`dependabot-automerge.yml`](../.github/workflows/dependabot-automerge.yml) merges green patch and
-  minor updates once auto-merge is enabled for the repository.
+  minor updates once auto-merge is enabled for the repository. It enables auto-merge with a token of
+  the release-please app: GitHub merges in the name of whoever enabled it, and a merge made with
+  `GITHUB_TOKEN` starts no workflow on `main` (no `ci-ok`, no CodeQL, no release-please). It runs on
+  `pull_request_target`, because a run Dependabot starts on `pull_request` gets only Dependabot
+  secrets; that event runs the workflow from `main` with the Actions secrets, so the workflow never
+  checks out or runs the pull request. GitHub blocks `pull_request_target` in public repositories
+  from 2 December 2026 unless an Actions policy (Settings → Actions → Policies) allows it, so the
+  suite needs one that allows the event for this workflow.

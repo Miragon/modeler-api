@@ -1,14 +1,17 @@
 name: Dependabot auto-merge
 
-on: pull_request
+# A run Dependabot starts on pull_request gets Dependabot secrets only, without the app's key.
+# pull_request_target runs this file as it is on main, with the Actions secrets, so it never checks
+# out or runs code of the pull request. GitHub blocks pull_request_target in public repositories
+# unless an Actions policy (Settings → Actions → Policies) allows it for this workflow.
+on: pull_request_target
 
 permissions:
-  contents: write
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Dependabot metadata
@@ -17,8 +20,20 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for patch and minor updates
+      # GitHub merges in the name of whoever enabled auto-merge, and a merge made with GITHUB_TOKEN
+      # starts no workflow on main: no ci-ok, no CodeQL, no release-please.
+      - name: Create a release-please app token for patch and minor updates
+        id: app-token
         if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Enable auto-merge
+        if: steps.app-token.outcome == 'success'
         run: |
           for i in 1 2 3 4 5; do
             gh pr merge --auto --squash "$PR_URL" && exit 0
@@ -28,4 +43,4 @@ jobs:
           exit 1
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
