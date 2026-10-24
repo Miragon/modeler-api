@@ -74,13 +74,17 @@ const ANNOTATED_DOCUMENT: TtDocument = {
   ],
 };
 
+/** One word of 80 characters, which no line of the 160px wide team holds. */
+const EIGHTY_CHARACTER_TEAM_NAME =
+  "Customer-account-settlement-and-reconciliation-services-for-all-regional-markets";
+
 const OVERFLOWING_DOCUMENT: TtDocument = {
   ...emptyDocument(),
   nodes: [
     {
       id: "team_long_name",
       type: "stream-aligned",
-      label: "customeraccountsettlementandreconciliationservicesforallregionalmarketplaces",
+      label: EIGHTY_CHARACTER_TEAM_NAME,
       position: { x: 0, y: 0 },
       size: { width: 160, height: 64 },
     },
@@ -113,6 +117,31 @@ function drawnTextRows(diagram: TtBaseViewer): { top: number; bottom: number } {
     }
   }
   return { top, bottom };
+}
+
+/** The left and right ends of every line of label text the canvas drew, in diagram coordinates. */
+function drawnTextColumns(diagram: TtBaseViewer): { left: number; right: number } {
+  const registry = diagram.get<ElementRegistry>("elementRegistry");
+  let left = Infinity;
+  let right = -Infinity;
+  for (const element of registry.getAll().filter(isTtElement)) {
+    for (const text of registry.getGraphics(element).querySelectorAll<SVGTextElement>("text")) {
+      const box = text.getBBox();
+      left = Math.min(left, element.x + box.x);
+      right = Math.max(right, element.x + box.x + box.width);
+    }
+  }
+  return { left, right };
+}
+
+/** The root of the SVG that `saveSVG()` exports. */
+function exportedSvg(diagram: TtBaseViewer): Element {
+  return new DOMParser().parseFromString(diagram.saveSVG().svg, "image/svg+xml").documentElement;
+}
+
+function viewBoxOf(svg: Element): ElementBounds {
+  const [x, y, width, height] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+  return { x, y, width, height };
 }
 
 describe("contentBounds", () => {
@@ -235,6 +264,41 @@ describe("contentBounds", () => {
 
     expect(modeler.contentBounds()).toBeUndefined();
     expect(container.childElementCount).toBe(0);
+  });
+});
+
+describe("the SVG export", () => {
+  const EXPORT_MARGIN = 40;
+
+  test("frames contentBounds() plus its margin, label text past the shapes included", () => {
+    const modeler = mounted((container) => new Modeler({ container }));
+    modeler.importDocument(OVERFLOWING_DOCUMENT);
+    const shapes = documentBounds(OVERFLOWING_DOCUMENT);
+    const rows = drawnTextRows(modeler);
+    const columns = drawnTextColumns(modeler);
+    const bounds = modeler.contentBounds();
+    expect(bounds).toBeDefined();
+    if (!bounds) return;
+    expect(columns.left).toBeLessThan(shapes.x - EXPORT_MARGIN);
+    expect(rows.bottom).toBeGreaterThan(shapes.y + shapes.height + EXPORT_MARGIN);
+
+    const svg = exportedSvg(modeler);
+
+    const left = Math.floor(bounds.x - EXPORT_MARGIN);
+    const top = Math.floor(bounds.y - EXPORT_MARGIN);
+    const viewBox = viewBoxOf(svg);
+    expect(viewBox).toEqual({
+      x: left,
+      y: top,
+      width: Math.ceil(bounds.x + bounds.width + EXPORT_MARGIN) - left,
+      height: Math.ceil(bounds.y + bounds.height + EXPORT_MARGIN) - top,
+    });
+    expect(columns.left).toBeGreaterThanOrEqual(viewBox.x);
+    expect(columns.right).toBeLessThanOrEqual(viewBox.x + viewBox.width);
+    expect(rows.top).toBeGreaterThanOrEqual(viewBox.y);
+    expect(rows.bottom).toBeLessThanOrEqual(viewBox.y + viewBox.height);
+    expect(svg.getAttribute("width")).toBe(String(viewBox.width));
+    expect(svg.getAttribute("height")).toBe(String(viewBox.height));
   });
 });
 

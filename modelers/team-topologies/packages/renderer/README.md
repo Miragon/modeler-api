@@ -92,7 +92,7 @@ modeler.redo();
 > **The CSS is required.** Import `@miragon/team-topologies-renderer/assets/team-topologies.css`
 > (it also pulls in the Miragon design tokens, `diagram-js`'s own stylesheet and `cd-canvas.css`, in
 > that order) — without it the palette, context pad and label editor are unstyled. Every colour is a
-> `--cd-ui-*` role of design system 1.13.0, vendored unchanged under `src/theme/`. The tokens sit in
+> `--cd-ui-*` role of design system 1.20.1, vendored unchanged under `src/theme/`. The tokens sit in
 > the cascade layer `team-topologies-tokens`, so a host page's own `--cd-*` tokens (unlayered) win
 > over this copy.
 
@@ -169,7 +169,7 @@ estimated from the characters rather than measured. A host that fits the view it
 | `fitToView()`                      | `void`                          | Deprecated: fit every element, keeping the strip under the palette free.                                                               |
 | `contentBounds()`                  | `ElementBounds \| undefined`    | The tight box around every element and its label text in diagram coordinates (contract 1.3), `undefined` without elements.             |
 | `exportDocument()`                 | `TtDocument`                    | Rebuild the canonical model from the live canvas.                                                                                      |
-| `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot (fitted viewBox).                                                                                          |
+| `saveSVG()`                        | `{ svg: string }`               | Self-contained SVG snapshot of the `contentBounds()` box, label text included, plus a 40px margin.                                     |
 | `setMeta(partial)` / `getMeta()`   | — / `RootBusinessObject`        | Read/write diagram-level metadata (`title`); `setMeta` is deprecated, rename with `get("ttModeling").setTitle(title)` (one undo step). |
 | `attachTo(el)` / `detach()`        | `void`                          | Move the canvas in/out of the DOM (keeps state).                                                                                       |
 | `clear()` / `destroy()`            | `void`                          | Empty the canvas / tear it down.                                                                                                       |

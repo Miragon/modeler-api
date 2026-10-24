@@ -1,7 +1,7 @@
 /**
- * The box around the diagram's content, which a host fits its view to, and the renderer's own fit
- * for hosts without chrome that fits (unlike diagram-js `fit-viewport`, it keeps the strip under the
- * floating palette free, so no element starts hidden behind it).
+ * The box around the diagram's content, which a host fits its view to and an SVG export frames, and
+ * the renderer's own fit for hosts without chrome that fits (unlike diagram-js `fit-viewport`, it
+ * keeps the strip under the floating palette free, so no element starts hidden behind it).
  */
 
 import type Canvas from "diagram-js/lib/core/Canvas";
@@ -24,6 +24,40 @@ export interface ContentBounds {
   minY: number;
   maxX: number;
   maxY: number;
+}
+
+/**
+ * The tight box around every element and its label text in diagram coordinates, `undefined`
+ * while the canvas holds none. Read from the elements' geometry and the label layout rather than
+ * measured on the SVG, so zoom and scroll, at which a browser lays text out differently, never
+ * change it.
+ */
+export function diagramContentBounds(elementRegistry: ElementRegistry): ContentBounds | undefined {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const include = (x: number, y: number, width: number, height: number) => {
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + width);
+    maxY = Math.max(maxY, y + height);
+  };
+  for (const element of elementRegistry.getAll()) {
+    const shape = element as { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+    if (
+      typeof shape.x !== "number" ||
+      typeof shape.y !== "number" ||
+      typeof shape.width !== "number" ||
+      typeof shape.height !== "number"
+    ) {
+      continue;
+    }
+    include(shape.x, shape.y, shape.width, shape.height);
+    const text = isTtElement(element) ? labelTextBox(element) : undefined;
+    if (text) include(shape.x + text.x, shape.y + text.y, text.width, text.height);
+  }
+  return Number.isFinite(minX) ? { minX, minY, maxX, maxY } : undefined;
 }
 
 export default class TtViewport {
@@ -94,37 +128,8 @@ export default class TtViewport {
     return bounds.minY - (topInset + slack / 2) / scale;
   }
 
-  /**
-   * The tight box around every element and its label text in diagram coordinates, `undefined`
-   * while the canvas holds none. Read from the elements' geometry and the label layout rather than
-   * measured on the SVG, so zoom and scroll, at which a browser lays text out differently, never
-   * change it.
-   */
+  /** The tight box around every element and its label text (`diagramContentBounds`). */
   contentBounds(): ContentBounds | undefined {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    const include = (x: number, y: number, width: number, height: number) => {
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + width);
-      maxY = Math.max(maxY, y + height);
-    };
-    for (const element of this.elementRegistry.getAll()) {
-      const shape = element as { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
-      if (
-        typeof shape.x !== "number" ||
-        typeof shape.y !== "number" ||
-        typeof shape.width !== "number" ||
-        typeof shape.height !== "number"
-      ) {
-        continue;
-      }
-      include(shape.x, shape.y, shape.width, shape.height);
-      const text = isTtElement(element) ? labelTextBox(element) : undefined;
-      if (text) include(shape.x + text.x, shape.y + text.y, text.width, text.height);
-    }
-    return Number.isFinite(minX) ? { minX, minY, maxX, maxY } : undefined;
+    return diagramContentBounds(this.elementRegistry);
   }
 }
