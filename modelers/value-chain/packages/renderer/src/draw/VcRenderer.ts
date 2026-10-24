@@ -7,9 +7,15 @@ import type GraphicsFactory from "diagram-js/lib/core/GraphicsFactory";
 import type { Connection, Element, Shape } from "diagram-js/lib/model/Types";
 import { append as svgAppend, attr as svgAttr, create as svgCreate } from "tiny-svg";
 import type { Bounds } from "@miragon/value-chain-schema-model";
-import { shapeColors } from "./fill.js";
-import { chevronPath, chevronPathAt, ellipsePathAt, labelInset } from "./geometry.js";
-import { labelTextBox } from "./labelBox.js";
+import { SURROUND_LABEL, shapeColors } from "./fill.js";
+import {
+  chevronPath,
+  chevronPathAt,
+  ellipsePathAt,
+  labelInset,
+  shapeHoldsLine,
+} from "./geometry.js";
+import { labelLines, linesBox } from "./labelBox.js";
 import { COLORS, FONT, LABEL_HALO_WIDTH, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
 import {
   isOrgUnit,
@@ -121,18 +127,22 @@ export default class VcRenderer extends BaseRenderer {
           left: inset,
           right: inset,
         },
-        style: colors.halo
-          ? {
-              fill: colors.label,
-              stroke: colors.halo,
-              "stroke-width": LABEL_HALO_WIDTH,
-              "stroke-linejoin": "round",
-              "paint-order": "stroke",
-            }
-          : { fill: colors.label },
+        style: {
+          fill: colors.label,
+          stroke: colors.halo,
+          "stroke-width": LABEL_HALO_WIDTH,
+          "stroke-linejoin": "round",
+          "paint-order": "stroke",
+        },
       });
       svgAppend(visuals, label);
-      const box = labelTextBox(label as SVGTextElement);
+      const lines = labelLines(label as SVGTextElement);
+      for (const line of lines) {
+        if (!shapeHoldsLine(orgUnit, shape.width, shape.height, line.box)) {
+          svgAttr(line.element, { fill: SURROUND_LABEL.label, stroke: SURROUND_LABEL.halo });
+        }
+      }
+      const box = linesBox(lines);
       if (box) this.labelBoxes.set(element, box);
     }
 

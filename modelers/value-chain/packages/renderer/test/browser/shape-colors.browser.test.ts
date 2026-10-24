@@ -15,10 +15,10 @@ import "../../src/assets/value-chain.css";
 
 /**
  * Guide §10.6: a shape's own colour is its fill, the contour stays ink, and the label is black or
- * white, whichever contrasts more with the fill, whatever colour the shape has. A halo in the fill
- * keeps label lines that run past the shape readable (guide §3.7). Colours stored by older
- * versions (the picker's former hsl() accents) or written by hand keep rendering, and the stored
- * value never changes.
+ * white, whichever contrasts more with the fill, whatever colour the shape has. Every label line
+ * carries the halo of the surface behind it (guide §10.1): on the shape its fill, past the shape
+ * the surround, where the line is ink. Colours stored by older versions (the picker's former
+ * hsl() accents) or written by hand keep rendering, and the stored value never changes.
  */
 
 const BLACK = fest["--cd-schwarz"];
@@ -30,12 +30,12 @@ interface Case {
   elementType?: "step" | "orgUnit";
   fill: string;
   label: string;
-  /** The label's halo, the fill as it shows over the plot; none on a shape without a colour. */
-  halo?: string;
+  /** The label's halo, the fill as it shows over the plot. */
+  halo: string;
 }
 
 const CASES: Case[] = [
-  { id: "step-default", fill: COLORS.fill, label: COLORS.ink },
+  { id: "step-default", fill: COLORS.fill, label: COLORS.ink, halo: COLORS.fill },
   // the former picker's Blue: black reaches 4.46:1 on it, white only 3.78:1
   {
     id: "step-legacy-blue",
@@ -98,7 +98,13 @@ const CASES: Case[] = [
     label: BLACK,
     halo: "#99AEF2",
   },
-  { id: "step-not-a-colour", color: "not a colour", fill: COLORS.fill, label: COLORS.ink },
+  {
+    id: "step-not-a-colour",
+    color: "not a colour",
+    fill: COLORS.fill,
+    label: COLORS.ink,
+    halo: COLORS.fill,
+  },
   {
     id: "org-black",
     color: fest["--cd-schwarz"],
@@ -174,7 +180,7 @@ describe("a shape's own colour fills it (guide §10.6)", () => {
       fill: computed(entry.fill),
       stroke: computed(COLORS.ink),
       label: computed(entry.label),
-      halo: entry.halo === undefined ? "none" : computed(entry.halo),
+      halo: computed(entry.halo),
     });
   });
 
@@ -235,13 +241,13 @@ describe("the colour picker (guide §10.6)", () => {
       fill: computed(COLORS.fill),
       stroke: computed(COLORS.ink),
       label: computed(COLORS.ink),
-      halo: "none",
+      halo: computed(COLORS.fill),
     });
     expect(storedColors(modeler.exportText())["step-legacy-blue"]).toBeUndefined();
   });
 });
 
-describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3.7)", () => {
+describe("a label that runs past its shape (guide §10.1, §3.7)", () => {
   /** 56 characters: far more lines than a 100×40 shape holds. */
   const LONG_LABEL = "Plan, source and schedule every inbound delivery on time";
 
@@ -249,14 +255,19 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
 
   interface Overflow {
     id: string;
-    color: string;
+    color?: string;
     elementType: "step" | "orgUnit";
     width: number;
     height: number;
     name: string;
   }
 
-  const OVERFLOWS: Overflow[] = [
+  /**
+   * Whole lines run past these shapes, onto a wide unlabelled Black step right below, which comes
+   * first in the document and so is painted under the label.
+   */
+  const SMALL_SHAPES: Overflow[] = [
+    { id: "small-default-step", elementType: "step", width: 100, height: 40, name: LONG_LABEL },
     {
       id: "small-black-step",
       color: fest["--cd-schwarz"],
@@ -274,14 +285,6 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
       name: LONG_LABEL,
     },
     {
-      id: "default-size-blue-step",
-      color: fest["--cd-blau"],
-      elementType: "step",
-      width: 160,
-      height: 60,
-      name: CRM_LABEL,
-    },
-    {
       id: "small-red-org-unit",
       color: fest["--cd-danger"],
       elementType: "orgUnit",
@@ -291,15 +294,54 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
     },
   ];
 
-  const OVERFLOWING_CHAIN = JSON.stringify({
-    connections: [],
-    elements: OVERFLOWS.map((entry, index) => ({
+  /** Only the first and the last line cross the edge of this shape, each mostly on it. */
+  const STRADDLING: Overflow = {
+    id: "default-size-blue-step",
+    color: fest["--cd-blau"],
+    elementType: "step",
+    width: 160,
+    height: 60,
+    name: CRM_LABEL,
+  };
+
+  const OVERFLOWS = [...SMALL_SHAPES, STRADDLING];
+
+  const NEIGHBOUR_GAP = 6;
+
+  function neighbourId(entry: Overflow): string {
+    return `${entry.id}-neighbour`;
+  }
+
+  function placed(entry: Overflow, index: number) {
+    return {
       bounds: { x: index * 240, y: 100, width: entry.width, height: entry.height },
       elementType: entry.elementType,
       id: entry.id,
       name: entry.name,
-      color: entry.color,
-    })),
+      ...(entry.color === undefined ? {} : { color: entry.color }),
+    };
+  }
+
+  const OVERFLOWING_CHAIN = JSON.stringify({
+    connections: [],
+    elements: [
+      ...SMALL_SHAPES.flatMap((entry, index) => [
+        {
+          bounds: {
+            x: index * 240 - 40,
+            y: 100 + entry.height + NEIGHBOUR_GAP,
+            width: entry.width + 80,
+            height: 60,
+          },
+          color: fest["--cd-schwarz"],
+          elementType: "step",
+          id: neighbourId(entry),
+          name: "",
+        },
+        placed(entry, index),
+      ]),
+      placed(STRADDLING, SMALL_SHAPES.length),
+    ],
     meta: { name: "Overflowing labels" },
     schemaVersion: 1,
   });
@@ -307,7 +349,7 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
   /** The PNG export's scale. */
   const SCALE = 2;
 
-  /** The contour's half stroke and its anti-aliasing: pixels this close to the shape are not text. */
+  /** The contour's half stroke and its anti-aliasing: pixels this close to a contour are not text. */
   const CONTOUR_CLEARANCE = 2;
 
   type Rgb = [number, number, number];
@@ -341,14 +383,41 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
     return modeler.diagram.get<VcRenderer>("vcRenderer").labelBounds(shape(modeler, id))!;
   }
 
-  /** The parts of the label's box above and below the shape. */
+  /** The parts of a box above and below the shape. */
   function pastTheShape(box: Box, element: VcShape): Box[] {
     const above = element.y - CONTOUR_CLEARANCE - box.y;
     const belowTop = element.y + element.height + CONTOUR_CLEARANCE;
     return [
       { x: box.x, y: box.y, width: box.width, height: above },
       { x: box.x, y: belowTop, width: box.width, height: box.y + box.height - belowTop },
-    ];
+    ].filter((part) => part.height > 1);
+  }
+
+  /** The part of the label's box that lies on the neighbour below. */
+  function onTheNeighbour(box: Box, neighbour: VcShape): Box {
+    const top = neighbour.y + CONTOUR_CLEARANCE;
+    return { x: box.x, y: top, width: box.width, height: box.y + box.height - top };
+  }
+
+  /** Every label line as drawn: its box in diagram coordinates, its centre relative to the shape. */
+  function drawnLines(modeler: CollaborativeValueChainModeler, id: string) {
+    const element = shape(modeler, id);
+    const graphics = modeler.diagram.get<ElementRegistry>("elementRegistry").getGraphics(id);
+    return [...graphics.querySelectorAll<SVGTSpanElement>(".djs-visual > text > tspan")]
+      .filter((line) => line.textContent?.trim())
+      .map((line) => {
+        const box = line.getBBox();
+        const style = getComputedStyle(line);
+        return {
+          box: { x: element.x + box.x, y: element.y + box.y, width: box.width, height: box.height },
+          centre: box.y + box.height / 2,
+          fill: style.fill,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          strokeLinejoin: style.strokeLinejoin,
+          paintOrder: style.paintOrder,
+        };
+      });
   }
 
   async function exportedPng(modeler: CollaborativeValueChainModeler) {
@@ -389,36 +458,98 @@ describe("a label that runs past its coloured shape keeps 4.5:1 there (guide §3
     };
   }
 
+  function expectHaloOnEveryLine(lines: ReturnType<typeof drawnLines>): void {
+    for (const line of lines) {
+      expect([line.strokeWidth, line.strokeLinejoin, line.paintOrder]).toEqual([
+        "3px",
+        "round",
+        "stroke",
+      ]);
+      expect(contrast(rgb(line.fill), rgb(line.stroke))).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+
   it.each(OVERFLOWS)("$id: the label runs past the shape above and below", async (entry) => {
     const modeler = await mount(OVERFLOWING_CHAIN);
-    for (const region of pastTheShape(labelBox(modeler, entry.id), shape(modeler, entry.id))) {
-      expect(region.height).toBeGreaterThan(2);
-    }
+    const box = labelBox(modeler, entry.id);
+    const element = shape(modeler, entry.id);
+    expect(element.y - box.y).toBeGreaterThan(CONTOUR_CLEARANCE + 2);
+    expect(box.y + box.height - (element.y + element.height)).toBeGreaterThan(
+      CONTOUR_CLEARANCE + 2,
+    );
   });
 
-  it.each(OVERFLOWS)("$id: its glyphs carry a halo in the fill", async (entry) => {
+  it.each(SMALL_SHAPES)(
+    "$id: the label runs onto the neighbour, painted over it",
+    async (entry) => {
+      const modeler = await mount(OVERFLOWING_CHAIN);
+      const neighbour = shape(modeler, neighbourId(entry));
+      expect(onTheNeighbour(labelBox(modeler, entry.id), neighbour).height).toBeGreaterThan(2);
+      const registry = modeler.diagram.get<ElementRegistry>("elementRegistry");
+      const order = registry
+        .getGraphics(neighbourId(entry))
+        .compareDocumentPosition(registry.getGraphics(entry.id));
+      expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    },
+  );
+
+  it.each(SMALL_SHAPES)(
+    "$id: lines on the shape take the fill's colours, lines past it ink with the surround's halo",
+    async (entry) => {
+      const modeler = await mount(OVERFLOWING_CHAIN);
+      const own = drawn(modeler, entry.id);
+      const lines = drawnLines(modeler, entry.id);
+      const onTheShape = lines.filter(
+        (line) => line.centre > entry.height / 3 && line.centre < (entry.height * 2) / 3,
+      );
+      const past = lines.filter((line) => line.centre < 0 || line.centre > entry.height);
+      expect(onTheShape.length).toBeGreaterThan(0);
+      expect(past.length).toBeGreaterThan(1);
+      for (const line of onTheShape) {
+        expect([line.fill, line.stroke]).toEqual([own.label, own.halo]);
+      }
+      for (const line of past) {
+        expect([line.fill, line.stroke]).toEqual([computed(COLORS.ink), computed(COLORS.surround)]);
+      }
+      expectHaloOnEveryLine(lines);
+    },
+  );
+
+  it("a line mostly on the shape keeps the fill's colours where it crosses the edge", async () => {
     const modeler = await mount(OVERFLOWING_CHAIN);
-    const label = modeler.diagram
-      .get<ElementRegistry>("elementRegistry")
-      .getGraphics(entry.id)
-      .querySelector(".djs-visual > text")!;
-    const style = getComputedStyle(label);
-    expect(style.stroke).toBe(computed(entry.color));
-    expect(style.strokeWidth).toBe("3px");
-    expect(style.strokeLinejoin).toBe("round");
-    expect(style.paintOrder).toBe("stroke");
-    expect(contrast(rgb(style.fill), rgb(style.stroke))).toBeGreaterThanOrEqual(4.5);
+    const own = drawn(modeler, STRADDLING.id);
+    const lines = drawnLines(modeler, STRADDLING.id);
+    const element = shape(modeler, STRADDLING.id);
+    const crossing = lines.filter((line) => pastTheShape(line.box, element).length > 0);
+    expect(crossing.length).toBeGreaterThan(1);
+    for (const line of lines) {
+      expect([line.fill, line.stroke]).toEqual([own.label, own.halo]);
+    }
+    expectHaloOnEveryLine(lines);
   });
 
   it.each(OVERFLOWS)(
-    "$id: the PNG export shows the lines past the shape at 4.5:1",
+    "$id: the PNG export shows every line past the shape at 4.5:1 against its colour",
     async (entry) => {
       const modeler = await mount(OVERFLOWING_CHAIN);
       const strongestContrast = await exportedPng(modeler);
-      const label = rgb(drawn(modeler, entry.id).label);
-      for (const region of pastTheShape(labelBox(modeler, entry.id), shape(modeler, entry.id))) {
-        expect(strongestContrast(region, label)).toBeGreaterThanOrEqual(4.5);
+      const element = shape(modeler, entry.id);
+      for (const line of drawnLines(modeler, entry.id)) {
+        for (const region of pastTheShape(line.box, element)) {
+          expect(strongestContrast(region, rgb(line.fill))).toBeGreaterThanOrEqual(4.5);
+        }
       }
+    },
+  );
+
+  it.each(SMALL_SHAPES)(
+    "$id: the PNG export shows the lines on the Black neighbour at 4.5:1",
+    async (entry) => {
+      const modeler = await mount(OVERFLOWING_CHAIN);
+      const strongestContrast = await exportedPng(modeler);
+      const neighbour = shape(modeler, neighbourId(entry));
+      const region = onTheNeighbour(labelBox(modeler, entry.id), neighbour);
+      expect(strongestContrast(region, rgb(COLORS.ink))).toBeGreaterThanOrEqual(4.5);
     },
   );
 });

@@ -60,12 +60,16 @@ and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`, checked without recursi
   `--cd-ui-text` / `--cd-ui-plot` roles read from the vendored `cd-tokens.generated.json`, 2px
   round strokes, labels 12px in `'Geist Variable', 'Geist', …` set on every text node (guide §4),
   as presentation values, so exports stay light. A shape's own `color` is its fill (guide §10.6,
-  `draw/fill.ts`): the contour stays ink, the label is black or white, whichever contrasts more,
-  with a halo in the fill that keeps lines past the shape readable, and a stored value the picker
-  no longer offers (the former `hsl()` accents) keeps rendering. The picker (`COLOR_OPTIONS`)
-  offers "Default", then the palette and status colours from the vendored tokens;
-  `test/color-options.test.ts` pins them. Labels drawn before the web font arrived are laid out
-  again once it has. Tool and chrome icons are Lucide, inlined in `draw/lucide.ts`.
+  `draw/fill.ts`): the contour stays ink and the label is black or white, whichever contrasts
+  more. Every label line carries the halo of the surface behind it (guide §10.1): the fill where
+  the line lies mostly on its shape; a line that runs past the shape (`shapeHoldsLine` in
+  `draw/geometry.ts`) is ink with the `--cd-ui-grund` halo, whatever the shape's colour. A stored
+  value the picker no longer offers (the former `hsl()` accents) keeps rendering. Known gap of
+  keeping it: on the former Blue `hsl(205, 100%, 45%)` (`#0086E6`) neither label colour reaches
+  4.5:1 (black 4.46:1, white 3.78:1); the other four former accents do. The picker
+  (`COLOR_OPTIONS`) offers "Default", then the palette and status colours from the vendored
+  tokens; `test/color-options.test.ts` pins them. Labels drawn before the web font arrived are
+  laid out again once it has. Tool and chrome icons are Lucide, inlined in `draw/lucide.ts`.
 - `src/theme/` holds the design system's `cd-tokens.generated.css`/`.json` and `cd-canvas.css`
   (1.20.1), vendored unchanged with a header; re-copy them from the
   `miragon-brand:modeler-tool-design` skill, never edit. `assets/value-chain.css` loads tokens

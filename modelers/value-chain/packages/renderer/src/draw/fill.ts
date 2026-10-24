@@ -6,16 +6,13 @@ type Rgba = readonly [red: number, green: number, blue: number, alpha: number];
 type Rgb = readonly [red: number, green: number, blue: number];
 
 export interface ShapeColors {
-  /** The shape's fill: hex, or `rgba(…)` with transparency. */
   fill: string;
-  /** The label's colour. */
   label: string;
   /**
-   * The halo around the label's glyphs, opaque hex: the fill as it shows over the plot. Inside the
-   * shape nobody sees it; label lines that run past the shape keep their contrast through it.
-   * `undefined` without a colour of the shape's own, where the label is ink.
+   * Opaque, the fill as it shows over the plot: a translucent halo would tint the fill a second
+   * time around every glyph.
    */
-  halo?: string;
+  halo: string;
 }
 
 /**
@@ -23,14 +20,20 @@ export interface ShapeColors {
  * label is black or white, whichever contrasts more with that fill. The stored value never
  * changes, so a value from an older document (an `hsl()` accent, a colour name) fills the shape
  * too. Without a colour, or with a value that is no CSS colour, the shape takes the plot and ink
- * roles. The contour stays ink either way.
+ * roles. The contour stays ink either way, and the label's halo is the fill (guide §10.1).
  */
 export function shapeColors(color: string | undefined): ShapeColors {
   const rgba = color === undefined ? undefined : readColor(color);
-  if (!rgba) return { fill: COLORS.fill, label: COLORS.ink };
+  if (!rgba) return { fill: COLORS.fill, label: COLORS.ink, halo: COLORS.fill };
   const shown = overPlot(rgba);
   return { fill: cssColor(rgba), label: labelColorOn(shown), halo: hexColor(shown) };
 }
+
+/**
+ * A label line that runs past its shape stands on the surround, not on the fill: ink with the
+ * surround's halo (guide §10.1), whatever colour the shape has.
+ */
+export const SURROUND_LABEL = { label: COLORS.ink, halo: COLORS.surround } as const;
 
 const readColors = new Map<string, Rgba | undefined>();
 
@@ -99,7 +102,6 @@ function hexColor(rgb: Rgb): string {
   return `#${rgb.map(hex).join("")}`.toUpperCase();
 }
 
-/** Black or white, whichever contrasts more with the fill as it shows. */
 function labelColorOn(shown: Rgb): string {
   const dark = contrastRatio(shown, tokenRgb(LABEL_ON_FILL.dark));
   const light = contrastRatio(shown, tokenRgb(LABEL_ON_FILL.light));

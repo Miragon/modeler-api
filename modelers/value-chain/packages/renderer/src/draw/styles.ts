@@ -2,12 +2,14 @@ import { fest, hell } from "../theme/cd-tokens.generated.json";
 
 /**
  * Canvas colours, the light roles of the vendored design tokens (guide §10.1): contours,
- * connections and labels in the text role, element fills in the plot role. The renderer writes
- * them as presentation values, so exports look the same everywhere and stay light in every mode.
+ * connections and labels in the text role, element fills in the plot role, the surround around the
+ * shapes in the grund role. The renderer writes them as presentation values, so exports look the
+ * same everywhere and stay light in every mode.
  */
 export const COLORS = {
   ink: hell["--cd-ui-text"],
   fill: hell["--cd-ui-plot"],
+  surround: hell["--cd-ui-grund"],
 } as const;
 
 /**
@@ -26,8 +28,8 @@ export const STROKE_WIDTH = 2;
 export const LABEL_PADDING = 7;
 
 /**
- * The halo a label on a shape's own fill carries in that fill (guide §10.1, label halo): 1.5px
- * around every glyph, so label lines past the shape stay readable on whatever lies there.
+ * The label halo (guide §10.1), 1.5px around every glyph in the surface behind the line: a label
+ * line that runs past its shape stays readable where it crosses a neighbour or a connection.
  */
 export const LABEL_HALO_WIDTH = 3;
 

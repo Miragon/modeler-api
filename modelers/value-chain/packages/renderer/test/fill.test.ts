@@ -22,7 +22,7 @@ describe("shape colours without a 2D canvas", () => {
   });
 
   it("draw every other value and no value as Default", () => {
-    const fallback = { fill: COLORS.fill, label: COLORS.ink };
+    const fallback = { fill: COLORS.fill, label: COLORS.ink, halo: COLORS.fill };
     expect(shapeColors(undefined)).toEqual(fallback);
     expect(shapeColors("hsl(205, 100%, 45%)")).toEqual(fallback);
     expect(shapeColors("not a colour")).toEqual(fallback);
