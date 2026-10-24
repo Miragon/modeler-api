@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-transforms)](https://www.npmjs.com/package/@miragon/wardley-transforms)
 [![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley-maps/LICENSE)
 
-DOM-free, pure `WardleyMap → WardleyMap` transforms — evolve, method, inertia, pipeline. No undo
+DOM-free, pure `WardleyMap → WardleyMap` transforms: evolve, method, inertia, pipeline. No undo
 stack: every transform returns a new map and leaves the input untouched.
 
 ## Install

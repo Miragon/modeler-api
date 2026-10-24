@@ -18,25 +18,26 @@ description: >-
 `.wmap` and `.owm` files are plain text in the Online Wardley Maps (OWM) DSL, read and written by
 [`@miragon/wardley-dsl`](https://www.npmjs.com/package/@miragon/wardley-dsl). It is line-based: one
 statement per line, names may contain spaces, indentation does not matter. A map is a flat list of
-config lines, element declarations, `evolve` lines and links — plus one nested form, the pipeline
+config lines, element declarations, `evolve` lines and links, plus one nested form: the pipeline
 block `{ … }`.
 
-**The file is the map.** The Wardley Maps Modeler — the web app
-(https://wardley-maps.modeler.miragon.io), the VS Code extension
-(`miragon-gmbh.wardley-mapping-modeler`) and Miragon AI Design — renders whatever the file says.
+**The file is the map.** The Wardley Maps Modeler (the web app
+https://wardley-maps.modeler.miragon.io, the VS Code extension
+`miragon-gmbh.wardley-mapping-modeler` and Miragon AI Design) renders whatever the file says.
 Your job is to write correct text into the `.wmap` / `.owm` file. Never draw the map yourself
 (no SVG, HTML, React or image): the Modeler does that, and a hand-drawn picture cannot be edited.
 
-Two properties make the format safe to generate — each with a sharp edge:
+Two properties make the format safe to generate, each with a sharp edge:
 
 - **Parsing never fails, and it reports what it does not use.** Any text parses (`parseDSL` never
   throws). An unreadable or unknown line is kept verbatim (`rawPassthrough`) and written back, so a
   mistake never destroys the rest of the map. Whenever the parser cannot use a line, or drops,
   ignores or renames text, it emits a diagnostic: `compnent X [0.5, 0.5]` gives
   `Unknown statement "compnent"`. But diagnostics stop nothing. The Modeler opens the map anyway:
-  the web app only shows an "Imported with N warning(s)" toast, and VS Code shows nothing. A typo
-  therefore leaves a component or link off the map unless you read `diagnostics` yourself, and a
-  few mistakes give no diagnostic at all (see "Rules that bite").
+  the web app shows an "Imported with N warnings" toast and lists the findings under the problems
+  pill, and VS Code underlines the lines and lists them in the Problems view. Nothing makes the
+  user look, so a typo leaves a component or link off the map unless you read `diagnostics`
+  yourself, and a few mistakes give no diagnostic at all (see "Rules that bite").
 - **Serializing is deterministic, and one save reaches a fixed point.** `serializeDSL(parseDSL(t))`
   produces canonical text. Parsing and serializing that text again gives byte-identical text and
   the same map, for every input. Text you write in canonical form comes back unchanged. But the
@@ -48,7 +49,7 @@ good map says is the `wardley-mapping` skill's job.
 
 ## The grammar on one page
 
-### Config — at most one of each (a repeated line replaces the earlier one, with a diagnostic)
+### Config: at most one of each (a repeated line replaces the earlier one, with a diagnostic)
 
 | Line                                           | Meaning                                                                    |
 | ---------------------------------------------- | -------------------------------------------------------------------------- |
@@ -83,7 +84,7 @@ evolve        <Name>-><New Name> <targetMat>
 | `component`                            | A capability (circle)                                 | The workhorse. Link endpoint.                          |
 | `note`                                 | Free text, centred on its coordinate                  | Review feedback with `(color …)`. Not a link endpoint. |
 | `annotation` / `annotations`           | Numbered marker with text beside it / legend position | Prefer `note` for new feedback.                        |
-| `pipeline`                             | A dashed box spanning a maturity range                | Needs a range — see "Rules that bite".                 |
+| `pipeline`                             | A dashed box spanning a maturity range                | Needs a range, see "Rules that bite".                  |
 | `evolve`                               | Red dashed arrow to the target maturity, same height  | Refers to an existing `component` by name.             |
 | `pioneers` `settlers` `townplanners`   | Translucent team region between two corners           | Drawn behind everything.                               |
 | `accelerator` / `deaccelerator`        | Market force that speeds up / slows down evolution    | Link endpoint.                                         |
@@ -105,7 +106,7 @@ pipeline Kettle [0.25, 0.92]
 ```
 
 A pipeline named like a component is anchored to it and takes its height. Block children carry
-**one** number — their maturity — and inherit the pipeline's height. They are ordinary components:
+**one** number, their maturity, and inherit the pipeline's height. They are ordinary components:
 link to them, `evolve` them.
 
 `{` may also end the pipeline line, and a block may sit on one line
@@ -126,13 +127,13 @@ an ordinary statement and moves out of the block on save.
 
 Endpoints are referenced **by exact name**: anchors, components (including pipeline children),
 accelerators, submaps and standalone pipelines. Notes, annotations, regions and drawings are
-never endpoints. One hop per line — `A -> B -> C` is not a chain.
+never endpoints. One hop per line: `A -> B -> C` is not a chain.
 
 ### Suffixes
 
 Read **only after the coordinates**, so parentheses, `(color …)` or the word `inertia` inside a
 name or text are just text. Anything a statement cannot hold is dropped with
-`Ignored text after the coordinates` — a `label [dx, dy]` on a note, `(buy)` on an anchor, a stray
+`Ignored text after the coordinates`: a `label [dx, dy]` on a note, `(buy)` on an anchor, a stray
 word. When a suffix is repeated, the first one counts.
 
 | Suffix                          | Allowed on                                  | Meaning                                                    |
@@ -152,11 +153,11 @@ Canonical component suffix order:
 ### Comments
 
 `// to end of line` and `/* block */` (may span lines). Both are stripped from the map and kept in
-`rawPassthrough` — which means they move to the end of the file on save.
+`rawPassthrough`, which means they move to the end of the file on save.
 
 ## Coordinates
 
-- `[visibility, maturity]` — **visibility first.** This is `[y, x]`, the opposite of the usual
+- `[visibility, maturity]`: **visibility first.** This is `[y, x]`, the opposite of the usual
   `[x, y]`. Swapping them mirrors the map and produces no diagnostic.
 - **Visibility** (y): `1` = top, visible to the user · `0` = bottom, invisible infrastructure.
 - **Maturity** (x): `0` = genesis, left · `1` = commodity, right.
@@ -182,13 +183,13 @@ At the default size, `0.1` maturity ≈ 108 px and `0.1` visibility ≈ 68 px. A
 circle with its label to the **right** (≈ 7 px per character).
 
 ```text
-visibility 0.90–0.97   anchor(s) — the user
+visibility 0.90–0.97   anchor(s), the user
            0.70–0.88   what the user touches directly
            0.35–0.65   the supporting capabilities
            0.05–0.30   infrastructure, utilities
 ```
 
-- A parent always sits **above** what it depends on — links read downwards.
+- A parent always sits **above** what it depends on: links read downwards.
 - Neighbours on one row: `Δmaturity ≥ (7 × label characters + 40) / 1080`, about `0.1` for a
   10-character name. Neighbours in one column: `Δvisibility ≥ 0.06`. When a row is crowded, stagger
   heights instead of squeezing names.
@@ -202,7 +203,7 @@ colour table.
 
 ## Writing a map
 
-1. **Write in canonical order** — the serializer's order, so a parse/serialize round-trip returns
+1. **Write in canonical order**, the serializer's order, so a parse/serialize round-trip returns
    your file unchanged: `title`; then `style`, `size`, `evolution`, `y-axis`, `annotations` if
    needed; then `url` lines named `<Element> URL`, one per element and in element order, each
    referenced as `url(<Element> URL)`; then element lines (anchors, components, notes, …, in the
@@ -239,7 +240,7 @@ Roast Selection -> Roastery
 
 ## Rules that bite
 
-- **Names are exact references** — case-, space- and punctuation-sensitive. `user -> kettle` does
+- **Names are exact references**: case-, space- and punctuation-sensitive. `user -> kettle` does
   not reach `User` / `Kettle`, and `A  B` (two spaces) is not `A B`. An unresolved link gives
   `Link: "…" not found`, is moved to the end of the file, and **does not exist on the map**. Linking
   to an undeclared or commented-out component is the most common defect in real-world maps.
@@ -285,13 +286,13 @@ Roast Selection -> Roastery
 
 ## Editing an existing map
 
-Change only what was asked and keep every other line byte-identical — unknown lines, comments,
+Change only what was asked and keep every other line byte-identical: unknown lines, comments,
 colours, label offsets and coordinates the user set by hand all round-trip. Append new lines
 instead of re-sorting existing ones; review notes go at the end of the element lines (or simply
 at the end of the file).
 
 Renaming a component means updating **every** reference: its link lines, its `evolve` line, and a
-same-named `pipeline`. A missed reference does not fail loudly — the map still opens, the link
+same-named `pipeline`. A missed reference does not fail loudly: the map still opens, the link
 just disappears, and only a `Link: "…" not found` diagnostic tells.
 
 When the user edits a map graphically, the Modeler rewrites the whole file: element lines grouped
@@ -320,31 +321,32 @@ the old order by hand.
 
 ## Opening the map
 
-- **Miragon AI Design** and the **VS Code extension** read the file you wrote — nothing else to do.
+- **Miragon AI Design** and the **VS Code extension** read the file you wrote; nothing else to do.
   In VS Code (`miragon-gmbh.wardley-mapping-modeler`) `.wmap` / `.owm` open in the graphical editor;
   **View: Reopen Editor With… → Text Editor** shows the text, and edits in a split text view
-  re-render live. VS Code does not show parser diagnostics, so check the file before you hand it
-  over.
+  re-render live. Diagnostics are underlined in the text and listed in the **Problems** view; the
+  problems pill bottom left in the diagram counts them and opens the view. The map opens either
+  way, so check the file before you hand it over.
 - **Web app** (https://wardley-maps.modeler.miragon.io): **Menu → Open…** or drag and drop the
-  file. Diagnostics appear as an "Imported with N warning(s) — see console" toast and are listed in
-  the browser console. Or hand the user a share link — the map itself, deflate-raw compressed and
-  base64url-encoded (no padding) behind `#mz=`:
+  file. Diagnostics appear as an "Imported with N warnings" toast and are listed under the
+  problems pill bottom left and in the browser console. Or hand the user a share link: the map
+  itself, deflate-raw compressed and base64url-encoded (no padding) behind `#mz=`:
 
   ```bash
   node -e "const fs=require('fs'),zlib=require('zlib');const text=fs.readFileSync(process.argv[1],'utf8');console.log('https://wardley-maps.modeler.miragon.io/#mz='+zlib.deflateRawSync(Buffer.from(text,'utf8')).toString('base64url'))" map.wmap
   ```
 
   That is exactly the web app's own encoding: links built this way decode byte-identically.
-  Uncompressed `#m=<base64url>` links are still read. A share link carries the whole map — long
+  Uncompressed `#m=<base64url>` links are still read. A share link carries the whole map: long
   maps make long URLs, and anyone with the link can read the map.
 
 ## Reference files (read on demand)
 
-- `reference/grammar.md` — the exhaustive spec: every statement and suffix with its model element,
-  line classification and precedence, comments, escaping, id allocation, serializer order and
-  canonicalisation, and the full diagnostics catalogue including the silent cases.
-- `reference/layout.md` — canvas geometry in pixels and map units, spacing rules, label offsets,
+- `reference/grammar.md`: the exhaustive spec. Every statement and suffix with its model
+  element, line classification and precedence, comments, escaping, id allocation, serializer order
+  and canonicalisation, and the full diagnostics catalogue including the silent cases.
+- `reference/layout.md`: canvas geometry in pixels and map units, spacing rules, label offsets,
   pipelines and team regions, review-note placement, the note colour table and a full worked map.
-- `reference/api.md` — the programmatic API (`parseDSL`, `parseDSLWithDiagnostics`, `serializeDSL`,
+- `reference/api.md`: the programmatic API (`parseDSL`, `parseDSLWithDiagnostics`, `serializeDSL`,
   the JSON bridge), the `WardleyMap` model, a validation script for generated text and the
   share-link encoder/decoder.

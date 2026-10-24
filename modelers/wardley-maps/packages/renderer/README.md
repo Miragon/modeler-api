@@ -159,7 +159,7 @@ imports the shell itself.
 ### Fonts
 
 The package ships no fonts and uses no CDN. The canvas typeface is **Geist** (Miragon corporate
-identity); provide it yourself — recommended self-hosted via [`@fontsource`](https://fontsource.org/)
+identity); provide it yourself, preferably self-hosted via [`@fontsource`](https://fontsource.org/)
 (one variable file covers all weights):
 
 ```ts
@@ -168,7 +168,7 @@ import "@fontsource-variable/geist/wght.css";
 
 That package registers the family as `'Geist Variable'`; the renderer's font stack starts with
 `'Geist Variable', 'Geist', …` so it matches either that package or a locally installed Geist. Use
-`'Geist Variable'` in your own CSS too — `'Geist'` alone never matches the self-hosted face.
+`'Geist Variable'` in your own CSS too: `'Geist'` alone never matches the self-hosted face.
 
 Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley-maps) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 

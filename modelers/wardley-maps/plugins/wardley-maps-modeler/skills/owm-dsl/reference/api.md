@@ -1,11 +1,11 @@
-# `@miragon/wardley-dsl` — API
+# `@miragon/wardley-dsl`: API
 
 ```bash
 npm install @miragon/wardley-dsl zod
 ```
 
 DOM-free (no `diagram-js`, no `window` / `document`), so it runs in Node, a worker or the browser.
-ESM and CommonJS builds, TypeScript types included. `zod` is a peer dependency — the map schema
+ESM and CommonJS builds, TypeScript types included. `zod` is a peer dependency: the map schema
 must be the same instance as the consumer's; npm 7+ installs it automatically.
 
 ## Text ↔ map
@@ -96,8 +96,8 @@ your own text. It shows exactly what the canonicaliser changed. These are harmle
 - reordered suffixes and normalised spacing;
 - rewritten legacy forms.
 
-Anything else on a link, `title`, `y-axis`, pipeline or element line — a missing line, a line moved
-to the end, words gone from a line — means content was **lost**, not reformatted.
+Anything else on a link, `title`, `y-axis`, pipeline or element line (a missing line, a line moved
+to the end, words gone from a line) means content was **lost**, not reformatted.
 
 ### As a script
 
@@ -162,7 +162,7 @@ interface MapConfig {
 
 interface Coordinate {
   readonly visibility: number; // 0…1, 1 = top
-  readonly evolution: number; // 0…1 — the text's "maturity"
+  readonly evolution: number; // 0…1, the text's "maturity"
 }
 ```
 
@@ -173,7 +173,7 @@ and optionally `labelOffset` (`{ dx, dy }` px) and `color`.
 
 | `elementType` | Text keyword                                    | Extra fields                                                         |
 | ------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
-| `anchor`      | `anchor`                                        | —                                                                    |
+| `anchor`      | `anchor`                                        | none                                                                 |
 | `component`   | `component` (and its legacy forms), block child | `decorators?`, `movement?`, `pipelineId?`, `url?`                    |
 | `pipeline`    | `pipeline`                                      | `evolutionStart`, `evolutionEnd`, `childIds`                         |
 | `note`        | `note`                                          | `patternType?` (no text syntax)                                      |
@@ -192,7 +192,7 @@ and optionally `labelOffset` (`{ dx, dy }` px) and `color`.
 (`{ id, edgeType: 'flow', from, to, flowValue?, bidirectional?, label? }`); `from` / `to` are
 element ids, `label` is the `; annotation`.
 
-Fields with no text syntax — `stageBoundaries`, a note's `patternType` — are lost when a map is
+Fields with no text syntax (`stageBoundaries`, a note's `patternType`) are lost when a map is
 written as text. Everything is `readonly`: the model is a serialization format, not an editing
 structure. Build a new map rather than mutating one, or use `@miragon/wardley-transforms`.
 
@@ -206,7 +206,7 @@ import {
   EVOLUTION_PRESETS, // activities, practices, data, knowledge
 } from "@miragon/wardley-schema-model";
 
-evolutionStage(0.4); // 2 — Product (boundaries belong to the stage on their right)
+evolutionStage(0.4); // 2: Product (boundaries belong to the stage on their right)
 ```
 
 ## JSON bridge
@@ -252,7 +252,7 @@ Decoding a link someone shared:
 node -e "const zlib=require('zlib');const url=process.argv[1];console.log(zlib.inflateRawSync(Buffer.from(url.slice(url.indexOf('#mz=')+4),'base64url')).toString('utf8'))" 'https://wardley-maps.modeler.miragon.io/#mz=…'
 ```
 
-Legacy uncompressed links use `#m=` + base64url of the text — decode with
+Legacy uncompressed links use `#m=` + base64url of the text; decode with
 `Buffer.from(hash, 'base64url').toString('utf8')`. In a browser, the same encoding is
 `new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'))`, then base64url
 without `=` padding.

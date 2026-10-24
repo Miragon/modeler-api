@@ -1,9 +1,9 @@
-# Wardley Mapping — Concepts
+# Wardley Mapping: concepts
 
 Wardley Mapping was created by **Simon Wardley** (_Wardley Maps_, https://wardleymaps.com). It is a
 way of making a business or technology landscape visible so that strategy can be discussed in terms
 of _position_ and _movement_ rather than lists, slogans or SWOT grids. A map is only useful in a
-context: it answers a question about one user, one scope, one moment — and gets redrawn as the
+context: it answers a question about one user, one scope, one moment, and gets redrawn as the
 landscape moves.
 
 ## What makes a map a map
@@ -18,9 +18,9 @@ x position is not a map.
 | **User need**                           | What the anchor wants, in their words ("Cup of Tea", not "Beverage Service"). Directly below the anchor. |
 | **Component**                           | A capability, activity, practice, data set or piece of knowledge the chain depends on.                   |
 | **Dependency link**                     | "A needs B". A is drawn above B: visibility decreases down the chain.                                    |
-| **Evolution position**                  | Where the component sits between Genesis and Commodity — evidence-based, not wishful.                    |
+| **Evolution position**                  | Where the component sits between Genesis and Commodity: evidence-based, not wishful.                     |
 | **Movement (`evolve`)**                 | Where the component is expected to move. Always rightward.                                               |
-| **Inertia**                             | Resistance to that movement — sunk cost, contracts, skills, business model, ego.                         |
+| **Inertia**                             | Resistance to that movement: sunk cost, contracts, skills, business model, ego.                          |
 | **Pipeline**                            | One component available in several forms at different stages (e.g. campfire kettle, electric kettle).    |
 | **Build / buy / outsource**             | How a component is sourced. Should follow its stage.                                                     |
 | **Market / ecosystem**                  | A component that is a market or ecosystem in itself (a platform others build on).                        |
@@ -32,7 +32,7 @@ How each is written in the file is the `owm-dsl` skill's job.
 
 ## Evolution: four stages, changing characteristics
 
-Everything evolves left → right through competition — supply **and** demand. Evolution is not
+Everything evolves left → right through competition: supply **and** demand. Evolution is not
 driven by time or by adoption: a component can sit in Genesis for decades without competition, or
 cross to Commodity in a few years under intense competition. As it moves, its **characteristics**
 change:
@@ -54,7 +54,7 @@ The modeler's boundaries `0.17 / 0.40 / 0.70` are an operational convention for 
 placement; Wardley's own method is qualitative. `evolution-assessment.md` has the full scoring
 procedure, signals per stage, and the evolution labels for practices, data and knowledge.
 
-## Climatic patterns — the forces you do not control
+## Climatic patterns: the forces you do not control
 
 Climatic patterns describe how the landscape changes whatever anyone does. Use them to explain why
 components will move and to anticipate the next state of the map. Grouped as in Wardley's
@@ -63,7 +63,7 @@ catalogue:
 **Components**
 
 - **Everything evolves** through supply and demand competition.
-- **Characteristics change** as components evolve (table above) — the same component needs
+- **Characteristics change** as components evolve (table above): the same component needs
   different methods, teams and contracts at different stages.
 - **No choice over evolution (Red Queen).** If competitors adopt the more evolved form, you must
   follow or fall behind.
@@ -106,32 +106,32 @@ catalogue:
 **Competitors**
 
 - **Competitors' actions will change the game.** Every position is temporary.
-- **Most competitors have poor situational awareness** — an advantage for anyone who maps.
+- **Most competitors have poor situational awareness**, an advantage for anyone who maps.
 
 **Prediction**
 
 - **Not everything is random.** _What_ will evolve is often predictable (anything under
   competition); _when_ is not. Weak signals help with timing.
-- **Economies have cycles — peace, war, wonder.** Peace: incremental competition between product
+- **Economies have cycles: peace, war, wonder.** Peace: incremental competition between product
   vendors. War: a component shifts to utility and the old value chains break. Wonder: new
   higher-order systems flourish on the new utility.
 - **Two kinds of disruption.** Product-to-product substitution (a better product appears) is hard
-  to predict. Product-to-utility substitution is predictable in _what_, uncertain in _when_ — and is
+  to predict. Product-to-utility substitution is predictable in _what_, uncertain in _when_, and is
   the one that hurts incumbents most, because their inertia is highest exactly there.
 - **You cannot measure evolution over time or adoption.** Use characteristics and market evidence
   instead.
 - **The less evolved something is, the more uncertain it is.** Plans for Genesis components are
   hypotheses.
 
-## The strategy cycle — why mapping is iterative
+## The strategy cycle: why mapping is iterative
 
 **Purpose → Landscape → Climate → Doctrine → Leadership → act → observe again.**
 
-- **Purpose** — why are we doing this (the strategic question).
-- **Landscape** — the map: user, needs, value chain, evolution.
-- **Climate** — the patterns above: how the landscape will change.
-- **Doctrine** — universal principles that apply whatever the landscape (`doctrine.md`).
-- **Leadership** — context-specific choices: the gameplay below.
+- **Purpose**: why are we doing this (the strategic question).
+- **Landscape**: the map, with user, needs, value chain and evolution.
+- **Climate**: the patterns above, how the landscape will change.
+- **Doctrine**: universal principles that apply whatever the landscape (`doctrine.md`).
+- **Leadership**: context-specific choices, the gameplay below.
 
 The cycle repeats: act, observe the result, redraw. A map is a snapshot, not a plan.
 
@@ -140,7 +140,7 @@ The cycle repeats: act, observe the result, redraw. A map is a snapshot, not a p
 Different stages need different attitudes. One team culture for the whole map fails somewhere.
 
 - **Pioneers** work in Genesis: explore the uncharted, build crude experiments fast, are comfortable
-  with failure. They show you wonder — and are often wrong.
+  with failure. They show you wonder, and are often wrong.
 - **Settlers** work across Custom-Built and early Product: turn a half-working idea into something
   useful and understood, find the customers, build the product. They make it real.
 - **Town Planners** work across late Product and Commodity: industrialise, standardise, drive cost
@@ -152,7 +152,7 @@ next genesis. In a review, ask: does the organisation's team structure match the
 of its components? Pioneers running a commodity, or town planners asked to invent, are classic
 findings.
 
-## Gameplay — context-specific plays
+## Gameplay: context-specific plays
 
 Gameplay only makes sense **given a specific map**: tie every play you recommend to a named
 component and its stage, and capture it as a purple idea note. Wardley catalogues around sixty
@@ -161,9 +161,9 @@ plays in eleven groups; the ones most often relevant:
 | Group                     | Plays                                                                                                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **User perception**       | Education, bundling, creating artificial needs (use with care), confusion of choice, brand and marketing.                                                          |
-| **Accelerators**          | Open source, open data, open APIs, exploiting network effects, co-operation, standards — push a component (often one you depend on) towards commodity.             |
-| **De-accelerators**       | Exploiting constraints, intellectual property, creating barriers — slow a component's evolution to protect a position.                                             |
-| **Dealing with toxicity** | Disposal of liability, sweat and dump, refactoring — get rid of a component that has become a burden.                                                              |
+| **Accelerators**          | Open source, open data, open APIs, exploiting network effects, co-operation, standards: push a component (often one you depend on) towards commodity.              |
+| **De-accelerators**       | Exploiting constraints, intellectual property, creating barriers: slow a component's evolution to protect a position.                                              |
+| **Dealing with toxicity** | Disposal of liability, sweat and dump, refactoring: get rid of a component that has become a burden.                                                               |
 | **Market**                | Differentiation, pricing policy, harvesting, standards game, last man standing, buyer/supplier power.                                                              |
 | **Defensive**             | Threat acquisition, raising barriers to entry, managing inertia, defensive regulation.                                                                             |
 | **Attacking**             | Directed investment, experimentation, centre of gravity, undermining barriers to entry, fool's mate (commoditise a hidden dependency of a competitor).             |
@@ -183,7 +183,7 @@ The plays you will recommend most often:
 - **ILC.** Provide a component as a utility, watch what the ecosystem builds on it (a sensing
   engine), commoditise the successful patterns into the platform.
 - **Open up to accelerate.** Open-source or standardise a component you depend on but do not
-  differentiate on, so it commoditises and its cost falls — especially if a competitor makes money
+  differentiate on, so it commoditises and its cost falls, especially if a competitor makes money
   from it.
 - **Exploit inertia.** Where a competitor has inertia on a component that is about to shift to
   utility, accelerate the shift.
@@ -197,8 +197,8 @@ The plays you will recommend most often:
 - No anchor, or an anchor connected straight to infrastructure with no user need in between.
 - Components with no path to any user need (orphans), or dependencies pointing uphill.
 - A value chain that stops halfway and never reaches the commodities it rests on.
-- Commodities drawn as Genesis or Custom-Built — effort spent building what should be rented.
-- Differentiators drawn as Commodity — the edge about to be outsourced.
+- Commodities drawn as Genesis or Custom-Built: effort spent building what should be rented.
+- Differentiators drawn as Commodity: the edge about to be outsourced.
 - No movement anywhere: a map without `evolve` arrows or inertia says nothing about the future.
 - One sourcing method or one team culture across all stages.
 - The same capability drawn twice under two names (duplication the map should expose, not
