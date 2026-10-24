@@ -7,14 +7,29 @@ import { useEffect, useRef, type RefObject } from "react";
 import type { Modeler } from "@miragon/team-topologies-renderer";
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type Dragging from "diagram-js/lib/features/dragging/Dragging";
+import type Selection from "diagram-js/lib/features/selection/Selection";
+import type { Connection, Element as DiagramElement } from "diagram-js/lib/model/Types";
+import type { Point } from "diagram-js/lib/util/Types";
 
-/** Space kept between the selection (with its context pad) and the panel or the canvas edge. */
-const CLEARANCE = 16;
+/*
+ * The glide aims at the free area the renderer keeps the context pad inside: the shell's fit insets
+ * with the panel open (guide §5.9). Glided only as far as the panel, the pad would end in the
+ * margin beside it and flip to the left of its element, away from the room the glide just made.
+ */
+/** `--cd-shell-einpassen-seite`: from the container's sides and from the side panel. */
+const FREE_AREA_SIDE = 24;
+/** `--cd-shell-einpassen-oben-schmal`: up to 760px the palette takes the second row. */
+const NARROW_FREE_AREA_TOP = 140;
+/** Above the bottom sheet: the fit inset is its top edge plus 12. */
+const SHEET_GAP = 12;
+/**
+ * The glide stops this far inside the free area: diagram-js places the pad with the zoom rounded to
+ * three decimals, and a pad a fraction of a pixel past the edge would flip.
+ */
+const ROUNDING_SLACK = 1;
 /** diagram-js places the context pad this many diagram units to the right of the element. */
 const CONTEXT_PAD_MARGIN = 8;
 const CONTEXT_PAD_FALLBACK_WIDTH = 40;
-/** On narrow screens the palette takes the second row; the selection is never pushed under it. */
-const NARROW_TOP_CLEARANCE = 112;
 const LABEL_EDITOR_SELECTOR = "textarea.tt-label-editor";
 /** Matches --cd-motion-base. */
 const PAN_DURATION_MS = 250;
@@ -67,41 +82,112 @@ export function shiftInto(start: number, end: number, min: number, max: number):
   return 0;
 }
 
+interface ScreenBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+function graphicsBox(canvas: Canvas, elements: DiagramElement[]): ScreenBox | undefined {
+  let box: ScreenBox | undefined;
+  for (const element of elements) {
+    const graphics = canvas.getGraphics(element.id) as SVGElement | undefined;
+    if (!graphics) continue;
+    const { left, top, right, bottom } = graphics.getBoundingClientRect();
+    box = box
+      ? {
+          left: Math.min(box.left, left),
+          top: Math.min(box.top, top),
+          right: Math.max(box.right, right),
+          bottom: Math.max(box.bottom, bottom),
+        }
+      : { left, top, right, bottom };
+  }
+  return box;
+}
+
+/**
+ * The selection with its context pad on screen, the pad where diagram-js puts it
+ * (`ContextPad#_getPosition`): beside the box of the selected graphics, which includes the
+ * selection outline, top-aligned; a connection's pad at its last waypoint.
+ */
+function selectionWithPad(
+  canvas: Canvas,
+  area: SelectionArea,
+  selected: DiagramElement[],
+): ScreenBox {
+  const container = canvas.getContainer().getBoundingClientRect();
+  const viewbox = canvas.viewbox();
+  const scale = viewbox.scale;
+  const toScreenX = (x: number) => container.left + (x - viewbox.x) * scale;
+  const toScreenY = (y: number) => container.top + (y - viewbox.y) * scale;
+  const pad = canvas.getContainer().querySelector<HTMLElement>(".djs-context-pad");
+  const padWidth = pad?.offsetWidth || CONTEXT_PAD_FALLBACK_WIDTH;
+  const padHeight = pad?.offsetHeight ?? 0;
+  const gap = CONTEXT_PAD_MARGIN * scale;
+
+  const box = graphicsBox(canvas, selected) ?? {
+    left: toScreenX(area.x),
+    top: toScreenY(area.y),
+    right: toScreenX(area.x + area.width),
+    bottom: toScreenY(area.y + area.height),
+  };
+  const waypoints: Point[] | undefined =
+    selected.length === 1 ? (selected[0] as Partial<Connection>).waypoints : undefined;
+  const endPoint = waypoints?.at(-1);
+  const padLeft = endPoint ? toScreenX(endPoint.x) + gap : box.right + gap;
+  const padTop = endPoint ? toScreenY(endPoint.y) : box.top;
+  return {
+    left: Math.min(box.left, padLeft),
+    top: Math.min(box.top, padTop),
+    right: Math.max(box.right, padLeft + padWidth),
+    bottom: Math.max(box.bottom, padTop + padHeight),
+  };
+}
+
 /**
  * The screen-pixel pan that moves the element and its context pad out from under the panel: to the
  * left of the side panel, or into the strip between the palette and the bottom sheet (which also
  * brings a context pad back from beyond the right edge of a phone screen).
  */
-function panOutFromUnder(canvas: Canvas, element: SelectionArea, panel: HTMLElement) {
+function panOutFromUnder(
+  canvas: Canvas,
+  area: SelectionArea,
+  selected: DiagramElement[],
+  panel: HTMLElement,
+) {
   const container = canvas.getContainer().getBoundingClientRect();
-  const panelRect = panel.getBoundingClientRect();
-  const viewbox = canvas.viewbox();
-  const scale = viewbox.scale;
-
-  const left = container.left + (element.x - viewbox.x) * scale;
-  const top = container.top + (element.y - viewbox.y) * scale;
-  const pad = canvas.getContainer().querySelector<HTMLElement>(".djs-context-pad");
-  const padWidth = pad?.offsetWidth || CONTEXT_PAD_FALLBACK_WIDTH;
-  const padHeight = pad?.offsetHeight ?? 0;
-  const right = left + element.width * scale + CONTEXT_PAD_MARGIN * scale + padWidth;
-  const bottom = Math.max(top + element.height * scale, top + padHeight);
+  const panelRect = restingBox(panel);
+  const { left, top, right, bottom } = selectionWithPad(canvas, area, selected);
+  const freeLeft = container.left + FREE_AREA_SIDE;
 
   const isBottomSheet = panelRect.width > container.width * 0.6;
   if (isBottomSheet) {
+    const freeRight = container.right - FREE_AREA_SIDE;
+    const freeTop = container.top + NARROW_FREE_AREA_TOP;
+    const freeBottom = panelRect.top - SHEET_GAP;
     return {
-      dx: shiftInto(left, right, container.left + CLEARANCE, container.right - CLEARANCE),
-      dy: shiftInto(top, bottom, container.top + NARROW_TOP_CLEARANCE, panelRect.top - CLEARANCE),
+      dx: shiftInto(left, right, freeLeft + ROUNDING_SLACK, freeRight - ROUNDING_SLACK),
+      dy: shiftInto(top, bottom, freeTop + ROUNDING_SLACK, freeBottom - ROUNDING_SLACK),
     };
   }
 
-  const overlaps =
-    right > panelRect.left &&
-    left < panelRect.right &&
-    bottom > panelRect.top &&
-    top < panelRect.bottom;
-  if (!overlaps) return { dx: 0, dy: 0 };
-  const dx = shiftInto(left, right, container.left + CLEARANCE, panelRect.left - CLEARANCE);
+  const freeRight = panelRect.left - FREE_AREA_SIDE;
+  const reachesPanel =
+    right > freeRight && left < panelRect.right && bottom > panelRect.top && top < panelRect.bottom;
+  if (!reachesPanel) return { dx: 0, dy: 0 };
+  const dx = shiftInto(left, right, freeLeft + ROUNDING_SLACK, freeRight - ROUNDING_SLACK);
   return { dx: Math.min(0, dx), dy: 0 };
+}
+
+/** The panel's box once its entrance animation, a translation (guide §5.11), has ended. */
+function restingBox(panel: HTMLElement): DOMRect {
+  const box = panel.getBoundingClientRect();
+  const transform = getComputedStyle(panel).transform;
+  if (!transform || transform === "none" || typeof DOMMatrixReadOnly === "undefined") return box;
+  const { m41: translateX, m42: translateY } = new DOMMatrixReadOnly(transform);
+  return new DOMRect(box.x - translateX, box.y - translateY, box.width, box.height);
 }
 
 function whenRemoved(node: Element, callback: () => void): () => void {
@@ -161,7 +247,8 @@ export function useKeepSelectionVisible(
           stopWaiting = whenRemoved(labelEditor, panIfCovered);
           return;
         }
-        const { dx, dy } = panOutFromUnder(canvas, element, panel);
+        const selected = modeler.get<Selection>("selection").get();
+        const { dx, dy } = panOutFromUnder(canvas, element, selected, panel);
         if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) stopGlide = glideCanvas(canvas, dx, dy);
       });
     };

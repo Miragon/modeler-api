@@ -69,13 +69,13 @@ if (storedShellState.legendOpen === undefined && legacyLegendOpen !== undefined)
 // The diagram first: the renderer's keyboard listens on document and must run before the shell's
 // key listener. Undo and redo keys stay unbound: VS Code's document history owns them (guide
 // §13.5). The shell's viewport fits, so the contract's own fit after every import stays off.
-// Keyboard creation asks the shell's viewport for the free centre; it exists once the shell is
-// connected below, long before a palette entry can fire.
+// The shell's fit insets are the free area: keyboard creation places into its centre and the
+// context pad keeps inside it. The shell is mounted below, long before an element is selected.
 const collaborative = createCollaborativeModeler({
   additionalModules: [shellModule],
   undoRedoKeys: false,
   fitOnImport: false,
-  freeArea: { center: () => connection.viewport.freeRectCenter() },
+  freeArea: { insets: () => shell.fitInsets() },
 });
 const modeler = collaborative.diagram as Modeler;
 modeler.get("canvas");

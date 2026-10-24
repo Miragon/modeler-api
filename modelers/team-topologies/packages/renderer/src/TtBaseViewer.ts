@@ -43,7 +43,8 @@ export interface TtViewerOptions {
    * Where Enter or Space on a creating palette entry places the element (guide §5.5): the centre
    * of the part of the canvas no chrome covers, given as its insets in px from the container's
    * edges (`{ insets }`) or as that centre in diagram coordinates (`{ center }`). Without it, the
-   * centre of the visible canvas.
+   * centre of the visible canvas. Given as `{ insets }`, the context pad also keeps inside that
+   * part; otherwise it keeps inside the container.
    */
   freeArea?: FreeArea | undefined;
   /**
@@ -97,6 +98,7 @@ export abstract class TtBaseViewer {
           freeArea: this._options.freeArea,
           freeRectCenter: this._options.freeRectCenter,
         },
+        ttContextPad: { freeArea: this._options.freeArea },
       });
       this._describeCanvas(this._diagram);
     }

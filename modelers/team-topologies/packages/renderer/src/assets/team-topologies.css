@@ -19,6 +19,9 @@
   /* Keeps diagram-js overlays (context pad z 100, label editor z 100) on the host's canvas
      layer, so host chrome, dialogs and toasts always paint above them. */
   isolation: isolate;
+  /* The breakpoints read this container, not the page (guide §5.1): a modeler in a narrow part
+     of a wide page lays its palette out as in a narrow window. */
+  container: team-topologies / inline-size;
   width: 100%;
   height: 100%;
   background-color: var(--cd-ui-grund);
@@ -174,10 +177,10 @@
   pointer-events: none;
 }
 
-/* diagram-js anchors palette tooltips right of the entry (x = right + 8, y = entry centre), which
-   suits a vertical palette but covers the neighbouring tools here. Centre them below the
-   palette instead: 24px = 8px gap + half the 32px entry; 28px = half the entry + 3px padding +
-   1px border + 8px gap. A host chrome replaces this tooltip with its own. */
+/* TtPaletteTooltip places the palette tooltip in the canvas container's coordinates (diagram-js
+   would fix it to the page), at the position of guide §5.6: 8px below the palette in either row,
+   centred on its entry and kept 12px from the container's sides. Only the position follows §5.6,
+   not yet the type and padding. A host chrome replaces this tooltip with its own. */
 .tt-djs-container .djs-hover-tooltip {
   width: max-content;
   max-width: 280px;
@@ -187,18 +190,17 @@
   border: 1px solid var(--cd-ui-linie);
   box-shadow: var(--cd-shadow-2);
 }
-.tt-djs-container .djs-hover-tooltip--right {
-  transform: translate(calc(-50% - 24px), 28px);
-}
 .tt-djs-container .djs-hover-tooltip--bottom {
+  position: absolute;
+  max-width: min(280px, 100% - 24px);
   transform: translateX(-50%);
 }
 .tt-djs-container .djs-palette-tooltip-shortcut {
   font-family: inherit;
 }
 
-/* Narrow screens: the palette gets its own row below the host's top chrome. */
-@media (max-width: 760px) {
+/* Narrow containers: the palette gets its own row below the host's top chrome (guide §5.15). */
+@container team-topologies (max-width: 760px) {
   .djs-palette:not([data-chrome="palette"]) {
     top: 64px;
     max-width: calc(100% - 24px);
@@ -213,16 +215,6 @@
   /* The scrolling palette clips anything beyond its 3px padding. */
   .djs-palette:not([data-chrome="palette"]) .entry:focus-visible {
     outline-offset: -2px;
-  }
-  /* Entries near the screen edge would push a centred tooltip off-screen; centre it on the
-     viewport, still below the palette. */
-  .tt-djs-container .djs-hover-tooltip--right,
-  .tt-djs-container .djs-hover-tooltip--bottom {
-    left: 50% !important;
-    max-width: min(280px, calc(100vw - 24px));
-  }
-  .tt-djs-container .djs-hover-tooltip--right {
-    transform: translate(-50%, 28px);
   }
 }
 
