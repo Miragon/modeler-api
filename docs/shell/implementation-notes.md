@@ -1693,6 +1693,34 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   against the Context Maps and Value Chain extensions found exactly that, "Error: Cannot find
   module './impl/format'" (jsonc-parser's UMD build in an esbuild bundle), which their e2e suites
   against the stub cannot see.
+- **A webview that throws** ([#50](https://github.com/Miragon/modeler-suite/issues/50)). Its
+  exception is in none of VS Code's log files, so a run waited the full timeout and named no cause
+  (the Event Storming extension made to throw on start, in Docker with VS Code 1.143.1: open 30.3 s,
+  "the custom editor never showed the shell's menu" and the frame count). Playwright reports
+  `console` and `pageerror` for every frame of a page, and the same run showed that listeners on the
+  workbench window get the webview's errors two frames deep, through `iframe.webview` and
+  `#active-frame`. Neither event says which frame it came from (a `ConsoleMessage` has no frame, a
+  `pageerror` is only the error), and the window carries the workbench's errors too ("Extension
+  'github.copilot-chat' appears in product.json but enables LESS API proposals", logged by
+  `workbench.desktop.main.js`), so the driver tells them apart by URL. The webview's bundle is
+  `https://file+.vscode-resource.vscode-cdn.net/<extension folder>/dist/webview.js` in the stack of
+  an uncaught error and in the location of a `console.error`; VS Code's host page of the webview
+  logs from `vscode-webview://<origin>/index.html?…&extensionId=<id>…`. An error counts when its
+  location, or its stack's topmost frame, is a file of the extension's folder or a document whose
+  URL names its id. The folder counts as given and as its real path, since VS Code may load the
+  extension from either (macOS's `/var` is `/private/var`). The listeners start with the first
+  window, as the webview can throw before the open step begins, and end with the open step. Only
+  an uncaught error ends the wait early; a console error, such as a font that did not load, can
+  come from an editor that works. The menu gets 3 s after the first uncaught error, room for an
+  error the start survives and for a slow CI machine, still a tenth of the 30 s. The modelers mount
+  the shell before their document arrives with `init` (Event Storming's webview calls
+  `mountVsCodeShell`, then imports on `init`), so a webview that throws while it imports the
+  fixture passes the menu check. `ready` then gets the same 3 s, counted from the throw and from its
+  own start, and fails while the canvas shows no shape; a canvas with a shape keeps waiting, since
+  the import worked and `ready` or a later step names what else broke. With the change the same run
+  failed after 3.7 s with the error and its stack, the extension made to throw on `init` instead
+  after 3.6 s ("the canvas shows no element of the fixture 3 s after its webview threw"); the
+  unchanged extension still passed, its open step in 0.6 s.
 - **A clean profile.** `--user-data-dir` and `--extensions-dir` point into a fresh temporary
   directory, so no user setting, extension, restored window or welcome page interferes. The settings
   turn off what would cover the editor or change the theme behind the test's back: the start page,

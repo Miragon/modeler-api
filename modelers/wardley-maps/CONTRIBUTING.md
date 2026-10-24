@@ -81,12 +81,14 @@ macOS a window opens for a few seconds and takes the focus; on Linux run it unde
 Like `npm run package -w modelers/wardley-maps/apps/vscode`, the packing writes the production build
 into `apps/vscode/dist`.
 
-When a failure names no cause (for example "the custom editor never showed the shell's menu"), the
-cause is in VS Code's logs: run again with `VSCODE_SMOKE_KEEP=1` and read the `logs` folder of the
-kept profile (in Docker: `test-results/vscode-smoke/vscode-logs/`). A failed run is not retried: the
-save step of `@miragon/modeler-shell` parses the file only once the editor tab is clean and two
-reads of it agree, and reads it again while the test's parser rejects it (a map without elements
-included), so it does not catch VS Code halfway through a save.
+A failed open quotes the webview's own uncaught errors and console errors with their stacks, which
+none of VS Code's logs holds, and a webview that throws on start fails it 3 s later. When a failure
+names no cause (for example "the custom editor never showed the shell's menu" without any webview
+error), the cause is in VS Code's logs: run again with `VSCODE_SMOKE_KEEP=1` and read the `logs`
+folder of the kept profile (in Docker: `test-results/vscode-smoke/vscode-logs/`). A failed run is
+not retried: the save step of `@miragon/modeler-shell` parses the file only once the editor tab is
+clean and two reads of it agree, and reads it again while the test's parser rejects it (a map
+without elements included), so it does not catch VS Code halfway through a save.
 
 ## Monorepo map & the DOM boundary (P1)
 

@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs";
-import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { ProgressReport, ProgressReporter } from "@vscode/test-electron";
@@ -47,6 +47,12 @@ import {
   webviewBodyClasses,
   type VsCodeColorTheme,
 } from "./themes.js";
+import {
+  describeWebviewErrors,
+  watchWebviewErrors,
+  type WebviewErrorWatch,
+  type WebviewOwner,
+} from "./webview-errors.js";
 import {
   activeEditorDirtyProbe,
   activeTextEditorProbe,
@@ -135,6 +141,8 @@ const REOPEN_INTERVAL_MS = 2_000;
 const LOG_READ_INTERVAL_MS = 1_000;
 /** How long a saved text the parser rejects has to stay unchanged before the save step fails. */
 const SAVE_SETTLE_MS = 1_000;
+/** How long the menu, or the canvas's first shape, may still take after the extension's webview threw. */
+const UNCAUGHT_ERROR_GRACE_MS = 3_000;
 const DEFAULT_CHROME: readonly ChromeIsland[] = ["menu", "palette", "zoom"];
 /** Names the screenshot of a webview that never showed, next to the theme screenshots. */
 const OPEN_FAILURE: VsCodeColorTheme = { id: "open-failure", name: "", kind: 1 };
@@ -174,7 +182,11 @@ async function loadPeers(): Promise<Peers> {
   }
 }
 
+/** A failure the driver words itself keeps all its lines; Playwright's errors keep their first. */
+class StepFailure extends Error {}
+
 function messageOf(error: unknown): string {
+  if (error instanceof StepFailure) return error.message;
   return (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
 }
 
@@ -312,6 +324,12 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
   }
   const extensionId = extensionIdOf(manifest);
   const peers = await loadPeers();
+  // The webview's resource URLs name the folder VS Code loaded, which may be the real path.
+  const realExtensionPath = await realpath(extensionPath).catch(() => extensionPath);
+  const webviewOwner: WebviewOwner = {
+    extensionId,
+    extensionFolders: [...new Set([extensionPath, realExtensionPath])],
+  };
 
   const failures = new SmokeFailures();
   const result: VsCodeSmokeResult = {
@@ -398,6 +416,7 @@ export async function runVsCodeSmoke(options: VsCodeSmokeOptions): Promise<VsCod
         executablePath,
         extensionPath,
         extensionId,
+        webviewOwner,
         viewType,
         islands,
         themes,
@@ -437,6 +456,7 @@ interface SessionRun {
   executablePath: string;
   extensionPath: string;
   extensionId: string | undefined;
+  webviewOwner: WebviewOwner;
   viewType: string;
   islands: readonly ChromeIsland[];
   themes: readonly Theme[];
@@ -472,6 +492,7 @@ async function runSession(run: SessionRun): Promise<void> {
   await writeFile(paths.file, original);
   await writeSettings((run.colorThemes[0] ?? VSCODE_COLOR_THEMES[0]!).name);
 
+  let webviewErrors: WebviewErrorWatch | undefined;
   const context = await step("launch", async (): Promise<VsCodeSmokeContext> => {
     const app = await run.peers.launch({
       executablePath: run.executablePath,
@@ -481,6 +502,8 @@ async function runSession(run: SessionRun): Promise<void> {
     });
     run.launched.app = app;
     const page = await app.firstWindow({ timeout: timeoutMs });
+    // from the first window on: the webview can throw before the open step starts
+    webviewErrors = watchWebviewErrors(page, run.webviewOwner);
     // an `edit` of the modeler's own waits as long as the driver does
     page.setDefaultTimeout(timeoutMs);
     await page.waitForSelector(".monaco-workbench", { timeout: timeoutMs });
@@ -498,22 +521,31 @@ async function runSession(run: SessionRun): Promise<void> {
     const webview = frame.first().contentFrame().locator("iframe#active-frame").contentFrame();
     return { page, webview, keys: platformKeys(process.platform), timeoutMs };
   });
-  if (!context) return;
+  if (!context || !webviewErrors) return;
+  const errors = webviewErrors;
 
   const html = context.webview.locator("html");
   const canvasFacts = () => html.evaluate(canvasFactsProbe);
   const dirty = () => context.page.evaluate(activeEditorDirtyProbe);
 
   const before = await step("open", async () => {
-    if (!(await showCustomEditor(context, run))) throw new Error(await openFailure(context, run));
-    await (options.ready ?? defaultReady)(context);
-    await settle(context);
-    result.chrome = await html.evaluate(chromeProbe, islands);
-    const missing = missingChrome(islands, result.chrome);
-    if (missing) failures.add("open", missing);
-    const facts = await canvasFacts();
-    log(`open: ${run.viewType} shows ${describeCanvas(facts)}`);
-    return facts;
+    try {
+      const shown = await showCustomEditor(context, run, errors);
+      if (shown !== "shown") throw new StepFailure(await openFailure(context, run, errors, shown));
+      await readyUnlessThrown(context, options.ready ?? defaultReady, errors);
+      await settle(context);
+      result.chrome = await html.evaluate(chromeProbe, islands);
+      const missing = missingChrome(islands, result.chrome);
+      if (missing) failures.add("open", withWebviewErrors(missing, errors));
+      const facts = await canvasFacts();
+      log(`open: ${run.viewType} shows ${describeCanvas(facts)}`);
+      return facts;
+    } catch (error) {
+      if (error instanceof StepFailure) throw error;
+      throw new StepFailure(withWebviewErrors(messageOf(error), errors));
+    } finally {
+      errors.stop();
+    }
   });
   if (!before) return;
 
@@ -613,24 +645,36 @@ async function runSession(run: SessionRun): Promise<void> {
   });
 }
 
+/** `missing`: after `timeoutMs` or a failed activation; `threw`: the extension's webview threw. */
+type MenuOutcome = "shown" | "missing" | "threw";
+
 /**
  * Waits for the shell's menu in the webview. A file VS Code opens at start can resolve before the
  * development extension's custom editor is registered (seen on the first start of a fresh
  * download): it then shows as text. The driver closes it and opens it again from the Explorer,
  * where `workbench.editorAssociations` picks the custom editor once it is registered, and retries
- * until it is. False when the menu never showed, at once when the extension failed to activate:
- * its editor is then never registered.
+ * until it is. Gives up at once when the extension failed to activate (its editor is then never
+ * registered), and `UNCAUGHT_ERROR_GRACE_MS` after the extension's webview threw an uncaught error
+ * while its menu is still missing.
  */
-async function showCustomEditor(context: VsCodeSmokeContext, run: SessionRun): Promise<boolean> {
+async function showCustomEditor(
+  context: VsCodeSmokeContext,
+  run: SessionRun,
+  errors: WebviewErrorWatch,
+): Promise<MenuOutcome> {
   const menu = context.webview.locator('[data-chrome="menu"]');
   const deadline = performance.now() + run.timeoutMs;
   let reopenedAt = Number.NEGATIVE_INFINITY;
   let logsReadAt = Number.NEGATIVE_INFINITY;
   while (performance.now() < deadline) {
-    if (await menu.isVisible()) return true;
+    if (await menu.isVisible()) return "shown";
+    const threwAt = errors.uncaught.first[0]?.at;
+    if (threwAt !== undefined && performance.now() - threwAt >= UNCAUGHT_ERROR_GRACE_MS) {
+      return "threw";
+    }
     if (performance.now() - logsReadAt > LOG_READ_INTERVAL_MS) {
       logsReadAt = performance.now();
-      if ((await activationFailures(run)).length > 0) return false;
+      if ((await activationFailures(run)).length > 0) return "missing";
     }
     const retry = performance.now() - reopenedAt > REOPEN_INTERVAL_MS;
     if (retry && (await context.page.evaluate(activeTextEditorProbe))) {
@@ -647,7 +691,7 @@ async function showCustomEditor(context: VsCodeSmokeContext, run: SessionRun): P
     }
     await delay(POLL_INTERVAL_MS);
   }
-  return menu.isVisible();
+  return (await menu.isVisible()) ? "shown" : "missing";
 }
 
 /**
@@ -668,11 +712,60 @@ async function activationFailures(run: SessionRun): Promise<string[]> {
 }
 
 /**
- * Why the webview did not show: the extension's activation error from VS Code's extension host log,
- * which webview frames the workbench has (a run that never opened leaves no other trace), a
- * screenshot of the window when there is a `screenshotDir`, and where VS Code's logs are.
+ * Runs `ready`, and fails `UNCAUGHT_ERROR_GRACE_MS` after the extension's webview threw an
+ * uncaught error while the canvas still shows no shape: the modelers mount the shell's menu before
+ * the document arrives, so a webview that throws while importing it passes `showCustomEditor` and
+ * would leave `ready` waiting for `timeoutMs`. The grace also counts from the start of `ready`,
+ * which gives an error thrown before the menu showed the same time to recover.
  */
-async function openFailure(context: VsCodeSmokeContext, run: SessionRun): Promise<string> {
+async function readyUnlessThrown(
+  context: VsCodeSmokeContext,
+  ready: (context: VsCodeSmokeContext) => Promise<void>,
+  errors: WebviewErrorWatch,
+): Promise<void> {
+  const html = context.webview.locator("html");
+  const startedAt = performance.now();
+  let finished = false;
+  const readied = ready(context).finally(() => {
+    finished = true;
+  });
+  const abandoned = (async () => {
+    while (!finished) {
+      const threwAt = errors.uncaught.first[0]?.at;
+      const since = threwAt === undefined ? undefined : Math.max(threwAt, startedAt);
+      if (since !== undefined && performance.now() - since >= UNCAUGHT_ERROR_GRACE_MS) {
+        const facts = await html.evaluate(canvasFactsProbe).catch(() => undefined);
+        if (!finished && facts?.shapes === 0) {
+          throw new Error(
+            `the canvas shows no element of the fixture ${UNCAUGHT_ERROR_GRACE_MS / 1000} s after its webview threw`,
+          );
+        }
+      }
+      await delay(POLL_INTERVAL_MS);
+    }
+  })();
+  await Promise.race([readied, abandoned]);
+}
+
+/** `text`, followed by the errors the extension's webview reported, when there were any. */
+function withWebviewErrors(text: string, errors: WebviewErrorWatch): string {
+  const reported = describeWebviewErrors(errors);
+  return reported ? `${text}; ${reported}` : text;
+}
+
+/**
+ * Why the webview did not show: the extension's activation error from VS Code's extension host log,
+ * or that its webview threw, which webview frames the workbench has (a run that never opened leaves
+ * no other trace), a screenshot of the window when there is a `screenshotDir`, where VS Code's logs
+ * are, and the uncaught and console errors of the webview with their stacks, which are in none of
+ * VS Code's logs.
+ */
+async function openFailure(
+  context: VsCodeSmokeContext,
+  run: SessionRun,
+  errors: WebviewErrorWatch,
+  outcome: Exclude<MenuOutcome, "shown">,
+): Promise<string> {
   const sources = await context.page.evaluate(workbenchWebviewsProbe).catch((): string[] => []);
   const id = run.extensionId?.toLowerCase();
   const own = id
@@ -691,13 +784,19 @@ async function openFailure(context: VsCodeSmokeContext, run: SessionRun): Promis
     );
   }
   const failed = await activationFailures(run);
-  const causes = failed.length > 0 ? `: ${failed.join("; ")}` : "";
+  const causes =
+    failed.length > 0
+      ? `: ${failed.join("; ")}`
+      : outcome === "threw"
+        ? `, still missing ${UNCAUGHT_ERROR_GRACE_MS / 1000} s after its webview threw`
+        : "";
   const logs = run.options.keepTemporaryFiles
     ? `VS Code's logs are in ${join(run.paths.userDataDir, "logs")}`
     : "keepTemporaryFiles keeps VS Code's logs";
-  return (
+  return withWebviewErrors(
     `the custom editor never showed the shell's menu${causes} ` +
-    `(${sources.length} webview frames in the workbench, ${own.length} of ${run.extensionId ?? "the extension"}${screenshot}; ${logs})`
+      `(${sources.length} webview frames in the workbench, ${own.length} of ${run.extensionId ?? "the extension"}${screenshot}; ${logs})`,
+    errors,
   );
 }
 
