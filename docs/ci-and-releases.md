@@ -161,5 +161,3 @@ packages or the root install changed. Site settings (Site configuration → Buil
   its own, the suite's `@miragon/*` workspaces ignored), GitHub Actions monthly.
   [`dependabot-automerge.yml`](../.github/workflows/dependabot-automerge.yml) merges green patch and
   minor updates once auto-merge is enabled for the repository.
-- [`dependency-repair.yml`](../.github/workflows/dependency-repair.yml): when CI fails on a
-  Dependabot pull request, Claude repairs it (environment `claude-maintenance`).
