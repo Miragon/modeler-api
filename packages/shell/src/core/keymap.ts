@@ -287,8 +287,9 @@ export function ariaKeyShortcutsFromLabel(label: string): string | undefined {
     rest = rest.slice(1).trim();
     symbol = MAC_MODIFIER_SYMBOLS[rest.charAt(0)];
   }
-  if (!rest || /\s/.test(rest.replace(/\s*\+\s*/g, "+"))) return undefined;
+  if (!rest) return undefined;
   const parts = rest.split("+").map((part) => part.trim());
+  if (parts.some((part) => /\s/.test(part))) return undefined;
   let key = parts.pop() ?? "";
   if (key === "" && parts.at(-1) === "") {
     parts.pop();

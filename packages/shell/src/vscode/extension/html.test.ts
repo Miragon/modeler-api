@@ -169,6 +169,22 @@ describe("renderWebviewHtml", () => {
     );
     expect(() => renderWebviewHtml(options({ nonce: "" }))).toThrow(/invalid nonce/);
   });
+
+  it.each(["https://a.test; script-src *", "https://a.test, script-src *", ";"])(
+    "rejects the cspSource %j, which would add a directive of its own",
+    (cspSource) => {
+      expect(() => renderWebviewHtml(options({ cspSource }))).toThrow(/invalid cspSource/);
+    },
+  );
+
+  it("takes a cspSource with several sources", () => {
+    const document = parse(
+      renderWebviewHtml(options({ cspSource: "https://a.test https://b.test" })),
+    );
+    expect(
+      document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
+    ).toContain("img-src https://a.test https://b.test data: blob:;");
+  });
 });
 
 describe("createNonce", () => {

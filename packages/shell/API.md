@@ -1964,9 +1964,11 @@ function isAppearanceMessage(value: unknown): value is AppearanceMessage;
   `style` attributes into markup (palette entries, SVG strings); the shell and diagram-js themselves
   style only through the CSSOM and run without it, so a modeler whose renderer does too passes
   `inlineStyles: false`. `lang` is the tool's UI language: English modelers pass `"en"`, not
-  `vscode.env.language`. Title and attribute values are escaped, `body` is inserted as markup; the
-  script is a classic `<script nonce src>` (an IIFE bundle). It throws for a `nonce` that is not a
-  CSP base64 value.
+  `vscode.env.language`. Title and attribute values are escaped, `body` is inserted as markup (the
+  extension's own: never document content or other untrusted text); the script is a classic
+  `<script nonce src>` (an IIFE bundle). It throws for a `nonce` that is not a CSP base64 value and
+  for a `cspSource` with a `;` or `,`, which would end the directive and could add a `script-src`
+  that wins over the nonce'd one.
 
   ```text
   <html lang="en" class="cd-shell-document" data-cd-theme="light" data-cd-kontrast="hoch">

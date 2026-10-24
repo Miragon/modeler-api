@@ -623,14 +623,24 @@ describe("ariaKeyShortcutsFromLabel", () => {
     ["?", "?"],
     ["F2", "F2"],
     ["⇧ L", "Shift+L"],
+    ["Ctrl + Shift + E", "Control+Shift+E"],
+    ["Ctrl\t+\u00a0Shift +E", "Control+Shift+E"],
+    ["Ctrl + +", "Control+Plus"],
   ])("maps the chip %j to %j", (label, expected) => {
     expect(ariaKeyShortcutsFromLabel(label)).toBe(expected);
   });
 
-  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+"])(
+  it.each(["", "  ", "G then D", "1–9", "⌘", "Hyper+K", "Ctrl+", "Ctrl+Shift E", "Ctrl + Page Up"])(
     "gives nothing for %j",
     (label) => {
       expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
     },
   );
+
+  it("rejects a label with a long run of whitespace in linear time", () => {
+    const label = `Ctrl${" ".repeat(100_000)}K`;
+    const start = performance.now();
+    expect(ariaKeyShortcutsFromLabel(label)).toBeUndefined();
+    expect(performance.now() - start).toBeLessThan(200);
+  });
 });

@@ -16,6 +16,14 @@ describe('the text format', () => {
     expect(serializeText(parseText(canonical).document)).toBe(canonical);
   });
 
+  it('reads the title after any whitespace and rejects an unreadable one in linear time', () => {
+    expect(parseText('title \t Orders').document.title).toBe('Orders');
+    const unreadable = `title${' '.repeat(100_000)}a\u2028b`;
+    const start = performance.now();
+    expect(parseText(unreadable).document.title).toBeUndefined();
+    expect(performance.now() - start).toBeLessThan(200);
+  });
+
   it('keeps every line it cannot read (L6) and reports it', () => {
     const { document, diagnostics } = parseText('node half "typed\n');
     expect(document.passthrough).toEqual(['node half "typed']);

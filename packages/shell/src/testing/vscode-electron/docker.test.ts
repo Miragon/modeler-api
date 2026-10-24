@@ -53,6 +53,10 @@ describe("vsCodeSmokeDockerfile", () => {
   });
 
   it("installs an X server for xvfb-run, Electron's libraries, fonts, unzip and git, and no recommends", () => {
+    const packageLines = dockerfile
+      .split("\n")
+      .filter((line) => line.startsWith(" "))
+      .map((line) => line.trimStart());
     for (const name of [
       "xvfb",
       "xauth",
@@ -66,7 +70,7 @@ describe("vsCodeSmokeDockerfile", () => {
       "unzip",
       "git",
     ]) {
-      expect(dockerfile).toMatch(new RegExp(`^ +${name.replace(/[.]/g, "\\.")} \\\\$`, "m"));
+      expect(packageLines).toContain(`${name} \\`);
     }
     expect(dockerfile).toContain("apt-get install -y --no-install-recommends");
     expect(dockerfile).toContain("rm -rf /var/lib/apt/lists/*");
@@ -169,6 +173,7 @@ describe("the container script", () => {
   });
 
   // The container's tools stubbed: npm records its call, xvfb-run runs its command after the flags.
+  // The case's directory reaches them through the environment: a temporary path is no shell code.
   it(
     "copies the repository without node_modules, .git and the results, runs npm ci, then the command, and copies the results back",
     { skip: !hasBash },
@@ -186,18 +191,18 @@ describe("the container script", () => {
       mkdirSync(out, { recursive: true });
       write(
         join(bin, "npm"),
-        `#!/bin/sh\nif [ "$1" = "-v" ]; then echo 10.0.0; else echo "$@" >> "${base}/npm-calls"; fi\n`,
+        `#!/bin/sh\nif [ "$1" = "-v" ]; then echo 10.0.0; else echo "$@" >> "$CASE_DIRECTORY/npm-calls"; fi\n`,
       );
       write(join(bin, "node"), "#!/bin/sh\necho v22.22.2\n");
       write(
         join(bin, "xvfb-run"),
-        `#!/bin/sh\necho "$@" > "${base}/xvfb-args"\nshift 3\nexec "$@"\n`,
+        `#!/bin/sh\necho "$@" > "$CASE_DIRECTORY/xvfb-args"\nshift 3\nexec "$@"\n`,
       );
       for (const tool of ["npm", "node", "xvfb-run"]) chmodSync(join(bin, tool), 0o755);
       const command = [
         "sh",
         "-c",
-        `ls -A > "${base}/seen"; mkdir -p ../../test-results/vscode-smoke; echo png > ../../test-results/vscode-smoke/tool-light.png; ` +
+        `ls -A > "$CASE_DIRECTORY/seen"; mkdir -p ../../test-results/vscode-smoke; echo png > ../../test-results/vscode-smoke/tool-light.png; ` +
           `mkdir -p "$TMPDIR/modeler-shell-vscode-1/user-data/logs/s/window1"; echo log > "$TMPDIR/modeler-shell-vscode-1/user-data/logs/s/window1/exthost.log"; exit 3`,
       ];
       const ran = spawnSync(
@@ -215,6 +220,7 @@ describe("the container script", () => {
             HOST_UID: "",
             HOST_GID: "",
             TMPDIR: temp,
+            CASE_DIRECTORY: base,
           },
         },
       );
