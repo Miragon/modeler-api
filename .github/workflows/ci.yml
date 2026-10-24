@@ -10,41 +10,323 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
+# A new push to a pull request makes its running checks moot. Every other run has a group of its
+# own, so no run on main, in the merge queue or started by hand is ever cancelled or replaced.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint:
+  # Which modelers and whether the shared packages a change reaches (.github/scripts/ci-paths.sh).
+  # A path filter on the trigger is no way out: ci-ok has to report on every run.
+  changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shared: ${{ steps.paths.outputs.shared }}
+      modelers: ${{ steps.paths.outputs.modelers }}
+      all-modelers: ${{ steps.paths.outputs.all-modelers }}
+      playwright: ${{ steps.playwright.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup
-      - run: npm run lint
+      - id: paths
+        run: .github/scripts/ci-paths.sh affected
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+      # The browser jobs run in the Playwright image of the root's exact playwright pin (pin-check
+      # holds every other Playwright pin to it), and Dependabot does not bump job containers.
+      - id: playwright
+        run: |
+          version=$(jq -r '.devDependencies.playwright' package.json)
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The root package.json pins no exact playwright: '$version'"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  test:
+  shared-lint:
+    needs: changes
+    if: needs.changes.outputs.shared == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - run: npm test
-      - run: npm run build
-      # the PUBLISHED shape: exports map, dual types, files — what consumers resolve
+      - run: npm run typecheck:shared
+
+  shared-test:
+    needs: changes
+    if: needs.changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # modeler-api and modeler-shell, then the repository's own drift tests (test:plugin): the
+      # modeler-kit plugin and the release config.
+      - run: npm run test:shared
+      - run: npm run build:shared
+      # The published shape: exports map, dual types, files, which is what consumers resolve.
       - run: npm run publint
 
-  e2e:
+  shared-e2e:
+    needs: changes
+    if: needs.changes.outputs.shared == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Browsers and their system libraries come with the image, so no run installs them.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-noble
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      # the Chromium build of the pinned @playwright/test, with its system libraries
-      - run: npx playwright install --with-deps chromium
-        working-directory: packages/shell
-      # the shell's conformance kit against its demo page (ide, web, embedded hosts) plus saboteurs
-      - run: npm run test:e2e
+      # The shell's conformance kit against its demo page (ide, web, embedded hosts) plus saboteurs.
+      - run: npm run test:e2e:shared
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-traces
+          name: playwright-traces-shell
           path: packages/shell/test-results/
           retention-days: 7
+
+  # The per-modeler jobs run once for each modeler the change reaches. Every one builds the shared
+  # packages first: the modelers resolve @miragon/modeler-api and @miragon/modeler-shell from their
+  # dist, as their published consumers do.
+  modeler-lint:
+    name: ${{ matrix.modeler }} / lint
+    needs: changes
+    if: needs.changes.outputs.modelers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.modelers) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          modeler: ${{ matrix.modeler }}
+      - run: npm run build:shared
+      - run: npm run "$MODELER" lint
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - run: npm run "$MODELER" depcruise
+        env:
+          MODELER: ${{ matrix.modeler }}
+
+  modeler-test:
+    name: ${{ matrix.modeler }} / test
+    needs: changes
+    if: needs.changes.outputs.modelers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.modelers) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          modeler: ${{ matrix.modeler }}
+      - run: npm run build:shared
+      - run: npm run "$MODELER" build
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - run: npm run "$MODELER" test
+        env:
+          MODELER: ${{ matrix.modeler }}
+
+  modeler-test-browser:
+    name: ${{ matrix.modeler }} / test:browser
+    needs: changes
+    if: needs.changes.outputs.modelers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.modelers) }}
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-noble
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          modeler: ${{ matrix.modeler }}
+      - run: npm run build:shared
+      - run: npm run "$MODELER" build
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - run: npm run "$MODELER" test:browser
+        env:
+          MODELER: ${{ matrix.modeler }}
+
+  modeler-e2e:
+    name: ${{ matrix.modeler }} / e2e
+    needs: changes
+    if: needs.changes.outputs.modelers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.modelers) }}
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-noble
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          modeler: ${{ matrix.modeler }}
+      - run: npm run build:shared
+      # Some specs import web-app and extension sources in Node, which resolve the modeler's
+      # packages through their built dist.
+      - run: npm run "$MODELER" build
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - run: npm run "$MODELER" test:e2e
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-${{ matrix.modeler }}
+          path: modelers/${{ matrix.modeler }}/e2e/playwright-report/
+          retention-days: 7
+
+  modeler-build:
+    name: ${{ matrix.modeler }} / build
+    needs: changes
+    if: needs.changes.outputs.modelers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.modelers) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          modeler: ${{ matrix.modeler }}
+      - run: npm run build:shared
+      - run: npm run "$MODELER" build
+        env:
+          MODELER: ${{ matrix.modeler }}
+      # The production web app: e2e runs the dev server, so only this build shows what Netlify ships.
+      - run: npm run "$MODELER" build:webapp
+        env:
+          MODELER: ${{ matrix.modeler }}
+      - run: npm run check:build -w "modelers/$MODELER/apps/webapp"
+        env:
+          MODELER: ${{ matrix.modeler }}
+      # The VSIX as the release packs it (vscode:prepublish, .vscodeignore).
+      - run: npm run "$MODELER" package:vscode
+        env:
+          MODELER: ${{ matrix.modeler }}
+
+  format-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: npm run format:check
+
+  pin-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Scans every package.json below the root: the shared packages, all workspaces of every
+      # modeler and the modeler-kit template.
+      - uses: miragon/pin-npm-dependencies@3f7f02fa2454cdd2cdb65df19b081c0d77d301a5 # v1.2.2
+      # The browser jobs run in the image of the root's playwright pin, which carries the browsers
+      # of that version only.
+      - name: Check that every Playwright pin agrees with the root's
+        run: |
+          root=$(jq -r '.devDependencies.playwright' package.json)
+          mismatches=$(git ls-files -z -- 'package.json' '*/package.json' | xargs -0 jq -r --arg root "$root" "$PIN_QUERY")
+          if [[ -n "$mismatches" ]]; then
+            while read -r mismatch; do echo "::error::$mismatch"; done <<< "$mismatches"
+            exit 1
+          fi
+          echo "Every Playwright pin is $root."
+        env:
+          PIN_QUERY: >-
+            [(.dependencies // {}), (.devDependencies // {})] | add | to_entries[]
+            | select(.key == "playwright" or .key == "@playwright/test" or .key == "playwright-core")
+            | select(.value != $root)
+            | "\(input_filename): \(.key) \(.value), the root pins playwright \($root)"
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+  # release-please's bootstrap-sha keeps the modelers' imported history out of the changelogs
+  # (.github/scripts/release-bootstrap.sh).
+  release-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: .github/scripts/release-bootstrap.sh
+
+  # Every modeler's packaged extension in a real VS Code; the reusable workflow decides on its own
+  # whether the change can reach the extension and succeeds without a run when it cannot.
+  vscode-smoke:
+    name: vscode-smoke (${{ matrix.modeler }})
+    needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        modeler: ${{ fromJSON(needs.changes.outputs.all-modelers) }}
+    uses: ./.github/workflows/vscode-smoke.yml
+    with:
+      modeler: ${{ matrix.modeler }}
+
+  # The merge gate, and the one check the ruleset requires (.github/scripts/ci-gate.sh): it needs
+  # every other job of this workflow and fails on any failed, cancelled or unexpectedly skipped one.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs:
+      - changes
+      - shared-lint
+      - shared-test
+      - shared-e2e
+      - modeler-lint
+      - modeler-test
+      - modeler-test-browser
+      - modeler-e2e
+      - modeler-build
+      - format-check
+      - pin-check
+      - dependency-review
+      - release-bootstrap
+      - vscode-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require every job to succeed or to be skipped by design
+        run: .github/scripts/ci-gate.sh
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_FILE: .github/workflows/ci.yml
