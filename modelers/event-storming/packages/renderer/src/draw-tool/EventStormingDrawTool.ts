@@ -12,7 +12,7 @@ import type { Element, Shape } from "diagram-js/lib/model/Types";
 import { COLORS, DRAWING_INK } from "../draw/styles.js";
 import type EventStormingElementFactory from "../model/EventStormingElementFactory.js";
 import { READ_ONLY_CHANGED_EVENT } from "../read-only/index.js";
-import { isTextField, isUnhandledKey } from "../keyboard/index.js";
+import { focusCanvasWithoutRing, isTextField, isUnhandledKey } from "../keyboard/index.js";
 
 interface Point {
   x: number;
@@ -167,7 +167,7 @@ export default class EventStormingDrawTool {
     e.stopPropagation();
     // The prevented default is the browser's focus move: without it Enter and Escape would go to
     // whatever held the focus before.
-    this.canvas.focus();
+    focusCanvasWithoutRing(this.canvas);
     const p = this.toCanvasPoint(e);
     const first = this.points[0];
     if (first && this.points.length >= 3 && distance(p, first) <= CLOSE_RADIUS) {

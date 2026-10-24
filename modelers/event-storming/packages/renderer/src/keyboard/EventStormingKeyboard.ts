@@ -77,7 +77,7 @@ export default class EventStormingKeyboard {
 
     // On the document, after every listener closer to the target, so a key one of them handled
     // stays theirs. The label editor's field, the palette and the context pad sit in the container
-    // next to the <svg>, so their keys never reach the board.
+    // next to the <svg>, so the board ignores their keys.
     const onKeydown = (e: KeyboardEvent) => {
       if (!isUnhandledKey(e) || !targetsCanvas(e, canvas)) return;
 

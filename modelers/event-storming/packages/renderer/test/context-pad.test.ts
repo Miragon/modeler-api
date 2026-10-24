@@ -157,7 +157,11 @@ describe("EventStormingContextPadProvider: focus after an entry ran", () => {
   function focusHarness() {
     const calls: string[] = [];
     const record = (name: string) => vi.fn(() => void calls.push(name));
-    const canvas = { focus: record("focus") };
+    const svg = { focus: record("focus") };
+    const canvas = {
+      focus: record("canvas.focus"),
+      getContainer: () => ({ querySelector: () => svg }),
+    };
     const provider = new EventStormingContextPadProvider(
       { registerProvider: vi.fn() } as never,
       { removeElements: record("remove") } as never,
@@ -181,7 +185,7 @@ describe("EventStormingContextPadProvider: focus after an entry ran", () => {
       handlers[type]!({ type, detail: 1, clientX: 0, clientY: 0 } as unknown as Event);
       return [...calls];
     };
-    return { run };
+    return { run, svg };
   }
 
   const drawing = () =>
@@ -206,6 +210,12 @@ describe("EventStormingContextPadProvider: focus after an entry ran", () => {
     expect(run(sticky("cmd_a"), "append", "dragstart")).toEqual(["create", "focus"]);
     expect(run(drawing(), "stroke-style")).toEqual(["stroke", "focus"]);
     expect(run(connection(), "delete")).toEqual(["remove", "focus"]);
+  });
+
+  it("hands the focus over without the keyboard focus ring", () => {
+    const { run, svg } = focusHarness();
+    run(sticky("cmd_a"), "delete");
+    expect(svg.focus).toHaveBeenCalledWith({ preventScroll: true, focusVisible: false });
   });
 
   it("leaves the focus to the label editor, the type popup and the colour picker", () => {

@@ -73,17 +73,19 @@ their keys. Keys another listener already handled (`defaultPrevented`), events w
 keys typed during an IME composition are left alone, and the canvas container gets no `tabindex` of
 its own. A pointer click or drag on a palette entry, a click on a context-pad entry that opens no
 editor or popup (delete, connect, append, line style) and a picked colour hand the focus to the
-canvas; Enter and Space on a palette entry leave it there. While a line is drawn, Enter and Escape
-end it only when aimed at the modeler (the canvas or the palette entry that started the tool), never
-at a text field or the host's own controls, and every point focuses the canvas. To keep the keys
-away from a canvas it hides without destroying it, a host makes it `inert` (or `display: none`):
-such a `<svg>` cannot hold the focus. Cmd/Ctrl+A selects the whole board. An import
-erases the undo history without firing `commandStack.changed`, and fires `import.parse.start`,
-`import.render.start` and `import.done` in that order. It frames the content centred at the
-largest zoom that shows all of it, never above 100%; an empty board shows at 100%. A board with
-arrow annotations is imported once the font they are set in has loaded (or failed to), so that the
-fit on import, and a host's fit after the import resolves, frame them as drawn and not as the
-fallback font would set them; imports still run in the order they were called. A label being
+canvas, without the keyboard focus ring. Enter and Space on a tool entry (lasso, draw) leave the
+focus on the entry; on a creating entry they place the sticky in the middle of the free area and
+open its label editor. While a line is drawn, Enter and Escape end it only when aimed at the
+modeler's container (the canvas, the palette or the context pad), never at a text field or a control
+outside the container, and every point focuses the canvas. To keep the keys away from a canvas it
+hides without destroying it, a host makes it `inert` (or `display: none`): the browser then moves
+the focus off the `<svg>` at its next rendering update. Cmd/Ctrl+A selects the whole board. An
+import erases the undo history without firing `commandStack.changed`, and fires
+`import.parse.start`, `import.render.start` and `import.done` in that order. It frames the content
+centred at the largest zoom that shows all of it, never above 100%; an empty board shows at 100%. A
+board with arrow annotations is imported once the font they are set in has loaded (or failed to), so
+that the fit on import, and a host's fit after the import resolves, frame them as drawn and not as
+the fallback font would set them; imports still run in the order they were called. A label being
 typed when an import arrives is reopened on the same element afterwards, with the typed text.
 
 `contentBounds()` gives the tight box around what the board draws (`{ x, y, width, height }` in

@@ -1,4 +1,5 @@
 import type Canvas from "diagram-js/lib/core/Canvas";
+import { canvasSvg } from "./canvas-focus.js";
 
 const TEXT_FIELD_SELECTOR =
   "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
@@ -18,7 +19,7 @@ export function isUnhandledKey(event: KeyboardEvent): boolean {
  * after a click on page text or while a host hides the canvas, a key there is the page's.
  */
 export function targetsCanvas(event: Event, canvas: Pick<Canvas, "getContainer">): boolean {
-  const svg = canvas.getContainer().querySelector(":scope > svg");
+  const svg = canvasSvg(canvas);
   return svg !== null && event.target instanceof Node && svg.contains(event.target);
 }
 

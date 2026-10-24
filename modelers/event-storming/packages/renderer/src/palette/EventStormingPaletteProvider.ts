@@ -26,6 +26,7 @@ import {
 } from "../model/di-types.js";
 import { NOTE_STYLE, STICKY_STYLES } from "../draw/styles.js";
 import { PALETTE_ICONS } from "../draw/palette-icons.js";
+import { focusCanvasWithoutRing } from "../keyboard/index.js";
 
 /** Container margins in screen px that the host's chrome covers. */
 export interface FreeRectInsets {
@@ -243,7 +244,7 @@ export default class EventStormingPaletteProvider implements PaletteProvider {
   private focusingCanvas(action: (event: Event) => void): (event: Event) => void {
     return (event) => {
       action(event);
-      if (!isKeyboardClick(event)) this.canvas?.focus();
+      if (this.canvas && !isKeyboardClick(event)) focusCanvasWithoutRing(this.canvas);
     };
   }
 

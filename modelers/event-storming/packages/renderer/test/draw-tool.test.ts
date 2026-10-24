@@ -140,9 +140,21 @@ describe("EventStormingDrawTool: Enter and Escape", () => {
 describe("EventStormingDrawTool: focus", () => {
   // The tool prevents the mousedown's default, the browser's own focus move to the canvas.
   it("focuses the canvas on every point, so Enter and Escape reach the tool", () => {
-    const { drawTool, canvas, pointAt } = harness();
+    const { drawTool, svg, pointAt } = harness();
+    const focus = vi.spyOn(svg, "focus");
     drawTool.activate();
     pointAt(10, 10);
-    expect(canvas.focus).toHaveBeenCalledTimes(1);
+    pointAt(60, 40);
+    pointAt(120, 10);
+    expect(focus).toHaveBeenCalledTimes(3);
+  });
+
+  // A pointer moved the focus, so the canvas must not show the keyboard focus ring.
+  it("focuses the canvas without the keyboard focus ring", () => {
+    const { drawTool, svg, pointAt } = harness();
+    const focus = vi.spyOn(svg, "focus");
+    drawTool.activate();
+    pointAt(10, 10);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true, focusVisible: false });
   });
 });

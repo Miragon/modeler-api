@@ -176,6 +176,7 @@ describe("EventStormingPaletteProvider: Enter or Space on a creating entry (guid
     const canvas = {
       viewbox: () => ({ x: 100, y: 50, scale: 2, outer: { width: 1000, height: 800 } }),
       getRootElement: () => ({ id: ROOT_ID }),
+      getContainer: () => ({ querySelector: () => null }),
       focus: vi.fn(),
     };
     const modeling = {
@@ -275,7 +276,11 @@ describe("EventStormingPaletteProvider: focus after a pointer activation (guide 
     const lassoTool = { activateSelection: record("lasso") };
     const drawTool = { toggle: record("draw") };
     const create = { start: record("create") };
-    const canvas = { focus: record("focus") };
+    const svg = { focus: record("focus") };
+    const canvas = {
+      focus: record("canvas.focus"),
+      getContainer: () => ({ querySelector: () => svg }),
+    };
     const provider = new EventStormingPaletteProvider(
       { registerProvider: vi.fn(), _rebuild: vi.fn() } as never,
       create as never,
@@ -293,7 +298,7 @@ describe("EventStormingPaletteProvider: focus after a pointer activation (guide 
       >;
       handlers[type]!({ type, detail } as unknown as Event);
     };
-    return { trigger, calls, canvas };
+    return { trigger, calls, svg };
   }
 
   // Without a shell around the canvas nothing else moves the focus there, and the board's keys
@@ -306,6 +311,13 @@ describe("EventStormingPaletteProvider: focus after a pointer activation (guide 
     expect(calls).toEqual(["lasso", "focus", "draw", "focus", "create", "focus"]);
   });
 
+  // Without a shell the entry took no focus, so a plain script focus would ring the whole canvas.
+  it("hands the focus over without the keyboard focus ring", () => {
+    const { trigger, svg } = focusHarness();
+    trigger("lasso-tool", "click");
+    expect(svg.focus).toHaveBeenCalledWith({ preventScroll: true, focusVisible: false });
+  });
+
   it("hands the focus to the canvas when a creating entry is dragged", () => {
     const { trigger, calls } = focusHarness();
     trigger("create.event", "dragstart", 0);
@@ -314,9 +326,9 @@ describe("EventStormingPaletteProvider: focus after a pointer activation (guide 
 
   // Guide §5.5: Enter or Space on a tool entry keeps the focus on the entry.
   it("leaves the focus on a tool entry run with Enter or Space", () => {
-    const { trigger, canvas } = focusHarness();
+    const { trigger, calls } = focusHarness();
     trigger("lasso-tool", "click", 0);
     trigger("draw-tool", "click", 0);
-    expect(canvas.focus).not.toHaveBeenCalled();
+    expect(calls).toEqual(["lasso", "draw"]);
   });
 });

@@ -23,6 +23,7 @@ import type EventStormingColorPicker from "../color-picker/EventStormingColorPic
 import { POPUP_PROVIDER_ID } from "../popup/index.js";
 import { READ_ONLY_CHANGED_EVENT, type EventStormingReadOnly } from "../read-only/index.js";
 import { chromeIcon, type LucideIconName } from "../draw/lucide.js";
+import { focusCanvasWithoutRing } from "../keyboard/index.js";
 
 /** Title of the single append entry — the kind is chosen in the popup, not in the pad. */
 const APPEND_TITLE = "Append sticky (auto-connect, choose the type after placing)";
@@ -64,7 +65,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
     private readonly colorPicker: EventStormingColorPicker,
     eventBus?: EventBus,
     private readonly readOnly?: Pick<EventStormingReadOnly, "isReadOnly">,
-    private readonly canvas?: Pick<Canvas, "focus">,
+    private readonly canvas?: Pick<Canvas, "focus" | "getContainer">,
   ) {
     contextPad.registerProvider(this);
     eventBus?.on(READ_ONLY_CHANGED_EVENT, (event: { readOnly?: boolean }) => {
@@ -210,7 +211,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
   private focusingCanvas(action: (event: Event) => void): (event: Event) => void {
     return (event) => {
       action(event);
-      this.canvas?.focus();
+      if (this.canvas) focusCanvasWithoutRing(this.canvas);
     };
   }
 }

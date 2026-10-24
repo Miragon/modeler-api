@@ -622,6 +622,24 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await expect.poll(stickies).toBe(before - 1);
   });
 
+  // Issue #91: Enter leaves the focus on the palette's Draw entry (guide §5.5), so the tool must
+  // still take Escape there.
+  test("Escape on the Draw entry cancels the tool that Enter on it started", async ({ page }) => {
+    await page.goto("/");
+    await waitForViewer(page);
+    await openExample(page);
+    const drawMode = page.locator(".event-storming-container.event-storming-draw-mode");
+    const drawEntry = page.locator('[data-chrome="palette"] [data-action="draw-tool"]');
+
+    await drawEntry.focus();
+    await page.keyboard.press("Enter");
+    await expect(drawMode).toHaveCount(1);
+    await expect(drawEntry).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(drawMode).toHaveCount(0);
+    await expect(drawEntry).toBeFocused();
+  });
+
   // Issue #91: while a line is drawn, the chrome keeps its Escape and Enter, and the drawing
   // goes on; on the canvas, Enter still finishes it.
   test("while drawing, Escape closes the menu and the shortcuts dialog and Enter zooms", async ({

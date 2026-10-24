@@ -22,6 +22,7 @@ line [[200, 500], [400, 560], [600, 500]]`;
 describe("Event Storming keys act only on the focused canvas (no shell)", () => {
   let container: HTMLElement;
   let pageText: HTMLElement;
+  let hostButton: HTMLButtonElement;
   let hostField: HTMLInputElement;
   let modeler: Modeler;
 
@@ -29,10 +30,12 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
     await page.viewport(1280, 1024);
     pageText = document.createElement("p");
     pageText.textContent = "Some page text next to the board.";
+    hostButton = document.createElement("button");
+    hostButton.textContent = "Host button";
     hostField = document.createElement("input");
     hostField.setAttribute("aria-label", "Host field");
     container = document.createElement("div");
-    document.body.append(pageText, hostField, container);
+    document.body.append(pageText, hostButton, hostField, container);
     modeler = new Modeler({ container, width: 1024, height: 768, fitOnImport: false });
     await modeler.importDSL(DSL);
   });
@@ -43,6 +46,7 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
     modeler.destroy();
     container.remove();
     pageText.remove();
+    hostButton.remove();
     hostField.remove();
   });
 
@@ -65,6 +69,14 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
   const padEntry = (action: string) =>
     container.querySelector<HTMLElement>(`.djs-context-pad .entry[data-action="${action}"]`)!;
   const nextTask = () => new Promise((resolve) => setTimeout(resolve, 20));
+  const canvasShowsRing = () => svg().matches(":focus-visible");
+  // After a keyboard focus the browser rings the next focus a script moves, unless the script
+  // says otherwise, as it does before the first mouse focus on the page.
+  const tabToTheHostField = async () => {
+    hostButton.focus();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(hostField);
+  };
 
   it("deletes the selection with the canvas focused, and not after a click on page text", async () => {
     const before = shapes().length;
@@ -84,17 +96,28 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
     expect(shapes()).toHaveLength(before);
   });
 
-  // The pause a host needs while it shows something else: hiding the canvas makes it inert.
+  // The pause a host needs while it shows something else: a hidden canvas cannot keep the focus.
   it("leaves a canvas the host hid alone", async () => {
     const before = shapes().length;
     select(shapeLabelled("Place Order"));
-    svg().focus();
-    container.inert = true;
-    await userEvent.keyboard("{Backspace}");
-    container.inert = false;
-    container.style.display = "none";
-    await userEvent.keyboard("{Delete}");
-    expect(shapes()).toHaveLength(before);
+    const hides = [
+      { hide: () => (container.inert = true), show: () => (container.inert = false) },
+      {
+        hide: () => (container.style.display = "none"),
+        show: () => (container.style.display = ""),
+      },
+    ];
+    for (const { hide, show } of hides) {
+      svg().focus();
+      expect(canvasHasFocus()).toBe(true);
+      hide();
+      // The browser moves the focus off a hidden element at its next rendering update.
+      await expect.poll(canvasHasFocus).toBe(false);
+      await userEvent.keyboard("{Delete}");
+      await userEvent.keyboard("{Backspace}");
+      expect(shapes()).toHaveLength(before);
+      show();
+    }
   });
 
   it("hands the focus to the canvas after a pointer click on a palette tool", async () => {
@@ -152,6 +175,45 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
     await userEvent.keyboard("{Escape}");
   });
 
+  // Without a shell the entries take no focus, so a plain script focus would ring the canvas.
+  describe("hands the focus over without the keyboard focus ring", () => {
+    it("from a palette tool", async () => {
+      await tabToTheHostField();
+      await userEvent.click(paletteEntry("lasso-tool"));
+      expect(canvasHasFocus()).toBe(true);
+      expect(canvasShowsRing()).toBe(false);
+      await userEvent.keyboard("{Escape}");
+    });
+
+    it("from the Draw entry", async () => {
+      await tabToTheHostField();
+      await userEvent.click(paletteEntry("draw-tool"));
+      expect(canvasHasFocus()).toBe(true);
+      expect(canvasShowsRing()).toBe(false);
+      await userEvent.keyboard("{Escape}");
+    });
+
+    it("on a point of the draw tool", async () => {
+      drawTool().activate();
+      await tabToTheHostField();
+      await userEvent.click(svg(), { position: { x: 700, y: 520 } });
+      expect(canvasHasFocus()).toBe(true);
+      expect(canvasShowsRing()).toBe(false);
+      await userEvent.keyboard("{Escape}");
+    });
+
+    it("from the context pad", async () => {
+      select(shapeLabelled("Place Order"));
+      modeler
+        .get<ContextPad>("contextPad")
+        .open(shapeLabelled("Place Order") as unknown as Element);
+      await tabToTheHostField();
+      await userEvent.click(padEntry("delete"));
+      expect(canvasHasFocus()).toBe(true);
+      expect(canvasShowsRing()).toBe(false);
+    });
+  });
+
   it("hands the focus back to the canvas once a colour is picked", async () => {
     select(drawing());
     modeler.get<ContextPad>("contextPad").open(drawing() as unknown as Element);
@@ -162,5 +224,6 @@ describe("Event Storming keys act only on the focused canvas (no shell)", () => 
     await nextTask();
     expect(drawing().color).toBeDefined();
     expect(canvasHasFocus()).toBe(true);
+    expect(canvasShowsRing()).toBe(false);
   });
 });
