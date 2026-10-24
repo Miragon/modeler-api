@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type CommandStack from "diagram-js/lib/command/CommandStack";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
@@ -6,6 +6,7 @@ import type EventBus from "diagram-js/lib/core/EventBus";
 import type Modeling from "diagram-js/lib/features/modeling/Modeling";
 import type PopupMenu from "diagram-js/lib/features/popup-menu/PopupMenu";
 import type Selection from "diagram-js/lib/features/selection/Selection";
+import type Dragging from "diagram-js/lib/features/dragging/Dragging";
 import type { Element } from "diagram-js/lib/model/Types";
 import Diagram from "diagram-js/lib/Diagram";
 import PaletteModule from "diagram-js/lib/features/palette";
@@ -20,6 +21,7 @@ import { POPUP_PROVIDER_ID } from "../../src/popup/index.js";
 import type EvolutionGrid from "../../src/evolution-grid/EvolutionGrid.js";
 import type WardleyColorPicker from "../../src/color-picker/WardleyColorPicker.js";
 import type WardleyLinkEditing from "../../src/link-editing/WardleyLinkEditing.js";
+import type WardleyDrawTool from "../../src/draw-tool/WardleyDrawTool.js";
 import { SNAP_TOLERANCE_SCREEN_PX } from "../../src/snapping/StageSnapping.js";
 import "../../src/assets/wardley.css";
 
@@ -79,6 +81,30 @@ function pressKey(target: HTMLElement, key: string): KeyboardEvent {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
   target.dispatchEvent(event);
   return event;
+}
+
+/** A click with a mouse, pen or finger: `detail` 1, where Enter and Space give 0. */
+function pointerClick(target: HTMLElement): void {
+  const box = target.getBoundingClientRect();
+  target.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      detail: 1,
+      clientX: box.left + box.width / 2,
+      clientY: box.top + box.height / 2,
+    }),
+  );
+}
+
+function canvasSvgOf(target: Modeler): SVGElement {
+  return target.get<Canvas>("canvas").getContainer().querySelector(":scope > svg")!;
+}
+
+/** Ends whatever a tool or an entry started, so the next test starts from a quiet canvas. */
+function stopTools(target: Modeler): void {
+  target.get<Dragging>("dragging").cancel(true);
+  target.get<WardleyDrawTool>("wardleyDrawTool").cancel();
 }
 
 function contains(outer: DOMRect, inner: DOMRect): boolean {
@@ -170,6 +196,45 @@ describe("palette", () => {
     expect(document.activeElement?.classList.contains("wardley-label-input")).toBe(true);
   });
 
+  it.each(["lasso-tool", "draw-tool", "create.component", "create.pioneers"])(
+    "hands the focus to the canvas after a pointer click on %s (guide §5.8)",
+    async (action) => {
+      const target = mount();
+      await target.importDSL(TEA_SHOP);
+      const entry = target.container.querySelector<HTMLElement>(
+        `.djs-palette .entry[data-action="${action}"]`,
+      )!;
+      entry.focus();
+      pointerClick(entry);
+      expect(document.activeElement).toBe(canvasSvgOf(target));
+      stopTools(target);
+    },
+  );
+
+  it("hands the focus to the canvas when an entry is dragged out", async () => {
+    const target = mount();
+    await target.importDSL(TEA_SHOP);
+    const entry = target.container.querySelector<HTMLElement>(
+      '.djs-palette .entry[data-action="create.note"]',
+    )!;
+    entry.focus();
+    entry.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(canvasSvgOf(target));
+    stopTools(target);
+  });
+
+  it("keeps the focus on the entry for Enter, as a toolbar does", async () => {
+    const target = mount();
+    await target.importDSL(TEA_SHOP);
+    const entry = target.container.querySelector<HTMLElement>(
+      '.djs-palette .entry[data-action="lasso-tool"]',
+    )!;
+    entry.focus();
+    pressKey(entry, "Enter");
+    expect(document.activeElement).toBe(entry);
+    stopTools(target);
+  });
+
   it("draws the tools with the Lucide icons in currentColor, so the chrome colours them", () => {
     const target = mount();
     void target.get<Canvas>("canvas");
@@ -250,6 +315,95 @@ describe("context pad", () => {
     pressKey(remove, " ");
     expect(target.get<ElementRegistry>("elementRegistry").get(kettle.id)).toBeUndefined();
     expect(document.activeElement?.tagName.toLowerCase()).toBe("svg");
+  });
+
+  it("hands the focus to the canvas after a pointer click on Delete, so Cmd/Ctrl+Z undoes it", async () => {
+    const target = mount();
+    await target.importDSL(TEA_SHOP);
+    const kettle = findByLabel(target, "Kettle");
+    const pad = await selectAndOpenPad(target, kettle);
+    const remove = padEntry(pad, "delete")!;
+    remove.focus();
+    pointerClick(remove);
+    expect(target.get<ElementRegistry>("elementRegistry").get(kettle.id)).toBeUndefined();
+
+    const svg = canvasSvgOf(target);
+    expect(document.activeElement).toBe(svg);
+    svg.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(target.get<ElementRegistry>("elementRegistry").get(kettle.id)).toBeDefined();
+  });
+
+  it.each(["append", "connect", "evolve"])(
+    "hands the focus to the canvas after a pointer click on %s",
+    async (action) => {
+      const target = mount();
+      await target.importDSL(TEA_SHOP);
+      const pad = await selectAndOpenPad(target, findByLabel(target, "Kettle"));
+      const entry = padEntry(pad, action)!;
+      entry.focus();
+      pointerClick(entry);
+      expect(document.activeElement).toBe(canvasSvgOf(target));
+      stopTools(target);
+    },
+  );
+
+  it.each([
+    [
+      "evolve-clear",
+      "component",
+      "title Evolved\ncomponent Kettle [0.43, 0.35]\nevolve Kettle 0.8",
+    ],
+    ["stroke-style", "drawing", "title Drawn\nline [[0.5, 0.8], [0.4, 0.9], [0.3, 0.85]]"],
+  ])("hands the focus to the canvas after a pointer click on %s", async (action, type, dsl) => {
+    const target = mount();
+    await target.importDSL(dsl);
+    const shape = target
+      .get<ElementRegistry>("elementRegistry")
+      .find((el) => isWardleyShape(el) && el.wardleyType === type) as WardleyShape;
+    const pad = await selectAndOpenPad(target, shape);
+    const before = target.exportDSL();
+    const entry = padEntry(pad, action)!;
+    entry.focus();
+    pointerClick(entry);
+    expect(target.exportDSL()).not.toBe(before);
+    expect(document.activeElement).toBe(canvasSvgOf(target));
+  });
+
+  it("hands the focus to the canvas after a pointer click on open-link", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      const target = mount();
+      await target.importDSL(`title Linked
+url Spec [https://example.com/kettle]
+component Kettle [0.43, 0.35] url(Spec)`);
+      const pad = await selectAndOpenPad(target, findByLabel(target, "Kettle"));
+      const entry = padEntry(pad, "open-link")!;
+      entry.focus();
+      pointerClick(entry);
+      expect(open).toHaveBeenCalledWith(
+        "https://example.com/kettle",
+        "_blank",
+        "noopener,noreferrer",
+      );
+      expect(document.activeElement).toBe(canvasSvgOf(target));
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it.each([
+    ["edit-label", ".wardley-label-input"],
+    ["color", ".wardley-color-picker"],
+  ])("leaves the focus in what %s opens", async (action, opened) => {
+    const target = mount();
+    await target.importDSL(TEA_SHOP);
+    const pad = await selectAndOpenPad(target, findByLabel(target, "Kettle"));
+    const entry = padEntry(pad, action)!;
+    entry.focus();
+    pointerClick(entry);
+    expect(document.activeElement?.closest(opened)).not.toBeNull();
   });
 
   it("appends a connected component with Enter (no pointer to drag to)", async () => {
@@ -365,6 +519,31 @@ describe("colour picker", () => {
     pressKey(swatches[4]!, "Escape");
     expect(target.container.querySelector(".wardley-color-picker")).toBeNull();
     expect(document.activeElement?.tagName.toLowerCase()).toBe("svg");
+  });
+
+  it("closes with the modeler and leaves no listener behind", async () => {
+    const target = mount();
+    await target.importDSL(TEA_SHOP);
+    target
+      .get<WardleyColorPicker>("wardleyColorPicker")
+      .open(findByLabel(target, "Kettle"), 200, 200);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    target.destroy();
+    modeler = undefined;
+
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    try {
+      expect(pressKey(document.body, "Escape").defaultPrevented).toBe(false);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    expect(errors).toEqual([]);
+    expect(document.querySelector(".wardley-color-picker")).toBeNull();
   });
 });
 

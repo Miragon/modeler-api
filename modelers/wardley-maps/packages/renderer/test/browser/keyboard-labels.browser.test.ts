@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { userEvent } from "vitest/browser";
 import type Canvas from "diagram-js/lib/core/Canvas";
 import type ElementRegistry from "diagram-js/lib/core/ElementRegistry";
 import type EventBus from "diagram-js/lib/core/EventBus";
@@ -21,6 +22,7 @@ import type { LabelDeduplicatedEvent } from "../../src/label-editing/WardleyLabe
 import type WardleyCopyPaste from "../../src/modeling/WardleyCopyPaste.js";
 import type WardleyColorPicker from "../../src/color-picker/WardleyColorPicker.js";
 import type EvolutionGrid from "../../src/evolution-grid/EvolutionGrid.js";
+import type WardleyDrawTool from "../../src/draw-tool/WardleyDrawTool.js";
 import "../../src/assets/wardley.css";
 
 const DSL = `title Keyboard Fixture
@@ -81,6 +83,15 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
     return container.querySelector("svg")!;
   }
 
+  /** A key pressed with the canvas focused, the only place its keys act. */
+  function pressOnCanvas(
+    key: string,
+    modifiers: { metaKey?: boolean; shiftKey?: boolean } = {},
+  ): KeyboardEvent {
+    svg().focus();
+    return pressKey(svg(), key, modifiers);
+  }
+
   function select(label: string): WardleyShape {
     const shape = findByLabel(service<ElementRegistry>("elementRegistry"), label);
     service<Selection>("selection").select(shape);
@@ -131,18 +142,118 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       expect(service<Selection>("selection").get()).toHaveLength(1);
     });
 
-    it("still undoes and creates while a plain host button has focus", () => {
-      const before = modeler.exportDSL();
+    it("leaves undo and the single-key tools to a focused host button", () => {
       select("Platform");
-      pressKey(svg(), "Backspace");
+      pressOnCanvas("Backspace");
       expect(shapeLabels("component")).toEqual([]);
+      const afterDelete = modeler.exportDSL();
 
       const zoomIn = addHostControl("button");
       zoomIn.focus();
-      expect(pressKey(zoomIn, "z", { metaKey: true }).defaultPrevented).toBe(true);
-      expect(modeler.exportDSL()).toBe(before);
-      expect(pressKey(zoomIn, "n").defaultPrevented).toBe(true);
-      expect(shapeLabels("note")).toHaveLength(2);
+      for (const [key, modifiers] of [
+        ["z", { metaKey: true }],
+        ["y", { metaKey: true }],
+        ["c", {}],
+        ["n", {}],
+        ["l", {}],
+      ] as const) {
+        expect(pressKey(zoomIn, key, modifiers).defaultPrevented, key).toBe(false);
+      }
+      expect(modeler.exportDSL()).toBe(afterDelete);
+      expect(service<Dragging>("dragging").context()).toBeFalsy();
+    });
+
+    it.each([
+      ["with nothing focused", () => {}],
+      ["while the host hides the canvas", () => (container.style.display = "none")],
+      ["while the host makes the canvas inert", () => container.setAttribute("inert", "")],
+    ])("leaves a key on the page alone %s", (_case, hostChange) => {
+      const platform = select("Platform");
+      svg().focus();
+      svg().blur();
+      hostChange();
+      expect(document.activeElement).toBe(document.body);
+
+      for (const [key, modifiers] of [
+        ["Backspace", {}],
+        ["ArrowLeft", {}],
+        ["c", {}],
+        ["a", { metaKey: true }],
+      ] as const) {
+        expect(pressKey(document.body, key, modifiers).defaultPrevented, key).toBe(false);
+      }
+      expect(shapeLabels("component")).toEqual(["Platform"]);
+      expect(service<Selection>("selection").get()).toEqual([platform]);
+    });
+
+    it.each([
+      ["hides the focused canvas", () => (container.style.display = "none")],
+      ["makes the focused canvas inert", () => container.setAttribute("inert", "")],
+    ])("leaves a real key alone when the host %s", async (_case, hostChange) => {
+      const platform = select("Platform");
+      svg().focus();
+      hostChange();
+      await userEvent.keyboard("{Backspace}");
+      expect(shapeLabels("component")).toEqual(["Platform"]);
+      expect(service<Selection>("selection").get()).toEqual([platform]);
+    });
+
+    it("takes a real key on the focused canvas while the host shows it", async () => {
+      select("Platform");
+      svg().focus();
+      await userEvent.keyboard("{Backspace}");
+      expect(shapeLabels("component")).toEqual([]);
+    });
+
+    it("leaves a key in an editor the host placed inside the canvas container alone", () => {
+      select("Platform");
+      const editor = document.createElement("div");
+      editor.className = "monaco-editor";
+      editor.tabIndex = 0;
+      if ("EditContext" in window) {
+        (editor as unknown as { editContext: unknown }).editContext = new (
+          window as unknown as { EditContext: new () => unknown }
+        ).EditContext();
+      }
+      service<Canvas>("canvas").getContainer().appendChild(editor);
+      editor.focus();
+
+      expect(pressKey(editor, "Backspace").defaultPrevented).toBe(false);
+      expect(shapeLabels("component")).toEqual(["Platform"]);
+    });
+
+    it("leaves a key that composes text (IME) to the composition", () => {
+      select("Platform");
+      svg().focus();
+      const event = new KeyboardEvent("keydown", {
+        key: "Backspace",
+        isComposing: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      svg().dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(shapeLabels("component")).toEqual(["Platform"]);
+    });
+
+    it("takes a keydown without a key (autofill) without an error", () => {
+      select("Platform");
+      const button = addHostControl("button");
+      const errors: unknown[] = [];
+      const onError = (event: ErrorEvent) => {
+        errors.push(event.error);
+        event.preventDefault();
+      };
+      window.addEventListener("error", onError);
+      try {
+        for (const target of [document.body, svg(), button]) {
+          target.dispatchEvent(new Event("keydown", { bubbles: true, cancelable: true }));
+        }
+      } finally {
+        window.removeEventListener("error", onError);
+      }
+      expect(errors).toEqual([]);
+      expect(shapeLabels("component")).toEqual(["Platform"]);
     });
 
     it("ignores keys inside dialogs", () => {
@@ -171,7 +282,7 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
   describe("selection keys", () => {
     it("Escape clears the selection", () => {
       select("Platform");
-      pressKey(document.body, "Escape");
+      pressOnCanvas("Escape");
       expect(service<Selection>("selection").get()).toEqual([]);
     });
 
@@ -179,13 +290,30 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       const note = select("Remember the budget");
       service<WardleyColorPicker>("wardleyColorPicker").open(note, 200, 200);
       await nextTask();
-      pressKey(document.body, "Escape");
+      const swatch = document.activeElement as HTMLElement;
+      expect(swatch.closest(".wardley-color-picker")).not.toBeNull();
+      pressKey(swatch, "Escape");
       expect(container.querySelector(".wardley-color-picker")).toBeNull();
       expect(service<Selection>("selection").get()).toEqual([note]);
     });
 
+    it("leaves an Escape in a host field to the host while the colour picker is open", async () => {
+      const note = select("Remember the budget");
+      service<WardleyColorPicker>("wardleyColorPicker").open(note, 200, 200);
+      await nextTask();
+      const field = addHostControl("input");
+      const seenByHost: string[] = [];
+      field.addEventListener("keydown", (event) => seenByHost.push(event.key));
+      field.focus();
+
+      expect(pressKey(field, "Escape").defaultPrevented).toBe(false);
+      expect(seenByHost).toEqual(["Escape"]);
+      expect(container.querySelector(".wardley-color-picker")).not.toBeNull();
+      service<WardleyColorPicker>("wardleyColorPicker").close();
+    });
+
     it("Cmd/Ctrl+A selects every map element instead of page text", () => {
-      const event = pressKey(document.body, "a", { metaKey: true });
+      const event = pressOnCanvas("a", { metaKey: true });
       expect(event.defaultPrevented).toBe(true);
       const selected = service<Selection>("selection").get();
       const registry = service<ElementRegistry>("elementRegistry");
@@ -204,7 +332,7 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
     ])(
       "%s creates a %s at the visible plot centre and opens its name editor",
       (key, type, label) => {
-        pressKey(document.body, key);
+        pressOnCanvas(key);
         const created = service<Selection>("selection").get()[0] as WardleyShape;
         expect(created.wardleyType).toBe(type);
         expect(created.wardleyLabel).toBe(label);
@@ -218,8 +346,19 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       },
     );
 
+    it.each(["Enter", "Escape"])(
+      "takes the next tool key right after %s in the name editor",
+      (closingKey) => {
+        pressOnCanvas("p");
+        pressKey(labelInput()!, closingKey);
+        expect(document.activeElement).toBe(svg());
+        pressKey(document.activeElement!, "n");
+        expect(shapeLabels("note")).toEqual(["Remember the budget", "Note"]);
+      },
+    );
+
     it("typing into the new editor names the element and does not trigger more tools", () => {
-      pressKey(document.body, "c");
+      pressOnCanvas("c");
       const field = labelInput()!;
       pressKey(field, "n");
       field.value = "Kettle";
@@ -229,9 +368,9 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
     });
 
     it("steps repeated creates apart instead of stacking them", () => {
-      pressKey(document.body, "c");
+      pressOnCanvas("c");
       pressKey(labelInput()!, "Escape");
-      pressKey(document.body, "c");
+      pressOnCanvas("c");
       pressKey(labelInput()!, "Escape");
       const registry = service<ElementRegistry>("elementRegistry");
       const first = findByLabel(registry, "Component");
@@ -241,7 +380,7 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
 
     it("starts a new column at the plot bottom instead of piling up on the edge", () => {
       for (let index = 0; index < 14; index++) {
-        pressKey(document.body, "c");
+        pressOnCanvas("c");
         pressKey(labelInput()!, "Escape");
       }
       const created = service<ElementRegistry>("elementRegistry").filter(
@@ -258,7 +397,7 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
 
     it("A starts a connection from the single selected node", () => {
       select("Customer");
-      expect(pressKey(document.body, "a").defaultPrevented).toBe(true);
+      expect(pressOnCanvas("a").defaultPrevented).toBe(true);
       const context = service<Dragging>("dragging").context() as { prefix?: string } | null;
       expect(context?.prefix).toBe("connect");
       service<Dragging>("dragging").cancel(false);
@@ -266,10 +405,113 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
 
     it("A does nothing for regions or multiple nodes", () => {
       select("pioneers");
-      expect(pressKey(document.body, "a").defaultPrevented).toBe(false);
-      pressKey(document.body, "a", { metaKey: true });
-      expect(pressKey(document.body, "a").defaultPrevented).toBe(false);
+      expect(pressOnCanvas("a").defaultPrevented).toBe(false);
+      pressOnCanvas("a", { metaKey: true });
+      expect(pressOnCanvas("a").defaultPrevented).toBe(false);
       expect(service<Dragging>("dragging").context()).toBeFalsy();
+    });
+  });
+
+  describe("draw tool keys", () => {
+    function drawTool(): WardleyDrawTool {
+      return service<WardleyDrawTool>("wardleyDrawTool");
+    }
+
+    function placePoint(x: number, y: number): void {
+      const rect = svg().getBoundingClientRect();
+      const at = { clientX: rect.left + x, clientY: rect.top + y };
+      svg().dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, ...at }),
+      );
+    }
+
+    function drawings(): number {
+      return shapeLabels("drawing").length;
+    }
+
+    it("focuses the canvas on the first point, so Enter there finishes the line", () => {
+      const title = addHostControl("input");
+      title.focus();
+      drawTool().activate();
+      placePoint(300, 300);
+      expect(document.activeElement).toBe(svg());
+      placePoint(420, 360);
+
+      expect(pressKey(svg(), "Enter").defaultPrevented).toBe(true);
+      expect(drawTool().isActive()).toBe(false);
+      expect(drawings()).toBe(1);
+    });
+
+    it.each([
+      ["a host input", "Enter", "input"],
+      ["a host input", "Escape", "input"],
+      ["a host button", "Enter", "button"],
+      ["an open host menu", "Escape", "menu"],
+    ] as const)("leaves %s its %s while drawing", (_name, key, kind) => {
+      drawTool().activate();
+      placePoint(300, 300);
+      placePoint(420, 360);
+      let control: HTMLElement;
+      if (kind === "menu") {
+        const menu = addHostControl("div");
+        menu.setAttribute("role", "menu");
+        control = document.createElement("button");
+        control.setAttribute("role", "menuitem");
+        menu.appendChild(control);
+      } else {
+        control = addHostControl(kind);
+      }
+      const seenByHost: string[] = [];
+      control.addEventListener("keydown", (event) => seenByHost.push(event.key));
+      control.focus();
+
+      expect(pressKey(control, key).defaultPrevented).toBe(false);
+      expect(seenByHost).toEqual([key]);
+      expect(drawTool().isActive()).toBe(true);
+      expect(drawings()).toBe(0);
+      drawTool().cancel();
+    });
+
+    it.each(["a Monaco editor", "an EditContext editor"] as const)(
+      "leaves Enter and Escape to %s the host placed inside the canvas container",
+      (kind) => {
+        drawTool().activate();
+        placePoint(300, 300);
+        placePoint(420, 360);
+        const editor = document.createElement("div");
+        const input = document.createElement("div");
+        input.tabIndex = 0;
+        if (kind === "a Monaco editor") {
+          editor.className = "monaco-editor";
+        } else {
+          (input as unknown as { editContext: unknown }).editContext = new (
+            window as unknown as { EditContext: new () => unknown }
+          ).EditContext();
+        }
+        editor.appendChild(input);
+        service<Canvas>("canvas").getContainer().appendChild(editor);
+        input.focus();
+
+        expect(pressKey(input, "Enter").defaultPrevented).toBe(false);
+        expect(pressKey(input, "Escape").defaultPrevented).toBe(false);
+        expect(drawTool().isActive()).toBe(true);
+        expect(drawings()).toBe(0);
+        drawTool().cancel();
+        editor.remove();
+      },
+    );
+
+    it("still cancels with Escape on the palette entry that started it with Enter", () => {
+      const entry = container.querySelector<HTMLElement>(
+        '.djs-palette .entry[data-action="draw-tool"]',
+      )!;
+      entry.focus();
+      pressKey(entry, "Enter");
+      expect(drawTool().isActive()).toBe(true);
+      expect(document.activeElement).toBe(entry);
+
+      expect(pressKey(entry, "Escape").defaultPrevented).toBe(true);
+      expect(drawTool().isActive()).toBe(false);
     });
   });
 
@@ -278,7 +520,7 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       const platform = select("Platform");
       const x = platform.x;
       service<Modeling>("modeling").moveShape(platform, { x: 40, y: 0 });
-      expect(pressKey(document.body, "z", { metaKey: true }).defaultPrevented).toBe(true);
+      expect(pressOnCanvas("z", { metaKey: true }).defaultPrevented).toBe(true);
       expect(platform.x).toBeCloseTo(x, 1);
     });
 
@@ -290,11 +532,9 @@ describe("Keyboard and in-place label editing (real browser DOM)", () => {
       service<Modeling>("modeling").moveShape(platform, { x: 40, y: 0 });
       const moved = platform.x;
 
-      expect(pressKey(document.body, "z", { metaKey: true }).defaultPrevented).toBe(false);
-      expect(pressKey(document.body, "z", { metaKey: true, shiftKey: true }).defaultPrevented).toBe(
-        false,
-      );
-      expect(pressKey(document.body, "y", { metaKey: true }).defaultPrevented).toBe(false);
+      expect(pressOnCanvas("z", { metaKey: true }).defaultPrevented).toBe(false);
+      expect(pressOnCanvas("z", { metaKey: true, shiftKey: true }).defaultPrevented).toBe(false);
+      expect(pressOnCanvas("y", { metaKey: true }).defaultPrevented).toBe(false);
       expect(platform.x).toBe(moved);
       expect(modeler.canUndo()).toBe(true);
     });
@@ -310,7 +550,7 @@ note Cup 2 [0.3, 0.3]`);
       const copies = registry.filter((el) => isWardleyShape(el) && el.wardleyLabel === "Cup 2");
       expect(copies).toHaveLength(2);
       service<Selection>("selection").select(copies);
-      pressKey(document.body, "d", { metaKey: true });
+      pressOnCanvas("d", { metaKey: true });
       expect(shapeLabels("component").sort()).toEqual(["Cup", "Cup 2", "Cup 3"]);
       expect(shapeLabels("note")).toEqual(["Cup 2", "Cup 2"]);
     });
@@ -337,8 +577,8 @@ pipeline Platform [0.3, 0.8]
 
     it("duplicates a pipeline with its anchor as a new anchored group", async () => {
       await modeler.importDSL(ANCHORED_PIPELINE);
-      pressKey(document.body, "a", { metaKey: true });
-      pressKey(document.body, "d", { metaKey: true });
+      pressOnCanvas("a", { metaKey: true });
+      pressOnCanvas("d", { metaKey: true });
 
       expect(pipelineGroups()).toEqual({
         Platform: ["A", "B"],
@@ -351,7 +591,7 @@ pipeline Platform [0.3, 0.8]
 
     it("pastes a pipeline with its anchor as a new anchored group", async () => {
       await modeler.importDSL(ANCHORED_PIPELINE);
-      pressKey(document.body, "a", { metaKey: true });
+      pressOnCanvas("a", { metaKey: true });
       service<WardleyCopyPaste>("wardleyCopyPaste").copy();
       const dragging = service<Dragging>("dragging");
       dragging.setOptions({ manual: true });
@@ -382,7 +622,7 @@ pipeline Platform [0.3, 0.8]
   describe("paste ownership (element clipboard vs. system clipboard)", () => {
     function copyWithKeyboard(label: string): void {
       select(label);
-      pressKey(document.body, "c", { metaKey: true });
+      pressOnCanvas("c", { metaKey: true });
     }
 
     function pasteIsAttachedToCursor(): boolean {
@@ -393,7 +633,7 @@ pipeline Platform [0.3, 0.8]
 
     it("pastes copied elements right away while they are the newest clipboard content", () => {
       copyWithKeyboard("Platform");
-      const event = pressKey(document.body, "v", { metaKey: true });
+      const event = pressOnCanvas("v", { metaKey: true });
       expect(event.defaultPrevented).toBe(true);
       expect(pasteIsAttachedToCursor()).toBe(true);
     });
@@ -401,7 +641,7 @@ pipeline Platform [0.3, 0.8]
     it("lets the host consume a newer system clipboard paste after the window lost focus", async () => {
       copyWithKeyboard("Platform");
       window.dispatchEvent(new Event("blur"));
-      const keydown = pressKey(document.body, "v", { metaKey: true });
+      const keydown = pressOnCanvas("v", { metaKey: true });
       expect(keydown.defaultPrevented).toBe(false);
       const consume = (e: Event) => e.preventDefault();
       document.addEventListener("paste", consume, { once: true });
@@ -413,7 +653,7 @@ pipeline Platform [0.3, 0.8]
     it("still pastes the copied elements when the host leaves the paste alone", async () => {
       copyWithKeyboard("Platform");
       document.dispatchEvent(new ClipboardEvent("copy", { bubbles: true }));
-      pressKey(document.body, "v", { metaKey: true });
+      pressOnCanvas("v", { metaKey: true });
       document.body.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true }));
       await nextTask();
       expect(pasteIsAttachedToCursor()).toBe(true);
@@ -821,6 +1061,38 @@ pipeline Platform [0.3, 0.8]
       await new Promise((resolve) => setTimeout(resolve, 10));
       expect(document.activeElement).toBe(svg());
       expect(svg().matches(":focus-visible")).toBe(true);
+    });
+
+    function editSelectedLink(): WardleyConnection {
+      const link = service<ElementRegistry>("elementRegistry").find(
+        isWardleyConnection,
+      ) as WardleyConnection;
+      service<Selection>("selection").select(link);
+      service<WardleyLabelEditing>("wardleyLabelEditing").activateConnection(link);
+      labelInput()!.value = "needs review";
+      return link;
+    }
+
+    it.each(["Enter", "Escape"])(
+      "takes the next canvas key right after %s in the link annotation editor",
+      (closingKey) => {
+        const link = editSelectedLink();
+        pressKey(labelInput()!, closingKey);
+        expect(labelInput()).toBeNull();
+        expect(document.activeElement).toBe(svg());
+
+        expect(pressKey(document.activeElement!, "Backspace").defaultPrevented).toBe(true);
+        expect(service<ElementRegistry>("elementRegistry").get(link.id)).toBeUndefined();
+      },
+    );
+
+    it("shows no focus ring around the canvas after a pointer-opened link annotation edit", () => {
+      document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      editSelectedLink();
+      pressKey(labelInput()!, "Enter");
+      expect(modeler.exportDSL()).toContain("Customer -> Platform; needs review");
+      expect(document.activeElement).toBe(svg());
+      expect(svg().matches(":focus-visible")).toBe(false);
     });
   });
 

@@ -20,6 +20,7 @@ import type WardleyDrawTool from "../draw-tool/WardleyDrawTool.js";
 import type WardleyLabelEditing from "../label-editing/WardleyLabelEditing.js";
 import type { FreeRect } from "../free-rect/index.js";
 import { isReadOnly } from "../read-only/index.js";
+import { canvasSvg } from "../a11y/index.js";
 import {
   isWardleyConnection,
   isWardleyShape,
@@ -74,67 +75,27 @@ interface PlotBounds {
 }
 
 /**
- * Focus inside these never drives canvas shortcuts: they own their keys (typing, select
- * type-ahead, menu/dialog navigation, colour swatches).
+ * A key is the canvas's only while the canvas `<svg>` has the focus, as with diagram-js' own
+ * keyboard: the svg holds no editor, palette, context pad or popup, so they keep their keys,
+ * and so do a host's controls and a page with nothing focused. A keydown without a key (autofill)
+ * or one a listener before this one took stays with the page, and so does IME composition.
  */
-const OWN_KEYS_SELECTOR = [
-  "input",
-  "textarea",
-  "select",
-  '[contenteditable=""]',
-  '[contenteditable="true"]',
-  "dialog",
-  '[role="dialog"]',
-  '[aria-modal="true"]',
-  '[role="menu"]',
-  ".wardley-color-picker",
-].join(", ");
-
-/** Single-key tools (create, lasso, connect): a plain button does nothing with letter keys. */
-const BUTTON_SAFE_TOOL_KEYS = new Set([...Object.keys(QUICK_CREATE), "l", "a"]);
-
-/**
- * Keys a focused host button has no use for, so they still reach the canvas: undo/redo and the
- * single-key tools. Delete, the arrows, Enter, Space and Escape stay with the button.
- */
-function isButtonSafeKey(event: KeyboardEvent): boolean {
-  if (event.altKey) return false;
-  const key = event.key.toLowerCase();
-  if (event.ctrlKey || event.metaKey) return key === "z" || key === "y";
-  return BUTTON_SAFE_TOOL_KEYS.has(key);
-}
-
-/**
- * Decides whether a keydown belongs to the host page rather than the canvas. Canvas shortcuts
- * only run when focus is on the canvas, the palette, or nowhere in particular (body) — so a
- * focused host button or select never deletes or nudges map elements. A focused plain button
- * (zoom, share, menu) still lets undo/redo and the single-key tools through, unless the host's
- * chrome owns every key aimed at it (`canvasTargetsOnly`, the Miragon modeler shell: its zoom
- * panel's buttons do not stop the keys they leave alone).
- */
-export function shouldIgnoreKeyEvent(
-  event: KeyboardEvent,
-  canvasContainer: HTMLElement,
-  canvasTargetsOnly = false,
-): boolean {
-  if (event.defaultPrevented) return true;
+function isCanvasKey(event: KeyboardEvent, svg: SVGElement | null): boolean {
   const target = event.target;
-  if (!(target instanceof globalThis.Element)) return false;
-  if (target instanceof HTMLElement && target.isContentEditable) return true;
-  if (target.closest(OWN_KEYS_SELECTOR)) return true;
-  if (target === document.body || target === document.documentElement) return false;
-  if (canvasContainer.contains(target)) return false;
-  if (canvasTargetsOnly) return true;
-  if (target.closest(".djs-palette")) return false;
-  if (target.closest('button, [role="button"]') && isButtonSafeKey(event)) return false;
-  return true;
+  return (
+    typeof event.key === "string" &&
+    !event.defaultPrevented &&
+    !event.isComposing &&
+    target instanceof Node &&
+    !!svg?.contains(target)
+  );
 }
 
 /**
  * Keyboard binding: undo/redo, delete, copy/paste/duplicate, arrow-key nudge, Escape (deselect),
  * Cmd/Ctrl+A (select all), the single-key tools C (component), U (user), N (note), P (pipeline),
- * L (lasso) and A (connect from the selected node). Deliberately a DOM listener (no diagram-js
- * keyboard-service binding needed).
+ * L (lasso) and A (connect from the selected node), all only while the canvas has the focus.
+ * Deliberately a DOM listener (no diagram-js keyboard-service binding needed).
  */
 export default class WardleyKeyboard {
   static $inject = [
@@ -184,7 +145,7 @@ export default class WardleyKeyboard {
       injector.get<WardleyLabelEditing | null>("wardleyLabelEditing", false) ?? null;
     this.grid = injector.get<EvolutionGrid | null>("evolutionGrid", false) ?? null;
     this.freeRect = injector.get<FreeRect | null>("wardleyFreeRect", false) ?? null;
-    const canvasTargetsOnly = !!injector.get("modelerShell", false);
+    const svg = canvasSvg(canvas);
 
     // getLastMoveEvent() never returns null (it fabricates an event at 0,0), so whether the
     // pointer really is over the canvas has to be tracked here.
@@ -295,10 +256,10 @@ export default class WardleyKeyboard {
       }
     };
 
-    // Bound on the DOCUMENT (not the canvas container): single-key tools must work without the
-    // canvas having focus first — same trade-off bpmn-js makes for its keyboard.
+    // On the document, not the svg: a listener on the way up (a host's wrapper around the canvas)
+    // runs first and can take a key (defaultPrevented) before the canvas acts on it.
     const onKeydown = (e: KeyboardEvent) => {
-      if (shouldIgnoreKeyEvent(e, container, canvasTargetsOnly)) return;
+      if (!isCanvasKey(e, svg)) return;
       const key = e.key.toLowerCase();
       if (e.ctrlKey || e.metaKey) onModifierShortcut(e, key);
       else onPlainKey(e, key);

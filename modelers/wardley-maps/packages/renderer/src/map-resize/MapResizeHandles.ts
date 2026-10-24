@@ -17,6 +17,7 @@ import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
 import type MapProjection from "./MapProjection.js";
 import type { ProjectionSnapshot } from "./MapProjection.js";
 import { COMMAND_START_EVENTS, PUT_BACK_PRIORITY } from "../live-preview/index.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 
 export const MAP_RESIZE_PREFIX = "wardley.mapResize";
 
@@ -247,11 +248,13 @@ export default class MapResizeHandles {
     svgAppend(group, hit);
     svgAppend(this.layer, group);
     // Own listener on the handle: stopping here keeps the canvas (pan, lasso, deselect) from
-    // also reacting to this mousedown.
+    // also reacting to this mousedown, and the prevented default from focusing it, whose keys
+    // (Cmd/Ctrl+Z) act only while it has the focus.
     group.addEventListener("mousedown", (event: MouseEvent) => {
       if (event.button !== 0 || this.dragging.context()) return;
       event.stopPropagation();
       event.preventDefault();
+      focusCanvasWithoutRing(this.canvas);
       this.start(event, axis);
     });
     return { group, hit, visual };

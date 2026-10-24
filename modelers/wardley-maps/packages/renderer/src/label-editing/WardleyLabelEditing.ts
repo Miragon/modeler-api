@@ -357,6 +357,7 @@ export default class WardleyLabelEditing {
     const container = this.canvas.getContainer();
     if (conn.waypoints.length < 1) return;
     const isFlow = conn.wardleyType === "flow";
+    const openedByPointer = lastInteractionWasPointer();
 
     const field = document.createElement("input");
     field.type = "text";
@@ -414,9 +415,11 @@ export default class WardleyLabelEditing {
       if (e.key === "Escape") {
         e.preventDefault();
         cleanup();
+        this.returnToCanvas(conn, openedByPointer);
       } else if (e.key === "Enter") {
         e.preventDefault();
         commit();
+        this.returnToCanvas(conn, openedByPointer);
       }
     };
     const onBlur = () => commit();
@@ -466,13 +469,18 @@ export default class WardleyLabelEditing {
 
   /**
    * After Enter/Escape the removed field leaves focus on <body>; hand it back to the canvas so
-   * keyboard users keep their place, and bring back the context pad the editor had closed.
+   * keyboard users keep their place, and bring back the context pad a name editor had closed.
    */
-  private returnToCanvas(element: WardleyShape, openedByPointer: boolean): void {
+  private returnToCanvas(
+    element: WardleyShape | WardleyConnection,
+    openedByPointer: boolean,
+  ): void {
     // A name typed after a click or placement must not leave a keyboard focus ring around the
-    // whole viewport; an editor opened from the keyboard (F2, Enter) keeps the visible ring.
+    // whole viewport; an editor opened from the keyboard (F2, Enter) keeps the visible ring. Right
+    // away, not on the next task: the canvas takes keys only while it has the focus, so the next
+    // key (N for a note after naming a component) would otherwise go to <body>.
     if (openedByPointer) focusCanvasWithoutRing(this.canvas);
-    else this.canvas.restoreFocus();
+    else this.canvas.focus();
     const selected = this.selection?.get() ?? [];
     if (selected.length === 1 && selected[0] === element) this.contextPad?.open(element);
   }

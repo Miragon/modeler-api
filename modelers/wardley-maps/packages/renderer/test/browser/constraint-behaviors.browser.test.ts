@@ -559,7 +559,11 @@ pipeline Grid [0.3, 0.8]`);
         surface.dispatchEvent(mouseEvent("mousemove", point, { shiftKey: false }));
         surface.dispatchEvent(mouseEvent("mousedown", point, { shiftKey: false }));
       }
-      if (!close) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+      if (!close) {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+      }
     }
 
     it("clamps drawn points into the plot, so the saved shape matches the canvas", async () => {
@@ -588,6 +592,39 @@ pipeline Grid [0.3, 0.8]`);
   });
 
   describe("drawing vertex handles", () => {
+    it("hands the focus to the canvas from a host field, so Cmd/Ctrl+Z undoes the drag", async () => {
+      await modeler.importDSL(`title Drawing Fixture
+line [[0.5, 0.8], [0.4, 0.9], [0.3, 0.85]] (closed)`);
+      const original = modeler.exportDSL();
+      const drawing = firstOfType("drawing");
+      modeler.get<Selection>("selection").select(drawing as unknown as Element);
+      const field = document.createElement("input");
+      document.body.appendChild(field);
+      try {
+        field.focus();
+        const handle = container.querySelectorAll(".wardley-drawing-handle")[1]!;
+        const to = grid().toCanvas({ evolution: 0.45, visibility: 0.5 });
+        handle.dispatchEvent(mouseEvent("mousedown", { x: 0, y: 0 }, { shiftKey: false }));
+        const svg = canvas().getContainer().querySelector(":scope > svg")!;
+        expect(document.activeElement).toBe(svg);
+        document.dispatchEvent(mouseEvent("mousemove", to, { shiftKey: false }));
+        document.dispatchEvent(mouseEvent("mouseup", to, { shiftKey: false }));
+        expect(modeler.exportDSL()).not.toBe(original);
+
+        svg.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "z",
+            metaKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        expect(modeler.exportDSL()).toBe(original);
+      } finally {
+        field.remove();
+      }
+    });
+
     it("clamps a vertex dragged out of the plot", async () => {
       await modeler.importDSL(`title Drawing Fixture
 line [[0.5, 0.8], [0.4, 0.9], [0.3, 0.85]] (closed)`);

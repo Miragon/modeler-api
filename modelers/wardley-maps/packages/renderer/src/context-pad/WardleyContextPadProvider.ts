@@ -27,6 +27,7 @@ import type WardleyLinkEditing from "../link-editing/WardleyLinkEditing.js";
 import { canHaveLink, linkOf, safeLinkUrl } from "../link-editing/index.js";
 import { POPUP_PROVIDER_ID } from "../popup/index.js";
 import { isReadOnly } from "../read-only/index.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 import {
   iconMarkup,
   struckIconMarkup,
@@ -123,7 +124,11 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       group: GROUP_DANGER,
       title: "Delete",
       html: cpHtml(iconMarkup(ICON_DELETE), "Delete"),
-      action: { click: () => this.modeling.removeElements([shape as unknown as Element]) },
+      action: {
+        click: this.focusingCanvas(() =>
+          this.modeling.removeElements([shape as unknown as Element]),
+        ),
+      },
     };
     return entries;
   }
@@ -143,7 +148,11 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         group: GROUP_DANGER,
         title: "Delete connection",
         html: cpHtml(iconMarkup(ICON_DELETE), "Delete connection"),
-        action: { click: () => this.modeling.removeElements([conn as unknown as Element]) },
+        action: {
+          click: this.focusingCanvas(() =>
+            this.modeling.removeElements([conn as unknown as Element]),
+          ),
+        },
       },
     };
   }
@@ -168,7 +177,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     if (connectable) {
       // Append component: drags out a new (blank) component and creates the arrow automatically
       // (diagram-js Create with `source` -> modeling.appendShape). Configurable via ⚙.
-      const startAppend = (event: Event) => {
+      const startAppend = this.focusingCanvas((event: Event) => {
         if (this.keyboardEvents.has(event)) {
           this.appendBelow(shape);
           return;
@@ -177,7 +186,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         this.create.start(event as MouseEvent, next as unknown as Element, {
           source: shape as unknown as Element,
         });
-      };
+      });
       entries["append"] = {
         group: GROUP_PRIMARY,
         title: "Append component (auto-connect)",
@@ -185,9 +194,9 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         action: { click: startAppend, dragstart: startAppend },
       };
 
-      const startConnect = (event: Event) => {
+      const startConnect = this.focusingCanvas((event: Event) => {
         this.connect.start(event as MouseEvent, shape as unknown as Element);
-      };
+      });
       entries["connect"] = {
         group: GROUP_PRIMARY,
         title: "Connect to existing element (A)",
@@ -204,13 +213,15 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
           group: GROUP_PRIMARY,
           title: "Remove evolve",
           html: cpHtml(struckIconMarkup(ICON_DOUBLE_ARROW), "Remove evolve"),
-          action: { click: () => this.wardleyModeling.clearMovement(shape) },
+          action: { click: this.focusingCanvas(() => this.wardleyModeling.clearMovement(shape)) },
         };
       } else if (shape.evolution < 0.999) {
         // Drag the target out along the axis (live preview). The click does NOT model immediately
         // (no automatic +0.2 anymore) — it only starts the placement. At evolution ~ 1 there is
         // no meaningful target left — the entry is omitted (instead of creating a null movement).
-        const startEvolve = (event: Event) => this.evolveDragging.start(event, shape);
+        const startEvolve = this.focusingCanvas((event: Event) =>
+          this.evolveDragging.start(event, shape),
+        );
         entries["evolve"] = {
           group: GROUP_PRIMARY,
           title: "Evolve: drag to set the target maturity",
@@ -258,7 +269,9 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         title,
         html: cpHtml(iconMarkup(ICON_SWAP_HORIZ), title),
         action: {
-          click: () => this.wardleyModeling.updateProperties(shape, { strokeStyle: next }),
+          click: this.focusingCanvas(() =>
+            this.wardleyModeling.updateProperties(shape, { strokeStyle: next }),
+          ),
         },
       };
     }
@@ -295,9 +308,26 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         group: GROUP_PROPERTIES,
         title: `Open link (${openableLink})`,
         html: cpHtml(iconMarkup(ICON_OPEN_IN_NEW), `Open link (${openableLink})`),
-        action: { click: () => window.open(openableLink, "_blank", "noopener,noreferrer") },
+        action: {
+          click: this.focusingCanvas(() =>
+            window.open(openableLink, "_blank", "noopener,noreferrer"),
+          ),
+        },
       };
     }
+  }
+
+  /**
+   * For an entry that opens no editor or popup: after a pointer click or drag it hands the focus to
+   * the canvas (guide §5.8), whose keys act only while it has the focus. The clicked entry took the
+   * focus and goes away when the pad re-renders or closes, which would leave it on `<body>`. Enter
+   * and Space keep it in the pad (`onPadKeydown`).
+   */
+  private focusingCanvas(action: (event: Event) => void): (event: Event) => void {
+    return (event) => {
+      action(event);
+      if (!this.keyboardEvents.has(event)) focusCanvasWithoutRing(this.canvas);
+    };
   }
 
   /** Enter/Space on a focused entry = a click at the element's centre. */
@@ -307,8 +337,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     const action = entry?.getAttribute("data-action");
     if (!entry || !action || !pad.contains(entry)) return;
 
-    // Toolbar navigation; stopped here so the document-level arrow-key nudge does not also move
-    // the element (which re-renders the pad and drops focus onto <body>).
+    // Toolbar navigation, stopped here: no listener further up acts on these keys too.
     const entries = Array.from(pad.querySelectorAll<HTMLElement>(".entry"));
     const index = entries.indexOf(entry as HTMLElement);
     let next: HTMLElement | undefined;

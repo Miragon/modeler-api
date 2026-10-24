@@ -82,6 +82,18 @@ locks the canvas while its host cannot save an edit, e.g. while the document is 
 rule is vetoed, an open editor, popup or drag ends without saving, the handles hide, and selection,
 zoom, pan, select all and export stay. It fires `wardley.readOnly.changed`.
 
+The canvas's keys (undo and redo, delete, copy, paste and duplicate, select all, the arrows, Escape
+and the single-key tools C, U, N, P, L and A) act only while the canvas `<svg>` has the focus, as
+diagram-js' own keyboard does: a key aimed at a host's button or text field, or at a page with
+nothing focused, stays with the host. A pointer click on the canvas, a palette entry or a
+context-pad action that opens no editor or popup hands the focus to the canvas. From the keyboard,
+Enter and Space on a palette tool (lasso, draw) leave the focus on the entry; on a create entry
+they place the element and hand the focus to the canvas, or to the new element's name editor; on a
+context-pad action they keep the focus in the pad, and an action that closes or redraws the pad
+(delete, line style, remove evolve) returns it to the canvas. A host that hides the canvas without
+destroying it makes the container `inert`, so the hidden canvas can neither keep the focus nor act
+on a key.
+
 ## Collaborative hosts
 
 `createCollaborativeModeler()` and `createCollaborativeViewer()` implement the

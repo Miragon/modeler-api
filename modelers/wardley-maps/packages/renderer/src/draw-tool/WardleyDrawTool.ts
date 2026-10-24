@@ -15,6 +15,7 @@ import { COLORS } from "../draw/styles.js";
 import type WardleyElementFactory from "../model/WardleyElementFactory.js";
 import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
 import type { WardleyShape } from "../model/di-types.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 
 interface Point {
   x: number;
@@ -23,6 +24,9 @@ interface Point {
 
 /** Clicking this close (px, canvas coords) to the FIRST/LAST point finishes/closes. */
 const CLOSE_RADIUS = 12;
+
+/** Monaco and other EditContext editors take text without being a field or contenteditable. */
+const TEXT_FIELDS = "input, textarea, select, .monaco-editor";
 
 /**
  * Excalidraw-style polyline tool: activate, click point by point (rubber-band preview).
@@ -168,6 +172,9 @@ export default class WardleyDrawTool {
     if (e.button !== 0 || this.isChromeTarget(e)) return;
     e.preventDefault();
     e.stopPropagation();
+    // The prevented default also keeps the browser from focusing the canvas, whose Enter and
+    // Escape end the drawing.
+    focusCanvasWithoutRing(this.canvas);
     const p = this.toCanvasPoint(e);
     const first = this.points[0];
     if (first && this.points.length >= 3 && distance(p, first) <= CLOSE_RADIUS) {
@@ -198,7 +205,22 @@ export default class WardleyDrawTool {
     this.renderPreview();
   };
 
+  /**
+   * Enter and Escape end the drawing only when aimed at the modeler: the canvas, or the palette,
+   * where a tool started with Enter leaves the focus (guide §5.5). A capture listener on the
+   * document would otherwise take them from a text field or editor, a host's button and its menus
+   * and dialogs.
+   */
+  private ownsKey(e: KeyboardEvent): boolean {
+    const target = e.target;
+    if (typeof e.key !== "string" || e.defaultPrevented || e.isComposing) return false;
+    if (!(target instanceof globalThis.Element)) return false;
+    if (!this.canvas.getContainer().contains(target)) return false;
+    return !isTextField(target);
+  }
+
   private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (!this.ownsKey(e)) return;
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -272,4 +294,10 @@ export default class WardleyDrawTool {
 
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function isTextField(target: globalThis.Element): boolean {
+  if (target instanceof HTMLElement && target.isContentEditable) return true;
+  if ((target as { editContext?: unknown }).editContext) return true;
+  return target.closest(TEXT_FIELDS) !== null;
 }

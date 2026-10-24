@@ -12,6 +12,7 @@ import { COLORS } from "../draw/styles.js";
 import { isWardleyShape, type WardleyShape } from "../model/di-types.js";
 import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
 import type WardleyModeling from "../modeling/WardleyModeling.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 
 interface Point {
   x: number;
@@ -87,6 +88,9 @@ export default class WardleyDrawingHandles {
     if (e.button !== 0 || !this.shape || isReadOnly(this.injector)) return;
     e.preventDefault();
     e.stopPropagation();
+    // The prevented default keeps the browser from focusing the canvas, whose keys act only while
+    // it has the focus.
+    focusCanvasWithoutRing(this.canvas);
     const shape = this.shape;
     const points = this.absolutePoints();
 

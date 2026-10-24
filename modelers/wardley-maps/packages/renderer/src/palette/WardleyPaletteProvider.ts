@@ -19,6 +19,7 @@ import type EvolutionGrid from "../evolution-grid/EvolutionGrid.js";
 import type { FreeRect } from "../free-rect/index.js";
 import { isWardleyShape, type WardleyShape, type WardleyShapeType } from "../model/di-types.js";
 import { PALETTE_ICONS, attitudeIcon } from "../draw/palette-icons.js";
+import { focusCanvasWithoutRing } from "../a11y/index.js";
 
 interface PaletteSpec {
   key: string;
@@ -233,7 +234,10 @@ export default class WardleyPaletteProvider implements PaletteProvider {
       ...this.describe(LASSO_TOOL.title, LASSO_TOOL.shortcut),
       html: this.entryHtml(LASSO_TOOL.title, LASSO_TOOL.icon, LASSO_TOOL.shortcut),
       action: {
-        click: (event: Event) => this.lassoTool.activateSelection(event as MouseEvent),
+        click: (event: Event) => {
+          this.lassoTool.activateSelection(event as MouseEvent);
+          this.focusCanvasAfterPointer(event);
+        },
       },
     };
 
@@ -242,13 +246,17 @@ export default class WardleyPaletteProvider implements PaletteProvider {
       ...this.describe(DRAW_TOOL.title, DRAW_TOOL.shortcut),
       html: this.entryHtml(DRAW_TOOL.title, DRAW_TOOL.icon, DRAW_TOOL.shortcut),
       action: {
-        click: () => this.drawTool.toggle(),
+        click: (event: Event) => {
+          this.drawTool.toggle();
+          this.focusCanvasAfterPointer(event);
+        },
       },
     };
 
     for (const spec of SPECS) {
       const start = (event: Event) => {
         this.create.start(event, this.createShapeFor(spec));
+        this.focusCanvasAfterPointer(event);
       };
       // diagram-js's create follows the pointer and never ends without one.
       const click = (event: Event) => {
@@ -293,6 +301,15 @@ export default class WardleyPaletteProvider implements PaletteProvider {
       this.injector.get<LabelEditingLike>("wardleyLabelEditing", false)?.activate(shape);
     }
     return shape;
+  }
+
+  /**
+   * Guide §5.8: an entry clicked or dragged with a pointer hands the focus to the canvas, whose keys
+   * act only while it has the focus, so Delete, the arrows and Cmd/Ctrl+Z work right away. Enter
+   * and Space leave it on the entry. The Miragon modeler shell does the same for its palette.
+   */
+  private focusCanvasAfterPointer(event: Event): void {
+    if (!isKeyboardClick(event)) focusCanvasWithoutRing(this.injector.get<Canvas>("canvas"));
   }
 
   private createShapeFor(spec: PaletteSpec): WardleyShape {
