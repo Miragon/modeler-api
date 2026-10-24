@@ -183,7 +183,7 @@ and diffs anchor on it, use stable, descriptive ids rather than random ones:
    they facilitate, complicated-subsystem teams to the right of the lane they collaborate with
    (or, once they provide X-as-a-Service, under an extension of that lane), and the platform below
    the stack. Several business areas sharing one platform stay in one stack. Never put
-   stream-aligned teams side by side or staggered: along the flow that reads as a hand-off from
+   stream-aligned teams side by side or staggered along the flow; that reads as a hand-off from
    one to the next.
 3. **Place each interaction** on its gap with the formulas above; providers of X-as-a-Service go
    below their consumers, and the platform needs only one triangle, into the lowest lane.
