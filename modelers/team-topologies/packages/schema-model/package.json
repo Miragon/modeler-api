@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/team-topologies-modeler.git",
-    "directory": "packages/schema-model"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/team-topologies/packages/schema-model"
   },
-  "homepage": "https://github.com/Miragon/team-topologies-modeler/tree/main/packages/schema-model#readme",
-  "bugs": "https://github.com/Miragon/team-topologies-modeler/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies/packages/schema-model#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
   "type": "module",
   "sideEffects": false,
   "exports": {

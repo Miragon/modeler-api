@@ -8,11 +8,11 @@
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/context-maps-modeler.git",
-    "directory": "apps/vscode"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/context-maps/apps/vscode"
   },
-  "bugs": "https://github.com/Miragon/context-maps-modeler/issues",
-  "homepage": "https://github.com/Miragon/context-maps-modeler/tree/main/apps/vscode#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/context-maps/apps/vscode#readme",
   "license": "MIT",
   "engines": {
     "vscode": "^1.96.0"

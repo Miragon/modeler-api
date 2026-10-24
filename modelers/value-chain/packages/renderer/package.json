@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/value-chain-modeler.git",
-    "directory": "packages/renderer"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/value-chain/packages/renderer"
   },
-  "homepage": "https://github.com/Miragon/value-chain-modeler/tree/main/packages/renderer#readme",
-  "bugs": "https://github.com/Miragon/value-chain-modeler/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain/packages/renderer#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
   "keywords": [
     "value chain",
     "wertschöpfungskette",

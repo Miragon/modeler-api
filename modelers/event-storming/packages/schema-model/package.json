@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/event-storming-modeler.git",
-    "directory": "packages/schema-model"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/event-storming/packages/schema-model"
   },
-  "homepage": "https://github.com/Miragon/event-storming-modeler/tree/main/packages/schema-model#readme",
-  "bugs": "https://github.com/Miragon/event-storming-modeler/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming/packages/schema-model#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
   "type": "module",
   "sideEffects": false,
   "exports": {

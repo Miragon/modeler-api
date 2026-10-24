@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/wardley-maps-modeler.git",
-    "directory": "packages/schema-model"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/wardley/packages/schema-model"
   },
-  "homepage": "https://github.com/Miragon/wardley-maps-modeler/tree/main/packages/schema-model#readme",
-  "bugs": "https://github.com/Miragon/wardley-maps-modeler/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley/packages/schema-model#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
   "type": "module",
   "sideEffects": false,
   "exports": {

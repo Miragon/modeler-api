@@ -8,11 +8,11 @@
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/value-chain-modeler.git",
-    "directory": "apps/vscode"
+    "url": "git+https://github.com/Miragon/modeler-suite.git",
+    "directory": "modelers/value-chain/apps/vscode"
   },
-  "bugs": "https://github.com/Miragon/value-chain-modeler/issues",
-  "homepage": "https://github.com/Miragon/value-chain-modeler/tree/main/apps/vscode#readme",
+  "bugs": "https://github.com/Miragon/modeler-suite/issues",
+  "homepage": "https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain/apps/vscode#readme",
   "license": "MIT",
   "engines": {
     "vscode": "^1.96.0"
