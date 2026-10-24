@@ -1,6 +1,6 @@
 // The demo's debug handle, as far as the e2e specs read it.
 import type { DiagramJsConnection } from "../src/diagram-js.js";
-import type { ShellHandle, ToastStatus } from "../src/index.js";
+import type { Bounds, ShellHandle, ToastStatus } from "../src/index.js";
 import type { VsCodeWebviewStub } from "../src/testing-vscode-stub.js";
 
 declare global {
@@ -30,6 +30,8 @@ declare global {
       };
       /** Commands that changed the diagram so far, the demo's document changes (case `labelEditor`). */
       documentChanges(): number;
+      /** The bounds the viewport fits to, in diagram coordinates; `undefined` while empty. */
+      contentBounds(): Bounds | undefined;
       /**
        * The invalid-file state as a host shows it: `shell.setReadOnly(true)` and the status box,
        * both with `INVALID_STATUS_DELAY_MS`; `false` clears both at once. `?invalid` uses it.

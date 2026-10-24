@@ -60,12 +60,86 @@ function contentBoundsOf(options: ConnectOptions): () => Bounds | undefined {
 }
 
 /**
+ * Calls `settled` once no font is loading any more and two frames have passed since: the frame
+ * that lays out text in the loaded fonts reports the new sizes to every `ResizeObserver` before
+ * the second one starts. Returns the function that cancels it.
+ */
+function whenFontsSettle(fonts: FontFaceSet, settled: () => void): () => void {
+  let cancelled = false;
+  let frame: number | undefined;
+  const afterTwoFrames = (then: () => void): void => {
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        then();
+      });
+    });
+  };
+  const waitForFonts = (): void => {
+    void fonts.ready.then(() => {
+      if (cancelled) return;
+      afterTwoFrames(() => {
+        if (fonts.status === "loading") waitForFonts();
+        else settled();
+      });
+    });
+  };
+  waitForFonts();
+  return () => {
+    cancelled = true;
+    if (frame !== undefined) cancelAnimationFrame(frame);
+  };
+}
+
+/**
+ * The legend that is open at the start can be measured by the first fit before its font has
+ * loaded; the card then settles a pixel or two wider or narrower (Context Maps: about 1.6px) and
+ * the content would sit that much off the free rectangle's centre. Until the fonts have loaded, a
+ * change of the card's width fits once more (`refitIfOnlyInsetChanged("left")`) while the view and
+ * the content bounds are still the fit's and no other inset has changed since. The watch ends after
+ * that fit, once the fonts have loaded and the card's size since has been reported, when the legend
+ * closes, once the user zooms or pans, and with the connection: every later change keeps the view
+ * (guide §5.9). Returns the function that ends it.
+ */
+function refitWhenLegendSettles(shell: ShellHandle, viewport: DiagramViewport): () => void {
+  const legend = shell.legend;
+  const fonts = legend?.element.ownerDocument.fonts;
+  if (
+    !legend?.isOpen() ||
+    !fonts ||
+    typeof ResizeObserver !== "function" ||
+    typeof requestAnimationFrame !== "function"
+  ) {
+    return () => undefined;
+  }
+  let stopped = false;
+  const observer = new ResizeObserver(() => {
+    if (!legend.isOpen() || viewport.refitIfOnlyInsetChanged("left")) stop();
+  });
+  const unsubscribe = viewport.onChange(() => {
+    if (!viewport.isAutomatic()) stop();
+  });
+  const cancelFontWait = whenFontsSettle(fonts, stop);
+  function stop(): void {
+    if (stopped) return;
+    stopped = true;
+    observer.disconnect();
+    unsubscribe();
+    cancelFontWait();
+  }
+  observer.observe(legend.element);
+  return stop;
+}
+
+/**
  * Connects a diagram built with `shellModule` to a mounted shell: creates the viewport with
  * `shell.fitInsets` and the content bounds (`options.contentBounds`, else the contract's
  * `options.modeler.contentBounds()`), binds it with `shell.setZoomTarget`, registers the palette
  * (`shell.registerPalette`), keeps the empty-file hint in sync with the diagram (after every
- * `import.done` and `elements.changed`, so the first element created on the canvas hides it) and
- * calls `canvas.resized()`. Throws when `shellModule` or the content bounds are missing.
+ * `import.done` and `elements.changed`, so the first element created on the canvas hides it),
+ * fits once more when an open legend settles after the first fit while its font loads, and calls
+ * `canvas.resized()`.
+ * Throws when `shellModule` or the content bounds are missing.
  */
 export function connectDiagramJs(
   shell: ShellHandle,
@@ -89,6 +163,7 @@ export function connectDiagramJs(
   const isEmpty = options.isEmpty ? () => options.isEmpty?.() === true : () => !viewport.canFit();
   const syncHint: DiagramEventListener = () => shell.setEmptyHint(isEmpty());
   eventBus.on(["import.done", "elements.changed"], HINT_SYNC_PRIORITY, syncHint);
+  const stopLegendWatch = refitWhenLegendSettles(shell, viewport);
 
   let destroyed = false;
   const destroy = (): void => {
@@ -96,6 +171,7 @@ export function connectDiagramJs(
     destroyed = true;
     eventBus.off(["import.done", "elements.changed"], syncHint);
     eventBus.off("diagram.destroy", destroy);
+    stopLegendWatch();
     detachPalette();
     shell.setZoomTarget(null);
     viewport.destroy();

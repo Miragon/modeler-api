@@ -215,10 +215,10 @@ test.describe("VS Code webview: protocol and chrome", () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openWebview(page);
-    // The legend starts closed on a first visit at every size: an open card's width settles after
-    // the first fit, and the insets read afterwards would no longer be the ones the fit used.
-    await expect(page.locator(".cd-shell")).not.toHaveAttribute("data-legend", "open");
+    // The legend open, as a stored state restores it: its card settles once its font has loaded,
+    // and the shell then fits once more, so the insets read below are the ones the fit used.
+    await openWebview(page, { legend: "open" });
+    await expect(page.locator(".cd-shell")).toHaveAttribute("data-legend", "open");
     // A box no context of the map spans: only the contract's contentBounds() names it.
     const reported = { x: 5000, y: 3000, width: 200, height: 100 };
     await page.evaluate((box) => {
@@ -257,6 +257,36 @@ test.describe("VS Code webview: protocol and chrome", () => {
         };
       })
       .toEqual({ scale: 1, offsetX: 0, offsetY: 0 });
+  });
+
+  test("a map opened with the legend left open fits to the card's settled width", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openWebview(page, { legend: "open" });
+    await expect(page.locator(".cd-shell")).toHaveAttribute("data-legend", "open");
+    // The first fit can measure the card before its font has loaded; once it has, and the
+    // observer has reported the card's new width, the view must be the fit of that width.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    const view = () =>
+      page.evaluate(() => {
+        const { x, y, scale } = window
+          .modeler!.diagram.get<{ viewbox(): { x: number; y: number; scale: number } }>("canvas")
+          .viewbox();
+        return { scale, left: x * scale, top: y * scale };
+      });
+    const opened = await view();
+    expect(await page.evaluate(() => window.connection!.viewport.isAutomatic())).toBe(true);
+
+    await page.evaluate(() => window.connection!.viewport.fit({ animate: false }));
+
+    const fitted = await view();
+    expect(opened.scale).toBe(fitted.scale);
+    expect(Math.abs(opened.left - fitted.left)).toBeLessThan(0.5);
+    expect(Math.abs(opened.top - fitted.top)).toBeLessThan(0.5);
   });
 
   test("the export commands post the map as PNG, SVG, JSON and CML", async ({ page }) => {

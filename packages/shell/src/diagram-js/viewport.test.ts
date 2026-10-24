@@ -7,7 +7,12 @@ import {
   FakeResizeObserver,
   FrameQueue,
 } from "../../test/support/diagram-js.js";
-import { createViewport, type Viewport, type ViewportOptions } from "./viewport.js";
+import {
+  createViewport,
+  type DiagramViewport,
+  type Viewport,
+  type ViewportOptions,
+} from "./viewport.js";
 
 const INSETS: Insets = { top: 88, right: 24, bottom: 64, left: 24 };
 const CONTENT: Bounds = { x: 100, y: 100, width: 1900, height: 900 };
@@ -764,6 +769,187 @@ describe("resize", () => {
   it("observes the canvas container", () => {
     const { canvas, observer } = setup();
     expect(observer.observed).toEqual([canvas.container]);
+  });
+});
+
+describe("refitIfOnlyInsetChanged (chrome that settles after a fit)", () => {
+  const OPEN_LEGEND: Insets = { ...INSETS, left: 12 + 230 + 24 };
+  const SETTLED_LEGEND: Insets = { ...INSETS, left: 12 + 231.6 + 24 };
+
+  function settling(options: Parameters<typeof setup>[0] = {}) {
+    let insets = OPEN_LEGEND;
+    const setupResult = setup({ ...options, insets: () => insets });
+    return {
+      ...setupResult,
+      viewport: setupResult.viewport as DiagramViewport,
+      settle(next: Insets = SETTLED_LEGEND) {
+        insets = next;
+      },
+    };
+  }
+
+  it("fits again (jump) with the insets of now when they changed since the fit", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.afterImport();
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, OPEN_LEGEND));
+
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+    expect(frames.pending).toBe(0);
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("writes nothing while the insets are still the fit's", () => {
+    const { viewport, canvas } = settling();
+    viewport.afterImport();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+  });
+
+  it("keeps the view when another side changed: the inspector, the pill, the palette row (guide §5.9)", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.afterImport();
+    settle({ ...OPEN_LEGEND, right: 12 + 288 + 24 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    settle({ ...SETTLED_LEGEND, bottom: 92 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    settle({ ...SETTLED_LEGEND, top: 140 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("fits only once per change: the refit's insets are the ones it compares with next", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.afterImport();
+    settle();
+    viewport.refitIfOnlyInsetChanged("left");
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(2);
+  });
+
+  it("counts a resize refit as the fit to compare with", () => {
+    const setupResult = settling();
+    const { viewport, canvas, settle } = setupResult;
+    viewport.afterImport();
+    settle();
+    resize(setupResult, 900, 700);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+  });
+
+  it("leaves a container resize to the resize refit, which also calls canvas.resized", () => {
+    const setupResult = settling();
+    const { viewport, canvas, settle, observer } = setupResult;
+    viewport.afterImport();
+    settle();
+    canvas.size = { width: 900, height: 700 };
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+    observer.notify();
+    frames.run(START);
+    expect(canvas.resizedCalls).toBe(1);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+  });
+
+  it("retargets an explicit fit that is still animating", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.fit();
+    frames.run(START + 50);
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
+    expect(frames.pending).toBe(1);
+    frames.run(START + 50 + FIT_ANIMATION_MS);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+    expect(viewport.isAutomatic()).toBe(true);
+  });
+
+  it("keeps the view once the content bounds differ from the fit's: an edit never fits (guide §5.9)", () => {
+    const { viewport, canvas, settle, setContent } = settling();
+    viewport.afterImport();
+    setContent({ x: 100, y: 100, width: 5000, height: 3000 });
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    setContent({ x: 100, y: 100, width: 900, height: 600 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    setContent(undefined);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+    expect(viewport.isAutomatic()).toBe(true);
+
+    setContent({ ...CONTENT });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+  });
+
+  it("keeps a view the user zoomed or panned since the fit", () => {
+    const zoomed = settling();
+    zoomed.viewport.afterImport();
+    zoomed.viewport.stepZoom(1);
+    zoomed.settle();
+    expect(zoomed.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(zoomed.canvas.viewboxWrites).toHaveLength(1);
+
+    const panned = settling();
+    panned.viewport.afterImport();
+    panned.canvas.pan(40, 0);
+    panned.settle();
+    expect(panned.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(panned.canvas.viewboxWrites).toHaveLength(1);
+  });
+
+  it("keeps a view a pointer stopped short of the fit's target", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.fit();
+    frames.run(START + 50);
+    canvas.container.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    const writes = canvas.viewboxWrites.length;
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(writes);
+  });
+
+  it("keeps views no fit set: before the first fit, restored, stored, a new document's", () => {
+    const before = settling();
+    before.settle();
+    expect(before.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(before.canvas.viewboxWrites).toEqual([]);
+
+    const restored = settling();
+    restored.viewport.afterImport();
+    const keep = restored.viewport.getViewbox();
+    if (!keep) throw new Error("no viewbox");
+    restored.viewport.restore(keep);
+    restored.settle();
+    expect(restored.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(restored.canvas.viewboxWrites).toHaveLength(2);
+
+    const stored = settling();
+    stored.viewport.setState({
+      viewbox: { x: 0, y: 0, width: 1000, height: 800 },
+      userMoved: false,
+    });
+    stored.viewport.afterImport();
+    stored.settle();
+    expect(stored.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(stored.canvas.viewboxWrites).toHaveLength(1);
+
+    const next = settling();
+    next.viewport.afterImport();
+    next.viewport.newDocument();
+    next.settle();
+    expect(next.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(next.canvas.viewboxWrites).toHaveLength(1);
+  });
+
+  it("is a no-op after destroy", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.afterImport();
+    viewport.destroy();
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
   });
 });
 
