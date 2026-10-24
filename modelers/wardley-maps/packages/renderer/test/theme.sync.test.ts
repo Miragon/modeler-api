@@ -261,6 +261,21 @@ describe("theme.sync — MIRAGON mirrors the vendored design-system tokens", () 
     expect(COLORS.inkSoft).toBe(MIRAGON.textLeise);
   });
 
+  it("draws every canvas colour from the tokens, apart from the pinned notation status colours", () => {
+    const tokens = new Set(Object.values(vendoredJson.fest).map(norm));
+    const notationStatus = new Set(["#0b7a55", "#92610a", "#c92a2a"]);
+    for (const [key, value] of Object.entries(COLORS)) {
+      const channels = /^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/.exec(norm(value));
+      const hex = channels
+        ? `#${channels
+            .slice(1)
+            .map((channel) => Number(channel).toString(16).padStart(2, "0"))
+            .join("")}`
+        : norm(value);
+      expect(tokens.has(hex) || notationStatus.has(hex), `COLORS.${key} ${value}`).toBe(true);
+    }
+  });
+
   it("text colours reach 4.5:1 and structural strokes 3:1 on the plot and the paper", () => {
     for (const background of [MIRAGON.weiss, MIRAGON.grau]) {
       expect(contrast(COLORS.axisText, background)).toBeGreaterThanOrEqual(4.5);
