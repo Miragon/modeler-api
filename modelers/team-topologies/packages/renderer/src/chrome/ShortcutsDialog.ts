@@ -1,22 +1,18 @@
-/**
- * The "Keyboard shortcuts…" dialog of the Help group (guide §5.4, §8): one table per group, the
- * action on the left and its keys as the chrome tooltip's chips on the right.
- */
-
-import type { ShellHandle } from "@miragon/modeler-shell";
+import { createChromeDialog, element, type ChromeDialog, type DialogChrome } from "./dialog.js";
 import {
-  createChromeDialog,
-  element,
-  type ChromeDialog,
-  type DialogChrome,
-} from "../dialog/chromeDialog";
-import { keyboardShortcuts, type ShortcutGroup, type ShortcutOptions } from "./shortcuts";
+  diagramShortcuts,
+  type DiagramShortcutOptions,
+  type ShortcutGroup,
+  type ShortcutsChrome,
+} from "./shortcuts.js";
 
 const DIALOG_CLASS = "tt-shortcuts";
 const TITLE_ID = "tt-shortcuts-title";
 
-/** What the dialog needs of the chrome around the diagram; a modeler-shell handle fits. */
-export type ShortcutsChrome = DialogChrome & Pick<ShellHandle, "platform" | "lang">;
+/** What the dialog needs of the chrome around the diagram; a `@miragon/modeler-shell` handle fits. */
+export interface ShortcutsDialogChrome extends ShortcutsChrome, DialogChrome {
+  readonly messages: ShortcutsChrome["messages"] & DialogChrome["messages"];
+}
 
 export type ShortcutsDialog = ChromeDialog;
 
@@ -40,9 +36,13 @@ function shortcutTable(group: ShortcutGroup, index: number): HTMLElement {
   return section;
 }
 
+/**
+ * The "Keyboard shortcuts…" dialog of the Help group (guide §5.4, §8): one table per group, the
+ * action on the left and its keys as the chrome tooltip's chips on the right.
+ */
 export function createShortcutsDialog(
-  chrome: ShortcutsChrome,
-  options: ShortcutOptions = {},
+  chrome: ShortcutsDialogChrome,
+  options: DiagramShortcutOptions = {},
 ): ShortcutsDialog {
   return createChromeDialog(chrome, {
     className: DIALOG_CLASS,
@@ -50,11 +50,7 @@ export function createShortcutsDialog(
     title: "Keyboard shortcuts",
     content() {
       const body = element("div", `tt-dialog__body ${DIALOG_CLASS}__body`);
-      body.append(
-        ...keyboardShortcuts(chrome.platform, chrome.messages, chrome.lang, options).map(
-          shortcutTable,
-        ),
-      );
+      body.append(...diagramShortcuts(chrome, options).map(shortcutTable));
       return [body];
     },
   });

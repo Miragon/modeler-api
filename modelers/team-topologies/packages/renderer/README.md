@@ -11,7 +11,10 @@ It renders the canonical document from
 [`@miragon/team-topologies-schema-model`](../schema-model) and gives you palette, move, resize,
 connect-by-overlap, multi-selection (lasso, select all) with group move, text annotations, context
 pad, in-place label editing and undo/redo — with no UI framework required.
-Mount it into any `<div>`; the web app and the VS Code extension both wrap this exact package.
+Mount it into any `<div>`; the web app and the VS Code extension both wrap this exact package. It
+hands a chrome such as [`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell)
+its menu entries, legend rows and dialogs without importing it (see
+[Around the canvas](#around-the-canvas)).
 
 ## Install
 
@@ -189,6 +192,72 @@ estimated from the characters rather than measured. A host that fits the view it
 
 `undo()`, `redo()`, `canUndo()`, `canRedo()`.
 
+### Around the canvas
+
+What a chrome around the canvas shows, typed structurally (a `@miragon/modeler-shell` handle fits,
+and so does a host's own chrome with the same fields). The renderer's stylesheet styles all of it,
+so a host without the shell needs nothing else:
+
+- `diagramMenu({ exports, showKeyboardShortcuts, editTitle, shortcutsKey })` builds the menu groups
+  of guide §5.4, in the shape the shell's `menu` option takes: Model with "Diagram title…" (only
+  with `editTitle`; it changes the document, so a read-only canvas disables it), Export with
+  "Export as PNG" and "Export as SVG" (then "Export as JSON" with `exports.json`; an export's
+  `shortcut` shows as its chip) and Help with "Keyboard shortcuts…" (`shortcutsKey`, e.g.
+  `SHORTCUTS_DIALOG_KEY`, as its chip). The Model group's Legend checkbox is the shell's own.
+- `createTitleDialog(chrome, { title, setTitle })` is the "Diagram title…" dialog: one field,
+  Cancel and Apply. Enter applies the trimmed title, Escape and Cancel keep the old one, an
+  unchanged title writes nothing and a blank one cannot be applied. Pass
+  `setTitle: (title) => modeler.get("ttModeling").setTitle(title)` for one undo step.
+- `createShortcutsDialog(chrome, { fileKeys })` is the "Keyboard shortcuts…" dialog, one table per
+  group (`diagramShortcuts(chrome, options)` returns them as data); `fileKeys` adds a File group
+  (Open… on Cmd/Ctrl+O, Export as JSON on Cmd/Ctrl+S) and the `?` key for a web app that binds
+  them. Its View rows read the chrome's own zoom and fit texts and key names.
+- Both dialogs are native modal `<dialog>`s in `chrome.root` (the shell root), closed by Escape, the
+  Close button or a press on the backdrop; the focus goes back to the control that opened them, else
+  to `chrome.menu.trigger`. They are built on the first `open()`; call `destroy()` with the
+  diagram's teardown.
+- `renderLegend(body)` renders the notation legend into a chrome's legend card (the shell's
+  `legend.render`): team types, interaction modes and the other elements, each with the palette's
+  glyph in its official notation colours, its name and a short explanation, with the shell's
+  `cd-shell-legend-*` row classes. It returns the function that removes the rows again.
+  `legendGroups()` is the same content as DOM-free data (`preview` is SVG markup) for a host that
+  draws the legend itself.
+
+For the Export entries, a host takes `modeler.saveSVG()`: the SVG as it is, or rasterised to a PNG.
+An SVG drawn as an image cannot reach the page's fonts, so embed Geist before rasterising:
+`embedSvgStyles(svg, geistFontFaceCss({ latin, latinExt }))` (see [Typeface](#quick-start)).
+
+```ts
+import {
+  createShortcutsDialog,
+  createTitleDialog,
+  diagramMenu,
+  embedSvgStyles,
+  geistFontFaceCss,
+  renderLegend,
+  type TtModeling,
+} from "@miragon/team-topologies-renderer";
+
+// `chrome` is a modeler-shell handle or { root, menu: { trigger }, platform, lang, messages }.
+const title = createTitleDialog(chrome, {
+  title: () => modeler.getMeta()?.title ?? "",
+  setTitle: (next) => modeler.get<TtModeling>("ttModeling").setTitle(next),
+});
+const shortcuts = createShortcutsDialog(chrome);
+// The two latin Geist WOFF2 files as data: URLs, from the host's own copy of the font.
+const fontCss = geistFontFaceCss({ latin, latinExt });
+const menu = diagramMenu({
+  editTitle: () => title.open(),
+  exports: {
+    // savePng and saveSvg are the host's: rasterise and download, or hand the file on.
+    png: { onSelect: () => savePng(embedSvgStyles(modeler.saveSVG().svg, fontCss)) },
+    svg: { onSelect: () => saveSvg(modeler.saveSVG().svg) },
+  },
+  showKeyboardShortcuts: () => shortcuts.open(),
+});
+const removeLegend = renderLegend(legendBody);
+```
+
 ### Helpers & types
 
 - **Type guards:** `isTtElement`, `isTtTeam`, `isTtInteraction`, `isTtFlow`, `isTtAnnotation`,
@@ -208,6 +277,11 @@ estimated from the characters rather than measured. A host that fits the view it
 - **Fonts in exports:** `geistFontFaceCss({ latin, latinExt })` builds the Geist `@font-face` rules
   from two `data:` URLs (`GEIST_UNICODE_RANGES` holds their subsets), and `embedSvgStyles(svg, css)`
   puts CSS at the top of a `saveSVG()` result, so a rasterised PNG keeps the canvas typeface.
+- **Chrome content** ([Around the canvas](#around-the-canvas)): `diagramMenu`, `diagramShortcuts`,
+  `createShortcutsDialog`, `createTitleDialog`, `renderLegend`, `legendGroups`,
+  `JSON_EXPORT_LABEL`, `SHORTCUTS_DIALOG_KEY`, and their structural types (`DiagramMenu`,
+  `DiagramMenuActions`, `DiagramExports`, `ShortcutsDialogChrome`, `TitleDialogChrome`,
+  `DiagramTitle`, `LegendGroup`, `LegendRow`, …).
 - **Other:** `TtViewerOptions`, `ImportOptions`, `ImportWarning`, `RootBusinessObject`, `ROOT_ID`,
   `saveSVG`, `TtReadOnly` and `READ_ONLY_CHANGED_EVENT` (the lock, DI name `ttReadOnly`), and
   `TtViewport` (DI name `ttViewport`: `contentBounds()` and the deprecated palette-aware fit behind

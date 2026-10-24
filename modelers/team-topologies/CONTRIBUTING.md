@@ -107,7 +107,8 @@ fails when the action's pin moves without it. Whether CI runs the check on every
 | --------------------------------------- | ----------------------------------------------------- | -------- |
 | `@miragon/team-topologies-schema-model` | Types, notation spec, Zod validation, serialization   | DOM-free |
 | `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer, import/export | DOM      |
-| `@miragon/team-topologies-ui` (private) | Chrome content: inspector, legend rows, dialogs, menu | DOM      |
+|                                         | and chrome content: menu, legend rows, dialogs        |          |
+| `@miragon/team-topologies-ui` (private) | The React inspector for the chrome's inspector slot   | DOM      |
 | `apps/webapp`                           | Vite demo editor on the modeler shell's web host      | DOM      |
 | `apps/vscode`                           | VS Code custom editor for `.tt`/`.ttm.json`           | DOM      |
 

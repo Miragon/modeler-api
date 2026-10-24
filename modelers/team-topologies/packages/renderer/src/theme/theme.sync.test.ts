@@ -260,13 +260,30 @@ describe("theme.sync — team-topologies.css takes every colour from the roles",
     expect(withoutComments(rendererCss)).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i);
   });
 
-  it("reads only roles and mode-independent tokens, never a fixed palette colour", () => {
+  it("reads only roles, mode-independent tokens and the primary button's fixed colours", () => {
     const used = [...withoutComments(rendererCss).matchAll(/var\((--cd-[\w-]+)/g)].map(
       (match) => match[1]!,
     );
     expect(used.length).toBeGreaterThan(20);
     for (const token of used) {
-      expect(token).toMatch(/^--cd-(ui-[\w-]+|radius-\w+|shadow-\d|ease(-out)?|motion-\w+)$/);
+      expect(token).toMatch(
+        /^--cd-(ui-[\w-]+|radius-\w+|shadow-\d|ease(-out)?|motion-\w+|blau|blau-link|weiss)$/,
+      );
+    }
+  });
+
+  // Guide §8: a primary button is filled brand blue with white text in every mode, so it is the
+  // one place that reads the palette; everything else follows the mode through the roles.
+  it("takes a fixed palette colour only for the dialogs' primary button", () => {
+    const rules = [...withoutComments(rendererCss).matchAll(/([^{};]+)\{([^{}]*)\}/g)];
+    const primaryButton = /^\.tt-dialog__button--primary(:[\w-]+(\([^)]*\))?)*$/;
+    const palette = /var\(--cd-(blau|blau-link|weiss)\)/;
+    const rulesWithPalette = rules.filter((rule) => palette.test(rule[2]!));
+    expect(rulesWithPalette.length).toBeGreaterThan(0);
+    for (const [, selectorList] of rulesWithPalette) {
+      for (const selector of selectorList!.split(",").map((part) => part.trim())) {
+        expect(selector).toMatch(primaryButton);
+      }
     }
   });
 

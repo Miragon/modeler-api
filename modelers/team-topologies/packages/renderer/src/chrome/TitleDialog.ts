@@ -1,16 +1,4 @@
-/**
- * The "Diagram title…" dialog of the Model group. Guide §5.4 keeps form fields out of the menu and
- * puts no title field next to it, so the title is edited here: one field, Cancel and Apply. Enter
- * applies, Escape cancels. An unchanged title writes nothing, so the history gets no empty step,
- * and a blank one cannot be applied, because the exports name their files after the title.
- */
-
-import {
-  createChromeDialog,
-  element,
-  type ChromeDialog,
-  type DialogChrome,
-} from "../dialog/chromeDialog";
+import { createChromeDialog, element, type ChromeDialog, type DialogChrome } from "./dialog.js";
 
 const DIALOG_CLASS = "tt-title-dialog";
 const TITLE_ID = "tt-title-dialog-title";
@@ -22,16 +10,27 @@ export interface DiagramTitle {
   setTitle(title: string): void;
 }
 
+export type TitleDialogChrome = DialogChrome;
 export type TitleDialog = ChromeDialog;
 
 function button(label: string, primary: boolean): HTMLButtonElement {
-  const created = element("button", primary ? "tt-btn tt-btn--primary" : "tt-btn", label);
+  const className = primary ? "tt-dialog__button tt-dialog__button--primary" : "tt-dialog__button";
+  const created = element("button", className, label);
   created.type = primary ? "submit" : "button";
   return created;
 }
 
-export function createTitleDialog(chrome: DialogChrome, diagramTitle: DiagramTitle): TitleDialog {
-  const field = element("input", "tt-field__control");
+/**
+ * The "Diagram title…" dialog of the Model group. Guide §5.4 keeps form fields out of the menu and
+ * puts no title field next to it, so the title is edited here: one field, Cancel and Apply. Enter
+ * applies, Escape cancels. An unchanged title writes nothing, so the history gets no empty step,
+ * and a blank one cannot be applied, because the exports name their files after the title.
+ */
+export function createTitleDialog(
+  chrome: TitleDialogChrome,
+  diagramTitle: DiagramTitle,
+): TitleDialog {
+  const field = element("input", "tt-dialog__input");
   field.id = FIELD_ID;
   field.type = "text";
   field.autocomplete = "off";
@@ -60,8 +59,8 @@ export function createTitleDialog(chrome: DialogChrome, diagramTitle: DiagramTit
       const form = element("form", "tt-dialog__form");
       form.noValidate = true;
       const body = element("div", "tt-dialog__body");
-      const label = element("label", "tt-field");
-      const caption = element("span", "tt-field__label", "Title");
+      const label = element("label", "tt-dialog__field");
+      const caption = element("span", "tt-dialog__label", "Title");
       label.htmlFor = FIELD_ID;
       label.append(caption, field);
       body.append(label);

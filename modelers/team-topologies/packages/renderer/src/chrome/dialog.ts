@@ -3,13 +3,19 @@
  * API): a native modal <dialog> in the chrome's root, so the browser keeps the focus inside it and
  * closes it on Escape, and its top layer puts it above every island. Built on the first open and
  * kept (closed) afterwards; `destroy()` removes it, because the chrome removes only what it added
- * itself.
+ * itself. The renderer's stylesheet styles it, so a host without the modeler shell gets it as is.
  */
 
-import { iconElement, type ShellHandle } from "@miragon/modeler-shell";
+import { ICON_X, iconMarkup } from "../draw/icons.js";
 
-/** What a dialog needs of the chrome around the diagram; a modeler-shell handle fits. */
-export type DialogChrome = Pick<ShellHandle, "root" | "messages" | "menu">;
+/** What a dialog needs of the chrome around the diagram; a `@miragon/modeler-shell` handle fits. */
+export interface DialogChrome {
+  /** Where the dialog lives (the shell root), so it shares the chrome's mode and fonts. */
+  readonly root: HTMLElement;
+  readonly messages: { readonly close: string };
+  /** The control the focus returns to when the one that opened the dialog is gone. */
+  readonly menu: { readonly trigger: HTMLElement };
+}
 
 export interface ChromeDialog {
   open(): void;
@@ -46,10 +52,10 @@ function header(chrome: DialogChrome, spec: ChromeDialogSpec, onClose: () => voi
   const head = element("header", "tt-dialog__header");
   const title = element("h2", "tt-dialog__title", spec.title);
   title.id = spec.titleId;
-  const close = element("button", "tt-closebtn tt-dialog__close");
+  const close = element("button", "tt-dialog__close");
   close.type = "button";
   close.setAttribute("aria-label", chrome.messages.close);
-  close.append(iconElement("x"));
+  close.innerHTML = iconMarkup(ICON_X);
   close.addEventListener("click", onClose);
   head.append(title, close);
   return head;

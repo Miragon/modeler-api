@@ -83,3 +83,39 @@ export {
   flowIconSvg,
   annotationIconSvg,
 } from "./draw/palette-icons.js";
+
+// What a host's chrome shows around the canvas, typed structurally (a modeler-shell handle fits):
+// the menu entries, the shortcuts and title dialogs and the legend rows.
+export {
+  JSON_EXPORT_LABEL,
+  SHORTCUTS_DIALOG_KEY,
+  createShortcutsDialog,
+  createTitleDialog,
+  diagramMenu,
+  diagramShortcuts,
+} from "./chrome/index.js";
+export type {
+  ChromeDialog,
+  DiagramExport,
+  DiagramExports,
+  DiagramMenu,
+  DiagramMenuAction,
+  DiagramMenuActions,
+  DiagramMenuDialog,
+  DiagramMenuEntry,
+  DiagramMenuIcon,
+  DiagramShortcutOptions,
+  DiagramTitle,
+  DialogChrome,
+  ShortcutGroup,
+  ShortcutKeyNames,
+  ShortcutPlatform,
+  ShortcutRow,
+  ShortcutsChrome,
+  ShortcutsDialog,
+  ShortcutsDialogChrome,
+  TitleDialog,
+  TitleDialogChrome,
+} from "./chrome/index.js";
+export { legendGroups, renderLegend } from "./legend/index.js";
+export type { LegendGroup, LegendRow } from "./legend/index.js";

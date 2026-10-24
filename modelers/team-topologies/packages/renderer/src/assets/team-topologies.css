@@ -330,3 +330,378 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ============================================================================
+   Content for the host's chrome: the legend rows (renderLegend) and the "Keyboard shortcuts…"
+   and "Diagram title…" dialogs (createShortcutsDialog, createTitleDialog). Where they sit is the
+   host's: the modeler shell's legend card and root, or a host's own panel. Styled here, so a
+   host without the shell gets them complete.
+   ========================================================================== */
+
+/* --- Legend rows (the host renders the card around them) ------------------- */
+.tt-legend__heading {
+  max-width: 232px;
+  margin: 0 0 4px;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tt-legend__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tt-legend__preview > svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+/* Name and explanation stack, so the card stays narrow next to the diagram. */
+.tt-legend__text {
+  display: flex;
+  flex-direction: column;
+  max-width: 200px;
+}
+
+.tt-legend__label {
+  color: var(--cd-ui-text);
+}
+
+.tt-legend__explanation {
+  color: var(--cd-ui-text-leise);
+}
+
+/* --- Dialogs (guide §5.4, §8) ---------------------------------------------- */
+/* A modal <dialog> in the chrome's root: showModal() puts it in the top layer, above every
+   island, without a layer token. */
+.tt-dialog {
+  box-sizing: border-box;
+  width: min(560px, 100cqw - 32px);
+  max-width: none;
+  max-height: calc(100cqh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  font-family:
+    "Geist Variable",
+    "Geist",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.5;
+  color: var(--cd-ui-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+}
+
+:where(.tt-dialog) * {
+  box-sizing: border-box;
+}
+
+.tt-dialog[open] {
+  display: flex;
+}
+
+.tt-dialog::backdrop {
+  background: var(--cd-ui-backdrop);
+  backdrop-filter: blur(3px) grayscale(1);
+}
+
+/* Every control gets the same visible ring (guide §8, §12); the text field has its own below. */
+:where(.tt-dialog) :where(button, a[href], summary, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.tt-dialog__panel,
+.tt-dialog__form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tt-dialog__header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px 24px;
+}
+
+.tt-dialog__title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tt-dialog__close {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font: inherit;
+  font-size: 21px;
+  line-height: 1;
+  color: var(--cd-ui-text);
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-dialog__close:hover {
+  color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+}
+
+.tt-dialog__close svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.tt-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 8px 24px 24px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tt-dialog__footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--cd-ui-linie);
+}
+
+/* Buttons (guide §8): secondary is the default, primary the dialog's main action. Disabled is
+   opaque and neutral, never faded. */
+.tt-dialog__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--cd-ui-text);
+  white-space: nowrap;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    border-color var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease),
+    transform var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-dialog__button:hover:not(:disabled) {
+  border-color: var(--cd-ui-interaktion);
+  color: var(--cd-ui-link);
+  background: var(--cd-ui-hover);
+}
+
+.tt-dialog__button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.tt-dialog__button:disabled {
+  color: var(--cd-ui-text-leise);
+  border-color: var(--cd-ui-linie);
+  cursor: not-allowed;
+}
+
+/* The primary fill is the brand blue in every mode (guide §8): the palette, not a role. */
+.tt-dialog__button--primary {
+  border-color: var(--cd-blau);
+  background: var(--cd-blau);
+  color: var(--cd-weiss);
+  box-shadow: var(--cd-shadow-1);
+}
+
+.tt-dialog__button--primary:hover:not(:disabled) {
+  border-color: var(--cd-blau-link);
+  background: var(--cd-blau-link);
+  color: var(--cd-weiss);
+  box-shadow: var(--cd-shadow-2);
+  transform: translateY(-1px);
+}
+
+.tt-dialog__button--primary:active:not(:disabled) {
+  box-shadow: var(--cd-shadow-1);
+  transform: translateY(0);
+}
+
+.tt-dialog__button--primary:disabled {
+  color: var(--cd-ui-text-leise);
+  border-color: var(--cd-ui-linie);
+  background: var(--cd-ui-hover);
+  box-shadow: none;
+}
+
+.tt-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tt-dialog__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-ui-text);
+}
+
+.tt-dialog__input {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cd-ui-text);
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-grund);
+  transition: border-color var(--cd-motion-fast) var(--cd-ease);
+}
+
+.tt-dialog__input::placeholder {
+  color: var(--cd-ui-text-leise);
+  opacity: 1;
+}
+
+.tt-dialog__input:focus {
+  border-color: var(--cd-ui-interaktion);
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+/* One field: the narrow width of guide §8's short dialogs. */
+.tt-title-dialog {
+  width: min(440px, 100cqw - 32px);
+}
+
+.tt-shortcuts__group-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cd-ui-text-leise);
+}
+
+.tt-shortcuts__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tt-shortcuts__table tr + tr {
+  border-top: 1px solid var(--cd-ui-linie);
+}
+
+.tt-shortcuts__action {
+  padding: 6px 12px 6px 0;
+  font-weight: 400;
+  text-align: left;
+}
+
+.tt-shortcuts__keys {
+  padding: 6px 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The chips look like the chrome tooltip's (guide §5.6). */
+.tt-shortcuts__key {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--cd-ui-text-leise);
+  vertical-align: baseline;
+  background: var(--cd-ui-grund);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+}
+
+.tt-shortcuts__key + .tt-shortcuts__key {
+  margin-left: 6px;
+}
+
+/* High contrast (guide §6, §8): no shadow but a contour edge and a 3px ring; forced colours draw
+   the edge in CanvasText and the ring in Highlight. The shell applies these only to its own
+   classes, so the modeler's dialogs repeat them. */
+[data-cd-kontrast="hoch"] .tt-dialog {
+  border-color: var(--cd-ui-kontur);
+  box-shadow: none;
+}
+
+[data-cd-kontrast="hoch"] .tt-dialog__button {
+  box-shadow: none;
+}
+
+:where([data-cd-kontrast="hoch"])
+  :where(.tt-dialog)
+  :where(button, a[href], summary, [role="button"], [tabindex], input):focus-visible,
+[data-cd-kontrast="hoch"] .tt-dialog__input:focus {
+  outline-width: 3px;
+}
+
+@media (forced-colors: active) {
+  .tt-dialog {
+    border-color: CanvasText;
+  }
+
+  .tt-dialog :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* 16px keeps iOS Safari from zooming the page when the field gets focus. */
+@media (max-width: 760px), (pointer: coarse) {
+  .tt-dialog__input {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-dialog,
+  .tt-dialog * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

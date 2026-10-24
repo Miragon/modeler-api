@@ -1,15 +1,36 @@
-/**
- * Every keyboard shortcut of the diagram, in the groups of guide §5.4 (View, Edit, the notation's
- * tools). The View group uses the chrome's own labels, so the dialog, the tooltips and the zoom
- * panel always agree.
+import { JSON_EXPORT_LABEL, SHORTCUTS_DIALOG_KEY } from "./menu.js";
+
+/*
+ * Every keyboard shortcut of the diagram for the "Keyboard shortcuts…" dialog, in the groups of
+ * guide §5.4 (View, Edit, the notation's tools). The chrome's texts and key names come in
+ * structurally (a `@miragon/modeler-shell` handle fits), so the View rows say what the zoom
+ * panel's tooltips say.
  */
 
-import {
-  formatPercent,
-  shortcutLabel,
-  type Platform,
-  type ShellMessages,
-} from "@miragon/modeler-shell/core";
+export type ShortcutPlatform = "mac" | "other";
+
+export interface ShortcutKeyNames {
+  readonly ctrl: string;
+  readonly shift: string;
+  readonly plus: string;
+  readonly minus: string;
+}
+
+/** What the shortcuts need of the chrome around the diagram. */
+export interface ShortcutsChrome {
+  readonly platform: ShortcutPlatform;
+  /** The tool's UI language, for the percentage in "Zoom to 100%". */
+  readonly lang: string;
+  readonly messages: {
+    readonly zoomIn: string;
+    readonly zoomOut: string;
+    zoomToActual(percent: string): string;
+    readonly fit: string;
+    /** The File group's "Open…" (the shell's `messages.openFile`); default "Open…". */
+    readonly openFile?: string | undefined;
+    readonly keyNames: ShortcutKeyNames;
+  };
+}
 
 export interface ShortcutRow {
   readonly action: string;
@@ -22,19 +43,37 @@ export interface ShortcutGroup {
   readonly rows: readonly ShortcutRow[];
 }
 
-export interface ShortcutOptions {
+export interface DiagramShortcutOptions {
   /** The web app's own keys: Open…, Export as JSON and "?" for this dialog. */
-  fileKeys?: boolean | undefined;
+  readonly fileKeys?: boolean | undefined;
 }
-
-/** The label of the Export group's JSON entry, which the File keys' row repeats. */
-export const JSON_EXPORT_LABEL = "Export as JSON";
-/** The key the web app binds to this dialog. */
-export const SHORTCUTS_DIALOG_KEY = "?";
 
 const ARROWS = ["←", "↑", "→", "↓"] as const;
 
-function platformKeys(platform: Platform, keyNames: ShellMessages["keyNames"]) {
+function percentOfActualSize(lang: string): string {
+  const options: Intl.NumberFormatOptions = { style: "percent", maximumFractionDigits: 0 };
+  try {
+    return new Intl.NumberFormat(lang, options).format(1);
+  } catch {
+    return new Intl.NumberFormat("en", options).format(1);
+  }
+}
+
+/** The chrome's zoom and fit keys as its tooltips name them (guide §5.8). */
+function viewKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
+  if (platform === "mac") {
+    return { zoomIn: "⌘+", zoomOut: "⌘−", zoomToActual: "⌘0", fit: "⇧1" };
+  }
+  const { ctrl, shift, plus, minus } = keyNames;
+  return {
+    zoomIn: `${ctrl}+${plus}`,
+    zoomOut: `${ctrl}+${minus}`,
+    zoomToActual: `${ctrl}+0`,
+    fit: `${shift}+1`,
+  };
+}
+
+function platformKeys(platform: ShortcutPlatform, keyNames: ShortcutKeyNames) {
   if (platform === "mac") {
     return {
       undo: ["⌘Z"],
@@ -68,24 +107,28 @@ function platformKeys(platform: Platform, keyNames: ShellMessages["keyNames"]) {
   };
 }
 
-export function keyboardShortcuts(
-  platform: Platform,
-  messages: ShellMessages,
-  lang: string,
-  options: ShortcutOptions = {},
+/**
+ * Every shortcut of the diagram, grouped as guide §5.4 asks (View, Edit, Tools), after the web
+ * app's File keys where it binds them.
+ */
+export function diagramShortcuts(
+  chrome: ShortcutsChrome,
+  options: DiagramShortcutOptions = {},
 ): ShortcutGroup[] {
-  const view = (key: Parameters<typeof shortcutLabel>[0]) => [
-    shortcutLabel(key, platform, messages.keyNames),
-  ];
+  const { platform, messages } = chrome;
+  const view = viewKeys(platform, messages.keyNames);
   const keys = platformKeys(platform, messages.keyNames);
   const groups: ShortcutGroup[] = [
     {
       title: "View",
       rows: [
-        { action: messages.zoomIn, keys: view("zoomIn") },
-        { action: messages.zoomOut, keys: view("zoomOut") },
-        { action: messages.zoomToActual(formatPercent(1, lang)), keys: view("zoomToActual") },
-        { action: messages.fit, keys: view("fit") },
+        { action: messages.zoomIn, keys: [view.zoomIn] },
+        { action: messages.zoomOut, keys: [view.zoomOut] },
+        {
+          action: messages.zoomToActual(percentOfActualSize(chrome.lang)),
+          keys: [view.zoomToActual],
+        },
+        { action: messages.fit, keys: [view.fit] },
         ...(options.fileKeys
           ? [{ action: "Keyboard shortcuts", keys: [SHORTCUTS_DIALOG_KEY] }]
           : []),
@@ -122,7 +165,7 @@ export function keyboardShortcuts(
     groups.unshift({
       title: "File",
       rows: [
-        { action: messages.openFile, keys: keys.open },
+        { action: messages.openFile ?? "Open…", keys: keys.open },
         { action: JSON_EXPORT_LABEL, keys: keys.save },
       ],
     });

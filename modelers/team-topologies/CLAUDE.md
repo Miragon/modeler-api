@@ -23,9 +23,10 @@ The design system **1.20.1** is **vendored** from that skill, byte-identical:
 from the skill to update and update their hashes in the drift test
 (`packages/renderer/src/theme/theme.sync.test.ts`), which also checks that
 [`palette.ts`](packages/renderer/src/theme/palette.ts) (the pure-TS mirror for canvas colours) and the
-vendored files agree and that `team-topologies.css` reads only `--cd-ui-*` roles and, built, keeps the
-tokens in the cascade layer `team-topologies-tokens` (so a host page's own tokens win) with
-`cd-canvas.css` unlayered.
+vendored files agree and that `team-topologies.css` reads only `--cd-ui-*` roles (the dialogs'
+primary button alone takes the fixed blue and white, guide §8) and, built, keeps the tokens in the
+cascade layer `team-topologies-tokens` (so a host page's own tokens win) with `cd-canvas.css`
+unlayered.
 `apps/vscode/src/tokens.sync.test.ts` pins the shell's sizes (`SHELL`) to the JSON's `shell` group.
 
 **Chrome:** both apps run on [`@miragon/modeler-shell`](../../packages/shell/README.md):
@@ -52,8 +53,9 @@ still links them to the local workspace); how a release keeps them in step is in
 | Package                                 | Purpose                                                                  | DOM |
 | --------------------------------------- | ------------------------------------------------------------------------ | --- |
 | `@miragon/team-topologies-schema-model` | Types, the notation spec, Zod validation, migrations, JSON serialization | no  |
-| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer/modeler, import/export, CSS       | yes |
-| `@miragon/team-topologies-ui` (private) | chrome content (inspector, legend rows, dialogs, menu entries)           | yes |
+| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer/modeler, import/export, CSS, and  | yes |
+|                                         | chrome content (menu entries, legend rows, shortcuts and title dialogs)  |     |
+| `@miragon/team-topologies-ui` (private) | the React inspector for the chrome's inspector slot                      | yes |
 | `apps/webapp`                           | Vite demo editor on the modeler shell's web host                         | yes |
 | `apps/vscode`                           | VS Code extension: custom editor for `.tt`/`.ttm.json`                   | yes |
 
@@ -62,14 +64,19 @@ libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced
 (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser` — so a violating import
 fails `npm run team-topologies lint` and `npm run team-topologies depcruise`.
 
-The `ui` package is consumed from source only (no build, not published). It holds what the modeler
-puts into a host's chrome — the inspector (React, mounted into the shell's inspector slot), the legend
-rows, the "Keyboard shortcuts…" and "Diagram title…" dialogs and the menu entries — ships its styles
-as `@miragon/team-topologies-ui/ui.css` (role aliases, buttons, fields, the content of inspector,
-legend and dialog; where they sit is the host's), and must never import from `apps/**`;
-`schema-model` and `renderer` must never import it, nor `@miragon/modeler-shell` (all enforced by
-`dependency-cruiser`, the shell ban also by ESLint, so the pre-commit hook catches it; `schema-model`
-takes only types from `@miragon/modeler-api`).
+What the modeler puts into a host's chrome, apart from the inspector, is the renderer's, so every
+host gets it from npm (designIQ as well as the two apps): `diagramMenu` (Model, Export, Help),
+`renderLegend` / `legendGroups`, `createShortcutsDialog` and `createTitleDialog`, typed structurally
+like the shell (README "Around the canvas") and styled by `team-topologies.css`.
+`apps/webapp/src/chrome.sync.test.ts` pins that mirror to the shell's key labels and types.
+
+The `ui` package is consumed from source only (no build, not published). It holds the inspector
+(React, mounted into the shell's inspector slot) and `makeRoomForLegend`, ships its styles as
+`@miragon/team-topologies-ui/ui.css` (role aliases, buttons, fields, the inspector's content; where
+it sits is the host's), and must never import from `apps/**`; `schema-model` and `renderer` must
+never import it, nor `@miragon/modeler-shell` (all enforced by `dependency-cruiser`, the shell ban
+also by ESLint, so the pre-commit hook catches it; `schema-model` takes only types from
+`@miragon/modeler-api`).
 
 ## Commands
 

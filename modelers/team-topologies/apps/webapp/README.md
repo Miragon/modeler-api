@@ -89,9 +89,10 @@ shell's inspector slot:
 - **Chrome:** `mountShell(…, { host: "web", themes: ["light"] })` renders the menu, Share, the legal
   line, toasts, the problems list, the legend card, the inspector slot, the start screen and the
   drop zone; `connectDiagramJs` binds the zoom panel, the keys and the fit. What the diagram puts
-  into that chrome comes from the private [`@miragon/team-topologies-ui`](../../packages/ui) package,
-  shared with the VS Code webview: `diagramMenu` (Model, Export, Help), `renderLegendRows`,
-  `mountInspector` (the React inspector), `createShortcutsDialog` and `createTitleDialog`.
+  into that chrome comes from the renderer, as for any other host: `diagramMenu` (Model, Export,
+  Help), `renderLegend`, `createShortcutsDialog` and `createTitleDialog`; the inspector
+  (`mountInspector`) from the private [`@miragon/team-topologies-ui`](../../packages/ui) package,
+  shared with the VS Code webview.
 - **Mode:** light only until the joint dark-mode release. `index.html` writes
   `data-cd-theme="light"`, and the Vite config puts the shell's `webHeadMarkup` (theme colour, the
   high-contrast line) in place of `<!-- miragon-mode -->`.

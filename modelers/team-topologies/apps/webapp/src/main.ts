@@ -1,15 +1,21 @@
 // Geist and Geist Mono (Miragon's typefaces, SIL OFL), self-hosted: no font CDN (offline, GDPR).
 import "@fontsource-variable/geist/wght.css";
 import "@fontsource-variable/geist-mono/wght.css";
-// The renderer's stylesheet brings the vendored tokens, diagram-js.css and cd-canvas.css, the ui
-// package the content of inspector, legend and dialogs; the chrome's stylesheet comes last. The
-// renderer's is imported here because the production build drops its entry's side-effect import.
+// The renderer's stylesheet brings the vendored tokens, diagram-js.css, cd-canvas.css and the
+// content of legend and dialogs, the ui package the inspector's; the chrome's stylesheet comes
+// last. The renderer's is imported here because the production build drops its entry's
+// side-effect import.
 import "@miragon/team-topologies-renderer/assets/team-topologies.css";
 import "@miragon/team-topologies-ui/ui.css";
 import "@miragon/modeler-shell/shell.css";
 import {
   Modeler,
+  SHORTCUTS_DIALOG_KEY,
+  createShortcutsDialog,
+  createTitleDialog,
+  diagramMenu,
   isTtElement,
+  renderLegend,
   type ImportWarning,
   type TtElement,
   type TtModeling,
@@ -19,15 +25,7 @@ import {
   emptyDocument,
   type TtDocument,
 } from "@miragon/team-topologies-schema-model";
-import {
-  SHORTCUTS_DIALOG_KEY,
-  createShortcutsDialog,
-  createTitleDialog,
-  diagramMenu,
-  makeRoomForLegend,
-  mountInspector,
-  renderLegendRows,
-} from "@miragon/team-topologies-ui";
+import { makeRoomForLegend, mountInspector } from "@miragon/team-topologies-ui";
 import {
   TEXT_FIELD_SELECTOR,
   commandKeyLabel,
@@ -134,7 +132,7 @@ const shell: ShellHandle = mountShell(app, {
   },
   menu: menuGroups(),
   legend: {
-    render: renderLegendRows,
+    render: renderLegend,
     open: readLegendOpen(),
     onToggle: (open) => {
       // A bottom sheet hides the legend; asking for the legend closes the sheet.
@@ -182,12 +180,13 @@ modeler.on("diagram.destroy", () => {
 function menuGroups(): MenuGroups {
   const groups = diagramMenu({
     editTitle: () => titleDialog.open(),
-    exportPng: () => void exportImage("png"),
-    exportSvg: () => void exportImage("svg"),
-    exportJson: () => exportJsonFile(),
-    exportJsonShortcut: saveKey,
+    exports: {
+      png: { onSelect: () => void exportImage("png") },
+      svg: { onSelect: () => void exportImage("svg") },
+      json: { onSelect: () => exportJsonFile(), shortcut: saveKey },
+    },
     showKeyboardShortcuts: () => shortcutsDialog.open(),
-    keyboardShortcutsKey: SHORTCUTS_DIALOG_KEY,
+    shortcutsKey: SHORTCUTS_DIALOG_KEY,
   });
   if (!previousAvailable) return groups;
   return {
@@ -199,7 +198,7 @@ function menuGroups(): MenuGroups {
         label: "Restore previous diagram",
         onSelect: () => restorePreviousDiagram(),
       },
-      ...(groups.model ?? []),
+      ...groups.model,
     ],
   };
 }
