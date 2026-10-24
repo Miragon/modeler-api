@@ -553,8 +553,9 @@ the zoom panel, a palette entry or a menu entry that acts on the canvas hands th
 so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on the control.
 
 - Why the focus matters: the diagram-js 15 keyboard listens on the canvas `<svg>`, and the
-  renderers' own key handlers act only while their canvas or the page itself has the focus (Wardley
-  since 0.7, Event Storming and Context Maps since 0.3, Team Topologies since 0.11). Chromium (and
+  renderers' own key handlers act only while their canvas has the focus (Team Topologies, whose
+  palette and context pad also hand it back without the shell) or while the canvas or the page
+  itself has it (Wardley since 0.7, Event Storming and Context Maps since 0.3). Chromium (and
   Firefox outside macOS) focus a clicked button on `mousedown`, so after a click on + the next Delete
   went to the button. A click on a creating palette entry was worse: the click that places the
   element does not move the focus either, because diagram-js ends the create drag on that
