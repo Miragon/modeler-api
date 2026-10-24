@@ -10,7 +10,6 @@ const require = createRequire(import.meta.url);
 
 interface ModelerBoundaries {
   domFreePackages: string[];
-  shellImportingPackages?: string[];
 }
 
 interface ForbiddenRule {
@@ -63,8 +62,6 @@ function ruleCovers(rule: ForbiddenRule, relativePath: string) {
 }
 
 describe.each(modelers)("$name boundaries", ({ root, boundaries, packageNames }) => {
-  const shellImportingPackages = boundaries.shellImportingPackages ?? [];
-
   describe.each(boundaries.domFreePackages)("DOM-free package %s", (packageName) => {
     const source = `packages/${packageName}/src/boundary-probe.ts`;
 
@@ -110,18 +107,13 @@ describe.each(modelers)("$name boundaries", ({ root, boundaries, packageNames })
     });
   });
 
-  it("names exactly the packages that depend on the shell as shell-importing", () => {
-    expect(packageNames.filter((packageName) => dependsOnShell(root, packageName))).toEqual(
-      [...shellImportingPackages].sort(),
-    );
+  it("has no package that depends on the shell", () => {
+    expect(packageNames.filter((packageName) => dependsOnShell(root, packageName))).toEqual([]);
   });
 
-  it("keeps the shell out of every package it does not name", async () => {
-    const packagesWithoutShell = packageNames.filter(
-      (packageName) => !shellImportingPackages.includes(packageName),
-    );
-    expect(packagesWithoutShell).toContain("renderer");
-    for (const packageName of packagesWithoutShell) {
+  it("keeps the shell out of every package", async () => {
+    expect(packageNames).toContain("renderer");
+    for (const packageName of packageNames) {
       const source = `packages/${packageName}/src/boundary-probe.ts`;
       expect(
         await restrictionsReported(root, source, 'import "@miragon/modeler-shell";'),
@@ -135,17 +127,4 @@ describe.each(modelers)("$name boundaries", ({ root, boundaries, packageNames })
     const source = "packages/renderer/src/boundary-probe.ts";
     expect(ruleCovers(forbiddenRule(root, "dom-free-no-diagram-js"), source)).toBe(false);
   });
-
-  it.runIf(shellImportingPackages.length > 0)(
-    "lets the shell-importing packages import the shell",
-    async () => {
-      for (const packageName of shellImportingPackages) {
-        const source = `packages/${packageName}/src/boundary-probe.ts`;
-        expect(
-          await restrictionsReported(root, source, 'import "@miragon/modeler-shell";'),
-        ).toHaveLength(0);
-        expect(ruleCovers(forbiddenRule(root, "packages-no-shell"), source)).toBe(false);
-      }
-    },
-  );
 });

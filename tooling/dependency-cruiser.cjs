@@ -1,12 +1,8 @@
 const { readModelerBoundaries } = require("./modeler-boundaries.cjs");
 
 function modelerDependencyCruiserConfig(modelerRoot, modelerRules = {}) {
-  const { domFreePackages, shellImportingPackages } = readModelerBoundaries(modelerRoot);
+  const { domFreePackages } = readModelerBoundaries(modelerRoot);
   const domFreeSources = `^packages/(${domFreePackages.join("|")})/src`;
-  const exceptShellImportingPackages =
-    shellImportingPackages.length > 0
-      ? { pathNot: `^packages/(${shellImportingPackages.join("|")})/` }
-      : {};
 
   return {
     forbidden: [
@@ -27,10 +23,10 @@ function modelerDependencyCruiserConfig(modelerRoot, modelerRules = {}) {
       {
         name: "packages-no-shell",
         comment:
-          "No published package imports @miragon/modeler-shell; only the apps mount the shell " +
+          "No package imports @miragon/modeler-shell; only the apps mount the shell " +
           "(dependency direction of Miragon/modeler-suite#4).",
         severity: "error",
-        from: { path: "^packages/[^/]+/src", ...exceptShellImportingPackages },
+        from: { path: "^packages/[^/]+/src" },
         to: { path: "@miragon/modeler-shell" },
       },
       {
