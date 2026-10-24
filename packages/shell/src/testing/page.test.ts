@@ -29,6 +29,7 @@ import {
   canvasHandlesProbe,
   canvasKeyProbe,
   clearKeysProbe,
+  editContextProbe,
   findOverlay,
   findTarget,
   focusTarget,
@@ -312,6 +313,23 @@ describe("probes in a page", () => {
     const later = new KeyboardEvent("keydown", { key: "F9", cancelable: true });
     root.querySelector("svg")!.dispatchEvent(later);
     expect(later.defaultPrevented).toBe(false);
+  });
+
+  it("injects a Monaco editor stand-in and, without EditContext, no EditContext one", async () => {
+    const root = buildShell();
+    await expect(inPage(page, injectProbe, { root: ".cd-shell", kind: "monaco" })).resolves.toBe(
+      true,
+    );
+    const monaco = root.querySelector('[data-modeler-shell-conformance="monaco"]')!;
+    expect(monaco.className).toBe("monaco-editor");
+    expect(document.activeElement?.parentElement).toBe(monaco);
+    await inPage(page, removeInjectedProbe, null);
+    // happy-dom has no EditContext, as Firefox and WebKit
+    await expect(inPage(page, editContextProbe, null)).resolves.toBe(false);
+    await expect(
+      inPage(page, injectProbe, { root: ".cd-shell", kind: "editcontext" }),
+    ).resolves.toBe(false);
+    expect(root.querySelector("[data-modeler-shell-conformance]")).toBeNull();
   });
 
   it("reads the focused label editor and the view, and acts without moving the focus", async () => {

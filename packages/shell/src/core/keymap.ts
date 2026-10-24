@@ -57,14 +57,52 @@ function undoRedoLetter(event: KeyLike): string | undefined {
   return undefined;
 }
 
-/** A text field: every input, select list and editable text (label editor, inspector, dialogs). */
+/**
+ * The elements that are text fields: every input, select list and editable text (label editor,
+ * inspector, dialogs). Not the whole rule: test a key's target with `isTextField`, which also counts
+ * EditContext editors and Monaco.
+ */
 export const TEXT_FIELD_SELECTOR =
   "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+
+// Monaco types into an EditContext element or a textarea; the rest of the editor (the buttons of its
+// find widget, its hovers) keeps its keys as well.
+const CODE_EDITOR_SELECTOR = ".monaco-editor";
+
+/** The fields of a key's target that `isTextField` reads; every DOM `Element` has them. */
+interface TextFieldTargetLike {
+  readonly isContentEditable?: unknown;
+  readonly editContext?: unknown;
+  closest(selectors: string): unknown;
+}
+
+function isElementLike(target: unknown): target is TextFieldTargetLike {
+  return (
+    typeof target === "object" &&
+    target !== null &&
+    typeof (target as { closest?: unknown }).closest === "function"
+  );
+}
+
+/**
+ * Whether a key's target is a text field (guide §5.8), where the chrome keys do not act: it matches
+ * `TEXT_FIELD_SELECTOR` or sits inside a match, is `isContentEditable`, edits through an
+ * `EditContext` (`editContext` is set) or sits inside a Monaco editor (`.monaco-editor`). Reads the
+ * target structurally, so it needs no DOM; `false` for `null`, `window` and `document`.
+ */
+export function isTextField(target: unknown): boolean {
+  if (!isElementLike(target)) return false;
+  return (
+    target.isContentEditable === true ||
+    (target.editContext !== undefined && target.editContext !== null) ||
+    target.closest(`${TEXT_FIELD_SELECTOR}, ${CODE_EDITOR_SELECTOR}`) !== null
+  );
+}
 
 /** Where a key was pressed, as the shell's one `keydown` listener sees it. */
 export interface KeyContext {
   host: ShellHost;
-  /** The event target matches `TEXT_FIELD_SELECTOR` or is `isContentEditable`. */
+  /** `isTextField(event.target)`. */
   inTextField: boolean;
   /** The shell's menu dropdown is open. */
   menuOpen: boolean;

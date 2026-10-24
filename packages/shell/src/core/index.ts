@@ -55,6 +55,7 @@ export {
   commandKeyLabel,
   decideKey,
   detectPlatform,
+  isTextField,
   isUndoRedoKey,
   matchChromeKey,
   shortcutLabel,

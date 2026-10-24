@@ -13,6 +13,7 @@ import {
   startScreen,
   toast,
 } from "./support/webapp.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 
 /**
  * The web app's side of the shell's web chrome: what it hands the shell (menu groups, primary
@@ -444,6 +445,22 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
 
     await expect.poll(() => exportText(page)).toBe(EXAMPLE_DOCUMENT);
     await expect(toast(page, "Diagram replaced")).toBeHidden();
+  });
+
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced diagram alone", async ({
+    page,
+  }) => {
+    await openApp(page);
+    await openExample(page);
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect(toast(page, "Diagram replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Diagram replaced")).toBeVisible();
+    expect((await exportDocument(page)).elements).toHaveLength(0);
   });
 
   test("an edit after a replacement withdraws the undo offer; undo is the canvas’s again", async ({

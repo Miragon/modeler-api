@@ -6,6 +6,7 @@ import {
   sampleDocument,
   type TtDocumentJson,
 } from "./support/app.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 import {
   CANVAS,
   deleteElement,
@@ -289,6 +290,22 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await expect(toast(page, "Diagram replaced")).toBeHidden();
   });
 
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced diagram alone", async ({
+    page,
+  }) => {
+    await gotoApp(page, diagramLink(sampleDocument()));
+    await chooseMenuEntry(page, "new-diagram");
+    await expect.poll(async () => (await exportDocument(page)).nodes.length).toBe(0);
+    await expect(toast(page, "Diagram replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Diagram replaced")).toBeVisible();
+    expect((await exportDocument(page)).nodes).toHaveLength(0);
+  });
+
   test("Cmd/Ctrl+Z on a chrome control undoes the canvas", async ({ page }) => {
     await gotoApp(page);
     await startBlankCanvas(page);
@@ -390,6 +407,19 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
     await expect(canvasSvg(page)).toBeFocused();
+  });
+
+  test('"?" in a code editor (EditContext, Monaco) opens no keyboard shortcuts', async ({
+    page,
+  }) => {
+    await gotoApp(page);
+    await loadExample(page);
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "?")).toBe("free");
+    }
+
+    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeHidden();
   });
 
   test("Cmd/Ctrl+S exports the diagram as .ttm.json", async ({ page }) => {

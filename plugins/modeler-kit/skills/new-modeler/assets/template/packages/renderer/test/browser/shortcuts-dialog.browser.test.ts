@@ -131,6 +131,20 @@ describe('the keyboard shortcuts dialog', () => {
     expect(page.dialog.isOpen()).toBe(false);
   });
 
+  it('leaves the key to code editors: an EditContext editor and a Monaco editor', () => {
+    const page = mount();
+    const monaco = page.chrome.root.appendChild(document.createElement('div'));
+    monaco.className = 'monaco-editor';
+    const editors = [monaco.appendChild(document.createElement('div'))];
+    const EditContext = (window as { EditContext?: new () => object }).EditContext;
+    if (EditContext) {
+      const editor = page.chrome.root.appendChild(document.createElement('div'));
+      editors.push(Object.assign(editor, { editContext: new EditContext() }));
+    }
+    for (const editor of editors) expect(press(editor)).toBe(true);
+    expect(page.dialog.isOpen()).toBe(false);
+  });
+
   it('opens nothing over another dialog or the start screen', () => {
     const page = mount();
     const popover = document.createElement('div');

@@ -1195,6 +1195,26 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("keys fails when a zoom binding takes Cmd/Ctrl+= from an EditContext or Monaco editor", async ({
+    page,
+  }) => {
+    // a modeler's own copy of the text field rule from before EditContext and Monaco counted
+    const harness = sabotaged(() => {
+      document.addEventListener("keydown", (event) => {
+        const target = event.target as HTMLElement;
+        const inTextField =
+          target.isContentEditable || target.closest("input, textarea, select") !== null;
+        const modal = document.querySelector('[aria-modal="true"], dialog:modal') !== null;
+        const zoomIn = (event.ctrlKey || event.metaKey) && !event.altKey && event.key === "=";
+        if (zoomIn && !event.defaultPrevented && !inTextField && !modal)
+          window.__demo?.connection.viewport.stepZoom(1);
+      });
+    });
+    await expect(runCase("keys", page, harness)).rejects.toThrow(
+      /Control\+Equal in an EditContext editor changed the zoom[\s\S]*Control\+Equal in a Monaco editor changed the zoom/,
+    );
+  });
+
   test("keys fails when a key outside the IDE host is not prevented", async ({ page }) => {
     const harness = sabotaged(() => {
       const original = Event.prototype.preventDefault;

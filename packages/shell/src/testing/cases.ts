@@ -83,6 +83,7 @@ import {
   armCleanupProbe,
   canvasHandlesProbe,
   clearKeysProbe,
+  editContextProbe,
   findOverlay,
   findTarget,
   focusProbe,
@@ -154,11 +155,16 @@ const REQUESTED_APPEARANCES: readonly Appearance[] = [
   { theme: "light", kontrast: "hoch" },
 ];
 
-/** Every kind of text field a modeler renders: inspector and dialog fields, the label editor. */
+/**
+ * Every kind of text field a modeler or its host renders: inspector and dialog fields, the label
+ * editor, code editors (EditContext, Monaco).
+ */
 const TEXT_FIELDS: ReadonlyArray<readonly [InjectedKind, string]> = [
   ["input", "a text field"],
   ["textarea", "a textarea"],
   ["contenteditable", "an editable label"],
+  ["editcontext", "an EditContext editor"],
+  ["monaco", "a Monaco editor"],
 ];
 
 const UNDO_REDO_PRESSES = [
@@ -726,7 +732,10 @@ const keysCase: ShellConformanceCase = {
     }
 
     await press("Control+Equal", "handled", ONE_STEP_UP);
+    // Only Chromium has EditContext: elsewhere no editor can use it.
+    const editContext = await inPage(page, editContextProbe, null);
     for (const [kind, field] of TEXT_FIELDS) {
+      if (kind === "editcontext" && !editContext) continue;
       await inside(kind, field, async () => {
         await press("Control+Equal", "blocked", "unchanged", `in ${field}`);
         await press("Control+Minus", "blocked", "unchanged", `in ${field}`);

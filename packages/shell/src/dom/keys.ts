@@ -1,4 +1,4 @@
-import { TEXT_FIELD_SELECTOR, decideKey, type ChromeKey, type ShellHost } from "../core/index.js";
+import { decideKey, isTextField, type ChromeKey, type ShellHost } from "../core/index.js";
 
 export interface KeyListenerContext {
   host: ShellHost;
@@ -10,12 +10,6 @@ export interface KeyListenerContext {
   closeMenu(): void;
   hideTooltip(): void;
   run(key: ChromeKey): void;
-}
-
-function isTextField(target: EventTarget | null): boolean {
-  if (!target || typeof (target as Element).closest !== "function") return false;
-  const element = target as HTMLElement;
-  return element.isContentEditable === true || element.closest(TEXT_FIELD_SELECTOR) !== null;
 }
 
 // A dialog a modeler hides through CSS (a class with display: none) is closed as well.

@@ -15,6 +15,7 @@ import {
   startScreen,
   waitForViewer,
 } from "./support/viewer.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 
 /**
  * The web app's side of the shell's web chrome: what it hands the shell (menu groups, primary
@@ -282,6 +283,22 @@ test.describe("replacing the map", () => {
     await canvasSlot(page).locator("svg[tabindex]").first().focus();
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(async () => (await exportMap(page)).elements.length).toBe(2);
+  });
+
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced map alone", async ({
+    page,
+  }) => {
+    await openLink(page, MY_MAP);
+    await menuEntry(page, "new-diagram");
+    await expect.poll(async () => (await exportMap(page)).elements.length).toBe(0);
+    await expect(toast(page, "Map replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Map replaced")).toBeVisible();
+    expect((await exportMap(page)).elements).toHaveLength(0);
   });
 
   test("the undo offer is withdrawn once the new map is edited or replaced again", async ({
@@ -766,6 +783,16 @@ test.describe("keys and dialogs", () => {
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator('[data-chrome="menu"]')).toBeFocused();
+  });
+
+  test("? in a code editor (EditContext, Monaco) opens no keyboard shortcuts", async ({ page }) => {
+    await startNewMap(page);
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "Shift+Slash")).toBe("free");
+    }
+
+    await expect(page.locator("dialog.wardley-shortcuts")).toBeHidden();
   });
 
   test("delete and undo work on the canvas again after a click on the chrome", async ({ page }) => {

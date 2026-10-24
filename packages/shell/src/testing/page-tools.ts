@@ -466,17 +466,24 @@ export type InjectedKind =
   | "input"
   | "textarea"
   | "contenteditable"
+  | "editcontext"
+  | "monaco"
   | "modal"
   | "popover"
   | "dialog"
   | "modal-dialog"
   | "focus-target";
 
+/** The browser has `EditContext` (Chromium), so an `editcontext` stand-in can be injected. */
+export const editContextProbe = (_: null): boolean =>
+  typeof (window as { EditContext?: unknown }).EditContext === "function";
+
 /**
  * Adds a stand-in for what modelers render inside the shell (text fields: an input, a textarea, an
- * editable label; a modal dialog and a popover by their ARIA roles, a `<dialog>` opened with
- * `show()` or `showModal()`, a plain focus target), inside the root or, once it is gone, the body;
- * focuses it.
+ * editable label, an element editing through an `EditContext`, an element inside a Monaco editor; a
+ * modal dialog and a popover by their ARIA roles, a `<dialog>` opened with `show()` or
+ * `showModal()`, a plain focus target), inside the root or, once it is gone, the body; focuses it.
+ * `false` for an `editcontext` stand-in in a browser without `EditContext`.
  */
 export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }): boolean => {
   const tools = (window as ToolWindow).__modelerShellConformance!;
@@ -495,16 +502,24 @@ export const injectProbe = ({ root, kind }: { root: string; kind: InjectedKind }
     element.setAttribute("aria-label", "Conformance stand-in");
     if (kind === "modal") element.setAttribute("aria-modal", "true");
   }
+  if (kind === "editcontext") {
+    const EditContext = (window as { EditContext?: new () => object }).EditContext;
+    if (!EditContext) return false;
+    (element as HTMLElement & { editContext: object | null }).editContext = new EditContext();
+  }
+  // Monaco focuses an element of its own inside .monaco-editor, neither an input nor contenteditable.
+  const focused = kind === "monaco" ? element.appendChild(document.createElement("div")) : element;
+  if (kind === "monaco") element.className = "monaco-editor";
   if (kind === "contenteditable") element.setAttribute("contenteditable", "true");
-  else if (kind !== "input" && kind !== "textarea") element.tabIndex = -1;
+  else if (kind !== "input" && kind !== "textarea") focused.tabIndex = -1;
   host.append(element);
   tools.injected.push(element);
   if (element instanceof HTMLDialogElement) {
     if (kind === "modal-dialog") element.showModal();
     else element.show();
   }
-  element.focus();
-  return document.activeElement === element;
+  focused.focus();
+  return document.activeElement === focused;
 };
 
 export const removeInjectedProbe = (_: null): void => {

@@ -486,10 +486,13 @@ inspector, dialog and popover fields).
 - Ignore every shortcut with `altKey` or while `event.isComposing` is true. Escape during IME
   composition belongs to the IME: it does not close the menu (but in VS Code it is still stopped
   while a menu or dialog is open).
-- A text field is `input`, `textarea`, `select` or `[contenteditable]`: check the event target with
-  `target.closest("input, textarea, select")` or `target.isContentEditable`; this covers the label
-  editor and the fields of inspector, dialogs and popovers. There the zoom keys do not zoom and
-  Shift+1 types `!`.
+- A text field is `input`, `textarea`, `select` or `[contenteditable]`, an element that edits
+  through an `EditContext` and anything inside a Monaco editor: check the event target with the
+  core's `isTextField` (`target.closest(TEXT_FIELD_SELECTOR)`, `target.isContentEditable`,
+  `target.editContext` and `target.closest(".monaco-editor")`); this covers the label editor, the
+  fields of inspector, dialogs and popovers and the code editors a host page embeds (Monaco types
+  into an EditContext element where the browser has one, into a hidden textarea elsewhere). There
+  the zoom keys do not zoom and Shift+1 types `!`.
 - Unmodified `+`/`-` must not be bound anywhere, also not in a modeler's own keyboard module.
 
 ### One place for the keys
