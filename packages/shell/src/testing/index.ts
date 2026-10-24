@@ -5,6 +5,7 @@ export type {
   AbsentFeature,
   DropFixture,
   DropFixtures,
+  EmptyDocument,
   LabelEditorHooks,
   OpenContext,
   RegisterShellConformanceOptions,
