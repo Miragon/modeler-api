@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0](https://github.com/Miragon/modeler-suite/compare/value-chain-webapp-v0.7.1...value-chain-webapp-v0.8.0) (2026-10-24)
+
+
+### Features
+
+* **shell:** treat EditContext and Monaco editors as text fields ([#137](https://github.com/Miragon/modeler-suite/issues/137)) ([ebacfca](https://github.com/Miragon/modeler-suite/commit/ebacfcacbadb6359d6acb2401486a6e9a8da5669))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @miragon/modeler-shell bumped from 0.5.0 to 0.6.0
+    * @miragon/value-chain-renderer bumped from 0.7.1 to 0.7.2
+
 ## [0.7.1](https://github.com/Miragon/value-chain-modeler/compare/webapp-v0.7.0...webapp-v0.7.1) (2026-10-23)
 
 

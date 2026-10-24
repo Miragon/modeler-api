@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0](https://github.com/Miragon/modeler-suite/compare/modeler-shell-v0.5.0...modeler-shell-v0.6.0) (2026-10-24)
+
+
+### Features
+
+* **shell:** check reduced motion, forced colours and canvas overlay layers in the kit ([#146](https://github.com/Miragon/modeler-suite/issues/146)) ([26137c3](https://github.com/Miragon/modeler-suite/commit/26137c336ca2e9e0c26e0866a6dbb15499a6f456))
+* **shell:** report the webview's errors and fail fast when the smoke open fails ([#129](https://github.com/Miragon/modeler-suite/issues/129)) ([cdeab61](https://github.com/Miragon/modeler-suite/commit/cdeab612168cf9969cb53fd99858667961957ab7))
+* **shell:** treat EditContext and Monaco editors as text fields ([#137](https://github.com/Miragon/modeler-suite/issues/137)) ([ebacfca](https://github.com/Miragon/modeler-suite/commit/ebacfcacbadb6359d6acb2401486a6e9a8da5669))
+
+
+### Bug Fixes
+
+* **plugin:** read the new-modeler template's title line in linear time ([092350c](https://github.com/Miragon/modeler-suite/commit/092350c085eec0990932d8a33ff71a207d471b10))
+* **shell:** address the CodeQL alerts in the webview HTML, keymap and sizes ([#126](https://github.com/Miragon/modeler-suite/issues/126)) ([092350c](https://github.com/Miragon/modeler-suite/commit/092350c085eec0990932d8a33ff71a207d471b10))
+* **shell:** fit once more when an open legend settles after the first fit ([#131](https://github.com/Miragon/modeler-suite/issues/131)) ([586b623](https://github.com/Miragon/modeler-suite/commit/586b62302ad361959a33554e34f0d24cdff724ac))
+* **shell:** name a shifted chip's keys for US and German in aria-keyshortcuts ([#154](https://github.com/Miragon/modeler-suite/issues/154)) ([fc2009e](https://github.com/Miragon/modeler-suite/commit/fc2009edad59315cddfa3b5c95c5b3dd05213dd1))
+* **shell:** take the view off 100 % before the labelEditor case's Cmd/Ctrl+0 ([#127](https://github.com/Miragon/modeler-suite/issues/127)) ([66b9d9e](https://github.com/Miragon/modeler-suite/commit/66b9d9eb6fbc07f37ad8f50288e0d09d134a89fe))
+
 ## [0.5.0](https://github.com/Miragon/modeler-api/compare/modeler-shell-v0.4.1...modeler-shell-v0.5.0) (2026-10-23)
 
 
