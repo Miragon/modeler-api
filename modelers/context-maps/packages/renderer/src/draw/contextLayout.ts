@@ -10,7 +10,7 @@ export const TEAM_ICON_SIZE = 14;
 const TEAM_ICON_GAP = 5;
 const TEAM_ROW_FROM_BOTTOM = 12;
 
-/** The people icon and the team's name at the bottom of a context, in context coordinates. */
+/** The team glyph and the team's name at the bottom of a context, in context coordinates. */
 export interface TeamRowLayout {
   /** The icon's left edge, where the row starts. */
   left: number;

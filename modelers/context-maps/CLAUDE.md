@@ -35,6 +35,17 @@ Context Maps notation** and stay as they are, for fidelity to the official notat
 never carries them: it serializes only a bounded context's optional `fill` / `stroke` override. The
 design system applies to everything else (chrome, typography, selection, neutrals, the app icon).
 
+The renderer's own canvas colours come from `MIRAGON`: an unclassified context is `weiss` with a
+`kontur` outline, the team caption and its glyph are `text-leise`, the role chips' frame is `linie`,
+and [`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails on a
+colour literal anywhere else in the renderer's `src/`. On a fill the author set, a context's name
+and team are black or white, whichever has more contrast (guide §10.6, `draw/contextColours.ts`).
+Icons are Lucide (`draw/lucide.ts`), on the canvas too: the team glyph is `users`. The subdomain
+glyphs (a filled star for core, an open hand for supporting, a dotted circle for generic) are
+notation, not function icons, and keep their shapes (guide §3.6, §11); the star and the hand are the
+Material Icons paths `star` and `pan_tool` (Apache-2.0) in `draw/subdomainGlyphs.ts`, named in the
+renderer README's licence notice.
+
 ## Contract and chrome
 
 - **Contract.** The renderer implements the collaborative-modeler contract of

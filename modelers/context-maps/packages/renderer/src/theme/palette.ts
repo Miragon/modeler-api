@@ -34,6 +34,10 @@ export const MIRAGON = {
   weiss: "#FFFFFF",
   /** Fixed light neutral for lines and borders on a light stage. */
   linie: "#E6E2E2",
+  /** Non-text elements that need 3:1 on a light stage: input borders, edges, contours. */
+  kontur: "#8F8A8A",
+  /** Secondary text, at least 4.5:1 on `weiss` and on `grau`. */
+  textLeise: "#6B6666",
   /**
    * Status layer (guide §3.3): fills, borders, icons and dots; as text on white only `danger` and
    * `info` reach AA.
@@ -59,6 +63,8 @@ export const CD_TOKENS: Record<string, string> = {
   "--cd-blau-link": MIRAGON.blauLink,
   "--cd-blau-hell": MIRAGON.blauHell,
   "--cd-linie": MIRAGON.linie,
+  "--cd-kontur": MIRAGON.kontur,
+  "--cd-text-leise": MIRAGON.textLeise,
   "--cd-success": MIRAGON.success,
   "--cd-warning": MIRAGON.warning,
   "--cd-danger": MIRAGON.danger,

@@ -1,8 +1,9 @@
 /**
  * The Lucide icons of the in-canvas chrome (context pad, connect handles, the lasso tool, the
- * shortcuts dialog), inlined so the renderer has no icon runtime dependency. Copied unchanged from
- * lucide-static 1.59.0 (`icon-nodes.json`; ISC, © Lucide Icons and Contributors; `arrow-right`,
- * `circle-x`, `trash`, `triangle-alert` and `x` derive from Feather, MIT, © Cole Bemis).
+ * shortcuts dialog) and of the team glyph on the canvas, inlined so the renderer has no icon
+ * runtime dependency. Copied unchanged from lucide-static 1.59.0 (`icon-nodes.json`; ISC,
+ * © Lucide Icons and Contributors; `arrow-right`, `circle-x`, `trash`, `triangle-alert` and `x`
+ * derive from Feather, MIT, © Cole Bemis).
  */
 export const LUCIDE = {
   "arrow-left-right":
@@ -29,6 +30,9 @@ export const LUCIDE = {
 
 export type LucideIconName = keyof typeof LUCIDE;
 
+/** Guide §11: stroke 2.5 in units of the 24 grid, so the line grows with the icon's size. */
+export const LUCIDE_STROKE_WIDTH = 2.5;
+
 function lucideSvg(name: LucideIconName, size: number, strokeWidth: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${LUCIDE[name]}</svg>`;
 }
@@ -38,7 +42,7 @@ function lucideSvg(name: LucideIconName, size: number, strokeWidth: number): str
  * shell's chrome icons; `currentColor`, so the surrounding role decides the colour.
  */
 export function chromeIcon(name: LucideIconName): string {
-  return lucideSvg(name, 16, 2.5);
+  return lucideSvg(name, 16, LUCIDE_STROKE_WIDTH);
 }
 
 /** A palette tool icon (guide §5.5): 20px with stroke 2, the same 1.67px line as the chrome. */

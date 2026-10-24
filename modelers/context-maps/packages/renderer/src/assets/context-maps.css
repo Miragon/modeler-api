@@ -473,10 +473,11 @@
 }
 
 /* --- Anchored free-text prompt (description via the pad) ------------------ */
-/* A transient popup (it closes on commit, cancel or a view change), so it may cover the palette. */
+/* An editor like the label editor: it stays open through a pan or zoom and follows its pad entry,
+   so it stays at or below 100 and under the palette (guide §5.13). */
 .cm-pad-prompt {
   position: fixed;
-  z-index: 210;
+  z-index: 100;
   min-width: 240px;
   padding: 8px;
   background: var(--cd-ui-flaeche-hoch);

@@ -257,7 +257,10 @@ npm run context-maps typecheck
 ## License
 
 [MIT](../../LICENSE). diagram-js and its dependencies are MIT / ISC / Apache-2.0. The icons of the
-context pad, the connect handles, the validation markers, the lasso and the shortcuts dialog are
-[Lucide](https://lucide.dev) icons (lucide-static 1.59.0, ISC, © Lucide Icons and Contributors),
-copied into `src/draw/lucide.ts`; `arrow-right`, `circle-x`, `trash`, `triangle-alert` and `x` derive
-from [Feather](https://feathericons.com) (MIT, © Cole Bemis).
+context pad, the connect handles, the validation markers, the lasso, the shortcuts dialog and the
+team glyph on the canvas are [Lucide](https://lucide.dev) icons (lucide-static 1.59.0, ISC, © Lucide
+Icons and Contributors), copied into `src/draw/lucide.ts`; `arrow-right`, `circle-x`, `trash`,
+`triangle-alert` and `x` derive from [Feather](https://feathericons.com) (MIT, © Cole Bemis). The
+star and the open hand that mark core and supporting subdomains are notation glyphs, the paths of
+[Material Icons](https://github.com/google/material-design-icons) `star` and `pan_tool` (Apache-2.0,
+© Google LLC), copied into `src/draw/subdomainGlyphs.ts`.
