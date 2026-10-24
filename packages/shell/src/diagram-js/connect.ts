@@ -60,12 +60,39 @@ function contentBoundsOf(options: ConnectOptions): () => Bounds | undefined {
 }
 
 /**
+ * The legend that is open at the start settles a pixel or two wider or narrower once its font has
+ * loaded, which can be after the first fit measured it: the content would sit that much off the
+ * free rectangle's centre. While the card stays open, a change of its size fits once more as long
+ * as the view is still that fit's (`refitIfInsetsChanged`). The watch ends after that fit, when the
+ * legend closes (opening and closing never fit, guide §5.9), once the user zooms or pans, and with
+ * the connection. Returns the function that ends it.
+ */
+function refitWhenLegendSettles(shell: ShellHandle, viewport: DiagramViewport): () => void {
+  const legend = shell.legend;
+  const ResizeObserverClass = globalThis.ResizeObserver;
+  if (!legend?.isOpen() || !ResizeObserverClass) return () => undefined;
+  const observer = new ResizeObserverClass(() => {
+    if (!legend.isOpen() || viewport.refitIfInsetsChanged()) stop();
+  });
+  const unsubscribe = viewport.onChange(() => {
+    if (!viewport.isAutomatic()) stop();
+  });
+  function stop(): void {
+    observer.disconnect();
+    unsubscribe();
+  }
+  observer.observe(legend.element);
+  return stop;
+}
+
+/**
  * Connects a diagram built with `shellModule` to a mounted shell: creates the viewport with
  * `shell.fitInsets` and the content bounds (`options.contentBounds`, else the contract's
  * `options.modeler.contentBounds()`), binds it with `shell.setZoomTarget`, registers the palette
  * (`shell.registerPalette`), keeps the empty-file hint in sync with the diagram (after every
- * `import.done` and `elements.changed`, so the first element created on the canvas hides it) and
- * calls `canvas.resized()`. Throws when `shellModule` or the content bounds are missing.
+ * `import.done` and `elements.changed`, so the first element created on the canvas hides it),
+ * fits once more when an open legend settles after the first fit, and calls `canvas.resized()`.
+ * Throws when `shellModule` or the content bounds are missing.
  */
 export function connectDiagramJs(
   shell: ShellHandle,
@@ -89,6 +116,7 @@ export function connectDiagramJs(
   const isEmpty = options.isEmpty ? () => options.isEmpty?.() === true : () => !viewport.canFit();
   const syncHint: DiagramEventListener = () => shell.setEmptyHint(isEmpty());
   eventBus.on(["import.done", "elements.changed"], HINT_SYNC_PRIORITY, syncHint);
+  const stopLegendWatch = refitWhenLegendSettles(shell, viewport);
 
   let destroyed = false;
   const destroy = (): void => {
@@ -96,6 +124,7 @@ export function connectDiagramJs(
     destroyed = true;
     eventBus.off(["import.done", "elements.changed"], syncHint);
     eventBus.off("diagram.destroy", destroy);
+    stopLegendWatch();
     detachPalette();
     shell.setZoomTarget(null);
     viewport.destroy();

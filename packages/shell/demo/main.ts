@@ -37,6 +37,7 @@ import {
   countDocumentChanges,
   createDemoDiagram,
   createDemoModeler,
+  demoContentBounds,
   type DemoFlaws,
 } from "./demo-diagram.js";
 
@@ -271,6 +272,7 @@ const demo = {
   vscode: vscodeHost,
   flaws,
   documentChanges,
+  contentBounds: () => demoContentBounds(diagram),
   setInvalid,
   destroy(): void {
     if (destroyed) return;

@@ -719,6 +719,25 @@ view refits until the user has zoomed or panned; a 0 × 0 container (hidden tab)
   the container has a size, without a refit at that moment; otherwise the stored view would never
   win.
 
+### The legend settles after the first fit
+
+**Guide [§5.9][guide-5.9].** Rule: every fit, the automatic one too, counts what is open, the legend
+with its width; opening or closing the legend never fits.
+
+- A legend that a stored state opens at the start is measured by the first fit, which can come
+  before the card's font has loaded. The card then settles a pixel or two wider or narrower
+  (Context Maps: about 1.6px), and without a second fit the content stays that much off the free
+  rectangle's centre, which made exact fit tests flaky.
+- `connectDiagramJs` observes the card with a `ResizeObserver` when the legend is open at the
+  connection. A size report while it is still open calls the viewport's `refitIfInsetsChanged`: it
+  fits again (jump) only if `insets()` differs from what the fit that set the current view measured
+  and nothing else has set the view since (a zoom, a pan, a pointer that stopped a fit animation,
+  `restore`, `setState`, `newDocument`). A running fit animation is retargeted instead.
+- A changed container size is left to the resize refit, which also calls `canvas.resized()`.
+- The watch ends after that one fit, when the legend closes, once the view is no longer automatic,
+  and with the connection, so there is no refit loop and a later open never fits. A legend that
+  starts closed is not watched: when the user opens it, its font has long loaded.
+
 ### Detecting a user move
 
 **Guide [§5.9][guide-5.9].** Rule: every viewbox change that does not come from fitting or from

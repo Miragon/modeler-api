@@ -154,6 +154,8 @@ export class DiagramViewport implements Viewport {
   private autoFitDue = false;
   /** A restored view waits for the container to get a size. */
   private pendingView: Bounds | undefined;
+  /** The insets of the fit that set the current view; cleared once anything else sets it. */
+  private fittedInsets: Insets | undefined;
   private animation: { frame: number } | undefined;
   private resizeFrame: number | undefined;
   private destroyed = false;
@@ -249,6 +251,7 @@ export class DiagramViewport implements Viewport {
   newDocument(): void {
     if (this.destroyed) return;
     this.cancelAnimation();
+    this.fittedInsets = undefined;
     this.userMoved = false;
     this.firstFitPending = true;
     this.emptyViewPending = true;
@@ -313,6 +316,22 @@ export class DiagramViewport implements Viewport {
     this.notify();
   }
 
+  /**
+   * Fits again (jump) when `insets()` no longer returns what the fit that set the current view
+   * measured, while nothing else has set the view since: chrome that settles after a fit (the open
+   * legend's card once its font has loaded) would leave the content off the free rectangle's
+   * centre. A fit animation still running is retargeted instead. A container resize is left to the
+   * resize refit. True when it fit again.
+   */
+  refitIfInsetsChanged(): boolean {
+    const fitted = this.fittedInsets;
+    if (this.destroyed || !fitted) return false;
+    const size = this.canvas.getSize();
+    if (size.width !== this.lastSize?.width || size.height !== this.lastSize.height) return false;
+    if (sameInsets(this.options.insets(), fitted)) return false;
+    return this.fitTo(this.animation !== undefined);
+  }
+
   /** `canvas.resized()`; viewbox changes it causes (keep-selection-visible) are not user moves. */
   resized(): void {
     if (this.destroyed) return;
@@ -344,8 +363,10 @@ export class DiagramViewport implements Viewport {
     this.cancelAnimation();
     const bounds = this.options.contentBounds();
     if (!bounds) return false;
-    const target = fitViewbox(bounds, this.canvas.getSize(), this.options.insets());
+    const insets = this.options.insets();
+    const target = fitViewbox(bounds, this.canvas.getSize(), insets);
     if (!target) return false;
+    this.fittedInsets = { ...insets };
     this.userMoved = false;
     this.firstFitPending = false;
     this.autoFitDue = false;
@@ -390,6 +411,8 @@ export class DiagramViewport implements Viewport {
     const animation = this.animation;
     if (!animation) return;
     this.animation = undefined;
+    // The view stops short of the fit's target, so it is no longer that fit's.
+    this.fittedInsets = undefined;
     cancelAnimationFrame(animation.frame);
     if (this.lastWritten) this.reference = this.lastWritten;
   }
@@ -416,6 +439,7 @@ export class DiagramViewport implements Viewport {
 
   /** Shows a restored view now, or once the container has a size. */
   private show(viewbox: Bounds): void {
+    this.fittedInsets = undefined;
     if (hasSize(this.canvas.getSize())) {
       this.pendingView = undefined;
       this.write(viewbox);
@@ -497,6 +521,7 @@ export class DiagramViewport implements Viewport {
       const current = event?.viewbox ?? this.canvas.viewbox();
       if (!this.isOwnView(current)) {
         this.cancelAnimation();
+        this.fittedInsets = undefined;
         this.userMoved = true;
         this.autoFitDue = false;
         this.emptyViewDue = false;
@@ -591,6 +616,10 @@ function toView(box: ScaledViewbox): View {
 
 function hasSize(size: Size): boolean {
   return size.width > 0 && size.height > 0;
+}
+
+function sameInsets(a: Insets, b: Insets): boolean {
+  return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
 }
 
 function hasExtent(bounds: Bounds | undefined): boolean {
