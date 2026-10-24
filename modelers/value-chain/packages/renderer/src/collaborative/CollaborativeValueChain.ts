@@ -50,9 +50,10 @@ export interface CollaborativeValueChainOptions extends CollaborativeModelerOpti
 export interface CollaborativeValueChainModeler extends CollaborativeModeler {
   readonly elements: ElementsSurface & Required<Pick<ElementsSurface, "bounds">>;
   /**
-   * The tight box around every step, org unit and connection (waypoints included) in diagram
-   * coordinates, without a margin of its own; undefined while the diagram has no element. Label
-   * text that overflows its shape is not part of the box, as in the SVG export.
+   * The tight box around every step, org unit and connection (waypoints included) and every label,
+   * also where its text runs past its shape, in diagram coordinates, without a margin of its own;
+   * undefined while the diagram has no element. The SVG export frames the same box. Labels are
+   * measured once per content change, so zoom and scroll leave the box alone.
    */
   contentBounds(): ElementBounds | undefined;
   readonly diagram: Modeler | NavigatedViewer;
