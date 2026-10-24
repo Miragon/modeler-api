@@ -16,11 +16,14 @@ import { OVERLAY_LAYER_LIMIT, overlayLayerProblems, type OverlayLayerFacts } fro
 import {
   canvasLayersProbe,
   contextPadEntriesProbe,
+  emptyCanvasSpotProbe,
   holdWindowOpenProbe,
   labelEditorProbe,
   selectablesProbe,
+  selectedIdsProbe,
   type CanvasLayerFacts,
   type CanvasLayersFacts,
+  type ContextPadEntryFacts,
   type SelectableFacts,
 } from "./facts.js";
 import { DEFAULT_ROOT } from "./geometry.js";
@@ -156,15 +159,47 @@ async function layerProblems<P extends PageLike>(
 const selectables = (page: PageLike, root: string): Promise<SelectableFacts[]> =>
   inPage(page, selectablesProbe, { root });
 
-/** Selects `id` with a click unless it is selected; `false` when no pointer reaches it any more. */
-async function select(page: PageLike, root: string, id: string): Promise<boolean> {
-  const element = (await selectables(page, root)).find((candidate) => candidate.id === id);
-  if (!element) return false;
-  if (!element.selected) {
-    await page.mouse.click(element.client.x, element.client.y);
-    await settle(page);
+const selectable = async (
+  page: PageLike,
+  root: string,
+  id: string,
+): Promise<SelectableFacts | undefined> =>
+  (await selectables(page, root)).find((candidate) => candidate.id === id);
+
+async function click(page: PageLike, point: { x: number; y: number }): Promise<void> {
+  await page.mouse.click(point.x, point.y);
+  await settle(page);
+}
+
+/** Takes the selection off `id`: a click on an empty spot of the canvas, else on `id` itself. */
+async function deselect(page: PageLike, root: string, id: string): Promise<void> {
+  const spot = await inPage(page, emptyCanvasSpotProbe, { root });
+  if (spot) return click(page, spot);
+  const element = await selectable(page, root, id);
+  if (element) await click(page, element.client);
+}
+
+const isSelected = async (page: PageLike, root: string, id: string): Promise<boolean> =>
+  (await inPage(page, selectedIdsProbe, { root })).includes(id);
+
+/**
+ * Selects `id` with a click unless it is selected; `afresh` takes a selection off first, so the
+ * click opens its context pad anew (an entry may have closed it and kept the selection). `false`
+ * when no pointer reaches `id` any more or a click does not select it.
+ */
+async function select(page: PageLike, root: string, id: string, afresh = false): Promise<boolean> {
+  if (await isSelected(page, root, id)) {
+    if (!afresh) return true;
+    await deselect(page, root, id);
   }
-  return true;
+  // The first click may select a neighbour instead, as seen once an entry had added an element.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const element = await selectable(page, root, id);
+    if (!element) return false;
+    await click(page, element.client);
+    if (await isSelected(page, root, id)) return true;
+  }
+  return false;
 }
 
 /**
@@ -188,6 +223,50 @@ function selectionOrder(found: readonly SelectableFacts[]): SelectableFacts[] {
 
 const padActions = async (page: PageLike, root: string): Promise<string[]> =>
   (await inPage(page, contextPadEntriesProbe, { root })).map((entry) => entry.action);
+
+/** One kind of context pad: shape or connection, and its set of entries. */
+const padKind = (kind: SelectableFacts["kind"], actions: readonly string[]): string =>
+  `${kind}: ${[...actions].sort().join(" ")}`;
+
+const padEntry = async (
+  page: PageLike,
+  root: string,
+  action: string,
+): Promise<ContextPadEntryFacts | undefined> =>
+  (await inPage(page, contextPadEntriesProbe, { root })).find(
+    (candidate) => candidate.action === action,
+  );
+
+/**
+ * Entry `action` of the context pad `pad`, shown for a click: on `target`, its pad opened anew when
+ * an earlier entry closed it, else on another element with that pad, since an earlier entry may
+ * have replaced `target` or changed its pad. `null` when no element shows it.
+ */
+async function reachEntry(
+  page: PageLike,
+  root: string,
+  target: { id: string; kind: SelectableFacts["kind"] },
+  pad: string,
+  action: string,
+): Promise<{ id: string; entry: ContextPadEntryFacts } | null> {
+  for (const afresh of [false, true]) {
+    if (!(await select(page, root, target.id, afresh))) break;
+    const entry = await padEntry(page, root, action);
+    if (entry) return { id: target.id, entry };
+  }
+  const others = selectionOrder(
+    (await selectables(page, root)).filter(
+      (element) => element.kind === target.kind && element.id !== target.id,
+    ),
+  );
+  for (const other of others) {
+    if (!(await select(page, root, other.id, true))) continue;
+    if (padKind(other.kind, await padActions(page, root)) !== pad) continue;
+    const entry = await padEntry(page, root, action);
+    if (entry) return { id: other.id, entry };
+  }
+  return null;
+}
 
 /**
  * Guide §5.13: what a modeler leaves in the canvas lies at `z-index` 100 or below, under the
@@ -236,31 +315,36 @@ export const overlayLayersCase: ShellConformanceCase = {
     await inPage(page, holdWindowOpenProbe, null);
     try {
       for (const element of candidates) {
-        if (!(await select(page, root, element.id))) continue;
+        if (!(await select(page, root, element.id, true))) continue;
         const actions = await padActions(page, root);
-        const pad = `${element.kind}: ${[...actions].sort().join(" ")}`;
+        const pad = padKind(element.kind, actions);
         if (pads.has(pad)) continue;
         pads.add(pad);
         problems.push(
           ...(await layerProblems(page, harness, root, `with "${element.id}" selected`)),
         );
+        let targetId = element.id;
         for (const action of actions) {
           const entryKey = `${element.kind}: ${action}`;
           if (DELETING_ENTRY.test(action) || clicked.has(entryKey)) continue;
           clicked.add(entryKey);
-          if (!(await select(page, root, element.id))) break;
-          const entry = (await inPage(page, contextPadEntriesProbe, { root })).find(
-            (candidate) => candidate.action === action,
-          );
-          if (!entry) continue;
-          await page.mouse.click(entry.client.x, entry.client.y);
+          const target = { id: targetId, kind: element.kind };
+          const reached = await reachEntry(page, root, target, pad, action);
+          if (!reached) {
+            problems.push(
+              `canvas: context-pad entry "${action}" of "${targetId}" could not be clicked: once the earlier entries had been clicked, neither that ${element.kind} nor another with its context pad showed it, so the layers it opens were not verified`,
+            );
+            continue;
+          }
+          targetId = reached.id;
+          await page.mouse.click(reached.entry.client.x, reached.entry.client.y);
           await settle(page);
           problems.push(
             ...(await layerProblems(
               page,
               harness,
               root,
-              `after a click on context-pad entry "${action}" of "${element.id}"`,
+              `after a click on context-pad entry "${action}" of "${reached.id}"`,
             )),
           );
           await closeByEscape(page);

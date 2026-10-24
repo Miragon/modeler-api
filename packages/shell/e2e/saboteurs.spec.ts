@@ -1490,6 +1490,40 @@ test.describe("saboteurs", () => {
     );
   });
 
+  test("forcedColors fails when the menu does not open again after a dialog", async ({ page }) => {
+    // a panel that Escape does not close covers the menu trigger, so the next dialog stays unchecked
+    const harness = sabotaged(() => {
+      window.__demo!.shell.menu.setGroups({
+        help: [
+          {
+            kind: "dialog",
+            id: "about",
+            label: "About…",
+            onSelect() {
+              const panel = document.createElement("div");
+              panel.setAttribute("role", "dialog");
+              panel.setAttribute("aria-label", "About");
+              panel.style.cssText =
+                "position:fixed;left:0;top:0;width:320px;height:160px;z-index:1000;background:Canvas;border:1px solid CanvasText;";
+              document.body.append(panel);
+            },
+          },
+          {
+            kind: "dialog",
+            id: "shortcuts",
+            label: "Keyboard shortcuts…",
+            shortcut: "?",
+            onSelect() {},
+          },
+        ],
+      });
+    });
+    const failure = await failureOf("forcedColors", page, harness);
+    expect(failure).toMatch(
+      /forced colours: the menu did not open again after the dialog of "About…", so the border of the dialog of "Keyboard shortcuts…" was not verified/,
+    );
+  });
+
   test("overlayLayers fails for an element toolbar above the palette", async ({ page }) => {
     // Event Storming's note toolbar at z-index 300, which nothing flagged
     const harness = sabotaged(() => {
@@ -1550,7 +1584,8 @@ test.describe("saboteurs", () => {
   test("overlayLayers selects a connection and clicks the entries of its own context pad", async ({
     page,
   }) => {
-    // as Context Maps' relationships, whose own "description" entry opens a prompt of their own
+    // as Context Maps' relationships, whose own "description" entry opens a prompt of their own;
+    // once selected, the line lies under its handles, as Value Chain's links under the bendpoints
     const harness = sabotaged(() => {
       interface DemoElement {
         id: string;
@@ -1565,6 +1600,23 @@ test.describe("saboteurs", () => {
         .get<{ connect(source: DemoElement, target: DemoElement): DemoElement }>("modeling")
         .connect(boxes[0]!, boxes[1]!);
       const container = diagram.get<{ getContainer(): HTMLElement }>("canvas").getContainer();
+      const handles = document.createElement("div");
+      handles.className = "demo-line-handles";
+      handles.style.cssText = "position:absolute;display:none;";
+      container.querySelector("svg")!.after(handles);
+      new MutationObserver(() => {
+        const line = container.querySelector(".djs-connection.selected");
+        handles.style.display = line ? "block" : "none";
+        if (!line) return;
+        const box = line.getBoundingClientRect();
+        const origin = (handles.offsetParent ?? container).getBoundingClientRect();
+        Object.assign(handles.style, {
+          left: `${box.left - origin.left - 8}px`,
+          top: `${box.top - origin.top - 8}px`,
+          width: `${box.width + 16}px`,
+          height: `${box.height + 16}px`,
+        });
+      }).observe(container, { subtree: true, attributes: true, attributeFilter: ["class"] });
       const eventBus = diagram.get<{ once(event: string, callback: () => void): void }>("eventBus");
       diagram.get<{ registerProvider(provider: object): void }>("contextPad").registerProvider({
         getContextPadEntries(element: DemoElement) {
@@ -1594,6 +1646,87 @@ test.describe("saboteurs", () => {
       /canvas: div\.demo-connection-prompt lies at z-index 210 in \.djs-container after a click on context-pad entry "describe" of "[^"]+" and stays when the view zooms, above the palette at 110/,
     );
     expect(failure.match(/lies at z-index/g)).toHaveLength(1);
+  });
+
+  test("overlayLayers clicks a context-pad entry after earlier ones closed the pad and took the element away", async ({
+    page,
+  }) => {
+    // before the note prompt that follows the view: an entry that closes the pad and keeps the
+    // selection, and one that removes the element
+    const harness = sabotaged(() => {
+      interface DemoElement {
+        id: string;
+      }
+      window.__demo!.flaws.notePromptFollowsView = true;
+      const diagram = window.__demo!.diagram;
+      const contextPad = diagram.get<{ close(): void; registerProvider(provider: object): void }>(
+        "contextPad",
+      );
+      const modeling = diagram.get<{ removeElements(elements: DemoElement[]): void }>("modeling");
+      contextPad.registerProvider({
+        getContextPadEntries(element: DemoElement) {
+          return (entries: Record<string, unknown>) => ({
+            dismiss: {
+              group: "edit",
+              title: "Dismiss",
+              html: '<div class="entry">X</div>',
+              action: { click: () => contextPad.close() },
+            },
+            stash: {
+              group: "edit",
+              title: "Stash",
+              html: '<div class="entry">S</div>',
+              action: { click: () => modeling.removeElements([element]) },
+            },
+            ...entries,
+          });
+        },
+      });
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: div\.demo-note-prompt lies at z-index 210 in \.djs-container after a click on context-pad entry "note" of "[^"]+" and stays when the view zooms, above the palette at 110/,
+    );
+    expect(failure).not.toMatch(/was not verified/);
+  });
+
+  test("overlayLayers fails for a context-pad entry that no element shows once an earlier one was clicked", async ({
+    page,
+  }) => {
+    // a lock entry that redraws every pad without Note: the layers of the note prompt go unchecked
+    const harness = sabotaged(() => {
+      interface DemoElement {
+        id: string;
+      }
+      const contextPad = window.__demo!.diagram.get<{
+        open(target: DemoElement, force: boolean): void;
+        registerProvider(provider: object): void;
+      }>("contextPad");
+      let locked = false;
+      contextPad.registerProvider({
+        getContextPadEntries(element: DemoElement) {
+          return ({ note, ...entries }: Record<string, unknown>) => ({
+            lock: {
+              group: "edit",
+              title: "Lock",
+              html: '<div class="entry">L</div>',
+              action: {
+                click() {
+                  locked = true;
+                  contextPad.open(element, true);
+                },
+              },
+            },
+            ...(locked ? {} : { note }),
+            ...entries,
+          });
+        },
+      });
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: context-pad entry "note" of "[^"]+" could not be clicked: once the earlier entries had been clicked, neither that shape nor another with its context pad showed it, so the layers it opens were not verified/,
+    );
   });
 
   test("forcedColors fails in the web host for a status bar, a tool icon, a focus ring and a dropdown border the forcing lost", async ({

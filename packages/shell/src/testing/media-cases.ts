@@ -258,13 +258,30 @@ async function menuAndDialogBorders(
       entry.popup === "dialog" && !entry.disabled && entry.group !== "file" && entry.menuId,
   );
   await closeByEscape(page);
-  for (const entry of entries) {
-    if (!(await openMenuByClick(page, root))) break;
+  let previous: string | undefined;
+  for (const [index, entry] of entries.entries()) {
+    const after = previous === undefined ? "" : ` after the dialog of "${previous}"`;
+    const opened =
+      (await openMenuByClick(page, root)) &&
+      (await inPage(page, menuEntriesProbe, { root })) !== null;
+    if (!opened) {
+      const unchecked = entries.slice(index).map((rest) => `"${rest.name}"`);
+      const what =
+        unchecked.length === 1
+          ? `the border of the dialog of ${unchecked[0]} was`
+          : `the borders of the dialogs of ${unchecked.join(", ")} were`;
+      dialogs.push(`forced colours: the menu did not open again${after}, so ${what} not verified`);
+      break;
+    }
     const item = await inPage(page, menuItemProbe, { root, menuId: entry.menuId! });
     if (!item) {
+      dialogs.push(
+        `forced colours: the open menu no longer shows "${entry.name}"${after}, so the border of its dialog was not verified`,
+      );
       await closeByEscape(page);
       continue;
     }
+    previous = entry.name;
     await page.mouse.click(item.x, item.y);
     await settle(page);
     const panels = await pollUntil(

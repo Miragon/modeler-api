@@ -205,6 +205,16 @@ body:has(> .demo-foreign-page) {
   text-align: right;
 }
 
+/* The shell's high-contrast rules do not reach a modeler's dialog or prompt either (guide §5.3). */
+[data-cd-kontrast="hoch"] :is(.demo-dialog, .djs-container .demo-note-prompt) {
+  border-color: var(--cd-ui-kontur);
+  box-shadow: none;
+}
+
+[data-cd-kontrast="hoch"] .demo-dialog-close:focus-visible {
+  outline-width: 3px;
+}
+
 /* The shell's forced-colours rules do not reach a modeler's dialog (guide §5.14). */
 @media (forced-colors: active) {
   .demo-dialog {

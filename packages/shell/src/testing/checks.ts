@@ -1155,11 +1155,15 @@ export function overlayLayerProblems(facts: OverlayLayerFacts): string[] {
       `canvas: neither Cmd/Ctrl+Plus nor Cmd/Ctrl+Minus at the canvas changed the view ${facts.state}, so whether ${listed} closes on a zoom was not verified`,
     ];
   }
-  const palette = facts.palette === null ? "the palette" : `the palette at ${facts.palette}`;
+  const { palette } = facts;
+  const above = (layer: CanvasLayerFacts) =>
+    palette !== null && layer.zIndex > palette
+      ? `above the palette at ${palette}`
+      : `above the limit of ${OVERLAY_LAYER_LIMIT}${palette === null ? "" : ` (the palette lies at ${palette})`}`;
   const seen = (layer: CanvasLayerFacts) =>
     facts.before.some((before) => before.description === layer.description);
   const problem = (layer: CanvasLayerFacts, behaviour: string) =>
-    `canvas: ${layer.description} lies at z-index ${layer.zIndex} in .djs-container ${facts.state} and ${behaviour}, above ${palette}; an overlay that stays (a toolbar, a prompt, a label editor) lies at ${OVERLAY_LAYER_LIMIT} or below, only a popup that closes on a pan or zoom may cover the palette (guide §5.13)`;
+    `canvas: ${layer.description} lies at z-index ${layer.zIndex} in .djs-container ${facts.state} and ${behaviour}, ${above(layer)}; an overlay that stays (a toolbar, a prompt, a label editor) lies at ${OVERLAY_LAYER_LIMIT} or below, only a popup that closes on a pan or zoom may cover the palette (guide §5.13)`;
   return [
     ...facts.afterZoom.stays
       .filter(seen)

@@ -20,6 +20,7 @@ import {
   paletteFocusProbe,
   readOnlyStateProbe,
   selectablesProbe,
+  selectedIdsProbe,
   shapesProbe,
   surroundProbe,
   zoomButtonsProbe,
@@ -463,6 +464,20 @@ describe("probes in a page", () => {
       delete (document as { elementFromPoint?: unknown }).elementFromPoint;
     }
     await expect(inPage(page, selectablesProbe, { root: ".nothing" })).resolves.toEqual([]);
+  });
+
+  it("names the selected shapes and connections, also where no pointer reaches them", async () => {
+    const root = buildShell();
+    root.querySelector("svg")!.innerHTML = `
+      <g class="djs-element djs-shape selected" data-element-id="box"></g>
+      <g class="djs-element djs-shape" data-element-id="other"></g>
+      <g class="djs-element djs-connection selected" data-element-id="flow"></g>
+      <g class="djs-bendpoints selected" data-element-id="flow"></g>`;
+    await expect(inPage(page, selectedIdsProbe, { root: ".cd-shell" })).resolves.toEqual([
+      "box",
+      "flow",
+    ]);
+    await expect(inPage(page, selectedIdsProbe, { root: ".nothing" })).resolves.toEqual([]);
   });
 
   it("snapshots ARIA, menu and appearance facts", async () => {

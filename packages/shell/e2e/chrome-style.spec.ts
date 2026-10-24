@@ -266,3 +266,41 @@ test.describe("the canvas slot", () => {
     }
   });
 });
+
+test.describe("the demo's own dialog and note prompt", () => {
+  /** Shadow and border of `selector`, and whether its border is the `kontur` role. */
+  function frameOf(page: Page, selector: string) {
+    return page.evaluate((selector) => {
+      const element = document.querySelector(selector);
+      if (!element?.parentElement) throw new Error(`no ${selector}`);
+      const probe = document.createElement("span");
+      probe.style.color = "var(--cd-ui-kontur)";
+      element.parentElement.append(probe);
+      const kontur = getComputedStyle(probe).color;
+      probe.remove();
+      const style = getComputedStyle(element);
+      return { shadow: style.boxShadow, kontur: style.borderTopColor === kontur };
+    }, selector);
+  }
+
+  // A modeler draws them itself, so the shell's high-contrast rules do not reach them (guide §5.3).
+  test("drop their shadow and take the kontur border in high contrast", async ({ page }) => {
+    await open(page, "&kontrast=hoch");
+    await page.locator(".djs-shape").first().click();
+    await page.locator('.djs-context-pad .entry[data-action="note"]').click();
+    expect(await frameOf(page, ".demo-note-prompt")).toEqual({ shadow: "none", kontur: true });
+    await page.keyboard.press("Escape");
+
+    // from the keyboard, so the dialog's first focus, Close, shows its ring
+    await page.locator('[data-chrome="menu"]').focus();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    expect(await frameOf(page, ".demo-dialog")).toEqual({ shadow: "none", kontur: true });
+    const close = await page.evaluate(() => ({
+      focused: document.activeElement?.className,
+      width: getComputedStyle(document.querySelector(".demo-dialog-close")!).outlineWidth,
+    }));
+    expect(close).toEqual({ focused: "demo-dialog-close", width: "3px" });
+  });
+});

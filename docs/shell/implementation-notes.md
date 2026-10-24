@@ -987,7 +987,11 @@ it the palette lies above context pad and label editor.
   overlay that only hides while the view changes and comes back on `canvas.viewbox.changed`: that
   event arrives up to 300ms late, so the case watches for 500ms after the zoom. It reads the
   outermost stacking context below the container: a `z-index` inside another one (diagram-js's
-  overlay container carries a transform) cannot reach above the palette and does not count.
+  overlay container carries a transform) cannot reach above the palette and does not count. An
+  entry it cannot click again fails the case instead of going unchecked. Value Chain's links
+  showed why: once one is selected, diagram-js's bendpoint and segment handles cover the middle
+  and both quarters of its L-shaped line, so the case reads the selection from the `selected`
+  marker, not from a click.
 
 ## Modeler dialogs
 

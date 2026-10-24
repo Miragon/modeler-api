@@ -556,9 +556,11 @@ when they fail; a page without `emulateMedia` skips them with `hook: "open"` (in
 `overlayLayers` (also added after 0.5.0) selects one shape or connection a pointer reaches per kind
 of context pad, a connection among them where the document has one, and clicks each entry of those
 pads once for shapes and once for connections, except one whose `data-action` names a delete or a
-removal, so what the entries open (popup menus, colour pickers, prompts) is checked as well. An
-overlay above the palette must close when the view zooms and stay closed past diagram-js's late
-`canvas.viewbox.changed`. None of the three needs a new harness field.
+removal, so what the entries open (popup menus, colour pickers, prompts) is checked as well. When an
+earlier entry closed the pad or took the element away, it opens the pad again or uses another
+element with the same pad; an entry no element shows any more fails the case instead of going
+unchecked. An overlay above the palette must close when the view zooms and stay closed past
+diagram-js's late `canvas.viewbox.changed`. None of the three needs a new harness field.
 
 `registerShellConformance` declares every test inside the kit, so a runner reports them at the kit's
 source (the package ships `src/` without its tests, so the location resolves). For test locations in

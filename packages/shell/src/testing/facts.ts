@@ -940,6 +940,20 @@ export const selectablesProbe = ({ root }: { root: string }): SelectableFacts[] 
   return found;
 };
 
+/**
+ * The ids of the selected shapes and connections, also of one a pointer no longer reaches: the
+ * bendpoints of a selected connection may cover every point `selectablesProbe` tries on its line.
+ */
+export const selectedIdsProbe = ({ root }: { root: string }): string[] => {
+  const container = document.querySelector(root)?.querySelector(".djs-container");
+  if (!container) return [];
+  return [
+    ...container.querySelectorAll(
+      ".djs-shape.selected[data-element-id], .djs-connection.selected[data-element-id]",
+    ),
+  ].map((element) => element.getAttribute("data-element-id") ?? "");
+};
+
 /** A visible entry of the open context pad. */
 export interface ContextPadEntryFacts {
   /** `data-action` of the entry. */

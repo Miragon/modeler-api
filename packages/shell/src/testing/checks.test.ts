@@ -2995,6 +2995,28 @@ describe("overlayLayerProblems", () => {
     ]);
   });
 
+  it("puts a layer above the palette only where its z-index is, the limit otherwise", () => {
+    const stays = (zIndex: number, palette: number | null) => {
+      const layer = { description: "div.pad-prompt", zIndex };
+      return overlayLayerProblems({
+        state: 'with "a" selected',
+        palette,
+        before: [layer],
+        afterZoom: { stays: [layer], back: [] },
+      }).map((problem) => problem.slice(0, problem.indexOf(";")));
+    };
+    const start = "canvas: div.pad-prompt lies at z-index";
+    const middle = 'in .djs-container with "a" selected and stays when the view zooms';
+    expect(stays(105, 110)).toEqual([
+      `${start} 105 ${middle}, above the limit of 100 (the palette lies at 110)`,
+    ]);
+    expect(stays(110, 110)).toEqual([
+      `${start} 110 ${middle}, above the limit of 100 (the palette lies at 110)`,
+    ]);
+    expect(stays(111, 110)).toEqual([`${start} 111 ${middle}, above the palette at 110`]);
+    expect(stays(300, null)).toEqual([`${start} 300 ${middle}, above the limit of 100`]);
+  });
+
   it("reports a state whose layers no zoom could test", () => {
     expect(
       overlayLayerProblems({ state: "as opened", palette: null, before: [popup], afterZoom: null }),
