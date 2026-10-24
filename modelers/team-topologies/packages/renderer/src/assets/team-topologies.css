@@ -588,17 +588,12 @@
   box-shadow: var(--cd-shadow-1);
 }
 
-.tt-dialog__button--primary:hover:not(:disabled) {
+.tt-dialog__button--primary:is(:hover, :active):not(:disabled) {
   border-color: var(--cd-blau-link);
   background: var(--cd-blau-link);
   color: var(--cd-weiss);
   box-shadow: var(--cd-shadow-2);
   transform: translateY(-1px);
-}
-
-.tt-dialog__button--primary:active:not(:disabled) {
-  box-shadow: var(--cd-shadow-1);
-  transform: translateY(0);
 }
 
 .tt-dialog__button--primary:disabled {

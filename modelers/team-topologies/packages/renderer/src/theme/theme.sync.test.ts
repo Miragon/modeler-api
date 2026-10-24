@@ -280,8 +280,9 @@ describe("theme.sync — team-topologies.css takes every colour from the roles",
     const palette = /var\(--cd-(blau|blau-link|weiss)\)/;
     const rulesWithPalette = rules.filter((rule) => palette.test(rule[2]!));
     expect(rulesWithPalette.length).toBeGreaterThan(0);
+    const topLevelComma = /,(?![^(]*\))/;
     for (const [, selectorList] of rulesWithPalette) {
-      for (const selector of selectorList!.split(",").map((part) => part.trim())) {
+      for (const selector of selectorList!.split(topLevelComma).map((part) => part.trim())) {
         expect(selector).toMatch(primaryButton);
       }
     }

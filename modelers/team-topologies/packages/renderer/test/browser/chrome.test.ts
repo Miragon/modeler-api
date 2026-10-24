@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import {
   CD_TOKENS,
   Modeler,
@@ -19,10 +20,10 @@ import { SAMPLE_DOCUMENT } from "@miragon/team-topologies-schema-model";
  * shell): the menu entries, the shortcuts and title dialogs, styled by the renderer's stylesheet.
  */
 
-const cleanups: Array<() => void> = [];
+const cleanups: Array<() => void | Promise<void>> = [];
 
-afterEach(() => {
-  for (const cleanup of cleanups.splice(0)) cleanup();
+afterEach(async () => {
+  for (const cleanup of cleanups.splice(0)) await cleanup();
 });
 
 function actions(overrides: Partial<DiagramMenuActions> = {}) {
@@ -77,6 +78,16 @@ function closeEventOf(dialog: HTMLDialogElement): Promise<void> {
   return new Promise((resolve) =>
     dialog.addEventListener("close", () => resolve(), { once: true }),
   );
+}
+
+/** A CSS box shadow (a token's `var()`) as the browser computes it. */
+function computedShadow(value: string): string {
+  const probe = document.createElement("span");
+  probe.style.boxShadow = value;
+  document.body.append(probe);
+  const shadow = getComputedStyle(probe).boxShadow;
+  probe.remove();
+  return shadow;
 }
 
 /** A CSS colour (a token's `var()` or hex value) as the browser computes it. */
@@ -416,6 +427,24 @@ describe("createTitleDialog", () => {
     expect(computedColour(interaction)).not.toBe(computedColour(CD_TOKENS["--cd-blau"]));
     expect(getComputedStyle(apply).backgroundColor).toBe(computedColour(CD_TOKENS["--cd-blau"]));
     expect(getComputedStyle(apply).color).toBe(computedColour(CD_TOKENS["--cd-weiss"]));
+  });
+
+  test("lifts Apply in the link blue while a key presses it, with no pointer over it", async () => {
+    const host = chrome();
+    createTitleDialog(host, titleOf("Payments")).open();
+    const { apply } = parts(host.root);
+
+    apply.focus();
+    await userEvent.keyboard("{Space>}");
+    cleanups.push(() => userEvent.keyboard("{/Space}"));
+    await Promise.all(apply.getAnimations().map((animation) => animation.finished));
+
+    expect([apply.matches(":active"), apply.matches(":hover")]).toEqual([true, false]);
+    expect(getComputedStyle(apply).backgroundColor).toBe(
+      computedColour(CD_TOKENS["--cd-blau-link"]),
+    );
+    expect(getComputedStyle(apply).boxShadow).toBe(computedShadow("var(--cd-shadow-2)"));
+    expect(new DOMMatrixReadOnly(getComputedStyle(apply).transform).f).toBe(-1);
   });
 
   test("renames a modeler's diagram as one undo step through ttModeling", async () => {
