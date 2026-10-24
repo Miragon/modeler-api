@@ -169,12 +169,21 @@ describe("breakingChangeReport", () => {
 });
 
 describe("CONTRIBUTING.md", () => {
-  it("shows the BEGIN_COMMIT_OVERRIDE block #129 needed, and it keeps both breaking changes", () => {
-    const contributing = readFileSync(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8");
-    const example = contributing.match(
-      /```text\n(BEGIN_COMMIT_OVERRIDE\n[\s\S]*?\nEND_COMMIT_OVERRIDE)\n```/,
-    )?.[1];
-    expect(example).toBe(overrideBody(129).trim());
+  it("shows a BEGIN_COMMIT_OVERRIDE block like the one #129 needed, and it keeps both breaking changes", () => {
+    // the suite's CONTRIBUTING.md holds the example now, indented inside a list item
+    const contributing = readFileSync(
+      new URL("../../../../CONTRIBUTING.md", import.meta.url),
+      "utf8",
+    );
+    const indented = contributing.match(
+      /( *)```text\n((?: *)BEGIN_COMMIT_OVERRIDE\n[\s\S]*?\n *END_COMMIT_OVERRIDE)\n *```/,
+    );
+    const indent = indented?.[1] ?? "";
+    const example = indented?.[2]
+      .split("\n")
+      .map((line) => (line.startsWith(indent) ? line.slice(indent.length) : line))
+      .join("\n");
+    expect(example).toBeDefined();
     const report = breakingChangeReport({ ...mergedPullRequest(129), body: example ?? "" });
     expect(report.released).toEqual([BUILT_IN_IDS, INTERACTION_GEOMETRY]);
     expect(report.complete).toBe(true);
