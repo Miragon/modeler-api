@@ -16,17 +16,18 @@ the `@miragon/event-storming-*` packages.
 
 ## Run locally
 
-From the monorepo root:
+From the root of the Miragon modeler suite:
 
 ```bash
-npm install
-npm run dev:webapp         # named HTTPS URL via Portless — one-time setup in CONTRIBUTING.md
-npm run dev:webapp:plain   # plain Vite, http://localhost:5180
+npm ci && npm run build:shared            # once
+npm run event-storming dev:webapp         # named HTTPS URL via Portless — one-time setup in the suite's CONTRIBUTING.md
+npm run event-storming dev:webapp:plain   # plain Vite, http://127.0.0.1:5180
 ```
 
 ## Build
 
-`npm run build:webapp` builds what Netlify ships; `npm run check:build -w apps/webapp` then checks
+`npm run event-storming build:webapp` builds what Netlify ships;
+`npm run check:build -w modelers/event-storming/apps/webapp` then checks
 that `dist/index.html` carries the mode markup (theme-color, contrast line, `cd-shell-document`) and
 the bundle keeps the shell's Lucide licence comment. CI runs both.
 

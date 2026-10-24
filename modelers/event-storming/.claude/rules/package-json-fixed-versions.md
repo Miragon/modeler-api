@@ -14,7 +14,8 @@ version** (e.g. `0.1.0`), not a range (`*`). npm links the local workspace becau
 version satisfies the pin. release-please keeps every internal dep reference in sync on each
 release via the **`node-workspace` plugin** in `release-please-config.json` — it automatically
 bumps dependency and peer-dependency pins whenever a workspace package is released, so no
-per-dependency config entries are needed (see [`CLAUDE.md`](../../CLAUDE.md) → Releases). Exact
+per-dependency config entries are needed (see the suite's
+[docs/ci-and-releases.md](../../../../docs/ci-and-releases.md)). Exact
 pinning is enforced in CI by
 [`miragon/pin-npm-dependencies`](https://github.com/Miragon/pin-npm-dependencies).
 

@@ -4,16 +4,19 @@ TypeScript library for viewing and editing [Event Storming](https://www.eventsto
 built on [diagram-js](https://github.com/bpmn-io/diagram-js) (MIT). Shared core for two targets:
 a web app and a VS Code extension.
 
-## Monorepo (npm workspaces)
+This modeler is `modelers/event-storming` in the Miragon modeler suite. The suite's
+[`CLAUDE.md`](../../CLAUDE.md) holds the rules for every modeler (setup, commands, commits and
+signing, exact pins, releases, the design system, the contract and shell boundaries); this file
+adds what is special to Event Storming. Run its scripts from the repository root as
+`npm run event-storming <script>`, or as `npm run <script>` inside `modelers/event-storming`.
 
-Workspaces are declared in the root `package.json` (`workspaces` array, listed in topological
-build order). Versions are pinned to exact values inline in each package's `package.json`
-(`.npmrc` sets `save-exact=true`) — the one exception being consumer-shared runtime libs declared
-as ranged `peerDependencies` (see Conventions) — including internal `@miragon/event-storming-*` deps, which pin
-to the referenced package's **current version** (npm links them to the local workspace because the
-local version satisfies the pin). Exact pinning is enforced in CI by
-[`miragon/pin-npm-dependencies`](https://github.com/Miragon/pin-npm-dependencies) (the `pin-check`
-job).
+## Packages
+
+The workspaces are `packages/*`, `apps/*` and `e2e` of this folder. Internal
+`@miragon/event-storming-*` dependencies pin to the referenced package's **current version** (npm
+links them to the local workspace because the local version satisfies the pin); the one exception
+to exact pins are the consumer-shared runtime libs declared as ranged `peerDependencies` (see
+Conventions).
 
 | Package                                | Purpose                                                             | DOM |
 | -------------------------------------- | ------------------------------------------------------------------- | --- |
@@ -27,35 +30,36 @@ job).
 **P1 — DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
 import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`).
 Enforced twice — ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** `dependency-cruiser`
-— so a violating import fails `npm run lint` and `npm run depcruise`.
+— so a violating import fails `npm run event-storming lint` and `npm run event-storming depcruise`.
 
 ## Commands
 
-- `npm run build` — all packages · `npm run build:webapp` (then `npm run check:build -w apps/webapp`
-  checks the mode markup and the shell's licence comment in `dist`, as CI does) ·
-  `npm run build:vscode`
-- `npm run dev:webapp` (alias: `npm run dev`) serves the webapp via [Portless](https://portless.sh)
-  at a per-worktree `https://<branch>.event-storming.localhost` URL (Portless-derived from the git
-  worktree; config in [`apps/webapp/portless.json`](apps/webapp/portless.json); one-time `npx
-portless service install` — see [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm run dev:webapp:plain`
-  for plain Vite on `:5180`. · `npm run dev:vscode`
-- `npm test` — Vitest · `npm run typecheck` (also `apps/webapp/vite.config.ts`, through
-  `apps/webapp/tsconfig.config.json`) · `npm run lint` (ESLint + typecheck)
-- `npm run test:browser` — Vitest in Chromium (renderer integration, the `@miragon/modeler-api`
-  conformance kit) · `npm run test:e2e` — Playwright, two projects: `webapp` (the web app, incl.
-  the shell conformance kit on the `web` host) and `vscode-webview` (the webview inside the shell's
-  VS Code stub, incl. the kit on the `ide` host); one project with
-  `npm run test:e2e -- --project=vscode-webview`, other ports via `E2E_PORT` /
-  `E2E_WEBVIEW_PORT` (default 5180 / 5190)
-- `npm run test:vscode:docker` — the VS Code smoke test below in a Linux container under
-  `xvfb-run -a` (the shell's `modeler-shell-vscode-docker`): the way to run it locally, since no
-  VS Code window opens; needs Docker, about 7 to 17 s (mostly under 10) once the image and VS Code
-  are cached. It copies the repo in without `node_modules`/`.git`, runs `npm ci` there and brings
-  `test-results/vscode-smoke/` back; options after `--`, e.g.
-  `-- --env VSCODE_VERSION=1.96.0 --env VSCODE_SMOKE_KEEP=1` (VS Code's logs in
-  `vscode-logs/`).
-- `npm run test:vscode` — the packaged extension in a real VS Code on the host, for CI and for
-  watching the window (Vitest project `vscode`,
+- `npm run event-storming build` — all packages; the unit tests resolve the workspace packages from
+  `dist`, so build before `npm run event-storming test` · `npm run event-storming build:webapp`
+  (then `npm run check:build -w modelers/event-storming/apps/webapp` checks the mode markup and the
+  shell's licence comment in `dist`, as CI does) · `npm run event-storming build:vscode`
+- `npm run event-storming dev:webapp` (alias: `npm run event-storming dev`) serves the webapp via
+  [Portless](https://portless.sh) at a per-worktree `https://<branch>.event-storming.localhost` URL
+  (Portless-derived from the git worktree; config in
+  [`apps/webapp/portless.json`](apps/webapp/portless.json); one-time setup in the suite's
+  [`CONTRIBUTING.md`](../../CONTRIBUTING.md#dev-servers)). `npm run event-storming dev:webapp:plain`
+  for plain Vite on `:5180`. · `npm run event-storming dev:vscode`
+- `npm run event-storming test` — Vitest · `npm run event-storming typecheck` (also
+  `apps/webapp/vite.config.ts`, through `apps/webapp/tsconfig.config.json`) ·
+  `npm run event-storming lint` (ESLint + typecheck)
+- `npm run event-storming test:browser` — Vitest in Chromium (renderer integration, the
+  `@miragon/modeler-api` conformance kit) · `npm run event-storming test:e2e` — Playwright, two
+  projects: `webapp` (the web app, incl. the shell conformance kit on the `web` host) and
+  `vscode-webview` (the webview inside the shell's VS Code stub, incl. the kit on the `ide` host);
+  one project with `npm run event-storming test:e2e -- --project=vscode-webview`, other ports via
+  `E2E_PORT` / `E2E_WEBVIEW_PORT` (default 5180 / 5190)
+- `npm run event-storming test:vscode:docker` — the VS Code smoke test below in a Linux container
+  under `xvfb-run -a` (the shell's `modeler-shell-vscode-docker`): the way to run it locally, since
+  no VS Code window opens; needs Docker. It copies the suite in without `node_modules`/`.git`, runs
+  `npm ci` there and brings `test-results/vscode-smoke/` back; options after `--`, e.g.
+  `-- --env VSCODE_VERSION=1.96.0 --env VSCODE_SMOKE_KEEP=1` (VS Code's logs in `vscode-logs/`).
+- `npm run event-storming test:vscode` — the packaged extension in a real VS Code on the host, for
+  CI and for watching the window (Vitest project `vscode`,
   [`apps/vscode/test-smoke/`](apps/vscode/test-smoke/)): packs it as the release does
   (`vsce package`, which runs `vscode:prepublish`), unpacks the VSIX outside the repo and runs the
   shell's `runVsCodeSmoke` (open `smoke.storm`, palette edit, save, undo, the four default themes,
@@ -64,38 +68,19 @@ portless service install` — see [`CONTRIBUTING.md`](CONTRIBUTING.md)). `npm ru
   `VSCODE_VERSION=1.96.0` for another version, `VSCODE_SMOKE_KEEP=1` keeps VS Code's profile
   and logs, `VSCODE_SMOKE_VSIX=<file>` smokes a packaged VSIX instead of packing one. The test is
   not retried: the driver (shell 0.4.1) reads a save only once the tab is clean and repeats a theme
-  switch VS Code missed, so every failure fails the run. In CI the
-  reusable [`.github/workflows/vscode-smoke.yml`](.github/workflows/vscode-smoke.yml) runs it
-  (`xvfb-run -a`, engines floor and newest stable; screenshots and, for a failed run, VS Code's
-  logs as artifacts):
-  as the CI job `vscode-smoke`, which starts VS Code only when a path the VSIX or the smoke
-  depends on changed, weekly through `vscode-smoke-weekly.yml` (a failure opens a tracking
-  issue), and in the release on the VSIX it publishes. Details in
+  switch VS Code missed, so every failure fails the run. When CI runs it is in the suite's
+  [docs/ci-and-releases.md](../../docs/ci-and-releases.md); details in
   [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- `npm run format` — Prettier · `npm run depcruise` — check the module graph
-
-Requirements: Node ≥ 22.22.2, npm. Build packages before running tests (workspace deps resolve to
-`dist`). The Husky pre-commit hook runs **only** lint-staged + `npm run lint` (ESLint + type-check) —
-**not** tests/build/depcruise; run `npm test` yourself before pushing.
-
-## Git
-
-Everything is managed via **Conventional Commits** — primarily `feat`, `fix`, `refactor`, `chore`,
-`docs`. Example: `feat(renderer): add hotspot sticky`.
+- `npm run event-storming format` — Prettier · `npm run event-storming depcruise` — check the
+  module graph
 
 ## Releases
 
-Releases are driven by [release-please](https://github.com/googleapis/release-please) on push to
-`main` ([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml)). The config
-([`release-please-config.json`](release-please-config.json)) declares a **component per package**
-(`schema-model`, `dsl`, `transforms`, `renderer`, `vscode`, `webapp`) with
-`include-component-in-tag: true`, so each released package gets its own version, tag (e.g.
-`renderer-v0.1.1`) and changelog; versions are tracked in
-[`.release-please-manifest.json`](.release-please-manifest.json). The **`node-workspace` plugin**
-automatically bumps every internal `@miragon/event-storming-*` dependency pin (including peer
-dependencies) when a workspace dependency is released — no manual config entries per dependency
-edge are needed. Merging the release PR tags the repo and publishes the released `packages/*`
-libraries to npm (with provenance) and the VS Code extension
+Each package here (`schema-model`, `dsl`, `transforms`, `renderer`, `vscode`, `webapp`) is
+released with its own version and changelog through the suite's one release PR; the mechanics,
+including how internal `@miragon/event-storming-*` pins (peer dependencies included) follow a
+release, are in [docs/ci-and-releases.md](../../docs/ci-and-releases.md). A release publishes the
+`packages/*` libraries to npm (with provenance) and the VS Code extension
 (`miragon-gmbh.event-storming-modeler`) to the VS Code Marketplace and Open VSX.
 
 ## Conventions
@@ -103,30 +88,29 @@ libraries to npm (with provenance) and the VS Code extension
 - Keep core packages (`schema-model`, `dsl`, `transforms`) strictly DOM-free (P1, above).
 - The `.storm` DSL round-trip must stay lossless (unknown lines survive via `rawPassthrough`);
   board JSON serialization must be deterministic. Board transforms are pure functions.
-- Pin **all** `dependencies`/`devDependencies` to exact versions — no version ranges
-  (`^`/`~`/`>=`/`*`), internal workspace deps included (kept in sync by release-please's
-  `node-workspace` plugin). CI-enforced via `miragon/pin-npm-dependencies`. **Exception:**
-  consumer-shared third-party runtime libs (`zod`; `diagram-js`/`didi`/`tiny-svg`) are
-  `peerDependencies` with **caret ranges** so consumers can dedupe against a single copy —
-  mirrored by an exact `devDependency`, with the bundling apps declaring the exact version.
+- Pins follow the suite's rule. **Exception:** consumer-shared third-party runtime libs (`zod`;
+  `diagram-js`/`didi`/`tiny-svg`) are `peerDependencies` with **caret ranges** so consumers can
+  dedupe against a single copy — mirrored by an exact `devDependency`, with the bundling apps
+  declaring the exact version.
   [`peer-dependencies.sync.test.ts`](packages/renderer/test/peer-dependencies.sync.test.ts) fails
   when one of these exact versions falls outside the peer range (after a major bump, widen it:
   `"didi": "^11.0.0 || ^12.0.0"`). See
   [`.claude/rules/package-json-fixed-versions.md`](.claude/rules/package-json-fixed-versions.md).
-- The repo's Claude skills ship as the **`event-storming-modeler` plugin**
-  ([`plugins/event-storming-modeler/`](plugins/event-storming-modeler/)) via the marketplace in
-  [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json): `event-storming` for
-  domain work, `storm-dsl` for the `.storm` text format (grammar, coordinates, round-trip,
-  diagnostics). Install once with `/plugin marketplace add Miragon/event-storming-modeler` and
-  `/plugin install event-storming-modeler@event-storming`; the skill files are readable directly
-  under `plugins/event-storming-modeler/skills/` either way.
+- The modeler's Claude skills ship as the **`event-storming-modeler` plugin**
+  ([`plugins/event-storming-modeler/`](plugins/event-storming-modeler/)) via the suite's
+  marketplace in [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json):
+  `event-storming` for domain work, `storm-dsl` for the `.storm` text format (grammar, coordinates,
+  round-trip, diagnostics). Install once with `/plugin marketplace add Miragon/modeler-suite` and
+  `/plugin install event-storming-modeler@modeler-suite`; the skill files are readable directly
+  under `plugins/event-storming-modeler/skills/` either way. The plugin's `version` lives in its
+  `plugin.json` only.
 - The renderer implements the collaborative-modeler contract 1.3
-  [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api)
+  [`@miragon/modeler-api`](../../packages/api/README.md)
   (`createCollaborativeModeler` / `createCollaborativeViewer`, notation `event-storming`, in
   [`packages/renderer/src/collaborative/`](packages/renderer/src/collaborative/)); its conformance
-  kit runs in `npm run test:browser`, with every harness hook (`moveElement`, `openInteraction`,
-  `interactionState`, `commitInteraction`, …), so a skip or an advisory fails the suite. The
-  DOM-free packages may take only type-only imports from the contract (ESLint and
+  kit runs in `npm run event-storming test:browser`, with every harness hook (`moveElement`,
+  `openInteraction`, `interactionState`, `commitInteraction`, …), so a skip or an advisory fails
+  the suite. The DOM-free packages may take only type-only imports from the contract (ESLint and
   dependency-cruiser). The elements surface lists stickies only, with their live box
   (`elements.bounds`): their ids survive a save and re-open because the serializer writes `(id …)`
   back whenever the parser would not derive the same id at that line; notes, drawings and arrows
@@ -140,29 +124,19 @@ libraries to npm (with provenance) and the VS Code extension
   annotation font has loaded, imports staying in call order, so every fit on import measures it in
   that font. A view change (`setViewState`, a host's fit, scroll, zoom) never commits an open label
   editor: it stays open and follows its element (contract L5).
-- CI: the job `ci-ok` in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is the merge gate;
-  it fails unless every other job succeeded, so **a new CI job goes into its `needs`**. `ci-ok` and
-  the PR-title check are the checks for the `main` ruleset to require, not the single jobs (see
-  [CI and the merge gate](CONTRIBUTING.md#ci-and-the-merge-gate)).
-- Contributor onboarding in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- Contributor notes for this modeler in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Design system (mandatory)
 
-All UI/visual work in this repo MUST follow the Miragon product design system. This is not optional.
-Source of truth: the `miragon-brand:modeler-tool-design` Claude skill in
-[Miragon/corporate-identity](https://github.com/Miragon/corporate-identity). If the plugin is
-installed, the skill auto-loads on UI work; otherwise read the guide directly:
-https://raw.githubusercontent.com/Miragon/corporate-identity/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
-
-Install once: `/plugin marketplace add Miragon/corporate-identity` then
-`/plugin install miragon-brand@miragon`.
+All UI/visual work follows the Miragon product design system (the `miragon-brand:modeler-tool-design`
+skill; see the suite's [`CLAUDE.md`](../../CLAUDE.md#design-system-mandatory)). Here:
 
 The design-system files are vendored **unchanged** from that skill (design system 1.13.0) into
 [`packages/renderer/src/theme/`](packages/renderer/src/theme/): `cd-tokens.generated.css`,
 `cd-tokens.generated.json` and `cd-canvas.css`. The two CSS files carry one extra first line, the
 vendoring header; the JSON is byte-identical. Never edit or reformat them (Prettier-ignored, marked
 `linguist-generated`) and never fork a hex value: re-copy all three from the skill's `assets/` to
-update, re-add the header, and run `npm test`.
+update, re-add the header, and run `npm run event-storming test`.
 [`event-storming.css`](packages/renderer/src/assets/event-storming.css) starts with
 `@import '../theme/cd-tokens.generated.css' layer(event-storming-tokens)`, then `diagram-js.css`,
 then `cd-canvas.css` (unlayered, so its `--bio-*`/`.djs-parent` mapping beats diagram-js's
@@ -203,10 +177,10 @@ its `Modeler`); the webview runs on `createCollaborativeModeler` (the tested con
 the renderer's `eventStormingReadOnly` lock together with `shell.setReadOnly`, the web app keeps
 the canvas's undo keys and replaces a board with an undo toast instead of a confirmation. The
 VSIX ships `apps/vscode/THIRD_PARTY_NOTICES.md`, generated from the bundles
-(`npm run notices -w apps/vscode`; a unit test fails when it is stale); the web bundle keeps the
-shell's Lucide/Feather legal comment.
+(`npm run notices -w modelers/event-storming/apps/vscode`; a unit test fails when it is stale); the
+web bundle keeps the shell's Lucide/Feather legal comment.
 
-Reference implementation in this repo: tokens
+Reference implementation in this modeler: tokens
 [`packages/renderer/src/theme/palette.ts`](packages/renderer/src/theme/palette.ts) · canvas
 colours [`packages/renderer/src/draw/styles.ts`](packages/renderer/src/draw/styles.ts) · in-canvas
 chrome [`packages/renderer/src/assets/event-storming.css`](packages/renderer/src/assets/event-storming.css)
@@ -214,9 +188,3 @@ chrome [`packages/renderer/src/assets/event-storming.css`](packages/renderer/src
 [`packages/renderer/src/board-menu/`](packages/renderer/src/board-menu/) · web app
 [`apps/webapp/src/main.ts`](apps/webapp/src/main.ts) · VS Code webview
 [`apps/vscode/src/webview/`](apps/vscode/src/webview/).
-
-## Code Style
-
-- Write comments only when explicitly requested. Otherwise write self-explanatory code — descriptive
-  function and parameter names, no abbreviations.
-- If comments are needed: make them **WHY**-driven, not **HOW**.

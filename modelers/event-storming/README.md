@@ -1,7 +1,7 @@
 # Event Storming Modeler
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](LICENSE)
-[![CI](https://github.com/Miragon/event-storming-modeler/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/event-storming-modeler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](LICENSE)
+[![CI](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/modeler-suite/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-renderer)](https://www.npmjs.com/package/@miragon/event-storming-renderer)
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.event-storming-modeler.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.event-storming-modeler)
 
@@ -176,12 +176,12 @@ Ship Order -> #agg_order_2
 
 ## Claude Code plugin
 
-Two Claude skills — the Event Storming method and the `.storm` format — ship from this repository
-as a Claude Code plugin, so you can use them in any project:
+Two Claude skills — the Event Storming method and the `.storm` format — ship from the Miragon
+modeler suite as a Claude Code plugin, so you can use them in any project:
 
 ```
-/plugin marketplace add Miragon/event-storming-modeler
-/plugin install event-storming-modeler@event-storming
+/plugin marketplace add Miragon/modeler-suite
+/plugin install event-storming-modeler@modeler-suite
 ```
 
 | Skill            | Covers                                                                                                 |
@@ -190,21 +190,26 @@ as a Claude Code plugin, so you can use them in any project:
 | `storm-dsl`      | The `.storm` format: grammar, suffixes, coordinates and layout, per-level authoring rules, diagnostics |
 
 Claude can then read, review, edit and generate `.storm` boards anywhere. Details in
-[`plugins/event-storming-modeler/`](plugins/event-storming-modeler/); the marketplace manifest is
-[`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json).
+[`plugins/event-storming-modeler/`](plugins/event-storming-modeler/); the suite's marketplace
+manifest is [`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json).
 
 ## Quickstart (development)
 
+The Event Storming Modeler is developed in the [Miragon modeler suite](../../README.md) as
+`modelers/event-storming`. From the repository root:
+
 ```bash
-npm install
-npm run build               # build all packages
-npm test                    # unit tests
-npm run test:vscode:docker  # the packaged VS Code extension in a real VS Code, in Docker (no window)
-npm run dev:webapp          # run the web editor locally
+npm ci && npm run build:shared              # once: every workspace, the shared packages
+npm run event-storming build                # build all packages
+npm run event-storming test                 # unit tests
+npm run event-storming test:vscode:docker   # the packaged VS Code extension in a real VS Code, in Docker (no window)
+npm run event-storming dev:webapp           # run the web editor locally
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full inner loop, browser/e2e tests, the VS Code
-smoke test (locally and in CI) and the Portless dev URL setup.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the modeler's inner loop, browser/e2e tests and the VS
+Code smoke test, the suite's [CONTRIBUTING.md](../../CONTRIBUTING.md) for setup, scripts, hooks,
+conventions and the Portless dev URL setup, and [docs/ci-and-releases.md](../../docs/ci-and-releases.md)
+for CI and releases. Issues go to [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues).
 
 ## Fonts
 
@@ -230,7 +235,7 @@ on the same page takes the Miragon roles too. The canvas is drawn light; exports
 
 ## Acknowledgements
 
-Based on [wardley-maps-modeler](https://github.com/Miragon/wardley-maps-modeler).
+Based on the [Wardley Maps Modeler](../wardley/README.md).
 
 ## License
 
