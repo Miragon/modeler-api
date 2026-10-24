@@ -110,7 +110,7 @@ modelers/
 tooling/               the ESLint and dependency-cruiser presets; each modeler names its DOM-free packages in package.json
 plugins/modeler-kit/   the Claude Code plugin with the new-modeler skill and its template
 .claude-plugin/        the suite's Claude Code marketplace
-test/                  repository-level checks: the modeler-kit drift test, every modeler's boundaries
+test/                  repository-level checks: the modeler-kit drift test, every modeler's boundaries, Dependabot auto-merge
 docs/                  shell implementation notes, CI and releases
 ```
 

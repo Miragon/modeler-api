@@ -30,8 +30,9 @@ branch) and a base that cannot be fetched run everything; so does any path no ru
 ### Jobs
 
 - **Shared** (`shared-lint`, `shared-test`, `shared-e2e`): the type check of modeler-api,
-  modeler-shell and the root tests; their unit tests plus `test:plugin` (the modeler-kit drift tests
-  and the release-config drift test), build and `publint`; the shell's Playwright suite.
+  modeler-shell and the root tests; their unit tests plus `test:plugin` (the repository-level checks
+  in `test/`: the modeler-kit and release-config drift tests, every modeler's boundaries and the
+  Dependabot auto-merge workflow), build and `publint`; the shell's Playwright suite.
 - **Per modeler**, a matrix over the modelers the change reaches, each job named
   `<modeler> / <check>`: `lint` (ESLint, type check, dependency-cruiser), `test` (build, unit tests),
   `test:browser` and `e2e` (in the Playwright image of the root's `playwright` pin), `build` (web app
@@ -159,5 +160,16 @@ packages or the root install changed. Site settings (Site configuration → Buil
   `main` and weekly.
 - [`dependabot.yml`](../.github/dependabot.yml): npm weekly (minor and patch grouped, each major on
   its own, the suite's `@miragon/*` workspaces ignored), GitHub Actions monthly.
-  [`dependabot-automerge.yml`](../.github/workflows/dependabot-automerge.yml) merges green patch and
-  minor updates once auto-merge is enabled for the repository.
+  [`dependabot-automerge.yml`](../.github/workflows/dependabot-automerge.yml) merges green npm
+  patch and minor updates once auto-merge is enabled for the repository. It enables auto-merge with
+  a token of the release-please app: GitHub merges in the name of whoever enabled it, and a merge
+  made with `GITHUB_TOKEN` starts no workflow on `main` (no `ci-ok`, no CodeQL, no release-please).
+  The token gets `contents` and `pull-requests` only and is minted for npm updates only: GitHub
+  merges a change to `.github/workflows` only for a token with the `workflows` permission, so
+  GitHub Actions updates are merged by hand, and so is any ecosystem added to `dependabot.yml`
+  until the workflow names it. It runs on `pull_request_target`, because a run Dependabot starts on
+  `pull_request` gets only Dependabot secrets; that event runs the workflow from `main` with the
+  Actions secrets, so the workflow must never check out or run code of the pull request. GitHub
+  blocks `pull_request_target` in public repositories from 2 December 2026 unless an Actions policy
+  (Settings → Actions → Policies) allows it, so the suite needs one that allows the event for this
+  workflow.

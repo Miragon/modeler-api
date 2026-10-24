@@ -72,10 +72,12 @@ known version), and the new repository's Dependabot moves them on.
    signed (`git commit -S -m "feat: …"`).
 5. **GitHub**: the environments `npm` and `vscode-marketplace`, the secrets `VSCE_PUBLISH` and
    `OVSX_PUBLISH` (in `vscode-marketplace`), the release-please app (`RELEASE_PLEASE_APP_CLIENT_ID`,
-   `RELEASE_PLEASE_APP_PRIVATE_KEY`), required signed commits, and `ci-ok` (the CI gate) and
-   `validate-pr-title` as the only required checks on `main`, once `ci-ok` has run there (see
-   [repository](references/repository.md#the-merge-gate)). The first release of every npm
-   package is published by hand once, see
+   `RELEASE_PLEASE_APP_PRIVATE_KEY`; Dependabot's auto-merge uses it too), required signed commits,
+   and `ci-ok` (the CI gate) and `validate-pr-title` as the only required checks on `main`, once
+   `ci-ok` has run there (see [repository](references/repository.md#the-merge-gate)). A public
+   repository also needs an Actions policy that allows `pull_request_target` for
+   `dependabot-automerge.yml` (see [repository](references/repository.md#dependabot)). The first
+   release of every npm package is published by hand once, see
    [releases](references/releases.md#first-release-of-a-package).
 6. Replace the toy notation, test by test: the grammar in `packages/dsl`, the model in
    `packages/schema-model`, shapes and tools in `packages/renderer`, the fixtures of the

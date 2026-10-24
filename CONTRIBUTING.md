@@ -46,7 +46,7 @@ Everything runs from the repository root.
 | `npm run format` / `npm run format:check`   | Prettier over the whole repository, one config                                                        |
 | `npm run depcruise`                         | every modeler's module-graph rules                                                                    |
 | `npm run publint`                           | the published shape (exports, types, files) of the shared packages                                    |
-| `npm run test:plugin`                       | the modeler-kit drift test and the manifests of every plugin in the marketplace                       |
+| `npm run test:plugin`                       | the checks in `test/`: modeler-kit drift, plugin manifests, release config, boundaries, auto-merge    |
 | `npm run test:browser` / `npm run test:e2e` | every modeler's browser tests / e2e suites (`test:e2e` also the shell's)                              |
 | `npm run package:vscode`                    | packs every VS Code extension (`modelers/<modeler>/apps/vscode/*.vsix`)                               |
 
