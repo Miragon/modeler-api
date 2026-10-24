@@ -125,14 +125,29 @@ function contextFailures(visual: SVGGElement, id: string): string[] {
 }
 
 /**
- * A relationship: the line and each chip's border on the ground; a chip's text on the chip it
- * sits in (a translucent chip over the line under it), a direction letter on its paper halo.
+ * The boxes a relationship draws: a symmetric pattern's chip, whose border is a line; an
+ * integration role's chip, one filled area named by its text; the decorative `linie` frame
+ * around the role chips.
+ */
+const CHIP_KINDS = {
+  pattern: "cm-pattern-chip",
+  role: "cm-role-chip",
+  frame: "cm-role-frame",
+} as const;
+
+function chipsOf(visual: SVGGElement, kind: keyof typeof CHIP_KINDS): SVGRectElement[] {
+  return [...visual.querySelectorAll<SVGRectElement>(`rect.${CHIP_KINDS[kind]}`)];
+}
+
+/**
+ * A relationship: the line and each pattern chip's border on the ground; a chip's text on the chip
+ * it sits in (a translucent chip over the line under it), a direction letter on its paper halo.
  */
 function relationshipFailures(visual: SVGGElement, id: string): string[] {
   const line = visual.querySelector("polyline")!;
   const lineColour = paint(line, "stroke");
   const pairs = [pairBelow(`${id} line`, lineColour, CANVAS_GROUND, NON_TEXT_CONTRAST)];
-  for (const chip of visual.querySelectorAll('rect[rx="4"]')) {
+  for (const chip of chipsOf(visual, "pattern")) {
     pairs.push(
       pairBelow(`${id} chip border`, paint(chip, "stroke"), CANVAS_GROUND, NON_TEXT_CONTRAST),
     );
@@ -142,7 +157,9 @@ function relationshipFailures(visual: SVGGElement, id: string): string[] {
     const style = getComputedStyle(text);
     const haloed = style.paintOrder.startsWith("stroke") && style.stroke !== "none";
     const chip = text.previousElementSibling;
-    if (!haloed) expect(chip?.tagName, `${name} sits on a chip`).toBe("rect");
+    if (!haloed) {
+      expect(chip?.matches(".cm-pattern-chip, .cm-role-chip"), `${name} sits on a chip`).toBe(true);
+    }
     const surface = haloed ? style.stroke : surfaceOf(chip!, lineColour);
     pairs.push(pairBelow(name, style.fill, surface, TEXT_CONTRAST));
   }
@@ -154,6 +171,21 @@ test("every text the canvas draws reaches 4.5:1 and every line 3:1, with no exce
   try {
     const doc = everyNotation();
     modeler.importDocument(doc);
+    const relationships = doc.relationships.map(({ id }) => visualOf(container, id));
+    const count = (kind: keyof typeof CHIP_KINDS) =>
+      relationships.reduce((sum, visual) => sum + chipsOf(visual, kind).length, 0);
+    expect({ pattern: count("pattern"), role: count("role"), frame: count("frame") }).toEqual({
+      pattern: 3,
+      role: 7,
+      frame: 6,
+    });
+    for (const visual of relationships) {
+      expect(visual.querySelectorAll("rect").length, "every box is a known chip").toBe(
+        chipsOf(visual, "pattern").length +
+          chipsOf(visual, "role").length +
+          chipsOf(visual, "frame").length,
+      );
+    }
     const failures = [
       ...doc.contexts.flatMap(({ id }) => contextFailures(visualOf(container, id), id)),
       ...doc.relationships.flatMap(({ id }) => relationshipFailures(visualOf(container, id), id)),
@@ -194,8 +226,11 @@ test("the role chips write in black or white, whichever reads better on the chip
     modeler.importDocument(everyNotation());
     const textColours: Record<string, string> = {};
     for (const id of ["upstream-downstream", "conformist"]) {
-      for (const chip of visualOf(container, id).querySelectorAll('rect[rx="3"]')) {
+      for (const chip of chipsOf(visualOf(container, id), "role")) {
         const text = chip.nextElementSibling!;
+        expect(paint(chip, "stroke"), `${text.textContent} has no border of its own`).toBe(
+          paint(chip, "fill"),
+        );
         textColours[text.textContent!] = paint(text, "fill");
       }
     }
@@ -217,7 +252,9 @@ test("a symmetric pattern's chip writes in black on paper, bordered in the patte
     modeler.importDocument(everyNotation());
     for (const id of ["partnership", "shared-kernel", "separate-ways"]) {
       const visual = visualOf(container, id);
-      const chip = visual.querySelector('rect[rx="4"]')!;
+      const chips = chipsOf(visual, "pattern");
+      expect(chips, id).toHaveLength(1);
+      const chip = chips[0];
       expect(paint(chip.nextElementSibling!, "fill"), id).toBe(COMPUTED.schwarz);
       expect(paint(chip, "fill"), id).toBe(COMPUTED.weiss);
       expect(paint(chip, "stroke"), id).toBe(paint(visual.querySelector("polyline")!, "stroke"));

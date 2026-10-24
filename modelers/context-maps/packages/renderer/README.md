@@ -232,10 +232,12 @@ coloured by subdomain type (core / supporting / generic) with their glyphs; and 
 as lines styled per context-mapping pattern (partnership, shared kernel, customer-supplier,
 upstream-downstream, separate ways), carrying the pattern abbreviation, U/D end markers and the
 OHS/PL/ACL/CF integration-role badges. Labels are word-wrapped and centred. Per-element `fill`/`stroke`
-overrides win over the spec defaults. Every text keeps 4.5:1 on what it sits on and every line 3:1
-on the canvas ground: the subdomain badge and the team caption are `--cd-text-leise`, and a context's
-name, a role badge's text and any text on a fill the author set are black or white, whichever has
-more contrast. A symmetric pattern's chip writes black on paper, bordered in the pattern's colour.
+overrides win over the spec defaults. Every text keeps 4.5:1 on what it sits on; the box outlines,
+the relationship lines and the borders of the symmetric patterns' chips keep 3:1 on the canvas
+ground. The subdomain badge and the team caption are `--cd-text-leise`, and a context's name, a role
+badge's text and any text on a fill the author set are black or white, whichever has more contrast.
+A role badge is one filled chip named by its text; the frame around the badges is the decorative
+`--cd-linie`. A symmetric pattern's chip writes black on paper, bordered in the pattern's colour.
 
 ## Import / export
 

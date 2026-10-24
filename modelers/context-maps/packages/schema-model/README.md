@@ -104,8 +104,9 @@ The **integration roles** that decorate the ends of asymmetric relationships com
 renderer writes black or white on each role chip, whichever has more contrast; `MARK_TEXT_COLOR`
 (white on every chip) is deprecated.
 
-The values are tuned for contrast on the canvas: every text 4.5:1, every line 3:1. A document never
-stores them, only a context's own `fill` / `stroke`, so a tuned value changes no document.
+The values are tuned for contrast on the canvas: every text 4.5:1 on what it sits on, every box
+outline and relationship line 3:1 on the canvas ground. A document never stores them, only a
+context's own `fill` / `stroke`, so a tuned value changes no document.
 
 ## Usage
 

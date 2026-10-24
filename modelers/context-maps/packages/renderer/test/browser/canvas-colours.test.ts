@@ -210,10 +210,10 @@ test("the role chips sit in a --cd-linie frame, each bordered in its own colour"
   try {
     modeler.importDocument(colourfulMap());
     const visual = visualOf(container, "roles");
-    const frames = [...visual.querySelectorAll('rect[rx="6"]')];
+    const frames = [...visual.querySelectorAll("rect.cm-role-frame")];
     expect(frames).toHaveLength(2);
     for (const frame of frames) expect(paint(frame, "stroke")).toBe(TOKEN.linie);
-    const chips = [...visual.querySelectorAll('rect[rx="3"]')];
+    const chips = [...visual.querySelectorAll("rect.cm-role-chip")];
     expect(chips).toHaveLength(3);
     for (const chip of chips) expect(paint(chip, "stroke")).toBe(paint(chip, "fill"));
   } finally {

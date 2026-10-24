@@ -55,10 +55,13 @@ export function contextIconSvg(type?: SubdomainType): string {
   );
 }
 
-/** The bare subdomain glyph (star / hand / dotted circle) without the box — legend rows. */
+/**
+ * The bare subdomain glyph (star / hand / dotted circle) without the box — legend rows. With no box
+ * around it, it keeps the type's outline colour as its colour cue; each outline holds 3:1.
+ */
 export function subdomainIconSvg(type: SubdomainType, size = 18): string {
   const s = SUBDOMAIN_TYPE_SPECS[type] as SubdomainTypeSpec | undefined;
-  const color = contextBadgeColour({ subdomainType: type });
+  const color = s?.stroke ?? NEUTRAL_STROKE;
   const inner =
     !s || type === "generic"
       ? `<circle cx="12" cy="12" r="9" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="2.4 2.4"/>`

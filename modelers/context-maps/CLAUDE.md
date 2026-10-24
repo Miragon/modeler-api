@@ -32,28 +32,33 @@ shell's `SHELL` sizes to the vendored `shell` tokens. The subdomain-type fills a
 relationship-pattern strokes and the integration-role marker colours in
 [`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the Context
 Maps notation. They follow the conventions of strategic DDD context maps, not the fixed values of an
-official template, so they may be tuned for contrast: every text reaches 4.5:1 on what it sits on,
-every structural line (box outlines, relationship lines, chip borders) 3:1 on the canvas ground and
-every subdomain glyph 3:1 on its box, with **no exception** (guide §3.6, §10.6; the exception for
-official notation strokes there covers only Team Topologies). The Supporting outline, the Separate Ways line and the OHS and ACL markers
-are darkened for that, each by the smallest step at the same hue. A document never carries these
-values: it serializes only a bounded context's optional `fill` / `stroke` override, so a tuned value
-changes no document.
+official template, so they may be tuned for contrast. Every text reaches 4.5:1 on what it sits on,
+every subdomain glyph 3:1 on its box, and every line 3:1 on the canvas ground: the box outlines, the
+relationship lines and the borders of the symmetric patterns' chips. No stroke is exempt (guide
+§3.6, §10.6; the exception there for official notation strokes covers only Team Topologies). The
+Supporting outline, the Separate Ways line and the OHS and ACL markers are darkened for that, each
+by the smallest step at the same hue. A role chip (OHS, PL, ACL, CF) is one filled area without a
+border of its own: its text names the role with at least 4.5:1 on the chip, and its fill is a colour
+cue next to that text, not a line (the PL fill `#c99a2e` has 2.58:1 on the paper of its frame). The
+frame around the role chips is the decorative `linie`, which carries no contrast claim (guide §3.2).
+A document never carries the notation's values: it serializes only a bounded context's optional
+`fill` / `stroke` override, so a tuned value changes no document.
 [`test/notation-contrast.test.ts`](packages/renderer/test/notation-contrast.test.ts) checks every
 pair of the notation and the palette and legend previews,
 [`test/browser/notation-contrast.test.ts`](packages/renderer/test/browser/notation-contrast.test.ts)
-measures every text and line the canvas draws. The design system applies to everything else
-(chrome, typography, selection, neutrals, the app icon).
+measures every text and line the canvas draws; it tells the chips apart by their classes
+(`cm-pattern-chip`, `cm-role-chip`, `cm-role-frame`) and counts them. The design system applies to
+everything else (chrome, typography, selection, neutrals, the app icon).
 
 The renderer's own canvas colours come from `MIRAGON`: an unclassified context is `weiss` with a
 `kontur` outline, the team caption and its glyph are `text-leise`, and so is the subdomain badge
-(the type's name and glyph; the box keeps the type's fill and outline as the colour cue). The role
-chips' frame is `linie`, and
-[`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails on a colour
-literal anywhere else in the renderer's `src/`. On a fill the author set, a context's name, team and
-badge are black or white, whichever has more contrast (guide §10.6, `draw/contextColours.ts`). The
-same rule picks each role chip's text (PL and CF black, OHS and ACL white), and a symmetric
-pattern's chip writes black on paper, bordered in the pattern's colour
+(the type's name and glyph; the box keeps the type's fill and outline as the colour cue). The bare
+glyph without a box (`subdomainIconSvg`) keeps the type's outline colour. The role chips' frame is
+`linie`, and [`test/context-colours.test.ts`](packages/renderer/test/context-colours.test.ts) fails
+on a colour literal anywhere else in the renderer's `src/`. On a fill the author set, a context's
+name, team and badge are black or white, whichever has more contrast (guide §10.6,
+`draw/contextColours.ts`). The same rule picks each role chip's text (PL and CF black, OHS and ACL
+white), and a symmetric pattern's chip writes black on paper, bordered in the pattern's colour
 (`draw/relationshipColours.ts`).
 Icons are Lucide (`draw/lucide.ts`), on the canvas too: the team glyph is `users`. The subdomain
 glyphs (a filled star for core, an open hand for supporting, a dotted circle for generic) are

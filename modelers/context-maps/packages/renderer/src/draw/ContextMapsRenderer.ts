@@ -266,6 +266,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     const cy = center.y;
 
     const parent = svgAttr(svgCreate("rect"), {
+      class: "cm-role-frame",
       x: box.x,
       y: box.y,
       width: box.width,
@@ -298,6 +299,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
   ): void {
     const fill = markFill(text);
     const bg = svgAttr(svgCreate("rect"), {
+      class: "cm-role-chip",
       x: cx - w / 2,
       y: cy - h / 2,
       width: w,
@@ -339,6 +341,7 @@ export default class ContextMapsRenderer extends BaseRenderer {
     const w = text.length * charW + padX * 2;
     const h = FONT.small + 8;
     const bg = svgAttr(svgCreate("rect"), {
+      class: "cm-pattern-chip",
       x: cx - w / 2,
       y: cy - h / 2,
       width: w,

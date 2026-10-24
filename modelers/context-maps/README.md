@@ -27,7 +27,8 @@ Bounded contexts are boxes, coloured by **subdomain type**; relationships are li
 encodes coordination bandwidth (partnership / shared kernel are thick, separate ways is thin). The
 single source of truth for the colours and strokes below is
 [`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts). They are tuned so
-that every text on the canvas keeps 4.5:1 and every line 3:1; a document stores only a context's own
+that every text on the canvas keeps 4.5:1 on what it sits on and every box outline, relationship
+line and pattern-chip border 3:1 on the canvas ground; a document stores only a context's own
 `fill` / `stroke`, never these values.
 
 ### Subdomain types

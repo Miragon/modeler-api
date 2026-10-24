@@ -182,17 +182,14 @@ describe("notation contrast: the palette and legend previews draw the canvas col
       const fill = attributeOf(box, "rect", "fill");
       const stroke = attributeOf(box, "rect", "stroke");
       const glyph = glyphColourOf(box);
+      const bareGlyph = glyphColourOf(parseSvg(subdomainIconSvg(spec.type)));
       expect(glyph).toBe(contextBadgeColour({ subdomainType: spec.type }));
+      expect(bareGlyph, "the bare glyph keeps the type's colour").toBe(spec.stroke);
       expect(
         failures([
           pairBelow("outline", stroke, CANVAS_GROUND, NON_TEXT_CONTRAST),
           pairBelow("glyph", glyph, fill, NON_TEXT_CONTRAST),
-          pairBelow(
-            "bare glyph",
-            glyphColourOf(parseSvg(subdomainIconSvg(spec.type))),
-            CANVAS_GROUND,
-            NON_TEXT_CONTRAST,
-          ),
+          pairBelow("bare glyph", bareGlyph, CANVAS_GROUND, NON_TEXT_CONTRAST),
         ]),
       ).toEqual([]);
     },
