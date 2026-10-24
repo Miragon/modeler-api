@@ -5,11 +5,14 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 /**
- * Drift guard: guide §2 (brand-lint A2) allows no em dash as a connector in what the modeler says
- * to its users: diagnostics, toasts, tooltips, labels. brand-lint reads only the colours of a
- * TypeScript file, so this test reads its strings.
+ * Drift guard: guide §2 (brand-lint A2) allows no dash as a connector in what the modeler says to
+ * its users: diagnostics, toasts, tooltips, labels. brand-lint reads only the colours of a
+ * TypeScript file, so this test reads its strings, with A2's own pattern: an em dash, or an en dash
+ * after a space and before a space, a punctuation mark or the end. Ranges such as `2–4` pass.
  */
 const modelerRoot = fileURLToPath(new URL("../../../", import.meta.url));
+
+const CONNECTOR_DASH = /—| –(?=[\s,;.:!?)]|$)/;
 
 const SOURCE_DIRECTORIES = [
   "packages/schema-model/src",
@@ -53,20 +56,25 @@ function literals(file: string): { line: number; text: string }[] {
   return found;
 }
 
-describe("user-texts.sync: the modeler's texts join without an em dash (guide §2)", () => {
+describe("user-texts.sync: the modeler's texts join without a connector dash (guide §2)", () => {
   it("finds the literals to check", () => {
     const parser = join(modelerRoot, "packages/dsl/src/parser.ts");
     expect(literals(parser).some(({ text }) => text.includes("Line not understood"))).toBe(true);
   });
 
-  it("has no em dash in a string, template or regular-expression literal of a package or app", () => {
-    const withEmDash = SOURCE_DIRECTORIES.flatMap((directory) =>
+  it("flags an em dash and a spaced en dash, but not a range", () => {
+    const texts = ["Not found — kept", "Not found – kept", "Not found –", "From 0.2–0.4"];
+    expect(texts.map((text) => CONNECTOR_DASH.test(text))).toEqual([true, true, true, false]);
+  });
+
+  it("has no connector dash in a string, template or regular-expression literal of a package or app", () => {
+    const withConnectorDash = SOURCE_DIRECTORIES.flatMap((directory) =>
       sourceFiles(join(modelerRoot, directory)).flatMap((file) =>
         literals(file)
-          .filter(({ text }) => text.includes("—"))
+          .filter(({ text }) => CONNECTOR_DASH.test(text))
           .map(({ line, text }) => `${relative(modelerRoot, file)}:${line} ${text}`),
       ),
     );
-    expect(withEmDash).toEqual([]);
+    expect(withConnectorDash).toEqual([]);
   });
 });
