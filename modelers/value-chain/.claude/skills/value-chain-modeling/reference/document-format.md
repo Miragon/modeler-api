@@ -54,8 +54,8 @@ files diff cleanly).
 - `color` (optional): CSS color string that fills the shape instead of white. The contour stays
   near-black, the label turns black or white, whichever contrasts more with the fill. The
   editor's picker writes the Miragon palette and status colours: `#335DE5` blue, `#00E676`
-  green, `#1D1D1D` black, `#FFB000` amber, `#CD1839` red. Older files may hold other values (such
-  as `hsl(…)`), which keep rendering as fills.
+  green, `#F9F7F7` gray, `#1D1D1D` black, `#FFFFFF` white, `#FFB000` amber, `#CD1839` red. Older
+  files may hold other values (such as `hsl(…)`), which keep rendering as fills.
 - `link` (steps only, optional): opaque drill-down reference to a more detailed model.
 - `waypoints`: ≥ 2 points. Rough values are fine — the editor crops endpoints to the shape
   contours and fully re-routes hierarchy edges from geometry on the next interaction.

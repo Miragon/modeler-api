@@ -10,7 +10,7 @@ import type { Bounds } from "@miragon/value-chain-schema-model";
 import { shapeColors } from "./fill.js";
 import { chevronPath, chevronPathAt, ellipsePathAt, labelInset } from "./geometry.js";
 import { labelTextBox } from "./labelBox.js";
-import { COLORS, FONT, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
+import { COLORS, FONT, LABEL_HALO_WIDTH, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
 import {
   isOrgUnit,
   isVcConnection,
@@ -121,7 +121,15 @@ export default class VcRenderer extends BaseRenderer {
           left: inset,
           right: inset,
         },
-        style: { fill: colors.label },
+        style: colors.halo
+          ? {
+              fill: colors.label,
+              stroke: colors.halo,
+              "stroke-width": LABEL_HALO_WIDTH,
+              "stroke-linejoin": "round",
+              "paint-order": "stroke",
+            }
+          : { fill: colors.label },
       });
       svgAppend(visuals, label);
       const box = labelTextBox(label as SVGTextElement);

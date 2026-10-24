@@ -62,12 +62,14 @@ describe("the colour picker follows guide §10.6", () => {
     }
   });
 
-  it("offers every palette and status hue once that differs from the white plot", () => {
+  it("offers the palette's fill colours, then the status colours the palette lacks, each once", () => {
     expect(COLOR_OPTIONS.map((option) => [option.label, option.color])).toEqual([
       ["Default", undefined],
       ["Blue", fest["--cd-blau"]],
       ["Green", fest["--cd-gruen"]],
+      ["Gray", fest["--cd-grau"]],
       ["Black", fest["--cd-schwarz"]],
+      ["White", fest["--cd-weiss"]],
       ["Amber", fest["--cd-warning"]],
       ["Red", fest["--cd-danger"]],
     ]);
