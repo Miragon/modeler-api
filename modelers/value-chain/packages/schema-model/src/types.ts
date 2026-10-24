@@ -28,7 +28,10 @@ export interface StepElement {
   readonly elementType: "step";
   readonly name: string;
   readonly bounds: Bounds;
-  /** Optional stroke/accent color (CSS color string). */
+  /**
+   * Optional fill colour (CSS colour string). The contour stays ink and the label turns black or
+   * white, whichever contrasts more with the fill.
+   */
   readonly color?: string;
   /** Opaque reference to a more detailed model (drill-down), unused by the editor UI. */
   readonly link?: string;
@@ -40,7 +43,10 @@ export interface OrgUnitElement {
   readonly elementType: "orgUnit";
   readonly name: string;
   readonly bounds: Bounds;
-  /** Optional stroke/accent color (CSS color string). */
+  /**
+   * Optional fill colour (CSS colour string). The contour stays ink and the label turns black or
+   * white, whichever contrasts more with the fill.
+   */
   readonly color?: string;
 }
 
@@ -50,10 +56,10 @@ export type ConnectionType = "sequence" | "hierarchy" | "assignment";
 
 /**
  * A relation between diagram elements:
- * - `sequence`   — "ist Vorgänger von" between steps, dashed with an arrowhead.
- * - `hierarchy`  — "ist prozessorientiert übergeordnet" between steps, solid with an
- *                  arrowhead (rendered as a rake below the superior step).
- * - `assignment` — links an organizational unit to a step, plain solid line.
+ * - `sequence`: "ist Vorgänger von" between steps, dashed with an arrowhead.
+ * - `hierarchy`: "ist prozessorientiert übergeordnet" between steps, solid with an arrowhead
+ *   (rendered as a rake below the superior step).
+ * - `assignment`: links an organizational unit to a step, plain solid line.
  */
 export interface ChainConnection {
   readonly id: string;

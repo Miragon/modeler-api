@@ -27,7 +27,7 @@ stroke stays near-black and the label turns black or white, whichever contrasts 
 ### Hierarchy routing (adaptive, group-aware)
 
 Every hierarchy edge exits the parent at its **bottom center**. What happens next depends on
-the arrangement of ALL sub-steps of that parent (shared predicate — routing and auto-placement
+the arrangement of ALL sub-steps of that parent (shared predicate, so routing and auto-placement
 never disagree):
 
 - **Row** (sub-steps with aligned tops, or a single sub-step under the parent's span):

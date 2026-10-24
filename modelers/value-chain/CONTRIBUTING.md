@@ -12,7 +12,7 @@ From the repository root (or with `npm run <script>` inside `modelers/value-chai
 
 ```bash
 npm run build:shared          # once, and after changing packages/api or packages/shell
-npm run value-chain build     # builds packages/* (workspace deps resolve to dist — build before testing)
+npm run value-chain build     # builds packages/* (workspace deps resolve to dist: build before testing)
 npm run value-chain test      # vitest run
 npm run value-chain lint      # eslint . + type-check (what the pre-commit hook runs for this modeler)
 ```
@@ -23,9 +23,9 @@ Extras: `npm run value-chain dev:webapp` (editor at http://localhost:5181),
 
 ## Browser & e2e tests
 
-- `npm run value-chain test:browser` — renderer integration tests in real Chromium (Vitest browser
+- `npm run value-chain test:browser`: renderer integration tests in real Chromium (Vitest browser
   mode; jsdom lacks `getBBox`), the `@miragon/modeler-api` conformance kit included.
-- `npm run value-chain test:e2e` — Playwright tests in `e2e/`, two projects with a dev server each:
+- `npm run value-chain test:e2e`: Playwright tests in `e2e/`, two projects with a dev server each:
   `webapp` (the web app, `E2E_PORT`, default 5181; it runs the `@miragon/modeler-shell`
   conformance kit on the web host and the app's own chrome handlers) and `vscode-webview` (the
   VS Code webview from source inside the shell's VS Code stub, `E2E_WEBVIEW_PORT`, default 5191;
@@ -99,7 +99,7 @@ their values. When a dependency of the VS Code extension changes, run
 | `apps/vscode`                       | VS Code extension: custom editor for `*.vc` / `*.vc.json`        | yes |
 | `e2e`                               | Playwright: the webapp and the VS Code webview                   | yes |
 
-`schema-model` must never import diagram-js/`tiny-svg`/`min-dom` or use `window`/`document` —
+`schema-model` must never import diagram-js/`tiny-svg`/`min-dom` or use `window`/`document`,
 enforced by both ESLint and dependency-cruiser. JSON serialization must stay deterministic
 (sorted ids, sorted keys, 3-decimal rounding).
 
