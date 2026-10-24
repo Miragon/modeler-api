@@ -36,11 +36,19 @@ line, toasts, problems list, start screen, drop zone and the head markup from `v
 renderer implements the canvas rules it asks for (keyboard creation, the `ttReadOnly` lock, no zoom
 keys, `undoRedoKeys: false` in VS Code) and the `@miragon/modeler-api` contract
 (`createCollaborativeModeler`, its conformance kit in `npm run team-topologies test:browser`). The
-shell's own conformance kit runs in both e2e projects, `webapp` and `vscode-webview`. The four Team
-Topologies team-type / interaction colours in
+shell's own conformance kit runs in both e2e projects, `webapp` and `vscode-webview`.
+
+**Notation colours:** the team-type and interaction-mode fills and strokes in
 [`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the **official
-notation** (Team-Shape-Templates) and are serialized into documents — they stay as-is; the CI applies
-to everything else (chrome, typography, accent/selection, neutrals, the app icon).
+notation** (Team-Shape-Templates) and stay as they are, for fidelity to the official templates. A
+document never carries them: it serializes only an element's optional `fill` / `stroke` override.
+The official strokes below the guide's 3:1 for non-text elements on the canvas ground are an
+accepted exception (guide §10.6).
+[`packages/renderer/src/draw/notation-contrast.test.ts`](packages/renderer/src/draw/notation-contrast.test.ts)
+checks every notation colour pair (label text at least 4.5:1 on its fill, structural strokes at
+least 3:1 on the canvas ground) and lists exactly the exempt official strokes, so a new colour
+cannot slip below unnoticed. The design system covers everything else (chrome, typography,
+accent/selection, neutrals, the app icon).
 
 ## Packages
 
