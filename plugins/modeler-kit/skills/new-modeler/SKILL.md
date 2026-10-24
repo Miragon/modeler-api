@@ -14,13 +14,13 @@ conformance kit). Five modelers follow this recipe, all in
 [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite) next to the two packages; read
 the one closest to your notation:
 
-| Modeler                          | Closest when your notation …                                              |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| [`modelers/event-storming`][es]  | has a line DSL and stickies; the pilot, nearest to the template           |
-| [`modelers/value-chain`][vc]     | is small and stored as JSON; uses diagram-js-direct-editing               |
-| [`modelers/team-topologies`][tt] | has a legend, an inspector and a JSON format; one release component       |
-| [`modelers/context-maps`][cm]    | imports and exports a foreign format (Context Mapper CML) next to its own |
-| [`modelers/wardley`][wardley]    | has a fixed plot (axes, stages), notes and a large DSL; the most complete |
+| Modeler                            | Closest when your notation …                                              |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| [`modelers/event-storming`][es]    | has a line DSL and stickies; the pilot, nearest to the template           |
+| [`modelers/value-chain`][vc]       | is small and stored as JSON; uses diagram-js-direct-editing               |
+| [`modelers/team-topologies`][tt]   | has a legend, an inspector and a JSON format; one release component       |
+| [`modelers/context-maps`][cm]      | imports and exports a foreign format (Context Mapper CML) next to its own |
+| [`modelers/wardley-maps`][wardley] | has a fixed plot (axes, stages), notes and a large DSL; the most complete |
 
 ## Start from the template
 
@@ -131,4 +131,4 @@ where it bites, and links there for every signature.
 [vc]: https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain
 [tt]: https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies
 [cm]: https://github.com/Miragon/modeler-suite/tree/main/modelers/context-maps
-[wardley]: https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley
+[wardley]: https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley-maps

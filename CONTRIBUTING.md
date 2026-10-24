@@ -3,7 +3,7 @@
 Thanks for helping improve the Miragon modeler suite. It is one npm workspace (TypeScript ESM):
 the shared packages under `packages/`, the five modelers under `modelers/`, the modeler-kit plugin
 under `plugins/`. This guide covers what holds for all of them; each modeler's `CONTRIBUTING.md`
-adds what is special to it ([Wardley Maps](modelers/wardley/CONTRIBUTING.md),
+adds what is special to it ([Wardley Maps](modelers/wardley-maps/CONTRIBUTING.md),
 [Event Storming](modelers/event-storming/CONTRIBUTING.md),
 [Team Topologies](modelers/team-topologies/CONTRIBUTING.md),
 [Context Maps](modelers/context-maps/CONTRIBUTING.md),
@@ -50,10 +50,10 @@ Everything runs from the repository root.
 | `npm run test:browser` / `npm run test:e2e` | every modeler's browser tests / e2e suites (`test:e2e` also the shell's)                              |
 | `npm run package:vscode`                    | packs every VS Code extension (`modelers/<modeler>/apps/vscode/*.vsix`)                               |
 
-`npm run <modeler> <script>` runs one script of one modeler, with the aliases `wardley`,
+`npm run <modeler> <script>` runs one script of one modeler, with the aliases `wardley-maps`,
 `event-storming`, `team-topologies`, `context-maps` and `value-chain`; `npm run modelers <script>`
 runs it in all five. Arguments for the script go after `--`, e.g.
-`npm run wardley test:e2e -- --project=vscode-webview`. Every modeler has these scripts:
+`npm run wardley-maps test:e2e -- --project=vscode-webview`. Every modeler has these scripts:
 
 | Modeler script                                   | Does                                                                                    |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ runs it in all five. Arguments for the script go after `--`, e.g.
 | `dev:webapp`, `dev:webapp:plain`, `dev:vscode`   | the web app's dev server (Portless or plain Vite), the extension's watch build          |
 
 One workspace on its own: `npm run <script> -w <name or path>`, e.g.
-`npm run test:e2e -w packages/shell` or `npm run notices -w modelers/wardley/apps/vscode`.
+`npm run test:e2e -w packages/shell` or `npm run notices -w modelers/wardley-maps/apps/vscode`.
 
 ## Dev servers
 
@@ -113,7 +113,7 @@ configuration of its `.vscode/launch.json` from Run and Debug.
   Context Maps) and the VS Code webview inside the shell's VS Code stub (`vscode-webview`), both
   held to the shell's conformance kit. `-- --project=<name>` runs one project. A running server on
   a port is reused, so pick free ports when another checkout runs its suite:
-  `E2E_PORT=6101 E2E_WEBVIEW_PORT=6111 npm run wardley test:e2e`. `npm run test:e2e:shared` runs
+  `E2E_PORT=6101 E2E_WEBVIEW_PORT=6111 npm run wardley-maps test:e2e`. `npm run test:e2e:shared` runs
   the shell's own suite against its demo.
 - **VS Code smoke test:** `npm run <modeler> test:vscode` (the Vitest project `vscode`, never part
   of `npm test`) packs the extension as the release does (`vsce package --no-dependencies`, which
@@ -135,9 +135,9 @@ configuration of its `.vscode/launch.json` from Run and Debug.
   modeler. **Locally, run it in Docker instead**, where no window opens:
 
   ```sh
-  npm run wardley test:vscode:docker                                 # the newest stable VS Code
-  npm run wardley test:vscode:docker -- --env VSCODE_VERSION=1.96.0  # the engines.vscode floor
-  npm run wardley test:vscode:docker -- --env VSCODE_SMOKE_KEEP=1    # VS Code's logs in vscode-logs/
+  npm run wardley-maps test:vscode:docker                                 # the newest stable VS Code
+  npm run wardley-maps test:vscode:docker -- --env VSCODE_VERSION=1.96.0  # the engines.vscode floor
+  npm run wardley-maps test:vscode:docker -- --env VSCODE_SMOKE_KEEP=1    # VS Code's logs in vscode-logs/
   ```
 
   `test:vscode:docker` is the shell's `modeler-shell-vscode-docker`. It mounts the repository (the
@@ -171,9 +171,9 @@ avoid it.
 ## Commits and pull requests
 
 - **Conventional Commits**, enforced on the pull request title: `feat`, `fix`, `chore`, `docs`,
-  `refactor`, `ci`, `build`, `test`, `revert`. The scope names the area: a modeler (`wardley`,
+  `refactor`, `ci`, `build`, `test`, `revert`. The scope names the area: a modeler (`wardley-maps`,
   `event-storming`, `team-topologies`, `context-maps`, `value-chain`), `api`, `shell` or `plugin`,
-  e.g. `feat(wardley): add an inertia decorator`, `fix(shell): keep the menu's shortcut chip out of
+  e.g. `feat(wardley-maps): add an inertia decorator`, `fix(shell): keep the menu's shortcut chip out of
 the accessible name`. A pull request with a single commit must carry the title as that commit's
   subject.
 - **Signed commits:** every commit is GPG-signed (`git commit -S`, or `commit.gpgsign`); after a

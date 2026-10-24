@@ -16,7 +16,7 @@ special to its notation (packages, DSL or file format, renderer architecture, te
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | `packages/api`                    | `@miragon/modeler-api`: the contract and its conformance kit, 0 runtime dependencies                         | [README](packages/api/README.md)                                 |
 | `packages/shell`                  | `@miragon/modeler-shell`: chrome, shell conformance kit, VS Code smoke driver                                | [README](packages/shell/README.md), [API](packages/shell/API.md) |
-| `modelers/wardley`                | Wardley Maps, `.wmap` / `.owm`                                                                               | [CLAUDE.md](modelers/wardley/CLAUDE.md)                          |
+| `modelers/wardley-maps`           | Wardley Maps, `.wmap` / `.owm`                                                                               | [CLAUDE.md](modelers/wardley-maps/CLAUDE.md)                     |
 | `modelers/event-storming`         | Event Storming, `.storm`                                                                                     | [CLAUDE.md](modelers/event-storming/CLAUDE.md)                   |
 | `modelers/team-topologies`        | Team Topologies, `.tt` / `.ttm.json`                                                                         | [CLAUDE.md](modelers/team-topologies/CLAUDE.md)                  |
 | `modelers/context-maps`           | Context Maps, `.cm` / `.cm.json`, Context Mapper `.cml`                                                      | [CLAUDE.md](modelers/context-maps/CLAUDE.md)                     |
@@ -40,8 +40,8 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
   changing them. Wardley Maps, Event Storming and Value Chain also resolve their own packages from
   `dist` in their unit tests: `npm run <modeler> build` first. Team Topologies and Context Maps
   consume their packages from source.
-- One modeler: `npm run <modeler> <script>` with the aliases `wardley`, `event-storming`,
-  `team-topologies`, `context-maps`, `value-chain` (e.g. `npm run wardley test`). All five:
+- One modeler: `npm run <modeler> <script>` with the aliases `wardley-maps`, `event-storming`,
+  `team-topologies`, `context-maps`, `value-chain` (e.g. `npm run wardley-maps test`). All five:
   `npm run modelers <script>`. One workspace: `npm run <script> -w <name or path>`.
 - Per modeler: `build`, `build:webapp`, `build:vscode`, `package:vscode`, `typecheck`, `lint`
   (ESLint + type check), `test` (Vitest unit), `test:browser` (Vitest in Chromium, the contract's
@@ -127,9 +127,9 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
 ## Git, pull requests, releases
 
 - **Conventional Commits**, checked on the PR title: `feat`, `fix`, `chore`, `docs`, `refactor`,
-  `ci`, `build`, `test`, `revert`. The scope names the area: a modeler (`wardley`,
+  `ci`, `build`, `test`, `revert`. The scope names the area: a modeler (`wardley-maps`,
   `event-storming`, `team-topologies`, `context-maps`, `value-chain`), `api`, `shell` or `plugin`,
-  e.g. `feat(wardley): add an inertia decorator`.
+  e.g. `feat(wardley-maps): add an inertia decorator`.
 - **Every commit is GPG-signed** (`git commit -S`); after rewriting history, sign again
   (`git rebase -S`).
 - Pull requests are squash-merged with the PR title as the subject. More than one changelog entry,
@@ -178,7 +178,7 @@ Install once: `/plugin marketplace add Miragon/corporate-identity` then
 - A marketplace entry carries no `version`. `modeler-kit` has none at all (installs follow the
   commits); the modelers' plugins keep theirs in `plugin.json`.
 - Drift tests: `npm run test:plugin` (manifests of every listed plugin, the `new-modeler` skill and
-  template); `npm run wardley test` (every OWM example parses and round-trips, note colours);
+  template); `npm run wardley-maps test` (every OWM example parses and round-trips, note colours);
   `npm run team-topologies test` (the `tt-format` checker against the schema model).
   `claude plugin validate .` checks the marketplace; its one warning, modeler-kit's missing
   `version`, is intended.

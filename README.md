@@ -13,7 +13,7 @@ users. Every package and extension keeps its own version and its own npm or Mark
 
 | Modeler                                               | Files                                                 | Web app                                                                          | VS Code extension                                                                                                                                                                         |
 | ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Wardley Maps](modelers/wardley/README.md)            | `.wmap`, `.owm` (OWM text DSL)                        | [wardley-maps.modeler.miragon.io](https://wardley-maps.modeler.miragon.io)       | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.wardley-mapping-modeler) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/wardley-mapping-modeler) |
+| [Wardley Maps](modelers/wardley-maps/README.md)       | `.wmap`, `.owm` (OWM text DSL)                        | [wardley-maps.modeler.miragon.io](https://wardley-maps.modeler.miragon.io)       | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.wardley-mapping-modeler) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/wardley-mapping-modeler) |
 | [Event Storming](modelers/event-storming/README.md)   | `.storm` (line DSL)                                   | [event-storming.modeler.miragon.io](https://event-storming.modeler.miragon.io)   | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.event-storming-modeler) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/event-storming-modeler)   |
 | [Team Topologies](modelers/team-topologies/README.md) | `.tt`, `.ttm.json`, editable `*.tt.png`               | [team-topologies.modeler.miragon.io](https://team-topologies.modeler.miragon.io) | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.team-topologies-modeler) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/team-topologies-modeler) |
 | [Context Maps](modelers/context-maps/README.md)       | `.cm`, `.cm.json`, editable `*.cm.png`; `.cml` in/out | [context-maps.modeler.miragon.io](https://context-maps.modeler.miragon.io)       | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/context-maps-modeler)       |
@@ -64,7 +64,7 @@ plugins of the suite:
 
 | Plugin                                                                                | Skills                         | For                                                                            |
 | ------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
-| [`wardley-maps-modeler`](modelers/wardley/plugins/wardley-maps-modeler)               | `wardley-mapping`, `owm-dsl`   | the Wardley Mapping method and the `.wmap` / `.owm` text format                |
+| [`wardley-maps-modeler`](modelers/wardley-maps/plugins/wardley-maps-modeler)          | `wardley-mapping`, `owm-dsl`   | the Wardley Mapping method and the `.wmap` / `.owm` text format                |
 | [`event-storming-modeler`](modelers/event-storming/plugins/event-storming-modeler)    | `event-storming`, `storm-dsl`  | the Event Storming method and the `.storm` text format                         |
 | [`team-topologies-modeler`](modelers/team-topologies/plugins/team-topologies-modeler) | `team-topologies`, `tt-format` | the Team Topologies method and the `.tt` / `.ttm.json` format, with a checker  |
 | [`modeler-kit`](plugins/modeler-kit)                                                  | `new-modeler`                  | building a new Miragon modeler on these two packages, with a runnable template |
@@ -80,14 +80,14 @@ Node `^22.22.2` or `>=24.15.0` and npm. From the repository root:
 ```sh
 npm ci
 npm run build:shared               # @miragon/modeler-api and @miragon/modeler-shell, which every modeler links
-npm run wardley dev:webapp:plain   # the Wardley Maps web app on Vite, http://127.0.0.1:5180
-npm run wardley build              # Wardley's packages: its tests resolve them from dist
-npm run wardley test               # its unit tests
+npm run wardley-maps dev:webapp:plain   # the Wardley Maps web app on Vite, http://127.0.0.1:5180
+npm run wardley-maps build              # Wardley's packages: its tests resolve them from dist
+npm run wardley-maps test               # its unit tests
 npm test                           # the shared packages, the plugin drift test and every modeler's unit tests
 npm run lint                       # type checks and ESLint, everywhere
 ```
 
-`npm run <modeler> <script>` runs a script of one modeler (`wardley`, `event-storming`,
+`npm run <modeler> <script>` runs a script of one modeler (`wardley-maps`, `event-storming`,
 `team-topologies`, `context-maps`, `value-chain`), `npm run modelers <script>` runs it for all
 five. [CONTRIBUTING.md](CONTRIBUTING.md) lists the scripts, the dev servers, the browser, e2e and
 VS Code tests, the pre-commit hook and the conventions for commits and pull requests;
@@ -114,7 +114,7 @@ docs/                  shell implementation notes, CI and releases
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), and for each modeler its own
-[Wardley Maps](modelers/wardley/CONTRIBUTING.md), [Event Storming](modelers/event-storming/CONTRIBUTING.md),
+[Wardley Maps](modelers/wardley-maps/CONTRIBUTING.md), [Event Storming](modelers/event-storming/CONTRIBUTING.md),
 [Team Topologies](modelers/team-topologies/CONTRIBUTING.md), [Context Maps](modelers/context-maps/CONTRIBUTING.md)
 and [Value Chain](modelers/value-chain/CONTRIBUTING.md) notes. Agent-oriented rules are in
 [CLAUDE.md](CLAUDE.md).
