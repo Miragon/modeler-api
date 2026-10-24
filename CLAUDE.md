@@ -55,7 +55,9 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
   `npm run test:browser`, `npm run test:e2e`, `npm run package:vscode`.
 - **Never run `test:vscode` on the user's Mac**: it opens a VS Code window that takes the focus.
   Run `npm run <modeler> test:vscode:docker` (needs Docker, no window) or leave it to CI, and ask
-  first if a real window is unavoidable.
+  first if a real window is unavoidable. Its command is the shell's bin, which `npm ci` links only
+  when `packages/shell/dist` exists: after a fresh `npm ci` and `npm run build:shared`, run
+  `npm rebuild @miragon/modeler-shell` once.
 - The pre-commit hook runs lint-staged (ESLint and Prettier on staged files), `npm run lint` of every
   modeler whose files are staged and the shared type check when `packages/` or `test/` change. It
   runs **no** tests, builds or dependency-cruiser: run `npm test` (and the affected modeler's
