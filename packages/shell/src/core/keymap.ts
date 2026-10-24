@@ -69,7 +69,10 @@ export const TEXT_FIELD_SELECTOR =
 // find widget, its hovers) keeps its keys as well.
 const CODE_EDITOR_SELECTOR = ".monaco-editor";
 
-/** The fields of a key's target that `isTextField` reads; every DOM `Element` has them. */
+/**
+ * What `isTextField` reads of a key's target: an `HTMLElement` has `closest` and
+ * `isContentEditable`, in Chromium also `editContext`; an SVG element has only `closest`.
+ */
 interface TextFieldTargetLike {
   readonly isContentEditable?: unknown;
   readonly editContext?: unknown;
