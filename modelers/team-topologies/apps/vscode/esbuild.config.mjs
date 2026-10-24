@@ -10,6 +10,7 @@
 // in both bundles.
 import * as esbuild from "esbuild";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -19,6 +20,8 @@ const watch = process.argv.includes("--watch");
 const production = process.argv.includes("--production");
 
 const r = (p) => resolve(root, p);
+const require = createRequire(import.meta.url);
+const packageDirectory = (name) => dirname(require.resolve(`${name}/package.json`));
 
 /** Package aliases pointing at the TS source (mirrors apps/webapp/vite.config.ts). */
 const alias = {
@@ -28,13 +31,13 @@ const alias = {
 
 /**
  * Two copies of React in one bundle break every hook ("Invalid hook call"). The ui package is
- * bundled from its source folder, so a nested copy there would win over the root one without this
- * (the webapp's Vite config dedupes the same way).
+ * bundled from its source folder, so a nested copy there would win over the one this app resolves
+ * without this (the webapp's Vite config dedupes the same way).
  */
 const webAlias = {
   ...alias,
-  react: r("node_modules/react"),
-  "react-dom": r("node_modules/react-dom"),
+  react: packageDirectory("react"),
+  "react-dom": packageDirectory("react-dom"),
 };
 
 /**
