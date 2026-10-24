@@ -1,0 +1,87 @@
+/* The web app's own content inside the shell: the map-as-text dialogs and the start screen's empty
+   canvas. Everything else around the canvas is the chrome of @miragon/modeler-shell (shell.css) and
+   the renderer's dialog look (wardley.css). Only the --cd-ui-* roles and the mode-independent
+   tokens, as there. */
+.wardley-dialog.text-dialog {
+  width: min(720px, calc(100cqw - 32px));
+}
+.text-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.text-dialog-hint {
+  margin: 0;
+  color: var(--cd-ui-text-leise);
+}
+.text-dialog-text {
+  height: min(420px, calc(100cqh - 280px));
+  min-height: 160px;
+  resize: vertical;
+  font:
+    400 13px/1.6 'Geist Mono Variable',
+    'Geist Mono',
+    ui-monospace,
+    monospace;
+  white-space: pre;
+  tab-size: 2;
+}
+.text-dialog-share .text-dialog-text {
+  height: auto;
+  min-height: 0;
+  resize: none;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.text-dialog-diagnostics {
+  max-height: 128px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.text-dialog-diagnostic-button {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  color: var(--cd-ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.text-dialog-diagnostic-button::before {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--cd-ui-warning);
+  content: '';
+}
+.text-dialog-diagnostic-button:hover {
+  background: var(--cd-ui-hover);
+}
+.text-dialog-diagnostic-button:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
+}
+[data-cd-kontrast='hoch'] .text-dialog-diagnostic-button:focus-visible {
+  outline-width: 3px;
+}
+@media (forced-colors: active) {
+  .text-dialog-diagnostic-button:focus-visible {
+    outline-color: Highlight;
+  }
+  .text-dialog-diagnostic-button::before {
+    background: CanvasText;
+  }
+}
+
+/* Guide §8: on the start screen nothing but the card competes for attention, so the empty plot
+   behind it waits until the user starts; the dotted surround stays, as in every Miragon modeler. */
+.cd-shell[data-empty-state='shown'] .wardley-container .djs-container > svg {
+  visibility: hidden;
+}

@@ -1,0 +1,880 @@
+/* Design-system files vendored unchanged from Miragon/corporate-identity (src/theme/). The tokens
+   sit in a cascade layer, so a host page's own --cd-* tokens (unlayered) win over this copy.
+   cd-canvas.css stays unlayered and comes after diagram-js.css, so its mapping of the --bio-* and
+   .djs-parent variables onto the --cd-ui-* roles beats diagram-js's defaults. Everything below
+   reads the roles (--cd-ui-*) and the mode-independent tokens (radius, shadow, motion) only, so
+   the chrome follows the mode the page sets; the canvas drawing keeps its light SVG attributes. */
+@import '../theme/cd-tokens.generated.css' layer(wardley-tokens);
+@import 'diagram-js/assets/diagram-js.css';
+@import '../theme/cd-canvas.css';
+
+/* The DSL's `style dark` directive is kept for the round-trip but never rendered (guide §10.7):
+   the mode comes from the page alone, so there is no navy surround under light chrome. */
+.wardley-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: var(--cd-ui-grund);
+  background-image: radial-gradient(var(--cd-ui-linie) 1px, transparent 1px);
+  background-size: 22px 22px;
+  font-family:
+    'Geist Variable',
+    'Geist',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overflow: hidden;
+}
+
+.wardley-container .layer-wardley-axes {
+  pointer-events: none;
+}
+
+.wardley-container .djs-element text {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Red evolve-target circle = direct drag handle (moving the target). The visual layer is
+   otherwise pointer-events:none (diagram-js hits via .djs-hit) — but the ghost lies outside the
+   node hitbox, so the circle itself must receive events. */
+.wardley-container .wardley-evolve-handle {
+  cursor: ew-resize;
+  pointer-events: all;
+}
+
+/* Hover and selection leave an element's own (possibly user-picked) colour alone: the dashed
+   outline in the interaction blue is the cue (guide §10.4, no brightness filter). diagram-js shows
+   no outline on hover by itself. */
+.wardley-container .djs-outline {
+  stroke: var(--cd-ui-interaktion);
+  stroke-dasharray: 3 3;
+}
+.wardley-container .djs-shape.hover > .djs-outline {
+  visibility: visible;
+}
+/* While dragging, elements passed under the cursor are not drop targets — no hover cue. */
+.wardley-container .djs-drag-active .djs-shape.hover:not(.selected) > .djs-outline {
+  visibility: hidden;
+}
+
+/* diagram-js draws no outline around a selected connection, so the line itself carries the state.
+   !important because tiny-svg writes stroke and stroke-width as inline styles. Flow links (the ones
+   with arrowheads) keep their colour so line and arrowheads still match; they only grow thicker. */
+.wardley-container .djs-connection.hover > .djs-visual > polyline {
+  stroke-width: 2.5px !important;
+}
+.wardley-container .djs-connection.selected > .djs-visual > polyline {
+  stroke-width: 3px !important;
+}
+.wardley-container .djs-connection.hover > .djs-visual:not(:has(> polygon)) > polyline {
+  stroke: var(--cd-ui-text-leise) !important;
+}
+.wardley-container .djs-connection.selected > .djs-visual:not(:has(> polygon)) > polyline {
+  stroke: var(--cd-ui-text) !important;
+}
+.wardley-container .djs-connection.hover > .djs-visual:has(> polygon) > polyline {
+  stroke-width: 3.25px !important;
+}
+.wardley-container .djs-connection.selected > .djs-visual:has(> polygon) > polyline {
+  stroke-width: 3.75px !important;
+}
+
+/* diagram-js drives selection and lasso outlines via CSS variables, scoped on `.djs-parent`. The
+   multi-selection outline, lasso fill and resizer handles come from cd-canvas.css (guide §10.4). */
+.wardley-container .djs-parent {
+  --element-selected-outline-stroke-color: var(--cd-ui-interaktion);
+  --lasso-stroke-color: var(--cd-ui-interaktion);
+}
+
+.wardley-container .djs-resizer-hit {
+  fill: none;
+}
+
+/* The renderer's own palette, for hosts without the Miragon modeler shell: a horizontal floating
+   toolbar. Every rule skips a palette the shell skins (data-chrome="palette"), so the shell's look
+   applies alone there; `:where` keeps the specificity hosts already override. Styling sits on the element itself, not on .wardley-container, so it
+   travels along when a consumer mounts the palette elsewhere. */
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) {
+  left: 50%;
+  top: 12px;
+  z-index: 110;
+  transform: translateX(-50%);
+  width: max-content; /* diagram-js otherwise sets a fixed 48px (vertical) */
+  /* Never wider than the canvas: narrow hosts scroll the toolbar instead of clipping tools. */
+  max-width: calc(100% - 24px);
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  display: flex;
+  align-items: center;
+  padding: 5px 7px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-2);
+  color: var(--cd-ui-text);
+}
+/* Safety net: the provider disables diagram-js' vertical two-column collapse, which would squeeze
+   the horizontal bar to 94px. */
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])).two-column.open {
+  width: auto;
+}
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .djs-palette-entries,
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry {
+  float: none; /* diagram-js uses float:left -> redundant in the flex row */
+  flex: none;
+  width: 40px;
+  height: 40px;
+  line-height: normal;
+  border-radius: var(--cd-radius-sm);
+  color: var(--cd-ui-text);
+  transition:
+    background var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease);
+}
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+/* Active tool (e.g. the lasso): a ring, never a full fill (guide §5.5). diagram-js colours the
+   highlighted entry with !important. */
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry.highlighted-entry {
+  background: var(--cd-ui-hover);
+  box-shadow: inset 0 0 0 2px var(--cd-ui-interaktion);
+  color: var(--cd-ui-text) !important;
+}
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .entry.highlighted-entry:hover {
+  color: var(--cd-ui-interaktion) !important;
+}
+
+/* diagram-js palette tooltip: it is placed to the right of an entry, which in this horizontal
+   toolbar would cover the neighbouring tool — shift it below the 40px entry instead. */
+.wardley-container .djs-hover-tooltip--right {
+  transform: translate(calc(-50% - 28px), 28px);
+  font-family: inherit;
+  border-radius: var(--cd-radius-sm);
+}
+
+/* Subtle vertical separator between the groups (diagram-js does not separate groups on its own). */
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group + .group {
+  position: relative;
+  margin-left: 9px;
+  padding-left: 9px;
+}
+.djs-palette.wardley-palette:where(:not([data-chrome='palette'])) .group + .group::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 1px;
+  background: var(--cd-ui-linie);
+}
+
+/* Palette icons (custom HTML icons) of the renderer's own palette; inside the shell's palette the
+   skin lays the entry out and colours the tool icons. */
+.djs-palette:where(:not([data-chrome='palette'])) .wardley-palette-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 24px;
+  min-height: 24px;
+  line-height: 1;
+}
+.wardley-palette-svg {
+  display: block;
+}
+
+/* Draw mode: crosshair over the whole canvas. */
+.wardley-container.wardley-draw-mode,
+.wardley-container.wardley-draw-mode * {
+  cursor: crosshair !important;
+}
+
+/* Vertex handles of a selected drawing (drag to move single points). */
+.wardley-container .wardley-drawing-handle {
+  cursor: grab;
+  pointer-events: all;
+}
+
+/* ContextPad (stays in the canvas -> scoped): one opaque island with a compact icon grid (guide
+   §8). Row 1 = the primary group (edit, append, connect, evolve), row 2 = properties followed by
+   the destructive action, which sits apart behind a separator. */
+.wardley-container .djs-context-pad {
+  width: max-content;
+}
+.wardley-container .djs-context-pad.open {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  column-gap: 7px;
+  row-gap: 2px;
+  align-items: start;
+  padding: 3px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  box-shadow: var(--cd-shadow-2);
+}
+.wardley-container .djs-context-pad .group {
+  display: flex;
+  gap: 2px;
+}
+.wardley-container .djs-context-pad .group[data-group='edit'] {
+  grid-column: 1 / -1;
+}
+.wardley-container .djs-context-pad .group[data-group='wardley'] + .group[data-group='danger'] {
+  position: relative;
+  padding-left: 7px;
+}
+.wardley-container
+  .djs-context-pad
+  .group[data-group='wardley']
+  + .group[data-group='danger']::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  background: var(--cd-ui-linie);
+}
+
+.wardley-container .djs-context-pad .entry.wardley-cp-entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  line-height: 1;
+  border-radius: var(--cd-radius-sm);
+  box-shadow: none;
+  background: transparent;
+  color: var(--cd-ui-text);
+  transition:
+    background var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease);
+}
+.wardley-container .djs-context-pad .entry:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.wardley-container .djs-context-pad .group[data-group='danger'] .entry:hover {
+  background: var(--cd-ui-danger-flaeche);
+  color: var(--cd-ui-danger);
+}
+
+.wardley-container .wardley-label-input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1.5px solid var(--cd-ui-interaktion);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  outline: none;
+  box-shadow: var(--cd-shadow-2);
+  z-index: 100;
+  min-width: 90px;
+}
+.wardley-container .wardley-link-input {
+  min-width: 240px;
+}
+.wardley-container .wardley-label-textarea {
+  resize: none;
+  line-height: 17px;
+  white-space: pre;
+  min-width: 120px;
+  font-style: italic;
+}
+
+/* Label editing: the name field replaces the label in place (size, font and zoom set inline). */
+.wardley-container .djs-element.wardley-label-editing .wardley-name-label {
+  visibility: hidden;
+}
+.wardley-container .wardley-label-input--name {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+.wardley-container .wardley-label-input--error {
+  border-color: var(--cd-ui-danger);
+}
+/* Persistent while the editor is open, so it stays at the editor's layer: below the palette. */
+.wardley-container .wardley-label-caption {
+  position: absolute;
+  z-index: 100;
+  max-width: 320px;
+  padding: 3px 8px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-flaeche-hoch);
+  box-shadow: var(--cd-shadow-1);
+  color: var(--cd-ui-text-leise);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.wardley-container .wardley-label-error {
+  border-color: var(--cd-ui-danger);
+  color: var(--cd-ui-danger);
+}
+
+/* Note color picker (bpmn.io style): compact 3x3 grid of small color squares, no text. A transient
+   popup, so it may cover the palette while it is open (guide §5.13). Positioned absolutely WITHIN
+   .wardley-container (relative reference). */
+.wardley-container .wardley-color-picker {
+  position: absolute;
+  z-index: 300;
+  display: grid;
+  grid-template-columns: repeat(3, 22px);
+  gap: 6px;
+  padding: 8px;
+  background: var(--cd-ui-flaeche-hoch);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+}
+.wardley-container .wardley-cp-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--cd-radius-sm);
+  border: 1px solid var(--cd-ui-linie);
+  cursor: pointer;
+  transition: transform var(--cd-motion-fast) var(--cd-ease);
+}
+.wardley-container .wardley-cp-swatch:hover {
+  transform: scale(1.1);
+}
+.wardley-container .wardley-cp-active {
+  box-shadow:
+    0 0 0 2px var(--cd-ui-flaeche-hoch),
+    0 0 0 4px var(--cd-ui-interaktion);
+}
+.wardley-container .wardley-cp-none {
+  background: var(--cd-ui-flaeche-hoch);
+  background-image: linear-gradient(
+    45deg,
+    transparent 44%,
+    var(--cd-ui-danger) 45%,
+    var(--cd-ui-danger) 55%,
+    transparent 56%
+  );
+}
+
+/* Pipeline drop target: the box a dragged component would join. A neutral text-coloured outline,
+   so it reads as "lands here" without competing with the blue selection accent. Solid, because
+   the box is already drawn dashed: only a change of the line itself reads as feedback. !important
+   because tiny-svg writes stroke and fill as inline styles, which beat any selector. */
+.wardley-container .djs-element.wardley-drop-target > .djs-visual > rect:first-child {
+  stroke: var(--cd-ui-text) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+  fill: var(--cd-ui-hover) !important;
+}
+
+/* Map resize handles: plot right edge, bottom edge and bottom-right corner. Invisible until the
+   pointer is near the plot edge (or a resize drag runs); neutral like the axes, no accent colour. */
+.wardley-container .wardley-map-resize-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+.wardley-container .wardley-map-resize-x .wardley-map-resize-hit {
+  cursor: ew-resize;
+}
+.wardley-container .wardley-map-resize-y .wardley-map-resize-hit {
+  cursor: ns-resize;
+}
+.wardley-container .wardley-map-resize-xy .wardley-map-resize-hit {
+  cursor: nwse-resize;
+}
+.wardley-container .wardley-map-resize-visual {
+  opacity: 0;
+  pointer-events: none;
+  stroke: var(--cd-ui-text-leise);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  transition: opacity var(--cd-motion-fast) var(--cd-ease);
+}
+.wardley-container rect.wardley-map-resize-visual {
+  fill: var(--cd-ui-flaeche-hoch);
+  stroke-width: 1;
+  rx: 2px;
+}
+.wardley-container .wardley-map-resize:hover .wardley-map-resize-visual,
+.wardley-container .wardley-map-resize.is-dragging .wardley-map-resize-visual {
+  opacity: 1;
+}
+.wardley-container .wardley-map-resize-handle:hover .wardley-map-resize-visual {
+  stroke: var(--cd-ui-text);
+}
+.wardley-container .wardley-map-resize-badge {
+  position: absolute;
+  z-index: 30;
+  padding: 4px 8px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  font-size: 12px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--cd-shadow-2);
+}
+.wardley-container .wardley-map-resize-badge[hidden] {
+  display: none;
+}
+
+/* Element settings popup (type / sourcing / inertia): show every option — diagram-js caps the result
+   list at 280px, which always hid Inertia below an invisible scroll edge. Unscoped because
+   diagram-js may mount popups outside the canvas container. */
+.djs-popup.wardley-element-settings {
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  box-shadow: var(--cd-shadow-3);
+  font-family: inherit;
+}
+.djs-popup.wardley-element-settings .djs-popup-results {
+  max-height: none;
+}
+/* The result list keeps focus while arrow keys move the active entry; its own ring would be cut by
+   the popup's rounded border (or cross the group headings), so the popup frame carries it. */
+.djs-popup.wardley-element-settings .djs-popup-results:focus-visible {
+  outline: none;
+}
+.djs-popup.wardley-element-settings:has(.djs-popup-results:focus-visible) {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+/* Keyboard focus ring (design system: :focus-visible ring in the focus role). Scoped to the
+   modeler's own chrome — a library stylesheet must not restyle the host page's controls. */
+.wardley-container
+  :where(button, a, select, input, textarea, [role='button'], [tabindex]):focus-visible,
+.djs-palette.wardley-palette:where(:not([data-chrome='palette']))
+  :where(.entry, [role='button'], [tabindex]):focus-visible,
+.djs-popup.wardley-element-settings :where(.entry, [tabindex]):focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+/* The canvas fills its container, so an outer ring would be clipped — draw it inside. */
+.wardley-container svg:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: -2px;
+}
+/* diagram-js focuses the canvas on every pointer interaction; without this the browser's default
+   ring would frame the whole canvas after each click. */
+.wardley-container svg:focus:not(:focus-visible) {
+  outline: none;
+}
+/* Inline editors show focus through their own accent border. */
+.wardley-container .wardley-label-input:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wardley-container *,
+  .wardley-container *::before,
+  .wardley-container *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Canvas rendering */
+
+/* Draggable node and evolve-target labels (OWM `label [dx, dy]`). Only once the label-drag module
+   has armed the container — a read-only viewer keeps labels transparent to panning. */
+.wardley-container.wardley-labels-draggable .wardley-label-handle {
+  cursor: move;
+  pointer-events: all;
+}
+.wardley-container.wardley-label-dragging,
+.wardley-container.wardley-label-dragging * {
+  cursor: move !important;
+}
+
+/* Read-only canvas (an invalid file in an IDE, guide §13.5): no context pad, no handles, and
+   labels and evolve targets no longer offer a drag. */
+.wardley-container.wardley-read-only .djs-context-pad,
+.wardley-container.wardley-read-only .layer-wardley-map-resize,
+.wardley-container.wardley-read-only .layer-wardley-drawing-handles {
+  display: none;
+}
+.wardley-container.wardley-read-only .wardley-label-handle,
+.wardley-container.wardley-read-only .wardley-evolve-handle {
+  cursor: default;
+}
+
+/* The popovers of the Model menu ("Map size…", "X-axis labels…", guide §5.4): opaque, at the
+   dropdown's place in the chrome's root, without a backdrop. Fields and buttons after guide §8. */
+.wardley-popover {
+  position: absolute;
+  top: calc(var(--cd-shell-rand) + var(--cd-shell-zeile) + var(--cd-shell-luecke));
+  left: var(--cd-shell-rand);
+  z-index: var(--cd-shell-ebene-aufklapper);
+  box-sizing: border-box;
+  width: min(320px, calc(100cqw - 24px));
+  max-height: calc(100cqh - 72px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  box-shadow: var(--cd-shadow-3);
+  color: var(--cd-ui-text);
+  font:
+    400 13px/1.5 'Geist Variable',
+    'Geist',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  text-align: left;
+  animation: wardley-pop-in var(--cd-motion-fast) var(--cd-ease-out);
+}
+.wardley-popover[hidden] {
+  display: none;
+}
+@keyframes wardley-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.wardley-popover-title {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.wardley-popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wardley-popover-hint {
+  margin: 0;
+  color: var(--cd-ui-text-leise);
+}
+.wardley-popover-link {
+  color: var(--cd-ui-link);
+}
+.wardley-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.wardley-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.wardley-field-label {
+  color: var(--cd-ui-text);
+  font-weight: 600;
+}
+.wardley-field-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-grund);
+  color: var(--cd-ui-text);
+  font: inherit;
+}
+.wardley-field-input:focus {
+  border-color: var(--cd-ui-interaktion);
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+.wardley-field-input[aria-invalid='true'] {
+  border-color: var(--cd-ui-danger);
+}
+.wardley-field-error {
+  margin: 0;
+  color: var(--cd-ui-danger);
+}
+.wardley-field-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.wardley-field-row .wardley-field {
+  flex: 1;
+}
+.wardley-field-times {
+  padding-bottom: 8px;
+  color: var(--cd-ui-text-leise);
+}
+.wardley-button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--cd-radius-md);
+  background: transparent;
+  color: var(--cd-ui-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--cd-motion-fast) var(--cd-ease),
+    border-color var(--cd-motion-fast) var(--cd-ease),
+    box-shadow var(--cd-motion-fast) var(--cd-ease),
+    color var(--cd-motion-fast) var(--cd-ease),
+    transform var(--cd-motion-fast) var(--cd-ease);
+}
+.wardley-button[data-variant='secondary'] {
+  border-color: var(--cd-ui-linie);
+  background: var(--cd-ui-flaeche-hoch);
+}
+.wardley-button[data-variant='secondary']:hover {
+  border-color: var(--cd-ui-interaktion);
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-link);
+}
+.wardley-button[data-variant='ghost']:hover {
+  background: var(--cd-ui-hover);
+}
+/* The confirming action of a dialog (guide §8): the one place with fixed palette colours, blue
+   with white text in both modes. */
+.wardley-button[data-variant='primary'] {
+  background: var(--cd-blau);
+  box-shadow: var(--cd-shadow-1);
+  color: var(--cd-weiss);
+}
+.wardley-button[data-variant='primary']:is(:hover, :active) {
+  background: var(--cd-blau-link);
+  box-shadow: var(--cd-shadow-2);
+  transform: translateY(-1px);
+}
+.wardley-button:disabled,
+.wardley-button:disabled:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--cd-ui-text-leise);
+  cursor: not-allowed;
+}
+.wardley-button[data-variant='primary']:disabled,
+.wardley-button[data-variant='primary']:disabled:hover {
+  border-color: var(--cd-ui-linie);
+  background: var(--cd-ui-hover);
+  box-shadow: none;
+  transform: none;
+}
+.wardley-button:focus-visible,
+.wardley-popover-link:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+/* The dialogs of the map's chrome (guide §8): a native modal <dialog> in the chrome's root, in
+   the browser's top layer above every island. Header with Close, a scrolling body, a footer with
+   the buttons right-aligned. */
+.wardley-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100cqw - 32px));
+  max-width: none;
+  max-height: calc(100cqh - 32px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cd-ui-text);
+  font:
+    400 13px/1.5 'Geist Variable',
+    'Geist',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overflow: visible;
+}
+.wardley-dialog::backdrop {
+  background: var(--cd-ui-backdrop);
+  backdrop-filter: blur(3px) grayscale(1);
+}
+.wardley-dialog-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100cqh - 32px);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  box-shadow: var(--cd-shadow-3);
+}
+.wardley-dialog-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 16px 8px 24px;
+}
+.wardley-dialog-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.wardley-dialog-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cd-radius-sm);
+  background: transparent;
+  color: var(--cd-ui-text);
+  cursor: pointer;
+}
+.wardley-dialog-close:hover {
+  background: var(--cd-ui-hover);
+  color: var(--cd-ui-interaktion);
+}
+.wardley-dialog-close:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+.wardley-dialog-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.wardley-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 24px 24px;
+}
+.wardley-dialog-footer {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--cd-ui-linie);
+}
+.wardley-shortcuts-group + .wardley-shortcuts-group {
+  margin-top: 16px;
+}
+.wardley-shortcuts-group-title {
+  margin: 0 0 4px;
+  color: var(--cd-ui-text-leise);
+  font-size: 13px;
+  font-weight: 600;
+}
+.wardley-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.wardley-shortcuts-table tr + tr > * {
+  border-top: 1px solid var(--cd-ui-linie);
+}
+.wardley-shortcuts-action {
+  padding: 6px 16px 6px 0;
+  font-weight: 400;
+  text-align: left;
+  vertical-align: baseline;
+}
+.wardley-shortcuts-keys {
+  padding: 6px 0;
+  text-align: right;
+  vertical-align: baseline;
+}
+/* The chips look like the chrome tooltip's (guide §5.6), also against a host's own kbd style. */
+.wardley-shortcuts-key {
+  display: inline-block;
+  margin: 2px 0 2px 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-grund);
+  box-shadow: none;
+  color: var(--cd-ui-text-leise);
+  font:
+    400 13px/1.5 'Geist Mono Variable',
+    'Geist Mono',
+    ui-monospace,
+    monospace;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+/* High contrast (guide §6, §5.14): no shadows, contour borders, 3px focus. Forced colours: the
+   system's colours, so nothing disappears. */
+[data-cd-kontrast='hoch'] :is(.wardley-popover, .wardley-dialog-panel) {
+  border-color: var(--cd-ui-kontur);
+  box-shadow: none;
+}
+[data-cd-kontrast='hoch'] .wardley-button[data-variant='primary'] {
+  box-shadow: none;
+}
+[data-cd-kontrast='hoch']
+  :is(
+    .wardley-field-input,
+    .wardley-button,
+    .wardley-popover-link,
+    .wardley-dialog-close
+  ):focus-visible {
+  outline-width: 3px;
+}
+@media (forced-colors: active) {
+  :is(.wardley-popover, .wardley-dialog-panel) {
+    border-color: CanvasText;
+  }
+  .wardley-button {
+    border-color: ButtonText;
+  }
+  :is(
+    .wardley-field-input,
+    .wardley-button,
+    .wardley-popover-link,
+    .wardley-dialog-close
+  ):focus-visible {
+    outline-color: Highlight;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wardley-popover {
+    animation: none;
+  }
+  .wardley-button[data-variant='primary']:is(:hover, :active) {
+    transform: none;
+  }
+}
+/* VS Code's own reduce-motion setting, mirrored onto <html> by the Miragon modeler shell. */
+.cd-shell-reduce-motion .wardley-popover {
+  animation: none;
+}
+.cd-shell-reduce-motion .wardley-button[data-variant='primary']:is(:hover, :active) {
+  transform: none;
+}

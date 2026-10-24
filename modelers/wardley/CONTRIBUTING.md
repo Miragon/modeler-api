@@ -1,0 +1,240 @@
+# Contributing
+
+Thanks for helping improve the Wardley Maps Modeler. This is an npm-workspaces monorepo
+(Node ≥ 22.22.2, npm, TypeScript ESM). Agent-oriented notes live in [`CLAUDE.md`](CLAUDE.md).
+
+## External contributions
+
+We're currently not accepting pull requests from outside the team. We don't have the resources to fully review and validate external contributions, so we can't guarantee that a merged change keeps the project free of bugs, free of security vulnerabilities or malicious code, and consistent with requirements that make sense for it. Pull requests opened by external contributors will be closed.
+
+If you've found a bug or have an idea, please [open an issue](https://github.com/Miragon/wardley-maps-modeler/issues/new) instead. We read every one, and it's the best way to get something onto our radar.
+
+## Setup & inner loop
+
+```bash
+npm install
+npm run build   # builds packages/* (workspace deps resolve to dist — build before testing)
+npm test        # vitest run
+npm run lint    # eslint . + type-check (same check the pre-commit hook runs)
+```
+
+Useful extras: `npm run dev:webapp`, `npm run dev:vscode`, `npm run depcruise` (module-graph check),
+`npm run format` (Prettier).
+
+### Named local URL via Portless
+
+`npm run dev:webapp` (and the top-level `npm run dev`) serves the webapp through
+[Portless](https://portless.sh) at a stable, named `.localhost` URL instead of a Vite port
+(needs **Node ≥ 24**). Portless is a pinned **devDependency**, so `npm install` is all you need — no
+global install. Config lives in [`apps/webapp/portless.json`](apps/webapp/portless.json)
+(`{ "name": "wardley", "script": "dev:app" }`): `npm run dev:webapp` runs bare `portless`, which
+starts the real Vite server (the `dev:app` script) behind the proxy.
+
+The URL is **per worktree** and Portless-derived — never hand-built: in a linked git worktree it
+prepends the branch as a subdomain, so you get `https://<branch>.wardley.localhost` in a Conductor
+workspace and `https://wardley.localhost` in the main checkout. Each worktree gets its own URL, so
+parallel apps never collide. On start Portless **opens your browser** there and prints it as a
+`➜ Portless:` line under Vite's output.
+
+Portless needs an HTTPS proxy daemon on port 443, installed once per machine (it binds 443 and
+trusts a local CA, so it needs **sudo** — which is also why Conductor's non-TTY Run button can't do
+it for you):
+
+```bash
+npx portless trust            # add the local CA to your system trust store
+npx portless service install  # run the HTTPS proxy as a background service (survives reboots)
+```
+
+Prefer a plain Vite server with no proxy? `npm run dev:webapp:plain` (or
+`npm run dev:app -w apps/webapp`) runs Vite directly on `:5180` and needs none of the above.
+
+## Browser & e2e tests
+
+`npm run test:browser` (Vitest browser mode) and `npm run test:e2e` (Playwright, in `e2e/`) need a
+Chromium browser. Locally, run `npx playwright install chromium` once. In CI these two jobs run inside
+the official Playwright container (`mcr.microsoft.com/playwright`), which ships the browser + system
+libs pre-installed. Its tag is the root `playwright` devDependency, which the `playwright-version`
+job of [`.github/workflows/ci.yml`](.github/workflows/ci.yml) reads at run time — so **keep
+`@playwright/test` in `e2e/package.json` on the same version** (the version pin-check does not catch
+this).
+
+The Playwright config has two projects, each with its own dev server started for the run:
+
+- `webapp` — the demo web app (`apps/webapp`, Vite on `E2E_PORT`, default `5180`). It runs the
+  shell's conformance kit on the web host, the app's handlers behind the chrome and the modelling
+  interactions.
+- `vscode-webview` — the VS Code webview (`apps/vscode/src/webview/main.ts`) inside the VS Code
+  stub of `@miragon/modeler-shell`, served by the test page in `e2e/webview/` (Vite on
+  `E2E_WEBVIEW_PORT`, default `5190`). It runs the shell's conformance kit, the webview's side of
+  the host protocol, and a smoke test of the production bundle behind the webview CSP.
+
+Run one with `npx playwright test --project=vscode-webview` from `e2e/`. When the default ports are
+taken (several worktrees at once), pick others: `E2E_PORT=6101 E2E_WEBVIEW_PORT=6111 npm run test:e2e`.
+
+The renderer's browser tests also run the `@miragon/modeler-api` conformance kit against
+`createCollaborativeModeler`/`createCollaborativeViewer`
+([`conformance.browser.test.ts`](packages/renderer/test/browser/conformance.browser.test.ts)); a
+skipped case fails the run.
+
+## VS Code smoke test
+
+`npm run test:vscode` (the `vscode` Vitest project in
+[`apps/vscode/test/smoke/`](apps/vscode/test/smoke/), not part of `npm test`) checks the extension
+in a real VS Code with `runVsCodeSmoke` of `@miragon/modeler-shell/testing/vscode-electron`. It packs
+the extension as the release does (`vsce package --no-dependencies`, which runs `vscode:prepublish`,
+the production build) and unpacks the VSIX into a temporary folder: no `node_modules` of the monorepo
+sits next to the bundle there, so a module esbuild did not inline fails the activation as it would
+for a user. VS Code starts with that folder on a throwaway profile, opens a small map
+([`tea-shop.wmap`](apps/vscode/test/smoke/tea-shop.wmap)) in the custom editor, and the test checks
+the chrome, evolves a component (click, Shift+→), saves (the file changes and
+`parseDSLWithDiagnostics` finds nothing), undoes (canvas and file are back) and switches through
+VS Code's four default themes, in which the webview stays light (`WEBVIEW_THEMES`) and high contrast
+passes. A screenshot per theme goes to `test-results/vscode-smoke/` (git-ignored, emptied at the
+start of every run): `wardley-light.png`, `wardley-dark.png`, `wardley-high-contrast-dark.png` and
+`wardley-high-contrast-light.png`, or `wardley-open-failure.png` when the editor never opened. The
+packages come from source, as in the extension's own build, so no `npm run build` is needed first.
+
+Locally, run it in Docker, where no VS Code window opens and nothing takes the focus:
+
+```bash
+npm run test:vscode:docker                                 # the newest stable VS Code
+npm run test:vscode:docker -- --env VSCODE_VERSION=1.96.0  # another one, the engines floor
+npm run test:vscode:docker -- --env VSCODE_SMOKE_KEEP=1    # brings VS Code's logs back
+npm run test:vscode:docker -- --node 22.22.2               # CI's Node and npm
+```
+
+`test:vscode:docker` is `modeler-shell-vscode-docker`, the command of `@miragon/modeler-shell`: it
+runs `npm run test:vscode` under `xvfb-run -a` in a Linux container. The host needs Docker (Docker
+Desktop on macOS) and the repository's usual `npm ci`, which installs the command. Once per Node
+version it builds a local image (about 0.9 GB: `node:<version>-bookworm-slim` with Xvfb and
+Electron's libraries). That version is the host's Node, not CI's: `--node 22.22.2`, the default of
+[`.github/actions/setup`](.github/actions/setup/action.yml), runs the container on CI's Node and
+npm. Each run copies the working tree, uncommitted changes included, into the container without
+`node_modules` and `.git`, runs `npm ci` there and copies `test-results/vscode-smoke/` back, with VS
+Code's logs in `vscode-logs/` when `VSCODE_SMOKE_KEEP=1` kept them; the host's `node_modules` and
+`apps/vscode/dist` stay as they are. VS Code's download and npm's cache live in the Docker volumes
+`modeler-shell-vscode-cache` and `modeler-shell-npm-cache`, which every Miragon modeler on the
+machine shares. With the image and VS Code cached a run takes about 12 s, `npm ci` included; the
+first run also builds the image and downloads VS Code, about a minute more. Paths in the test's
+output are the container's (`/work/…`). The other options (`--platform`, `--rebuild`,
+`--results`, …) are in the shell's README, section "In Docker, without a window".
+
+`npm run test:vscode` runs the same test on the host, as CI does; use it to watch VS Code at work:
+
+```bash
+npm run test:vscode                                 # the newest stable VS Code
+VSCODE_VERSION=1.96.0 npm run test:vscode           # another version, here the engines floor
+VSCODE_SMOKE_KEEP=1 npm run test:vscode             # keeps VS Code's profile and logs, prints where
+VSCODE_SMOKE_VSIX=path/to.vsix npm run test:vscode  # a packed VSIX instead of packing one
+```
+
+On macOS a VS Code window opens for a few seconds and takes the focus; a run takes about 5 s. The
+first run downloads VS Code (about 320 to 360 MB, 0.9 GB unpacked per version) into
+`~/Library/Caches/miragon-modeler-shell/vscode-test` (`~/.cache/…` on Linux), which every Miragon
+modeler on the machine shares and `npm ci` keeps. Runs may use it at the same time, here or in
+another modeler, as long as every modeler using it is on `@miragon/modeler-shell` 0.3.3 or
+later; one still on 0.3.2 or older unpacks in the cache in place and, while it downloads a version,
+can break a run of another modeler and be broken by one. Like `npm run package -w apps/vscode`, the
+packing writes the production build into `apps/vscode/dist`. On Linux, run it under an X server:
+`xvfb-run -a npm run test:vscode`.
+
+When a failure names no cause (for example "the custom editor never showed the shell's menu"), the
+cause is in VS Code's logs: run again with `VSCODE_SMOKE_KEEP=1` and read the `logs` folder of the
+kept profile (in Docker: `test-results/vscode-smoke/vscode-logs/`). A failed run is not retried: the
+save step of `@miragon/modeler-shell` parses the file only once the editor tab is clean and two
+reads of it agree, and reads it again while the test's parser rejects it (a map without elements
+included), so it does not catch VS Code halfway through a save.
+
+In CI, [`.github/workflows/vscode-smoke.yml`](.github/workflows/vscode-smoke.yml) runs it on
+`ubuntu-latest` under `xvfb-run -a`, as a matrix of the newest stable VS Code (`stable`) and the
+oldest one `engines.vscode` of `apps/vscode/package.json` accepts (`minimum`, read at run time). It
+runs inside the CI workflow, behind the merge gate, weekly and before every release; see
+[CI and the merge gate](#ci-and-the-merge-gate) for when it runs and when it skips. The downloaded
+VS Code is cached per version. The screenshots are uploaded as the `vscode-smoke-stable` and
+`vscode-smoke-minimum` artifacts and, when a run failed, VS Code's logs as `vscode-smoke-logs-stable`
+or `vscode-smoke-logs-minimum` (7 days each).
+
+## CI and the merge gate
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request, on pushes to
+`main`, in the merge queue and on demand. Its last job, **`ci-ok`, is the merge gate**: it and the
+PR-title check (`validate-pr-title`) are the checks for the `main` ruleset to require, in place of
+the single jobs, so that Dependabot's auto-merge waits for every job, the VS Code smoke included.
+`ci-ok` needs every other job of the workflow and fails, with an error per job, when one of them did
+not succeed: failed, cancelled, or skipped because a job it needs failed (a required check counts a
+skipped job as passed, which is why the single jobs are no gate). It accepts a skip only from a job
+whose own `if:` leaves it out of the event by design, listed in its `SKIPPED_BY_DESIGN`: today
+`dependency-review`, which runs on pull requests only. **A new job in `ci.yml` goes into the `needs`
+of `ci-ok`**, or it gates nothing.
+
+The VS Code smoke test is the CI job `vscode-smoke`, a call of
+[`vscode-smoke.yml`](.github/workflows/vscode-smoke.yml). Its first job, `changes`, decides whether
+the smoke runs. On a pull request, a push and in the merge queue it compares the checked-out commit
+with the base (the pull request's base commit, the commit before the push, the merge group's base)
+and runs the smoke only when one of these changed: `package-lock.json`, any `package.json`,
+`apps/vscode/**`, `packages/**`, `tsconfig.base.json` (esbuild compiles the VSIX's bundles with its
+options), `vitest.config.ts`, `.github/actions/setup/**`, `ci.yml`, `vscode-smoke.yml` or
+`vscode-smoke-weekly.yml`. A moved file counts under its old and its new path, so moving a file out
+of `apps/vscode/**` runs the smoke too. Without a base (a new branch: an all-zero commit) or when
+the base cannot be fetched, it runs; on a schedule and on demand it always runs. When it skips, the
+job `skipped` succeeds with a notice, so `ci-ok` sees a success and no skip. An npm Dependabot
+update changes the lockfile, so its smoke always runs.
+
+[`.github/workflows/vscode-smoke-weekly.yml`](.github/workflows/vscode-smoke-weekly.yml) runs the
+same smoke every Monday, against a VS Code release that came out since the last change here, and on
+demand (Actions → VS Code smoke weekly → Run workflow). When it fails, its job `alert` opens the
+issue "VS Code smoke: the weekly run failed", or comments on the open one, with a link to the run;
+GitHub itself tells only the last editor of the cron line.
+
+Before a release uploads the extension, each publishing job in
+[`.github/workflows/release-please.yml`](.github/workflows/release-please.yml) (VS Code Marketplace,
+Open VSX) runs the smoke test on the VSIX it is about to upload (`VSCODE_SMOKE_VSIX`, the newest
+stable VS Code), and publishes only when it passes. A manual run with `dry_run` runs the same smoke.
+When it fails, its screenshots and VS Code's logs are uploaded as the artifact
+`vscode-smoke-marketplace`, `vscode-smoke-open-vsx` or `vscode-smoke-dry-run`.
+
+## Pre-commit reality
+
+The Husky hook (`.husky/pre-commit`) runs **only** `lint-staged` + `npm run lint` — i.e. ESLint and
+type-check. It does **not** run tests, the build, or dependency-cruiser. So before you push, run
+`npm test` (and `npm run depcruise` if you touched imports) yourself. `git commit --no-verify` bypasses
+the hook — avoid it.
+
+## Commit convention
+
+[Conventional Commits](https://www.conventionalcommits.org/) — primarily `feat`, `fix`, `refactor`,
+`chore`, `docs`.
+
+```
+feat(renderer): add inertia decorator
+fix(dsl): keep url keyword on round-trip
+docs: add contributing guide
+```
+
+## Monorepo map & the DOM boundary (P1)
+
+| Package                         | Purpose                                               | DOM      |
+| ------------------------------- | ----------------------------------------------------- | -------- |
+| `@miragon/wardley-schema-model` | Metamodel, Zod validation, JSON serialization         | DOM-free |
+| `@miragon/wardley-dsl`          | OWM text DSL ↔ model (lossless round-trip)            | DOM-free |
+| `@miragon/wardley-transforms`   | Pure `WardleyMap → WardleyMap` transforms             | DOM-free |
+| `@miragon/wardley-renderer`     | diagram-js bootstrap, renderer, viewer, import/export | DOM      |
+| `apps/webapp`                   | Vite demo editor                                      | DOM      |
+| `apps/vscode`                   | VS Code custom editor for `.wmap`/`.owm`              | DOM      |
+
+**P1 — the DOM boundary:** the DOM-free packages (`schema-model`, `dsl`, `transforms`) must **never**
+import `diagram-js`/DOM libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). This
+is enforced twice — by ESLint (`no-restricted-imports`/`no-restricted-globals`) **and** by
+dependency-cruiser — so a violating import fails `npm run lint` and `npm run depcruise`.
+
+Also keep the OWM-DSL round-trip lossless and JSON serialization deterministic.
+
+## Pull requests
+
+- Keep PRs small and focused.
+- Make sure local gates are green: `npm run lint`, `npm test`, `npm run depcruise`, `npm run build`.
+  Changed the extension, the DSL, the schema model or a dependency? Run
+  `npm run test:vscode:docker` too.
+- Working on map/domain semantics? See the `wardley-mapping` and `owm-dsl` skills of the Claude Code
+  plugin in [`plugins/wardley-maps-modeler/`](plugins/wardley-maps-modeler/). Changed the DSL? Keep
+  the `owm-dsl` skill and its examples in step — `npm test` parses every example in the plugin.

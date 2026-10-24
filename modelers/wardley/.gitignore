@@ -1,0 +1,22 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+coverage/
+*.log
+.DS_Store
+test-results/
+playwright-report/
+/e2e/.cache/
+.playwright-mcp/
+# Vitest Browser Mode failure artifacts (transient; not visual-regression baselines)
+.vitest-attachments/
+.vitest/
+__screenshots__/
+
+# Ignore only local Claude settings; project guardrails (settings.json, rules/) stay tracked
+.claude/settings.local.json
+.claude/logs/
+# The repo's own skills ship from plugins/wardley-maps-modeler/; a local copy here would shadow
+# the plugin skill, so nothing under .claude/skills/ is tracked.
+.claude/skills/*
