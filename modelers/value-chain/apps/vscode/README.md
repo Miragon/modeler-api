@@ -4,7 +4,7 @@ View and edit value chain diagrams (Wertschöpfungskettendiagramme, ARIS-style v
 chain diagrams) directly in VS Code. The `*.vc` / `*.vc.json` file stays the source of truth —
 dirty state, save, Git, diff, and undo all work like for any text file.
 
-![The value chain editor in VS Code](https://raw.githubusercontent.com/Miragon/value-chain-modeler/main/docs/screenshots/vscode-editor.png)
+![The value chain editor in VS Code](https://raw.githubusercontent.com/Miragon/modeler-suite/main/modelers/value-chain/docs/screenshots/vscode-editor.png)
 
 ## Features
 
@@ -54,12 +54,12 @@ High Contrast themes get the high-contrast chrome.
 
 ## Development
 
-See the monorepo's [CONTRIBUTING.md](https://github.com/Miragon/value-chain-modeler/blob/main/CONTRIBUTING.md).
+See the modeler's [CONTRIBUTING.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/CONTRIBUTING.md).
 Launch the extension host via the "Run Value Chain VS Code extension" debug configuration.
 
 ## License
 
 MIT. The extension bundles third-party software (Lucide icons, the Geist fonts, diagram-js and
 others); their licenses are in
-[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/value-chain-modeler/blob/main/apps/vscode/THIRD_PARTY_NOTICES.md),
+[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/apps/vscode/THIRD_PARTY_NOTICES.md),
 which ships with the extension.

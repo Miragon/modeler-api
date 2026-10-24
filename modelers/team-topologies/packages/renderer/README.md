@@ -1,7 +1,7 @@
 # @miragon/team-topologies-renderer
 
 [![npm](https://img.shields.io/npm/v/@miragon/team-topologies-renderer)](https://www.npmjs.com/package/@miragon/team-topologies-renderer)
-[![License: MIT](https://img.shields.io/github/license/Miragon/team-topologies-modeler)](https://github.com/Miragon/team-topologies-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE)
 
 The **browser layer** of the [Team Topologies Modeler](../../README.md): a framework-agnostic viewer
 and full editor for [Team Topologies](https://teamtopologies.com/) diagrams, built on

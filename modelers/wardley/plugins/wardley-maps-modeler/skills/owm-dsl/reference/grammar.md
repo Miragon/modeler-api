@@ -1,8 +1,8 @@
 # `.wmap` / `.owm` — exhaustive grammar
 
 Reference for the parser in `@miragon/wardley-dsl`
-(`packages/dsl/src/{lexer,parser,serializer,names}.ts` in the
-[wardley-maps-modeler](https://github.com/Miragon/wardley-maps-modeler) monorepo). Where this file
+(`packages/dsl/src/{lexer,parser,serializer,names}.ts` of the
+[Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley) in the Miragon modeler suite). Where this file
 and the implementation disagree, the implementation wins. Every behaviour below was checked by
 running the current `@miragon/wardley-dsl` parser, the version going into the next release. Older
 releases throw, or drop text silently, in several cases that this file describes as diagnosed.

@@ -1,7 +1,7 @@
 # @miragon/event-storming-transforms
 
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-transforms)](https://www.npmjs.com/package/@miragon/event-storming-transforms)
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 DOM-free, pure `EventStormingBoard → EventStormingBoard` transforms — move, kind, color, arrange.
 No undo stack: every transform returns a new board and leaves the input untouched.
@@ -29,7 +29,7 @@ Also included: `moveBy` (delta translation), `setColor`/`clearColor` (sticky col
 `alignToRows` (snap stickies into per-kind swimlanes) and `spreadTimeline` (spread stickies
 evenly along the timeline).
 
-Part of the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler) monorepo.
+Part of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

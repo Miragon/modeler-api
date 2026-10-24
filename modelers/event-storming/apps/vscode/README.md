@@ -1,7 +1,7 @@
 # Event Storming for VS Code
 
 [![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.event-storming-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.event-storming-modeler)
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 [Event Storming](https://www.eventstorming.com) is a workshop format for exploring a business
 domain with sticky notes: domain events on a timeline, the commands that trigger them, and the
@@ -9,7 +9,7 @@ people, policies and systems around them. This extension lets you create and edi
 boards directly inside VS Code: it opens `.storm` files (a simple plain-text DSL) in a graphical
 editor, while the text file stays the source of truth, so save, Git, and diff keep working.
 
-![The Event Storming board editor in VS Code](https://raw.githubusercontent.com/Miragon/event-storming-modeler/main/docs/screenshots/vscode-editor.png)
+![The Event Storming board editor in VS Code](https://raw.githubusercontent.com/Miragon/modeler-suite/main/modelers/event-storming/docs/screenshots/vscode-editor.png)
 
 New to Event Storming? Start with [eventstorming.com](https://www.eventstorming.com) and Alberto
 Brandolini's book [Introducing EventStorming](https://leanpub.com/introducing_eventstorming).
@@ -79,7 +79,7 @@ the chrome shared by all Miragon modelers.
 ## Development
 
 Building from source and the dev loop are documented in
-[CONTRIBUTING.md](https://github.com/Miragon/event-storming-modeler/blob/main/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/CONTRIBUTING.md).
 
 The extension host bundle (`dist/extension.cjs`) is about 470 KB minified, nearly all of it zod,
 which the DSL validation needs for the Problems view. It is loaded once per window when the first
@@ -90,5 +90,5 @@ loads its fonts as separate files from `dist/fonts`, so only the subsets a page 
 
 MIT. The extension bundles third-party software (Lucide icons, the Geist fonts, diagram-js and
 its dependencies, zod); their licenses are in
-[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/event-storming-modeler/blob/main/apps/vscode/THIRD_PARTY_NOTICES.md),
+[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/apps/vscode/THIRD_PARTY_NOTICES.md),
 which ships in the extension as well.

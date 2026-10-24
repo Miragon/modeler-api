@@ -1,17 +1,17 @@
 # @miragon/value-chain-renderer
 
 [![npm](https://img.shields.io/npm/v/@miragon/value-chain-renderer)](https://www.npmjs.com/package/@miragon/value-chain-renderer)
-[![License: MIT](https://img.shields.io/github/license/Miragon/value-chain-modeler)](https://github.com/Miragon/value-chain-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/LICENSE)
 
 Viewer and editor for value chain diagrams (ARIS-style _Wertschöpfungskettendiagramme_), built on
 [diagram-js](https://github.com/bpmn-io/diagram-js) and styled by the Miragon design system.
 Framework-agnostic: mount it into any element. The
-[Value Chain Modeler](https://github.com/Miragon/value-chain-modeler) web app and VS Code extension
+[Value Chain Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain) web app and VS Code extension
 both wrap this package, and it implements the
 [`@miragon/modeler-api`](https://www.npmjs.com/package/@miragon/modeler-api) contract for
 collaborative hosts.
 
-![Modeler](https://raw.githubusercontent.com/Miragon/value-chain-modeler/main/docs/screenshot.png)
+![Modeler](https://raw.githubusercontent.com/Miragon/modeler-suite/main/modelers/value-chain/docs/screenshot.png)
 
 ## Install
 
@@ -156,7 +156,7 @@ shell's empty-file hint.
 
 ## License
 
-[MIT](https://github.com/Miragon/value-chain-modeler/blob/main/LICENSE). The inlined
+[MIT](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/LICENSE). The inlined
 [Lucide](https://lucide.dev) icons are ISC (© Lucide Icons and Contributors); `trash` and `x` derive
 from Feather, MIT (© Cole Bemis), as Lucide's LICENSE lists them. The bundle keeps both notices as a
 legal comment.

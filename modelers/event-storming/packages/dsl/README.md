@@ -1,7 +1,7 @@
 # @miragon/event-storming-dsl
 
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-dsl)](https://www.npmjs.com/package/@miragon/event-storming-dsl)
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 DOM-free bridge between the Event Storming `.storm` text DSL and the `EventStormingBoard`
 model — a lossless round-trip.
@@ -53,7 +53,7 @@ Unknown lines and comments are kept losslessly in `rawPassthrough`;
 `parseDSLWithDiagnostics` reports uninterpretable lines with 1-based line numbers instead of
 throwing.
 
-Part of the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler) monorepo.
+Part of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

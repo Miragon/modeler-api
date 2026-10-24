@@ -1,7 +1,7 @@
 # Third-party content
 
 The `wardley-maps-modeler` plugin is MIT-licensed (see the
-[repository LICENSE](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)). Some of
+[repository LICENSE](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)). Some of
 its content is adapted from the MIT-licensed sources below; the method it teaches is Simon
 Wardley's.
 

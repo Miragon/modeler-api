@@ -1,7 +1,7 @@
 # @miragon/context-maps-renderer
 
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-renderer)](https://www.npmjs.com/package/@miragon/context-maps-renderer)
-[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/LICENSE)
 
 The **browser layer** of the [Context Maps Modeler](../../README.md): a framework-agnostic viewer
 and full editor for strategic Domain-Driven Design [Context Maps](https://contextmapper.org/)

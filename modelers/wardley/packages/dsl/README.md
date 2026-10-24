@@ -1,7 +1,7 @@
 # @miragon/wardley-dsl
 
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-dsl)](https://www.npmjs.com/package/@miragon/wardley-dsl)
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 DOM-free bridge between the [Online-Wardley-Maps](https://docs.onlinewardleymaps.com/) text DSL and
 the `WardleyMap` model — a lossless round-trip.
@@ -62,7 +62,7 @@ import { readBackIds } from "@miragon/wardley-dsl";
 readBackIds(editedMap).get("shape_42"); // 'cmp_hot_water'
 ```
 
-Part of the [Wardley Maps](https://github.com/Miragon/wardley-maps-modeler) monorepo.
+Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

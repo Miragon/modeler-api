@@ -1,7 +1,7 @@
 # @miragon/context-maps-schema-model
 
 [![npm](https://img.shields.io/npm/v/@miragon/context-maps-schema-model)](https://www.npmjs.com/package/@miragon/context-maps-schema-model)
-[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/LICENSE)
 
 The **DOM-free core** of the [Context Maps Modeler](../../README.md): the data model, the notation
 specification, runtime validation, version migrations and deterministic JSON serialization for

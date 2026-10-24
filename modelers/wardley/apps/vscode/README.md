@@ -1,7 +1,7 @@
 # Wardley Maps for VS Code
 
 [![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.wardley-mapping-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.wardley-mapping-modeler)
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 [Wardley Maps](https://learnwardleymapping.com/) chart the components of a business by user value and
 evolution, so you can see your landscape and reason about strategy. This extension lets you create and
@@ -9,7 +9,7 @@ edit them directly inside VS Code: it opens `.wmap` / `.owm` files (a simple pla
 [Online-Wardley-Maps DSL](https://docs.onlinewardleymaps.com/)) in a graphical editor, while the
 text file stays the source of truth, so save, Git, and diff keep working.
 
-![The Wardley Maps editor](https://raw.githubusercontent.com/Miragon/wardley-maps-modeler/main/docs/screenshots/editor.png)
+![The Wardley Maps editor](https://raw.githubusercontent.com/Miragon/modeler-suite/main/modelers/wardley/docs/screenshots/editor.png)
 
 New to Wardley Mapping? Start with [Learn Wardley Mapping](https://learnwardleymapping.com/).
 
@@ -69,7 +69,7 @@ Together they show _what_ you depend on and _how mature_ each piece is.
   dark VS Code themes (high contrast themes get the high-contrast chrome) until all Miragon
   modelers turn dark together.
 - **Self-hosted fonts** — no CDN, offline-capable. Third-party licenses:
-  [THIRD_PARTY_NOTICES.md](https://github.com/Miragon/wardley-maps-modeler/blob/main/apps/vscode/THIRD_PARTY_NOTICES.md).
+  [THIRD_PARTY_NOTICES.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/apps/vscode/THIRD_PARTY_NOTICES.md).
 
 ## Commands
 
@@ -103,7 +103,7 @@ Run these from the Command Palette (type _"Wardley"_) or the editor title bar:
 ## Development
 
 Building from source and the dev loop are documented in
-[CONTRIBUTING.md](https://github.com/Miragon/wardley-maps-modeler/blob/main/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/CONTRIBUTING.md).
 
 ## License
 

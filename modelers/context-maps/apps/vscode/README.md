@@ -1,7 +1,7 @@
 # Context Maps for VS Code
 
 [![VS Marketplace](https://vsmarketplacebadges.dev/version-short/miragon-gmbh.context-maps-modeler.svg)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.context-maps-modeler)
-[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/LICENSE)
 
 [Context Maps](https://contextmapper.org/) are the strategic Domain-Driven Design view of a system:
 bounded contexts, coloured by subdomain type (core / supporting / generic), connected by
@@ -11,7 +11,7 @@ inside VS Code: it opens `.cm` / `.cm.json` files (a Context Maps diagram stored
 deterministic JSON) in a graphical editor, while the text file stays the source of truth, so save,
 Git, and diff keep working.
 
-![A context map in VS Code](https://raw.githubusercontent.com/Miragon/context-maps-modeler/main/docs/screenshots/vscode-editor.png)
+![A context map in VS Code](https://raw.githubusercontent.com/Miragon/modeler-suite/main/modelers/context-maps/docs/screenshots/vscode-editor.png)
 
 ## Getting started
 
@@ -85,12 +85,12 @@ A diagram shows bounded contexts and the relationships between them.
   themes get the light high-contrast variant.
 
 Third-party licenses of everything the extension bundles are in
-[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/context-maps-modeler/blob/main/apps/vscode/THIRD_PARTY_NOTICES.md).
+[THIRD_PARTY_NOTICES.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/apps/vscode/THIRD_PARTY_NOTICES.md).
 
 ## Development
 
 Building from source and the dev loop are documented in
-[CONTRIBUTING.md](https://github.com/Miragon/context-maps-modeler/blob/main/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/CONTRIBUTING.md).
 
 ## License
 

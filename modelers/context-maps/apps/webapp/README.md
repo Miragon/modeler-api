@@ -1,6 +1,6 @@
 # Context Maps Modeler — Web App
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/context-maps-modeler)](https://github.com/Miragon/context-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/context-maps/LICENSE)
 
 The browser editor for strategic Domain-Driven Design [Context Maps](https://contextmapper.org/)
 diagrams: a Vite app on the shared [`@miragon/context-maps-renderer`](../../packages/renderer) core,

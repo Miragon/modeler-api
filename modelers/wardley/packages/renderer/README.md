@@ -1,7 +1,7 @@
 # @miragon/wardley-renderer
 
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-renderer)](https://www.npmjs.com/package/@miragon/wardley-renderer)
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 [diagram-js](https://github.com/bpmn-io/diagram-js)-based renderer for
 [Wardley Maps](https://learnwardleymapping.com/): `Viewer`, `NavigatedViewer`, and a full editable
@@ -158,7 +158,7 @@ That package registers the family as `'Geist Variable'`; the renderer's font sta
 `'Geist Variable', 'Geist', …` so it matches either that package or a locally installed Geist. Use
 `'Geist Variable'` in your own CSS too — `'Geist'` alone never matches the self-hosted face.
 
-Part of the [Wardley Maps](https://github.com/Miragon/wardley-maps-modeler) monorepo.
+Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

@@ -1,9 +1,9 @@
 # @miragon/value-chain-schema-model
 
 [![npm](https://img.shields.io/npm/v/@miragon/value-chain-schema-model)](https://www.npmjs.com/package/@miragon/value-chain-schema-model)
-[![License: MIT](https://img.shields.io/github/license/Miragon/value-chain-modeler)](https://github.com/Miragon/value-chain-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/LICENSE)
 
-The **DOM-free core** of the [Value Chain Modeler](https://github.com/Miragon/value-chain-modeler):
+The **DOM-free core** of the [Value Chain Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/value-chain):
 types, Zod validation, migrations and deterministic JSON serialization for value chain diagrams
 (ARIS-style _Wertschöpfungskettendiagramme_, `*.vc` / `*.vc.json`).
 
@@ -92,8 +92,8 @@ properties (`constructor`, `toString`, …) are reserved, coordinates and sizes 
 (`COORDINATE_LIMIT`), and objects and arrays nest at most 100 levels (`MAX_NESTING_DEPTH`).
 
 A complete example lives in
-[`example/porter.vc.json`](https://github.com/Miragon/value-chain-modeler/blob/main/example/porter.vc.json).
+[`example/porter.vc.json`](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/example/porter.vc.json).
 
 ## License
 
-[MIT](https://github.com/Miragon/value-chain-modeler/blob/main/LICENSE)
+[MIT](https://github.com/Miragon/modeler-suite/blob/main/modelers/value-chain/LICENSE)

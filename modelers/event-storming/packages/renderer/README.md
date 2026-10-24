@@ -1,7 +1,7 @@
 # @miragon/event-storming-renderer
 
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-renderer)](https://www.npmjs.com/package/@miragon/event-storming-renderer)
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 [diagram-js](https://github.com/bpmn-io/diagram-js)-based renderer for
 [Event Storming](https://www.eventstorming.com/) boards: `Viewer`, `NavigatedViewer`, and a full
@@ -190,7 +190,7 @@ identity); provide it yourself — recommended self-hosted via [`@fontsource`](h
 import "@fontsource-variable/geist/wght.css";
 ```
 
-Part of the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler) monorepo.
+Part of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

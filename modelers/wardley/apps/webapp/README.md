@@ -1,6 +1,6 @@
 # Wardley Maps — Web App
 
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 A browser editor for [Wardley Maps](https://learnwardleymapping.com/) in the shared chrome of the
 Miragon modelers ([`@miragon/modeler-shell`](https://www.npmjs.com/package/@miragon/modeler-shell),

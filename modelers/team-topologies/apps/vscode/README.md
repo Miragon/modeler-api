@@ -1,7 +1,7 @@
 # Team Topologies for VS Code
 
 [![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/miragon-gmbh.team-topologies-modeler?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.team-topologies-modeler)
-[![License: MIT](https://img.shields.io/github/license/Miragon/team-topologies-modeler)](https://github.com/Miragon/team-topologies-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE)
 
 [Team Topologies](https://teamtopologies.com/) is a way to organise software teams for a fast flow of
 change: it describes four fundamental team types and three modes of interaction between them. This
@@ -93,7 +93,7 @@ the bottom left, the same in every Miragon modeler.
 ## Development
 
 Building from source and the dev loop are documented in
-[CONTRIBUTING.md](https://github.com/Miragon/team-topologies-modeler/blob/main/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/CONTRIBUTING.md).
 
 ## License
 

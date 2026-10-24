@@ -13,7 +13,7 @@ embedded in a foreign page), so the chrome looks and behaves the same everywhere
 - **Mechanics** (diagram-js services, VS Code quirks, why things are done the way they are) are in
   the [implementation notes][notes].
 - **API**: every entry point, type and rule in [API.md][api].
-- **Plan**: Phase 4 of [Miragon/modeler-api#4](https://github.com/Miragon/modeler-api/issues/4); the
+- **Plan**: Phase 4 of [Miragon/modeler-suite#4](https://github.com/Miragon/modeler-suite/issues/4); the
   Event Storming modeler is the pilot.
 
 Zero runtime dependencies: diagram-js services are typed structurally, the `vscode` namespace and
@@ -829,5 +829,5 @@ THIRD_PARTY_NOTICES.md itself. Vite 8 (Rolldown with the Oxc minifier) drops leg
 default; `build.rolldownOptions.output.comments.legal: true` keeps the notice in the bundle.
 
 [guide]: https://github.com/Miragon/corporate-identity/blob/main/plugins/miragon-brand/skills/modeler-tool-design/assets/modeler-design-system.md
-[notes]: https://github.com/Miragon/modeler-api/blob/main/docs/shell/implementation-notes.md
-[api]: https://github.com/Miragon/modeler-api/blob/main/packages/shell/API.md
+[notes]: https://github.com/Miragon/modeler-suite/blob/main/docs/shell/implementation-notes.md
+[api]: https://github.com/Miragon/modeler-suite/blob/main/packages/shell/API.md

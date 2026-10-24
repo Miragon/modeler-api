@@ -4,7 +4,7 @@
 Miragon diagram-js modeler: menu button, tool palette, tooltips, zoom panel, keys, fit, problems pill,
 legend, status box and the plumbing to its host (a VS Code webview, a web app, or an embedding host
 such as designIQ). **Status: 0.3** in [`packages/shell`](../../packages/shell), Phase 4 of
-[#4](https://github.com/Miragon/modeler-api/issues/4): 0.1 brought the IDE host, 0.2 the web app's
+[#4](https://github.com/Miragon/modeler-suite/issues/4): 0.1 brought the IDE host, 0.2 the web app's
 chrome (see [Web app host](#web-app-host)), 0.3 a driver for smoke tests in a real VS Code (see
 [VS Code: smoke tests in a real VS Code](#vs-code-smoke-tests-in-a-real-vs-code)), 0.3.1 its wait for
 a complete save and its Docker mode; its public API is
@@ -23,7 +23,7 @@ The design system repository is private, so the guide links in these notes open 
 staff. Every section therefore links the guide section it implements and restates its rule in one
 line (**Guide §x.y.** Rule: …); the mechanics follow. If a note and the guide disagree, the guide
 wins and the note gets fixed. If you cannot read the guide and something here looks wrong or
-incomplete, open an issue in [Miragon/modeler-api](https://github.com/Miragon/modeler-api/issues); a
+incomplete, open an issue in [Miragon/modeler-suite](https://github.com/Miragon/modeler-suite/issues); a
 maintainer checks it against the guide.
 
 Checked against diagram-js 15.28.1 (the guide requires at least 15.28) and against VS Code's webview
@@ -69,10 +69,9 @@ The design system names its tokens and attributes in German. The names used in t
   <https://corporate-identity.netlify.app/brand/cd-tokens.generated.css> and
   <https://corporate-identity.netlify.app/brand/cd-tokens.generated.json>. The `shell` group appears
   there with design system release 1.12.0.
-- Modeler repositories vendor them unchanged, for example
-  `packages/renderer/src/theme/cd-tokens.generated.css` in
-  [Miragon/wardley-maps-modeler](https://github.com/Miragon/wardley-maps-modeler). A vendored copy is
-  never edited by hand; it is re-copied from the source.
+- The modelers vendor them unchanged, for example
+  [`modelers/wardley/packages/renderer/src/theme/cd-tokens.generated.css`](../../modelers/wardley/packages/renderer/src/theme/cd-tokens.generated.css).
+  A vendored copy is never edited by hand; it is re-copied from the source.
 - The shell's scripts compute with their own copy of the sizes (`SHELL`), its stylesheet reads the
   vendored `--cd-shell-*` tokens. A modeler pins the two together in a unit test (Vitest or
   `node:test`), not in its e2e suite, because the check is pure data:
@@ -588,7 +587,7 @@ so Delete, the arrows and Cmd/Ctrl+Z act at once; Enter and Space leave it on th
   `FileMenuAction.dialog` for a dialog of its own. The browser's file picker is no dialog in the
   modeler (the guide's wording), and the file picked there shows on the canvas, where the keys then
   act; on cancel the canvas keeps the focus. The dialog openers that
-  [#19](https://github.com/Miragon/modeler-api/issues/19) leaves as they were are therefore the
+  [#19](https://github.com/Miragon/modeler-suite/issues/19) leaves as they were are therefore the
   `dialog` entries, which keep the trigger.
 - A click on a zoom button while the menu is open: the capture-phase `pointerdown` closes the menu
   without moving the focus (see [Menu](#menu)), then the click hands it to the canvas.
@@ -827,7 +826,7 @@ across a window reload, in the web app across sessions.
   checkbox or its card's button.
 - Decided by the product owner on 2026-10-24 (modeler-shell 0.5). This supersedes the rule of
   design system 1.15.0 ([corporate-identity#37][ci-37], decided for
-  [modeler-api#51](https://github.com/Miragon/modeler-api/issues/51)), under which the legend
+  [modeler-suite#51](https://github.com/Miragon/modeler-suite/issues/51)), under which the legend
   started closed only up to 820px height and up to 440px width and open otherwise.
   `legendStartsOpen` stays exported for existing callers, deprecated and always `false`.
 
@@ -1057,7 +1056,7 @@ function resolveAppearance(requested: Appearance, themes: readonly Theme[]): App
 - `resolveAppearance` ships in `@miragon/modeler-shell/core`. The shell has no runtime dependencies,
   so it does not import the rule from the contract; a later 1.x minor of the `@miragon/modeler-api`
   contract adds the `appearance` surface for embedded hosts, which decide with the same rule
-  ([#4](https://github.com/Miragon/modeler-api/issues/4)).
+  ([#4](https://github.com/Miragon/modeler-suite/issues/4)).
 - Shell conformance requests dark from a light-only modeler and asserts that nothing turns dark.
 
 ## Appearance in embedded hosts
@@ -1613,7 +1612,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   folder without its `is-complete` marker it deletes and unpacks into again (on Linux while the
   archive still downloads), and it writes the marker last. Two runs that needed a version the cache
   did not have yet (a new stable release, the default; several agents running `test:vscode:docker`
-  on the shared volume, [#36](https://github.com/Miragon/modeler-api/issues/36)) deleted each
+  on the shared volume, [#36](https://github.com/Miragon/modeler-suite/issues/36)) deleted each
   other's half-unpacked install. Two Event Storming runs in Docker on one empty cache, the second
   started while the first was at 30 % of its download, both failed with 0.3.2: the first with 1623
   `tar: … Cannot open: No such file or directory` and "Failed to download and unzip VS Code
@@ -1720,7 +1719,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   which now and then was the empty or half-written file: "Unexpected end of JSON input" once in 30
   Value Chain runs, and a Wardley map without elements, which parses without a diagnostic. The
   modelers worked around it with a retry on exactly that failure
-  ([#27](https://github.com/Miragon/modeler-api/issues/27)). The driver now waits for the tab to
+  ([#27](https://github.com/Miragon/modeler-suite/issues/27)). The driver now waits for the tab to
   turn clean first: `TextFileEditorModel` clears the dirty state in `handleSaveSuccess`, after the
   write has resolved, and a custom text editor's tab follows its text document. Then it reads the
   file until two reads 100 ms apart, each between two `stat` calls with the same size and mtime and
@@ -1753,7 +1752,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   workbench never switched (no .vs-dark)" in Docker runs of Context Maps and Team Topologies (VS Code
   1.143.0, `linux-arm64`), once in three Event Storming runs, and "Default High Contrast Light: …
   (no .hc-light)" in Context Maps' CI on `ubuntu-latest` with VS Code 1.143.1, where it failed a
-  pull request after 30 s ([#35](https://github.com/Miragon/modeler-api/issues/35)). Event Storming's
+  pull request after 30 s ([#35](https://github.com/Miragon/modeler-suite/issues/35)). Event Storming's
   smoke test ran the whole test once more on exactly that failure. The driver now retries within the
   wait (`switchWorkbenchTheme` in `theme-switch.ts`). Decisions:
   - _Write again after 2 s._ A switch VS Code takes is done within 0.9 s (1 to 876 ms over the
@@ -1824,7 +1823,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
 - **In a container (0.3.1).** On macOS Electron has no headless mode: every run starts a VS Code
   window in the foreground that takes the focus, and runs in a row (or agents testing in parallel)
   keep interrupting whoever works on the machine
-  ([#28](https://github.com/Miragon/modeler-api/issues/28)). On Linux the window goes to Xvfb.
+  ([#28](https://github.com/Miragon/modeler-suite/issues/28)). On Linux the window goes to Xvfb.
   `modeler-shell-vscode-docker` therefore runs the modeler's own smoke script in a Linux container
   under `xvfb-run -a`. Decisions:
   - _A command of the shell, not a recipe per modeler._ Image, mounts, volumes and the copy are the
@@ -1901,7 +1900,7 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
 These topics stay in the design guide because they are not part of the shell:
 
 - canvas theming with `cd-canvas.css` and the `cd-c-*` role classes (guide §10.2, §10.3; renderers and
-  Phase 7 of [#4](https://github.com/Miragon/modeler-api/issues/4) own them);
+  Phase 7 of [#4](https://github.com/Miragon/modeler-suite/issues/4) own them);
 - light-only export (guide §10.7);
 - the token files and the token module (guide §13.1, §13.2);
 - the mode recipes for IntelliJ, Electron, Tauri and Theia (guide §13.3); the web app's head script

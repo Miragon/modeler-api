@@ -17,7 +17,7 @@ description: >-
 # The `.tt` / `.ttm.json` format
 
 A Team Topologies diagram is one small JSON document. The
-[Team Topologies Modeler](https://github.com/Miragon/team-topologies-modeler) opens and saves it in
+[Team Topologies Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/team-topologies) opens and saves it in
 the web app, the VS Code extension (`miragon-gmbh.team-topologies-modeler`) and designIQ; the
 reference implementation is
 [`@miragon/team-topologies-schema-model`](https://www.npmjs.com/package/@miragon/team-topologies-schema-model)

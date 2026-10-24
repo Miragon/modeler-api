@@ -1,7 +1,7 @@
 # @miragon/event-storming-schema-model
 
 [![npm](https://img.shields.io/npm/v/@miragon/event-storming-schema-model)](https://www.npmjs.com/package/@miragon/event-storming-schema-model)
-[![License: MIT](https://img.shields.io/github/license/Miragon/event-storming-modeler)](https://github.com/Miragon/event-storming-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/event-storming/LICENSE)
 
 DOM-free Event Storming metamodel: types, Zod validation, schema migrations, and deterministic
 JSON serialization.
@@ -36,7 +36,7 @@ const restored = parseBoardJSON(json); // validated + migrated to the current sc
 (`LARGEST_DRAWABLE_NUMBER`), more than the canvas can draw: the same bound the `.storm` DSL applies.
 `validateBoard` checks the structure only.
 
-Part of the [Event Storming Modeler](https://github.com/Miragon/event-storming-modeler) monorepo.
+Part of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

@@ -1,7 +1,7 @@
 # @miragon/wardley-transforms
 
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-transforms)](https://www.npmjs.com/package/@miragon/wardley-transforms)
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 DOM-free, pure `WardleyMap → WardleyMap` transforms — evolve, method, inertia, pipeline. No undo
 stack: every transform returns a new map and leaves the input untouched.
@@ -24,7 +24,7 @@ const [kettle] = map.elements;
 const evolved = evolveComponent(map, kettle.id, 0.62); // returns a new map
 ```
 
-Part of the [Wardley Maps](https://github.com/Miragon/wardley-maps-modeler) monorepo.
+Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

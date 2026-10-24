@@ -1,7 +1,7 @@
 # @miragon/wardley-schema-model
 
 [![npm](https://img.shields.io/npm/v/@miragon/wardley-schema-model)](https://www.npmjs.com/package/@miragon/wardley-schema-model)
-[![License: MIT](https://img.shields.io/github/license/Miragon/wardley-maps-modeler)](https://github.com/Miragon/wardley-maps-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/wardley/LICENSE)
 
 DOM-free Wardley metamodel: types, Zod validation, stage derivation, and deterministic JSON
 serialization.
@@ -23,7 +23,7 @@ const json = serializeMap(map); // deterministic: stable key order, rounded coor
 const restored = parseMapJSON(json); // validated + migrated to the current schema
 ```
 
-Part of the [Wardley Maps](https://github.com/Miragon/wardley-maps-modeler) monorepo.
+Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/wardley) in the [Miragon modeler suite](https://github.com/Miragon/modeler-suite).
 
 ## License
 

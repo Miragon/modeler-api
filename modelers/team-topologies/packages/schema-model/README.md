@@ -1,7 +1,7 @@
 # @miragon/team-topologies-schema-model
 
 [![npm](https://img.shields.io/npm/v/@miragon/team-topologies-schema-model)](https://www.npmjs.com/package/@miragon/team-topologies-schema-model)
-[![License: MIT](https://img.shields.io/github/license/Miragon/team-topologies-modeler)](https://github.com/Miragon/team-topologies-modeler/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Miragon/modeler-suite)](https://github.com/Miragon/modeler-suite/blob/main/modelers/team-topologies/LICENSE)
 
 The **DOM-free core** of the [Team Topologies Modeler](../../README.md): the data model, the notation
 specification, runtime validation, version migrations and deterministic JSON serialization for

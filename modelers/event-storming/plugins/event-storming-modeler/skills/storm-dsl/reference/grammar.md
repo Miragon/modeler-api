@@ -1,7 +1,7 @@
 # `.storm` — exhaustive grammar
 
 Reference for the parser in `@miragon/event-storming-dsl` (`packages/dsl/src/{lexer,parser,serializer}.ts`
-in the [event-storming-modeler](https://github.com/Miragon/event-storming-modeler) monorepo). Where
+of the [Event Storming Modeler](https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming) in the Miragon modeler suite). Where
 this file and the implementation disagree, the implementation wins — the behaviours below were
 verified against it.
 

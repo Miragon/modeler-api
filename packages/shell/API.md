@@ -6,7 +6,7 @@ problems pill, status box, empty-file hint, legend and inspector slots, the plum
 webview, and (0.2) the web-app chrome: primary action, legal line, File and Appearance groups,
 problems popover, toasts, empty-state card, drop zone and the web app's mode, and (0.3) a driver
 that smoke-tests a modeler's extension in a real VS Code, since 0.3.1 also in a Linux container. Planned in
-[Miragon/modeler-api#4](https://github.com/Miragon/modeler-api/issues/4) (Phase 4); the first
+[Miragon/modeler-suite#4](https://github.com/Miragon/modeler-suite/issues/4) (Phase 4); the first
 consumer is the Event Storming modeler, in VS Code (0.1) and in its web app (0.2, see
 [Usage: Event Storming in the web app](#usage-event-storming-in-the-web-app)).
 
@@ -1241,7 +1241,9 @@ interface LegalLineOptions {
   </span>
   <span class="cd-shell-legal-item">
     <span aria-hidden="true">·</span>
-    <a href="https://github.com/Miragon/event-storming-modeler" …>GitHub</a>
+    <a href="https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming" …
+      >GitHub</a
+    >
   </span>
   <span id="cd-shell-legal-1-new-tab" hidden>Opens in a new tab</span>
 </nav>
@@ -3165,7 +3167,7 @@ dark-mode release, so its `index.html` is static and its head carries the contra
 ```
 
 `src/main.ts`, shortened to what touches the shell (the real file is
-`apps/webapp/src/main.ts` in Miragon/event-storming-modeler):
+`modelers/event-storming/apps/webapp/src/main.ts` in Miragon/modeler-suite):
 
 ```ts
 import "@fontsource-variable/geist/wght.css";
@@ -3213,7 +3215,12 @@ const shell = mountShell(document.getElementById("app")!, {
   messages: { canvas: "Event Storming board" },
   primary: { onSelect: () => share() }, // "Share", share-2
   legal: {
-    links: [{ label: "GitHub", href: "https://github.com/Miragon/event-storming-modeler" }],
+    links: [
+      {
+        label: "GitHub",
+        href: "https://github.com/Miragon/modeler-suite/tree/main/modelers/event-storming",
+      },
+    ],
   },
   file: {
     newDiagram: { onSelect: () => void newDiagram() },
