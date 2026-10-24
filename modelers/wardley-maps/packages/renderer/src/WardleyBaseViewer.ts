@@ -241,7 +241,7 @@ export abstract class WardleyBaseViewer {
     return {
       warnings: [
         ...diagnostics.map((d) => ({
-          message: `Line ${d.line}: ${d.message} — "${d.text}"`,
+          message: `Line ${d.line}: ${d.message} ("${d.text}")`,
           line: d.line,
           source: d.text,
         })),

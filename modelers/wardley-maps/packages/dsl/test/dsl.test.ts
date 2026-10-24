@@ -700,7 +700,7 @@ describe("pipelines without a range", () => {
     expect(diagnostics).toEqual([
       {
         line: 3,
-        message: 'Pipeline "Kettle" has no range — not drawn; add [start, end] or child components',
+        message: 'Pipeline "Kettle" has no range: not drawn; add [start, end] or child components',
         text: "pipeline Kettle",
       },
     ]);
@@ -720,7 +720,7 @@ describe("pipelines without a range", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.edges).toEqual([]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [3, 'Pipeline "Ghost" has no range — not drawn; add [start, end] or child components'],
+      [3, 'Pipeline "Ghost" has no range: not drawn; add [start, end] or child components'],
       [4, 'Link: "Ghost" not found'],
       [5, 'Link: "Ghost" not found'],
     ]);
@@ -753,7 +753,7 @@ describe("pipeline range normalisation", () => {
         end,
       ]);
       expect(diagnostics.map((d) => d.message)).toContain(
-        `Pipeline "Options" range is empty or reversed — changed to [${start}, ${end}]`,
+        `Pipeline "Options" range is empty or reversed: changed to [${start}, ${end}]`,
       );
       expectFixedPoint(src);
     },
@@ -767,7 +767,7 @@ describe("pipeline range normalisation", () => {
     ]);
     expect(diagnostics.map((d) => d.message)).toEqual([
       "Coordinate 1.3 is outside [0,1] and was clamped",
-      'Pipeline "Options" range is empty or reversed — changed to [0.95, 1]',
+      'Pipeline "Options" range is empty or reversed: changed to [0.95, 1]',
     ]);
   });
 
@@ -792,7 +792,7 @@ describe("unreadable numbers", () => {
     expect(diagnostics).toEqual([
       {
         line: 2,
-        message: 'Unreadable number in "(y 0.4.1)" — ignored',
+        message: 'Unreadable number in "(y 0.4.1)": ignored',
         text: "pipeline Options [0.2, 0.6] (y 0.4.1)",
       },
     ]);
@@ -807,7 +807,7 @@ describe("unreadable numbers", () => {
       0.3, 0.35,
     ]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, 'Unreadable number in "[0.4.1, 0.9]" — ignored'],
+      [2, 'Unreadable number in "[0.4.1, 0.9]": ignored'],
     ]);
   });
 
@@ -817,7 +817,7 @@ describe("unreadable numbers", () => {
     );
     expect(map.elements.map((e) => e.labelOffset)).toEqual([undefined, undefined]);
     expect(diagnostics.map((d) => d.line)).toEqual([2, 3]);
-    expect(diagnostics[1]!.message).toBe('Unreadable number in "label [0.4.1, 5]" — ignored');
+    expect(diagnostics[1]!.message).toBe('Unreadable number in "label [0.4.1, 5]": ignored');
   });
 
   it("keeps a size or annotation with an unreadable number as an uninterpreted line", () => {
@@ -881,10 +881,10 @@ describe("pipeline block braces", () => {
     expect(map.elements.map((e) => e.label)).toEqual(["Kettle", "Campfire"]);
     expect(map.rawPassthrough).toEqual(["pipeline Tea"]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, 'Ignored "{" — a block must directly follow a pipeline line'],
-      [5, 'Ignored "{" — a block must directly follow a pipeline line'],
-      [5, 'Pipeline block of "Tea" is never closed — add "}"'],
-      [5, 'Pipeline "Tea" has no range — not drawn; add [start, end] or child components'],
+      [2, 'Ignored "{": a block must directly follow a pipeline line'],
+      [5, 'Ignored "{": a block must directly follow a pipeline line'],
+      [5, 'Pipeline block of "Tea" is never closed: add "}"'],
+      [5, 'Pipeline "Tea" has no range: not drawn; add [start, end] or child components'],
     ]);
     expectFixedPoint(src);
   });
@@ -895,8 +895,8 @@ describe("pipeline block braces", () => {
     expect(map.elements.map((e) => e.label)).toEqual(["Hello", "A"]);
     expect(map.rawPassthrough).toBeUndefined();
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, 'Ignored "{" — a block must directly follow a pipeline line'],
-      [4, 'Ignored "}" — no pipeline block is open'],
+      [2, 'Ignored "{": a block must directly follow a pipeline line'],
+      [4, 'Ignored "}": no pipeline block is open'],
     ]);
     expectFixedPoint(src);
   });
@@ -908,7 +908,7 @@ describe("pipeline block braces", () => {
       pipelineId: "pipeline_kettle",
     });
     expect(diagnostics).toEqual([
-      { line: 3, message: 'Pipeline block of "Kettle" is never closed — add "}"', text: "{" },
+      { line: 3, message: 'Pipeline block of "Kettle" is never closed: add "}"', text: "{" },
     ]);
     expectFixedPoint(src);
   });
@@ -923,7 +923,7 @@ describe("pipeline block braces", () => {
     };
     expect([parentOf("A1"), parentOf("B1")]).toEqual(["pipeline_a", "pipeline_b"]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [3, 'Pipeline block of "A" is never closed — add "}"'],
+      [3, 'Pipeline block of "A" is never closed: add "}"'],
     ]);
     expectFixedPoint(src);
   });
@@ -957,7 +957,7 @@ pipeline Kettle [0.1, 0.9]
       {
         line: 9,
         message:
-          'Component with [visibility, maturity] inside the block of pipeline "Kettle" is not a child — use [maturity]',
+          'Component with [visibility, maturity] inside the block of pipeline "Kettle" is not a child: use [maturity]',
         text: "component Gas [0.6, 0.7]",
       },
     ]);
@@ -1237,7 +1237,7 @@ describe("annotation positions", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.elements[0]).toMatchObject({ positions: [{ visibility: 0.3, evolution: 0.4 }] });
     expect(diagnostics.map((d) => d.message)).toEqual([
-      'Unreadable number in "[0.4.1, 0.2]" — ignored',
+      'Unreadable number in "[0.4.1, 0.2]": ignored',
     ]);
     expectFixedPoint(src);
   });
@@ -1273,7 +1273,7 @@ describe("duplicate names", () => {
     expect(diagnostics).toEqual([
       {
         line: 3,
-        message: 'Duplicate name "X" — renamed to "X 2"; links bind to the first "X"',
+        message: 'Duplicate name "X": renamed to "X 2"; links bind to the first "X"',
         text: "component X [0.5, 0.6]",
       },
     ]);
@@ -1318,7 +1318,7 @@ describe("duplicate names", () => {
     expect(diagnostics).toEqual([
       {
         line: 5,
-        message: 'Duplicate name "Solar" — renamed to "Solar 2"; links bind to the first "Solar"',
+        message: 'Duplicate name "Solar": renamed to "Solar 2"; links bind to the first "Solar"',
         text: "component Solar [0.4]",
       },
     ]);
@@ -1335,7 +1335,7 @@ describe("duplicate names", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.elements[0]!.label).toBe("A→B");
     expect(diagnostics.map((d) => d.message)).toEqual([
-      'Name "A->B" renamed to "A→B" — a name cannot hold link operators ("->", "+>", "+<", "+\'"), comment markers or a leading "{"',
+      'Name "A->B" renamed to "A→B", because a name cannot hold link operators ("->", "+>", "+<", "+\'"), comment markers or a leading "{"',
     ]);
     expectFixedPoint(src);
   });
@@ -1503,7 +1503,7 @@ describe("links whose left name starts with a statement keyword", () => {
     expect(diagnostics).toEqual([
       {
         line: 2,
-        message: 'Link: "Ghost" not found — read as a "title" statement',
+        message: 'Link: "Ghost" not found; read as a "title" statement',
         text: "Title Search +> Ghost",
       },
     ]);
@@ -1517,9 +1517,9 @@ describe("links whose left name starts with a statement keyword", () => {
     expect(map.edges).toHaveLength(1);
     expect(map.elements.find((e) => e.label === "Probe")).toBeUndefined();
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [6, 'Ignored "{" — a block must directly follow a pipeline line'],
-      [7, "Line not understood — kept as written"],
-      [8, 'Ignored "}" — no pipeline block is open'],
+      [6, 'Ignored "{": a block must directly follow a pipeline line'],
+      [7, "Line not understood: kept as written"],
+      [8, 'Ignored "}": no pipeline block is open'],
     ]);
   });
 });
@@ -1571,8 +1571,8 @@ describe('comments on lines starting with "url"', () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.rawPassthrough).toEqual(["/* parked", "url Do cs [https://example.org/a]"]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [3, 'Block comment "/*" is never closed — the rest of the file is a comment'],
-      [2, 'Ignored "*/" — this line is kept after an unclosed "/*" and would end that comment'],
+      [3, 'Block comment "/*" is never closed: the rest of the file is a comment'],
+      [2, 'Ignored "*/": this line is kept after an unclosed "/*" and would end that comment'],
     ]);
     expectFixedPoint(src);
   });
@@ -1642,13 +1642,13 @@ describe("statements that cannot be used are reported", () => {
   });
 
   it.each([
-    ["A +'5' B", 'Flow +\'5\' has no direction — add ">", "<" or "<>"'],
+    ["A +'5' B", 'Flow +\'5\' has no direction: add ">", "<" or "<>"'],
     ["A ->", "Link needs a name on both sides"],
     ["+'5'> B", "Link needs a name on both sides"],
     ["A; see +'5'> B", 'Unknown statement "A;"'],
-    ["buy", "buy: needs a component name — not used"],
-    ["annotation 1 Risk", "Annotation has no position — not drawn; add [visibility, maturity]"],
-    ["annotations", "Annotations box has no position — not used; add [visibility, maturity]"],
+    ["buy", "buy: needs a component name; not used"],
+    ["annotation 1 Risk", "Annotation has no position: not drawn; add [visibility, maturity]"],
+    ["annotations", "Annotations box has no position: not used; add [visibility, maturity]"],
   ])('reports "%s" and keeps it', (statement, message) => {
     const src = `title T\ncomponent A [0.5, 0.5]\ncomponent B [0.4, 0.4]\n${statement}`;
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
@@ -1663,7 +1663,7 @@ describe("statements that cannot be used are reported", () => {
     expect(map.config.evolutionLabels).toBeUndefined();
     expect(map.rawPassthrough).toEqual(["evolution A->B->C"]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, "Evolution needs exactly four stages, found 3 — not used"],
+      [2, "Evolution needs exactly four stages, found 3: not used"],
     ]);
     expectFixedPoint(src);
   });
@@ -1679,9 +1679,9 @@ describe("statements that cannot be used are reported", () => {
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
       [
         2,
-        'Evolution needs exactly four stages, found 3 — removed; another "evolution" line sets it',
+        'Evolution needs exactly four stages, found 3: removed; another "evolution" line sets it',
       ],
-      [4, 'y-axis has no label — removed; another "y-axis" line sets it'],
+      [4, 'y-axis has no label: removed; another "y-axis" line sets it'],
     ]);
     expectFixedPoint(src);
   });
@@ -1695,7 +1695,7 @@ describe("statements that cannot be used are reported", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(serializeDSL(map)).toContain(`y-axis ${read}\n`);
     expect(diagnostics.map((d) => d.message)).toEqual([
-      `y-axis takes "Label" or "Label->Bottom->Top" — read as "${read}"`,
+      `y-axis takes "Label" or "Label->Bottom->Top": read as "${read}"`,
     ]);
     expectFixedPoint(src);
   });
@@ -1707,8 +1707,8 @@ describe("statements that cannot be used are reported", () => {
     expect(map.elements[0]).not.toHaveProperty("url");
     expect(map.elements[1]).not.toHaveProperty("urlRef");
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, 'url(Docs) has no matching "url Docs [address]" line — ignored'],
-      [3, 'url(mailto:a@b.org) has no matching "url mailto:a@b.org [address]" line — ignored'],
+      [2, 'url(Docs) has no matching "url Docs [address]" line: ignored'],
+      [3, 'url(mailto:a@b.org) has no matching "url mailto:a@b.org [address]" line: ignored'],
     ]);
     expectFixedPoint(src);
   });
@@ -1723,10 +1723,10 @@ describe("statements that cannot be used are reported", () => {
       decorators: { method: "buy" },
     });
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [5, 'Repeated "title" — replaces the one on line 1'],
-      [6, 'Repeated "y-axis" — replaces the one on line 3'],
-      [7, 'Repeated evolve for "Kettle" — replaces the one on line 4'],
-      [8, 'buy: "Kettle" already has the method "build" — replaced'],
+      [5, 'Repeated "title": replaces the one on line 1'],
+      [6, 'Repeated "y-axis": replaces the one on line 3'],
+      [7, 'Repeated evolve for "Kettle": replaces the one on line 4'],
+      [8, 'buy: replaces the method "build" of "Kettle"'],
     ]);
     expectFixedPoint(src);
   });
@@ -1751,7 +1751,7 @@ describe("statements that cannot be used are reported", () => {
     expect(diagnostics).toEqual([
       {
         line: 2,
-        message: 'Block comment "/*" is never closed — the rest of the file is a comment',
+        message: 'Block comment "/*" is never closed: the rest of the file is a comment',
         text: "component A [0.5, 0.5] /* parked",
       },
     ]);
@@ -1815,7 +1815,7 @@ describe("comment markers inside flow values", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.config.evolutionLabels).toEqual(["a +'x", "y∕∕z'", "c", "d"]);
     expect(diagnostics.map((d) => d.message)).toEqual([
-      `"y//z'" read as "y∕∕z'" — "//" or "/*" there would start a comment once saved`,
+      `"y//z'" read as "y∕∕z'", because "//" or "/*" there would start a comment once saved`,
     ]);
     expectFixedPoint(src);
   });
@@ -1826,7 +1826,7 @@ describe("comment markers inside flow values", () => {
     expect(map.elements[0]!.label).toBe("A ＋> B");
     expect(map.edges).toHaveLength(1);
     expect(diagnostics.map((d) => d.message)).toEqual([
-      `Name "A +> B" renamed to "A ＋> B" — a name cannot hold link operators ("->", "+>", "+<", "+'"), comment markers or a leading "{"`,
+      `Name "A +> B" renamed to "A ＋> B", because a name cannot hold link operators ("->", "+>", "+<", "+'"), comment markers or a leading "{"`,
     ]);
     expectFixedPoint(src);
   });
@@ -1904,7 +1904,7 @@ describe("url definitions", () => {
     expect(map.elements[0]).toMatchObject({ url: "http://b" });
     expect(map.rawPassthrough).toEqual(["url D [http://a]"]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [3, 'Repeated url definition "D" — replaces the one on line 2, which is kept unused'],
+      [3, 'Repeated url definition "D": replaces the one on line 2, which is kept unused'],
     ]);
     expectFixedPoint(src);
   });
@@ -1975,7 +1975,7 @@ describe("braces at the start of a name", () => {
     expect(map.elements.find((e) => e.label === "Solar")).toBeUndefined();
     expect(diagnostics.map((d) => [d.line, d.message])).toContainEqual([
       4,
-      'Ignored "{" — a block must directly follow a pipeline line',
+      'Ignored "{": a block must directly follow a pipeline line',
     ]);
     expectFixedPoint(src);
   });
@@ -2046,12 +2046,12 @@ describe("pipeline heights and names", () => {
       "Q (y 0.6)",
     ]);
     expect(diagnostics.map((d) => [d.line, d.message])).toEqual([
-      [2, '"(color red)" before the coordinates is read as part of the name — write it after them'],
-      [3, '"(y 0.6)" before the coordinates is read as part of the name — write it after them'],
-      [4, '"(color red)" before the coordinates is read as part of the text — write it after them'],
+      [2, '"(color red)" before the coordinates is read as part of the name: write it after them'],
+      [3, '"(y 0.6)" before the coordinates is read as part of the name: write it after them'],
+      [4, '"(color red)" before the coordinates is read as part of the text: write it after them'],
       [
         5,
-        '"(color red)" after the annotation text is read as part of the text — write it directly after the position',
+        '"(color red)" after the annotation text is read as part of the text: write it directly after the position',
       ],
     ]);
     expectFixedPoint(src);
@@ -2064,7 +2064,7 @@ describe("diagnostics that only matter for what is kept", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(src);
     expect(map.rawPassthrough).toEqual(["pipeline Lone (y 2) junk", "evolve Ghost 0.8 junk"]);
     expect(diagnostics.map((d) => d.message)).toEqual([
-      'Pipeline "Lone (y 2) junk" has no range — not drawn; add [start, end] or child components',
+      'Pipeline "Lone (y 2) junk" has no range: not drawn; add [start, end] or child components',
       'evolve: component "Ghost" not found',
     ]);
   });
@@ -2080,11 +2080,11 @@ describe("diagnostics that only matter for what is kept", () => {
   it.each([
     [
       "evolve A inertia 0.9",
-      'evolve: component "A inertia" not found — for component "A", write "inertia" on its component line',
+      'evolve: component "A inertia" not found; for component "A", write "inertia" on its component line',
     ],
     [
       "evolve A (buy) 0.9",
-      'evolve: component "A (buy)" not found — for component "A", write "(buy)" after the target',
+      'evolve: component "A (buy)" not found; for component "A", write "(buy)" after the target',
     ],
   ])('says how to write "%s"', (line, message) => {
     const src = `title T\ncomponent A [0.5, 0.5]\n${line}`;

@@ -285,7 +285,7 @@ function unknownStatementMessage(line: string): string {
   const core = linkCore(line);
   if (/->|\+('[^']*')?(<>|>|<)/.test(core)) return "Link needs a name on both sides";
   const flowValue = /\+'[^']*'/.exec(core);
-  if (flowValue) return `Flow ${flowValue[0]} has no direction — add ">", "<" or "<>"`;
+  if (flowValue) return `Flow ${flowValue[0]} has no direction: add ">", "<" or "<>"`;
   return `Unknown statement "${line.split(/\s/)[0]}"`;
 }
 
@@ -485,7 +485,7 @@ class MapReader {
 
   /** For a line that looks like a known construct but cannot be parsed. */
   private failed(line: string): void {
-    this.keep(line, "Line not understood — kept as written");
+    this.keep(line, "Line not understood: kept as written");
   }
 
   // A reference binds to the name as written first, so `X 2` stays bound to an explicit "X 2" even
@@ -503,7 +503,7 @@ class MapReader {
   private setConfig(keyword: string, update: MapConfig): void {
     const earlier = this.lineThatSetConfig.get(keyword);
     if (earlier !== undefined) {
-      this.diag(`Repeated "${keyword}" — replaces the one on line ${earlier}`);
+      this.diag(`Repeated "${keyword}": replaces the one on line ${earlier}`);
     }
     this.lineThatSetConfig.set(keyword, this.lineNo);
     const configLines = this.configLinesByKeyword.get(keyword) ?? [];
@@ -547,7 +547,7 @@ class MapReader {
       return true;
     }
     this.keywordLinks.push(link);
-    if (leftDeclared) this.diag(`Link: "${link.right}" not found — read as a "${kw}" statement`);
+    if (leftDeclared) this.diag(`Link: "${link.right}" not found; read as a "${kw}" statement`);
     return false;
   }
 
@@ -567,7 +567,7 @@ class MapReader {
 
   /** A suffix written in front of the coordinates is part of the name or text (OWM). */
   private reportMisplacedSuffix(groups: readonly string[], where: string, fix: string): void {
-    if (groups.length) this.diag(`"${groups.join(" ")}" ${where} — ${fix}`);
+    if (groups.length) this.diag(`"${groups.join(" ")}" ${where}: ${fix}`);
   }
 
   /**
@@ -579,7 +579,7 @@ class MapReader {
     const written = escapeCommentMarkers(text);
     if (written !== text) {
       this.diag(
-        `"${text}" read as "${written}" — "//" or "/*" there would start a comment once saved`,
+        `"${text}" read as "${written}", because "//" or "/*" there would start a comment once saved`,
         line,
         source,
       );
@@ -598,7 +598,7 @@ class MapReader {
     const name = this.namesInUse.claim(base);
     if (name !== base) {
       this.diag(
-        `Duplicate name "${sourceName}" — renamed to "${name}"; links bind to the first "${sourceName}"`,
+        `Duplicate name "${sourceName}": renamed to "${name}"; links bind to the first "${sourceName}"`,
         atLine,
         atText,
       );
@@ -613,7 +613,7 @@ class MapReader {
       this.blockPipeline = this.lastPipeline;
       this.recordBlockLine(this.blockPipeline, "open");
       this.blockOpening = { line: this.lineNo, text: this.currentLine };
-    } else this.diag('Ignored "{" — a block must directly follow a pipeline line');
+    } else this.diag('Ignored "{": a block must directly follow a pipeline line');
     this.lastPipeline = null;
   }
 
@@ -621,14 +621,14 @@ class MapReader {
     if (this.blockPipeline) {
       this.recordBlockLine(this.blockPipeline, "close");
       this.blockPipeline = null;
-    } else this.diag('Ignored "}" — no pipeline block is open');
+    } else this.diag('Ignored "}": no pipeline block is open');
     this.lastPipeline = null;
   }
 
   private endUnclosedBlock(): void {
     if (!this.blockPipeline) return;
     this.diag(
-      `Pipeline block of "${this.blockPipeline.name}" is never closed — add "}"`,
+      `Pipeline block of "${this.blockPipeline.name}" is never closed: add "}"`,
       this.blockOpening.line,
       this.blockOpening.text,
     );
@@ -675,7 +675,7 @@ class MapReader {
     if (blockCommentStart) {
       const { line, text: startText } = blockCommentStart;
       this.diag(
-        'Block comment "/*" is never closed — the rest of the file is a comment',
+        'Block comment "/*" is never closed: the rest of the file is a comment',
         line,
         startText,
       );
@@ -781,7 +781,7 @@ class MapReader {
     }
     if (splitAtCoords(after)?.name) {
       this.diag(
-        `Component with [visibility, maturity] inside the block of pipeline "${blockPipeline.name}" is not a child — use [maturity]`,
+        `Component with [visibility, maturity] inside the block of pipeline "${blockPipeline.name}" is not a child: use [maturity]`,
       );
     }
     return false;
@@ -854,7 +854,7 @@ class MapReader {
     let body = after;
     let opensBlock = false;
     while (body.endsWith("{")) {
-      if (opensBlock) this.diag('Ignored "{" — a block must directly follow a pipeline line');
+      if (opensBlock) this.diag('Ignored "{": a block must directly follow a pipeline line');
       opensBlock = true;
       body = body.slice(0, -1).trim();
     }
@@ -929,7 +929,7 @@ class MapReader {
     if (problem) this.diag(problem);
     if (!Number.isInteger(coords.a) || !Number.isInteger(coords.b)) {
       this.diag(
-        `Map size ${coords.a}×${coords.b} is not in whole pixels — OWM only reads whole-pixel sizes`,
+        `Map size ${coords.a}×${coords.b} is not in whole pixels: OWM only reads whole-pixel sizes`,
       );
     }
   }
@@ -963,7 +963,7 @@ class MapReader {
     });
     if (written.length !== 1 && !(written.length === 3 && written.every(Boolean))) {
       const read = [label, ...(ends ?? [])].join("->");
-      this.diag(`y-axis takes "Label" or "Label->Bottom->Top" — read as "${read}"`);
+      this.diag(`y-axis takes "Label" or "Label->Bottom->Top": read as "${read}"`);
     }
   }
 
@@ -972,7 +972,7 @@ class MapReader {
     if (!split) {
       return this.keep(
         line,
-        "Annotations box has no position — not used; add [visibility, maturity]",
+        "Annotations box has no position: not used; add [visibility, maturity]",
       );
     }
     this.reportTextBefore(split.name);
@@ -988,7 +988,7 @@ class MapReader {
     if (!Number.isSafeInteger(number)) return this.failed(line);
     const found = parsePositions(after.replace(/^\s*\d+\s*/, ""));
     if (!found) {
-      return this.keep(line, "Annotation has no position — not drawn; add [visibility, maturity]");
+      return this.keep(line, "Annotation has no position: not drawn; add [visibility, maturity]");
     }
     if (!found.tuples.length) return this.failed(line);
     for (const unreadable of found.unreadable) this.diag(unreadableNumberMessage(unreadable));
@@ -1059,7 +1059,7 @@ class MapReader {
    */
   private readMethod(line: string, after: string, kw: string): void {
     if (this.pushComponent(after, kw)) return;
-    if (!after) return this.keep(line, `${kw}: needs a component name — not used`);
+    if (!after) return this.keep(line, `${kw}: needs a component name; not used`);
     this.pendingMethod.push({
       name: after,
       method: kw as Method,
@@ -1247,7 +1247,7 @@ class MapReader {
         // OWM reads `pipeline X` next to `component X` as a pipeline that is not drawn.
         if (!component) {
           this.diag(
-            `Pipeline "${p.name}" has no range — not drawn; add [start, end] or child components`,
+            `Pipeline "${p.name}" has no range: not drawn; add [start, end] or child components`,
             p.lineNo,
             p.text,
           );
@@ -1260,7 +1260,7 @@ class MapReader {
       const widened = range.start !== writtenRange.start || range.end !== writtenRange.end;
       if (widened && !writtenRange.fromChildren) {
         this.diag(
-          `Pipeline "${p.name}" range is empty or reversed — changed to [${range.start}, ${range.end}]`,
+          `Pipeline "${p.name}" range is empty or reversed: changed to [${range.start}, ${range.end}]`,
           p.lineNo,
           p.text,
         );
@@ -1316,7 +1316,7 @@ class MapReader {
       const component = this.elements[index] as ComponentElement;
       const earlier = evolveLineOf.get(component.id);
       if (earlier !== undefined) {
-        const message = `Repeated evolve for "${ev.name}" — replaces the one on line ${earlier}`;
+        const message = `Repeated evolve for "${ev.name}": replaces the one on line ${earlier}`;
         this.diag(message, ev.lineNo, ev.text);
       }
       evolveLineOf.set(component.id, ev.lineNo);
@@ -1345,7 +1345,7 @@ class MapReader {
       const el = this.elements[index] as ComponentElement;
       const replaced = el.decorators?.method;
       if (replaced && replaced !== pm.method) {
-        const message = `${pm.method}: "${pm.name}" already has the method "${replaced}" — replaced`;
+        const message = `${pm.method}: replaces the method "${replaced}" of "${pm.name}"`;
         this.diag(message, pm.lineNo, pm.text);
       }
       this.elements[index] = { ...el, decorators: { ...el.decorators, method: pm.method } };
@@ -1357,7 +1357,7 @@ class MapReader {
 }
 
 function renamedMessage(sourceName: string, name: string): string {
-  return `Name "${sourceName}" renamed to "${name}" — a name cannot hold link operators ("->", "+>", "+<", "+'"), comment markers or a leading "{"`;
+  return `Name "${sourceName}" renamed to "${name}", because a name cannot hold link operators ("->", "+>", "+<", "+'"), comment markers or a leading "{"`;
 }
 
 function withoutTrailingCarriageReturns(line: string): string {
@@ -1382,7 +1382,7 @@ function withoutClosersOfKeptComments(
     if (!entry.isComment && nextParse.insideBlockComment && text.includes("*/")) {
       text = text.replaceAll("*/", " ");
       report(
-        'Ignored "*/" — this line is kept after an unclosed "/*" and would end that comment',
+        'Ignored "*/": this line is kept after an unclosed "/*" and would end that comment',
         entry.lineNo,
         entry.source,
       );
@@ -1410,7 +1410,7 @@ function replacedConfigLines(
     const replaced = configIsSet[unused.keyword];
     if (replaced) replacedIndexes.add(unused.index);
     const outcome = replaced ? `removed; another "${unused.keyword}" line sets it` : "not used";
-    report(`${unused.reason} — ${outcome}`, unused.line, unused.text);
+    report(`${unused.reason}: ${outcome}`, unused.line, unused.text);
   }
   return replacedIndexes;
 }
@@ -1434,7 +1434,7 @@ function resolveUrlReferences(
     if (earlier) {
       replaced.add(earlier);
       report(
-        `Repeated url definition "${definition.name}" — replaces the one on line ${earlier.lineNo}, which is kept unused`,
+        `Repeated url definition "${definition.name}": replaces the one on line ${earlier.lineNo}, which is kept unused`,
         definition.lineNo,
         definition.text,
       );
@@ -1448,7 +1448,7 @@ function resolveUrlReferences(
     // Also accept a directly embedded address (`url(https://…)`).
     const address = definition?.address ?? (/^[a-z][\w+.-]*:\/\//i.test(ref) ? ref : undefined);
     if (!address) {
-      report(`url(${ref}) has no matching "url ${ref} [address]" line — ignored`, line, text);
+      report(`url(${ref}) has no matching "url ${ref} [address]" line: ignored`, line, text);
       continue;
     }
     const el = elements[index]!;
@@ -1656,7 +1656,7 @@ function splitPipelineLine(body: string): {
 }
 
 function unreadableNumberMessage(text: string): string {
-  return `Unreadable number in "${text}" — ignored`;
+  return `Unreadable number in "${text}": ignored`;
 }
 
 interface PipelineRange {
@@ -1789,8 +1789,8 @@ function splitMisplacedEvolveSuffix(name: string): { name: string; suffix: strin
 
 function misplacedEvolveSuffixHint({ name, suffix }: { name: string; suffix: string }): string {
   return suffix.startsWith("(")
-    ? ` — for component "${name}", write "${suffix}" after the target`
-    : ` — for component "${name}", write "${suffix}" on its component line`;
+    ? `; for component "${name}", write "${suffix}" after the target`
+    : `; for component "${name}", write "${suffix}" on its component line`;
 }
 
 const NUMBER_TOKEN_RE = /(^|\s)([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?)(?=\s|\(|$)/gi;
@@ -1844,5 +1844,5 @@ function sizeOutsideLimits(width: number, height: number): string | null {
       : below
         ? `below the minimum ${minimum}`
         : `above the maximum ${maximum}`;
-  return `Map size ${width}×${height} is ${limit} — drawn at ${drawnWidth}×${drawnHeight}`;
+  return `Map size ${width}×${height} is ${limit}: drawn at ${drawnWidth}×${drawnHeight}`;
 }

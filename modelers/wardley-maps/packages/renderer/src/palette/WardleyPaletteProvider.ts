@@ -356,7 +356,7 @@ export default class WardleyPaletteProvider implements PaletteProvider {
   private entryHtml(title: string, icon: string, shortcut?: string, draggable = false): string {
     // Next to a styled tooltip a native `title` would pop up a second, slower one.
     const nativeTitle = this.needsNativeTitle
-      ? ` title="${escapeAttribute(shortcut ? `${title} — ${shortcut}` : title)}"`
+      ? ` title="${escapeAttribute(shortcut ? `${title} (${shortcut})` : title)}"`
       : "";
     const keyShortcut = shortcut ? ` aria-keyshortcuts="${escapeAttribute(shortcut)}"` : "";
     return `<div class="entry wardley-palette-entry"${draggable ? ' draggable="true"' : ""}${nativeTitle}${keyShortcut}>${icon}</div>`;

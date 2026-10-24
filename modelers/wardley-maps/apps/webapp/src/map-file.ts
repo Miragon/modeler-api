@@ -96,14 +96,17 @@ export interface WarningRow {
 
 /**
  * Splits an import warning into line, message and source for a list row. DSL findings arrive
- * pre-formatted as `Line N: message — "source"`; the structured fields let us undo that.
+ * pre-formatted as `Line N: message ("source")`; the structured fields let us undo that.
  */
 export function describeWarning(warning: WarningLike): WarningRow {
   if (warning.line === undefined) return { message: warning.message };
-  const message = warning.message
-    .replace(/^Line \d+:\s*/, "")
-    .replace(/\s+—\s+"[\s\S]*"$/, "")
-    .trim();
+  // Cut the exact source suffix: a message may itself quote text in parentheses.
+  const sourceSuffix = warning.source === undefined ? undefined : ` ("${warning.source}")`;
+  let message = warning.message.replace(/^Line \d+:\s*/, "");
+  if (sourceSuffix && message.endsWith(sourceSuffix)) {
+    message = message.slice(0, -sourceSuffix.length);
+  }
+  message = message.trim();
   return {
     line: warning.line,
     message: message || warning.message,

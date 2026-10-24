@@ -1,4 +1,4 @@
-# `.wmap` / `.owm` — exhaustive grammar
+# `.wmap` / `.owm`: exhaustive grammar
 
 Reference for the parser in `@miragon/wardley-dsl`
 (`packages/dsl/src/{lexer,parser,serializer,names}.ts` of the
@@ -91,7 +91,7 @@ Consequences:
     interpreted.
 
   When the left name is declared and the right one is not, the parser adds
-  `Link: "X" not found — read as a "title" statement`.
+  `Link: "X" not found; read as a "title" statement`.
 
 - Names that start with `url` work as link endpoints, trailing `// comment` included.
 - `A -> B; at [0.5, 0.5]` is a link with the annotation `at [0.5, 0.5]`.
@@ -110,7 +110,7 @@ annotations [vis, mat]
 ```
 
 A repeated config line replaces the earlier one, with
-`Repeated "<keyword>" — replaces the one on line N`. Only the last survives the round-trip.
+`Repeated "<keyword>": replaces the one on line N`. Only the last survives the round-trip.
 
 - **`title`** takes the rest of the line verbatim, after comment stripping: `://` survives,
   `// …` does not. Absent ⇒ `Untitled Map`. A bare `title` gives an empty title, written back as
@@ -127,8 +127,8 @@ A repeated config line replaces the earlier one, with
   itself only writes whole-pixel sizes within the limits.
 - **`evolution`** is split at `->`, each part trimmed. It needs **exactly four** parts, otherwise
   you get `Evolution needs exactly four stages, found N` and the default labels stay:
-  - `— not used`: the line is kept;
-  - `— removed; another "evolution" line sets it`: the line is dropped.
+  - `…: not used`: the line is kept;
+  - `…: removed; another "evolution" line sets it`: the line is dropped.
 
   Empty parts are allowed (`Genesis->->Product->Commodity`). The line is written back without spaces
   around `->`. The labels only rename the four bands; the boundaries stay `0.17 / 0.40 / 0.70`.
@@ -136,7 +136,7 @@ A repeated config line replaces the earlier one, with
 
   | Mapping …  | Line                                                    |
   | ---------- | ------------------------------------------------------- |
-  | activities | default — Genesis / Custom-Built / Product / Commodity  |
+  | activities | default: Genesis / Custom-Built / Product / Commodity   |
   | practices  | `evolution Novel->Emerging->Good->Best Practice`        |
   | data       | `evolution Unmodelled->Divergent->Convergent->Modelled` |
   | knowledge  | `evolution Concept->Hypothesis->Theory->Accepted`       |
@@ -144,14 +144,14 @@ A repeated config line replaces the earlier one, with
 - **`y-axis`** is split at `->`. One part is the axis label. Three non-empty parts are the label and
   the bottom and top end labels.
   - Any other shape is read as far as it goes, with
-    `y-axis takes "Label" or "Label->Bottom->Top" — read as "…"`: two parts keep only the label,
+    `y-axis takes "Label" or "Label->Bottom->Top": read as "…"`: two parts keep only the label,
     four or more keep the first three.
   - A later `y-axis` line also replaces the end labels.
-  - An empty `y-axis` gives `y-axis has no label`, with `— not used` or `— removed; …` as for
+  - An empty `y-axis` gives `y-axis has no label`, with `…: not used` or `…: removed; …` as for
     `evolution`.
   - Default: `Value Chain`, ends `Invisible` / `Visible`.
 - **`annotations [vis, mat]`** is the position of the annotation legend (`annotationsBoxPosition`),
-  clamped with a diagnostic. Without coordinates: `Annotations box has no position — not used`, and
+  clamped with a diagnostic. Without coordinates: `Annotations box has no position: not used`, and
   the line is kept. The Modeler keeps the value but currently draws no legend box.
 
 ## Element statements
@@ -222,8 +222,8 @@ buy <Name>                  sets method buy on the existing component <Name>
   included). The diagnostics:
   - an unknown name: `buy: component "<Name>" not found`, and the line is kept;
   - a component that already has another method:
-    `buy: "<Name>" already has the method "build" — replaced`;
-  - a bare `buy`: `buy: needs a component name — not used`.
+    `buy: replaces the method "build" of "<Name>"`;
+  - a bare `buy`: `buy: needs a component name; not used`.
 - Both forms are written back as a `(buy)` decorator.
 
 ### `note`
@@ -239,7 +239,7 @@ note <Text> [vis, mat] (color …)
   diagnostic.
 - `(color …)` inside the text is plain text. A `(color …)` group at the very end of the text, just
   before the coordinates, stays text but gives a hint:
-  `"(color …)" before the coordinates is read as part of the text — write it after them`.
+  `"(color …)" before the coordinates is read as part of the text: write it after them`.
 - A literal `\n` in the text is a line break; the serializer writes real line breaks back as `\n`.
 - The Modeler shows note text as plain italic text (no Markdown), centred on the coordinate, one
   line per `\n`. A coloured note is drawn in that colour and slightly bolder.
@@ -260,13 +260,13 @@ annotation <n> [[vis, mat], [vis, mat], …] (color …) <text>
   which are allowed. A number beyond `2^53` cannot be interpreted.
 - The position is the first single tuple or tuple list on the line, whichever comes first. A list
   with one entry (`[[0.38, 0.44]]`) is a single position. An unreadable entry in a list is dropped
-  with `Unreadable number in "…" — ignored`.
+  with `Unreadable number in "…": ignored`.
 - The text is everything after the position. Words between the number and the position are ignored
   with `Ignored text before the coordinates`.
 - `(color …)` counts only directly after the position. At the end of the text it stays text, with a
   hint.
 - Positions are clamped with a diagnostic. Without coordinates the line is kept with
-  `Annotation has no position — not drawn; add [visibility, maturity]`.
+  `Annotation has no position: not drawn; add [visibility, maturity]`.
 - The Modeler draws a numbered marker at the **first** position with the text beside it; further
   positions are kept in the file.
 
@@ -315,12 +315,12 @@ pipeline <Name> [matStart, matEnd] {
   - **Neither a range nor children** (no tuple, a commented-out one, no block, an empty `{ }`): the
     pipeline is not created, gets no id, and its name is not registered. Its line is kept in
     `rawPassthrough` with
-    `Pipeline "X" has no range — not drawn; add [start, end] or child components`, and links to
+    `Pipeline "X" has no range: not drawn; add [start, end] or child components`, and links to
     `X` get `Link: "X" not found`. Next to a top-level `component X` there is no diagnostic: OWM
     also draws nothing for that pipeline.
   - **An empty or reversed range** (`[0.8, 0.2]`, `[1, 1]`, compared after rounding to 3 decimals)
     becomes `[start, min(1, start + 0.05)]` (a start of `1` becomes `0.95`), with
-    `Pipeline "X" range is empty or reversed — changed to [s, e]`.
+    `Pipeline "X" range is empty or reversed: changed to [s, e]`.
 - **Block**:
   - It opens with `{` as the last character of the pipeline line, or at the start of the next
     statement line (blank and comment lines between are fine).
@@ -328,7 +328,7 @@ pipeline <Name> [matStart, matEnd] {
     `{ component Campfire [0.3] }` works. A child line may end with `}`.
   - A second `{`, or a `{` / `}` without a block, is ignored with a diagnostic.
   - A block still open at the end of the file, or at the next `pipeline` line, gives
-    `Pipeline block of "X" is never closed — add "}"`, and its children are kept.
+    `Pipeline block of "X" is never closed: add "}"`, and its children are kept.
   - Outside a block, a `}` at the end of a line is text (`component Set{} [..]`).
 - **Children** are `component <Name> [mat]`: the first `[n]` or `[n, n]` tuple on the line decides,
   so a name may hold other brackets (`Store [old] [0.4]`).
@@ -336,7 +336,7 @@ pipeline <Name> [matStart, matEnd] {
     the pipeline's height. It accepts decorators, `inertia`, `(color …)` and `label [dx, dy]`; a
     `url(…)` is ignored with a diagnostic.
   - A `[vis, mat]` component inside a block becomes a top-level component, with
-    `Component with [visibility, maturity] inside the block of pipeline "X" is not a child — use [maturity]`.
+    `Component with [visibility, maturity] inside the block of pipeline "X" is not a child: use [maturity]`.
   - Every other line in a block is an ordinary statement and moves out of the block on save.
 - **Name resolution**: children are named after the scan, so a child that repeats an existing name
   is renamed `Name 2` with a diagnostic, and the top-level element keeps every link. A link to the
@@ -370,9 +370,9 @@ Sets `movement` on the component `<Name>`: `targetEvolution`, optional `newLabel
 - It is resolved after the scan against **components** (pipeline children included). Anchors and
   unknown names give `evolve: component "<Name>" not found`, and the line is kept. When the name
   ends in a method group or `inertia` that belongs elsewhere (`evolve Tea (buy) 0.8`), a hint
-  follows: `— for component "Tea", write "(buy)" after the target`.
+  follows: `…; for component "Tea", write "(buy)" after the target`.
 - A second `evolve` for the same component replaces the first, with
-  `Repeated evolve for "X" — replaces the one on line N`. No check that the target lies to the
+  `Repeated evolve for "X": replaces the one on line N`. No check that the target lies to the
   right of the current maturity.
 - The Modeler draws a red dashed arrow at the component's height to a target circle, labelled with
   the new name (or the old one) and the method. `label [dx, dy]` is stored and written back but
@@ -435,10 +435,10 @@ A named address.
   (it has no `//`).
 - **Diagnostics.**
   - A `url(<Def>)` with no matching definition gives
-    `url(Docs) has no matching "url Docs [address]" line — ignored`, and the address is lost on
+    `url(Docs) has no matching "url Docs [address]" line: ignored`, and the address is lost on
     save.
   - A repeated definition replaces the earlier one, with
-    `Repeated url definition "D" — replaces the one on line N, which is kept unused`.
+    `Repeated url definition "D": replaces the one on line N, which is kept unused`.
   - An unreferenced definition is kept in `rawPassthrough` (moved to the end on save) **without** a
     diagnostic.
 - **On save**, every element address becomes its own definition `url <Element Name> URL [address]`
@@ -488,7 +488,7 @@ review notes.
   operator splits it: a `+` that is not the first character, optionally followed by `'value'`, then
   `<>`, `>` or `<`. Spaces around operators are optional (`A->B`, `A+>B`).
 - **Flow values.** The value sits between single quotes and cannot contain `'`. `A +'x' B` has no
-  direction: `Flow +'x' has no direction — add ">", "<" or "<>"`, and the line is kept. `A ->`
+  direction: `Flow +'x' has no direction: add ">", "<" or "<>"`, and the line is kept. `A ->`
   gives `Link needs a name on both sides`.
 - **Reversed flows.** `+<` reverses the direction: `A +< B` is stored as a flow from `B` to `A` and
   written back as `B +> A`. `+<>` sets `bidirectional`.
@@ -521,7 +521,7 @@ review notes.
     does not hide the comment after it.
 - **`/* … */`** may span lines; the opening `/*` is found the same way. Comments are stripped left
   to right, so a `/*` inside a `//` comment opens nothing. An unclosed `/*` gives
-  `Block comment "/*" is never closed — the rest of the file is a comment`.
+  `Block comment "/*" is never closed: the rest of the file is a comment`.
 - **`*/` outside a block comment** is plain text. It is removed, with a diagnostic, only from a kept
   line that the save would place after an unclosed `/*`.
 - Only complete url definitions are exempt from comment stripping.
@@ -670,22 +670,22 @@ no effect on the map, or part of it was dropped or changed.
 
 **Lines that are not used** (all kept):
 
-| Message                                                                       | Cause                                                                                                                                                                                                                                  |
-| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Line not understood — kept as written`                                       | a known keyword with unreadable content, see the list below                                                                                                                                                                            |
-| `Unknown statement "<word>"`                                                  | the first word is no keyword and the line is no link: a typo (`compnent`), free text                                                                                                                                                   |
-| `Link needs a name on both sides`                                             | `A ->`, `-> B`                                                                                                                                                                                                                         |
-| `Flow +'<v>' has no direction — add ">", "<" or "<>"`                         | `A +'5' B`                                                                                                                                                                                                                             |
-| `Link: "<name>" not found`                                                    | an endpoint is undeclared, misspelled, differs in case or spacing, is commented out, is a note, annotation, region or range-less pipeline, contains `;`, or is a chain (`A -> B -> C`). Declare the element and copy its name exactly. |
-| `evolve: component "<Name>" not found`                                        | no component has that name (typo, case, an anchor); may add a hint to move `(buy)` after the target or `inertia` to the component line                                                                                                 |
-| `build: component "<Name>" not found` (also `buy:`, `outsource:`)             | a legacy standalone method line names an unknown component                                                                                                                                                                             |
-| `buy: needs a component name — not used`                                      | a bare `build` / `buy` / `outsource`                                                                                                                                                                                                   |
-| `Annotation has no position — not drawn; add [visibility, maturity]`          | `annotation` without coordinates                                                                                                                                                                                                       |
-| `Annotations box has no position — not used; add [visibility, maturity]`      | `annotations` without coordinates                                                                                                                                                                                                      |
-| `Evolution needs exactly four stages, found N — not used`                     | an `evolution` line with another number of parts; with `— removed; another "evolution" line sets it` the line is dropped instead                                                                                                       |
-| `y-axis has no label — not used`                                              | an empty `y-axis`; with `— removed; …` as above                                                                                                                                                                                        |
-| `Pipeline "X" has no range — not drawn; add [start, end] or child components` | a pipeline with neither range nor children                                                                                                                                                                                             |
-| `Block comment "/*" is never closed — the rest of the file is a comment`      | an unclosed `/*`                                                                                                                                                                                                                       |
+| Message                                                                      | Cause                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Line not understood: kept as written`                                       | a known keyword with unreadable content, see the list below                                                                                                                                                                            |
+| `Unknown statement "<word>"`                                                 | the first word is no keyword and the line is no link: a typo (`compnent`), free text                                                                                                                                                   |
+| `Link needs a name on both sides`                                            | `A ->`, `-> B`                                                                                                                                                                                                                         |
+| `Flow +'<v>' has no direction: add ">", "<" or "<>"`                         | `A +'5' B`                                                                                                                                                                                                                             |
+| `Link: "<name>" not found`                                                   | an endpoint is undeclared, misspelled, differs in case or spacing, is commented out, is a note, annotation, region or range-less pipeline, contains `;`, or is a chain (`A -> B -> C`). Declare the element and copy its name exactly. |
+| `evolve: component "<Name>" not found`                                       | no component has that name (typo, case, an anchor); may add a hint to move `(buy)` after the target or `inertia` to the component line                                                                                                 |
+| `build: component "<Name>" not found` (also `buy:`, `outsource:`)            | a legacy standalone method line names an unknown component                                                                                                                                                                             |
+| `buy: needs a component name; not used`                                      | a bare `build` / `buy` / `outsource`                                                                                                                                                                                                   |
+| `Annotation has no position: not drawn; add [visibility, maturity]`          | `annotation` without coordinates                                                                                                                                                                                                       |
+| `Annotations box has no position: not used; add [visibility, maturity]`      | `annotations` without coordinates                                                                                                                                                                                                      |
+| `Evolution needs exactly four stages, found N: not used`                     | an `evolution` line with another number of parts; with `…: removed; another "evolution" line sets it` the line is dropped instead                                                                                                      |
+| `y-axis has no label: not used`                                              | an empty `y-axis`; with `…: removed; …` as above                                                                                                                                                                                       |
+| `Pipeline "X" has no range: not drawn; add [start, end] or child components` | a pipeline with neither range nor children                                                                                                                                                                                             |
+| `Block comment "/*" is never closed: the rest of the file is a comment`      | an unclosed `/*`                                                                                                                                                                                                                       |
 
 `Line not understood` causes:
 
@@ -702,35 +702,35 @@ no effect on the map, or part of it was dropped or changed.
 
 **Text that was changed** (the element still exists):
 
-| Message                                                                                                    | Cause                                                                                                                           |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `Link: "<right>" not found — read as a "<keyword>" statement`                                              | a keyword-first link (`Title Search -> Ghost`) whose left name is declared and right name is not; the line became the statement |
-| `Coordinate N is outside [0,1] and was clamped`                                                            | any position, pipeline range, `(y …)`, child maturity, region corner, `line` point or `evolve` target                           |
-| `Unreadable number in "<text>" — ignored`                                                                  | `(y 0.4.1)`, `label [1.2.3, 4]`, an unreadable pipeline range or list entry, a label or `(y …)` value beyond `10^12`            |
-| `Ignored text after the coordinates: "<text>", …`                                                          | suffix text the statement cannot hold: unknown decorators, stray words, repeats, a `label` on a note                            |
-| `Ignored text before the coordinates: "<text>"`                                                            | words before the tuple of a region, `size`, `annotations` or `line`, or between an annotation's number and position             |
-| `Ignored text after the evolve target: "<text>"`                                                           | anything after an `evolve` target other than one method                                                                         |
-| `"(color …)" before the coordinates is read as part of the text — write it after them`                     | a colour at the end of a note text; for a pipeline the message says "name"                                                      |
-| `"(color …)" after the annotation text is read as part of the text — write it directly after the position` | a colour at the end of an annotation text                                                                                       |
-| `Duplicate name "X" — renamed to "X 2"; links bind to the first "X"`                                       | a name used by an earlier anchor, component, child, accelerator or submap                                                       |
-| `Name "A->B" renamed to "A→B" — a name cannot hold link operators …`                                       | `->`, `+>`, `+<`, `+'` or a leading `{` in a name                                                                               |
-| `"<text>" read as "<escaped>" — "//" or "/*" there would start a comment once saved`                       | a comment marker in a text that only a flow value elsewhere on the line protected                                               |
-| `Pipeline "X" range is empty or reversed — changed to [s, e]`                                              | `end ≤ start`                                                                                                                   |
-| `Ignored "{" — a block must directly follow a pipeline line`                                               | a `{` not right after a pipeline line, or a second `{`                                                                          |
-| `Ignored "}" — no pipeline block is open`                                                                  | a `}` without a block                                                                                                           |
-| `Pipeline block of "X" is never closed — add "}"`                                                          | a block open at the end of the file or at the next `pipeline` line                                                              |
-| `Component with [visibility, maturity] inside the block of pipeline "X" is not a child — use [maturity]`   | a two-number component inside a block; it becomes top-level                                                                     |
-| `Repeated "<keyword>" — replaces the one on line N`                                                        | a second `title`, `style`, `size`, `evolution`, `y-axis` or `annotations`                                                       |
-| `Map size W×H is below the minimum 480×320 — drawn at W'×H'`                                               | a `size` with a width below 480 or a height below 320, zero or negative included; the value is kept                             |
-| `Map size W×H is above the maximum 5000×5000 — drawn at W'×H'`                                             | a `size` with a width or height above 5000; the value is kept                                                                   |
-| `Map size W×H is outside 480×320 to 5000×5000 — drawn at W'×H'`                                            | a `size` that is below the minimum on one side and above the maximum on the other                                               |
-| `Map size W×H is not in whole pixels — OWM only reads whole-pixel sizes`                                   | a `size` with decimals; the value is kept                                                                                       |
-| `Repeated evolve for "X" — replaces the one on line N`                                                     | a second `evolve` for one component                                                                                             |
-| `buy: "X" already has the method "build" — replaced`                                                       | a legacy method line overrides a decorator                                                                                      |
-| `y-axis takes "Label" or "Label->Bottom->Top" — read as "…"`                                               | a `y-axis` with two, or more than three, parts, or empty parts                                                                  |
-| `url(<Def>) has no matching "url <Def> [address]" line — ignored`                                          | a missing definition, or `url(mailto:…)`; the address is lost                                                                   |
-| `Repeated url definition "D" — replaces the one on line N, which is kept unused`                           | two definitions with one name                                                                                                   |
-| `Ignored "*/" — this line is kept after an unclosed "/*" and would end that comment`                       | a kept line holding `*/` that the save would place inside an unclosed block comment                                             |
+| Message                                                                                                   | Cause                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Link: "<right>" not found; read as a "<keyword>" statement`                                              | a keyword-first link (`Title Search -> Ghost`) whose left name is declared and right name is not; the line became the statement |
+| `Coordinate N is outside [0,1] and was clamped`                                                           | any position, pipeline range, `(y …)`, child maturity, region corner, `line` point or `evolve` target                           |
+| `Unreadable number in "<text>": ignored`                                                                  | `(y 0.4.1)`, `label [1.2.3, 4]`, an unreadable pipeline range or list entry, a label or `(y …)` value beyond `10^12`            |
+| `Ignored text after the coordinates: "<text>", …`                                                         | suffix text the statement cannot hold: unknown decorators, stray words, repeats, a `label` on a note                            |
+| `Ignored text before the coordinates: "<text>"`                                                           | words before the tuple of a region, `size`, `annotations` or `line`, or between an annotation's number and position             |
+| `Ignored text after the evolve target: "<text>"`                                                          | anything after an `evolve` target other than one method                                                                         |
+| `"(color …)" before the coordinates is read as part of the text: write it after them`                     | a colour at the end of a note text; for a pipeline the message says "name"                                                      |
+| `"(color …)" after the annotation text is read as part of the text: write it directly after the position` | a colour at the end of an annotation text                                                                                       |
+| `Duplicate name "X": renamed to "X 2"; links bind to the first "X"`                                       | a name used by an earlier anchor, component, child, accelerator or submap                                                       |
+| `Name "A->B" renamed to "A→B", because a name cannot hold link operators …`                               | `->`, `+>`, `+<`, `+'` or a leading `{` in a name                                                                               |
+| `"<text>" read as "<escaped>", because "//" or "/*" there would start a comment once saved`               | a comment marker in a text that only a flow value elsewhere on the line protected                                               |
+| `Pipeline "X" range is empty or reversed: changed to [s, e]`                                              | `end ≤ start`                                                                                                                   |
+| `Ignored "{": a block must directly follow a pipeline line`                                               | a `{` not right after a pipeline line, or a second `{`                                                                          |
+| `Ignored "}": no pipeline block is open`                                                                  | a `}` without a block                                                                                                           |
+| `Pipeline block of "X" is never closed: add "}"`                                                          | a block open at the end of the file or at the next `pipeline` line                                                              |
+| `Component with [visibility, maturity] inside the block of pipeline "X" is not a child: use [maturity]`   | a two-number component inside a block; it becomes top-level                                                                     |
+| `Repeated "<keyword>": replaces the one on line N`                                                        | a second `title`, `style`, `size`, `evolution`, `y-axis` or `annotations`                                                       |
+| `Map size W×H is below the minimum 480×320: drawn at W'×H'`                                               | a `size` with a width below 480 or a height below 320, zero or negative included; the value is kept                             |
+| `Map size W×H is above the maximum 5000×5000: drawn at W'×H'`                                             | a `size` with a width or height above 5000; the value is kept                                                                   |
+| `Map size W×H is outside 480×320 to 5000×5000: drawn at W'×H'`                                            | a `size` that is below the minimum on one side and above the maximum on the other                                               |
+| `Map size W×H is not in whole pixels: OWM only reads whole-pixel sizes`                                   | a `size` with decimals; the value is kept                                                                                       |
+| `Repeated evolve for "X": replaces the one on line N`                                                     | a second `evolve` for one component                                                                                             |
+| `buy: replaces the method "build" of "X"`                                                                 | a legacy method line overrides a decorator                                                                                      |
+| `y-axis takes "Label" or "Label->Bottom->Top": read as "…"`                                               | a `y-axis` with two, or more than three, parts, or empty parts                                                                  |
+| `url(<Def>) has no matching "url <Def> [address]" line: ignored`                                          | a missing definition, or `url(mailto:…)`; the address is lost                                                                   |
+| `Repeated url definition "D": replaces the one on line N, which is kept unused`                           | two definitions with one name                                                                                                   |
+| `Ignored "*/": this line is kept after an unclosed "/*" and would end that comment`                       | a kept line holding `*/` that the save would place inside an unclosed block comment                                             |
 
 ### Silent cases (no diagnostic)
 
@@ -784,10 +784,10 @@ Other OWM tools and guides use a few forms this parser reads differently:
 | Written elsewhere                                | What happens here                              | Write instead                               |
 | ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------- |
 | `pioneers [0.6, 0.05] 0.35 0.35` (corner + size) | diagnostic, no region                          | `pioneers [0.6, 0.05, 0.25, 0.4]` (corners) |
-| `annotation 1 [[0.38, 0.44]] Text` (one tuple)   | fine, a single position                        | —                                           |
+| `annotation 1 [[0.38, 0.44]] Text` (one tuple)   | fine, a single position                        | nothing to change                           |
 | `y-axis Value Chain -> Invisible` (two parts)    | `Invisible` dropped, with a diagnostic         | `y-axis Value Chain->Invisible->Visible`    |
 | `url Name [address]` without `url(Name)`         | not attached to anything                       | add `url(Name)` to the element line         |
 | `evolve Tea (buy) 0.8` (method before target)    | looks for `Tea (buy)`, with a hint             | `evolve Tea 0.8 (buy)`                      |
-| `Business->Cup of Tea` (no spaces)               | fine, written back as `Business -> Cup of Tea` | —                                           |
+| `Business->Cup of Tea` (no spaces)               | fine, written back as `Business -> Cup of Tea` | nothing to change                           |
 | `build Cup of Tea` (standalone)                  | fine, folded into `(build)`                    | `component Cup of Tea [..] (build)`         |
-| `pipeline X {` with children and no range        | fine, range taken from the children            | —                                           |
+| `pipeline X {` with children and no range        | fine, range taken from the children            | nothing to change                           |

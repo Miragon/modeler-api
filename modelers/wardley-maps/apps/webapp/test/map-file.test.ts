@@ -86,7 +86,7 @@ describe("importErrorMessage", () => {
 describe("describeWarning", () => {
   it("splits a DSL finding into line, message and source", () => {
     const row = describeWarning({
-      message: 'Line 7: Unknown statement "compnent" — "compnent Search [0.5, 0.5]"',
+      message: 'Line 7: Unknown statement "compnent" ("compnent Search [0.5, 0.5]")',
       line: 7,
       source: "compnent Search [0.5, 0.5]",
     });
@@ -95,6 +95,15 @@ describe("describeWarning", () => {
       message: 'Unknown statement "compnent"',
       source: "compnent Search [0.5, 0.5]",
     });
+  });
+
+  it("cuts only the source when the message quotes text in parentheses too", () => {
+    const message =
+      'Name "A->B" renamed to "A→B", because a name cannot hold link operators ("->", "+>", "+<", "+\'"), comment markers or a leading "{"';
+    const source = "component A->B [0.5, 0.5]";
+    expect(
+      describeWarning({ message: `Line 2: ${message} ("${source}")`, line: 2, source }),
+    ).toEqual({ line: 2, message, source });
   });
 
   it("keeps importer warnings without a line as they are", () => {
