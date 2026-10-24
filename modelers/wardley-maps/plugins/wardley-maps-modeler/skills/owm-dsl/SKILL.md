@@ -34,9 +34,10 @@ Two properties make the format safe to generate, each with a sharp edge:
   mistake never destroys the rest of the map. Whenever the parser cannot use a line, or drops,
   ignores or renames text, it emits a diagnostic: `compnent X [0.5, 0.5]` gives
   `Unknown statement "compnent"`. But diagnostics stop nothing. The Modeler opens the map anyway:
-  the web app only shows an "Imported with N warning(s)" toast, and VS Code shows nothing. A typo
-  therefore leaves a component or link off the map unless you read `diagnostics` yourself, and a
-  few mistakes give no diagnostic at all (see "Rules that bite").
+  the web app shows an "Imported with N warnings" toast and lists the findings under the problems
+  pill, and VS Code underlines the lines and lists them in the Problems view. Nothing makes the
+  user look, so a typo leaves a component or link off the map unless you read `diagnostics`
+  yourself, and a few mistakes give no diagnostic at all (see "Rules that bite").
 - **Serializing is deterministic, and one save reaches a fixed point.** `serializeDSL(parseDSL(t))`
   produces canonical text. Parsing and serializing that text again gives byte-identical text and
   the same map, for every input. Text you write in canonical form comes back unchanged. But the
@@ -323,8 +324,9 @@ the old order by hand.
 - **Miragon AI Design** and the **VS Code extension** read the file you wrote; nothing else to do.
   In VS Code (`miragon-gmbh.wardley-mapping-modeler`) `.wmap` / `.owm` open in the graphical editor;
   **View: Reopen Editor With… → Text Editor** shows the text, and edits in a split text view
-  re-render live. VS Code does not show parser diagnostics, so check the file before you hand it
-  over.
+  re-render live. Diagnostics are underlined in the text and listed in the **Problems** view; the
+  problems pill bottom left in the diagram counts them and opens the view. The map opens either
+  way, so check the file before you hand it over.
 - **Web app** (https://wardley-maps.modeler.miragon.io): **Menu → Open…** or drag and drop the
   file. Diagnostics appear as an "Imported with N warnings" toast and are listed under the
   problems pill bottom left and in the browser console. Or hand the user a share link: the map
