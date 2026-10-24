@@ -165,8 +165,11 @@ Install once: `/plugin marketplace add Miragon/corporate-identity` then
 - The chrome of both apps is the shell's; a renderer's own CSS reads only the `--cd-ui-*` roles.
   The canvas draws light, exports stay light.
 - The official notation colours of Team Topologies and Context Maps (`notation.ts` in their
-  `schema-model`) are serialized into documents and stay as they are; the design system covers
-  everything else.
+  `schema-model`) stay as they are, for fidelity to the official notation; a document serializes
+  only an element's optional `fill` / `stroke` override, never these colours. The official Team
+  Topologies strokes below 3:1 on the canvas ground are an accepted exception, recorded in guide
+  §10.6 from the release after 1.20.1; the modeler's `notation-contrast` test lists them exactly.
+  The design system covers everything else.
 - Each modeler's `CLAUDE.md` names its reference files and drift tests.
 
 ## Claude Code plugins
