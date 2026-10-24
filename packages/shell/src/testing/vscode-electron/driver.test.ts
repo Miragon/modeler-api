@@ -12,7 +12,13 @@ import {
   type InstallContent,
 } from "../../../test/support/test-electron.js";
 import { runVsCodeSmoke, type VsCodeSmokeOptions } from "./driver.js";
-import { activeTextEditorProbe, workbenchWebviewsProbe } from "./webview.js";
+import {
+  activeTextEditorProbe,
+  canvasFactsProbe,
+  chromeProbe,
+  settleProbe,
+  workbenchWebviewsProbe,
+} from "./webview.js";
 
 const peers = vi.hoisted(() => ({
   download: (_options: { cachePath?: string | undefined }): Promise<string> => {
@@ -126,42 +132,67 @@ function consoleError(text: string, url: string) {
 interface FakeVsCodeOptions {
   /** Whether the webview shows the shell's menu. */
   menu: boolean;
-  /** What the window reports once the driver first looks for the menu. */
+  /** What the window reports, by default once the driver first looks for the menu. */
   report?: ((window: EventEmitter) => void) | undefined;
+  /** `launch`: the window reports while the workbench loads, before the open step. */
+  reportAt?: "launch" | "open" | undefined;
+  /** What the webview's document shows; without it the document answers no `evaluate`. */
+  document?: { shapes: number; chrome?: Record<string, boolean> } | undefined;
+  /** How the workbench's check for a text editor fails; it finds none without it. */
+  textEditorCheckFails?: string | undefined;
   /** What VS Code writes into its extension host log at start. */
   extensionHostLog?: string | undefined;
 }
 
 /**
  * A VS Code window as far as the launch and the open step reach it: Playwright's `console` and
- * `pageerror` events, the workbench with the extension's webview frame, and a webview document
- * that never answers an `evaluate`.
+ * `pageerror` events, the workbench with the extension's webview frame, and the webview's
+ * document, which answers the driver's canvas and chrome probes until the application closes.
  */
 function fakeVsCode(options: FakeVsCodeOptions) {
   const window = new EventEmitter();
   let reported = false;
+  let closed = false;
+  const report = (at: "launch" | "open") => {
+    if (reported || (options.reportAt ?? "open") !== at) return;
+    reported = true;
+    options.report?.(window);
+  };
   const webview = {
     first: () => webview,
     contentFrame: () => webview,
     locator: () => webview,
     isVisible: async () => {
-      if (!reported) {
-        reported = true;
-        options.report?.(window);
-      }
+      report("open");
       return options.menu;
     },
-    evaluate: async () => {
-      throw new Error("the fake webview has no document");
+    evaluate: async (probe: unknown) => {
+      if (closed)
+        throw new Error("locator.evaluate: Target page, context or browser has been closed");
+      const shown = options.document;
+      if (!shown) throw new Error("the fake webview has no document");
+      if (probe === canvasFactsProbe) {
+        return {
+          shapes: shown.shapes,
+          connections: 0,
+          positions: Array.from({ length: shown.shapes }, () => "0,0"),
+        };
+      }
+      if (probe === chromeProbe) return shown.chrome ?? { menu: true, palette: true, zoom: true };
+      if (probe === settleProbe) return undefined;
+      throw new Error("the fake webview answers only the canvas, chrome and settle probes");
     },
   };
   Object.assign(window, {
     setDefaultTimeout: () => undefined,
-    waitForSelector: async () => undefined,
+    waitForSelector: async () => report("launch"),
     locator: () => webview,
     evaluate: async (probe: unknown) => {
       if (probe === workbenchWebviewsProbe) return [OWN_WEBVIEW];
-      if (probe === activeTextEditorProbe) return false;
+      if (probe === activeTextEditorProbe) {
+        if (options.textEditorCheckFails) throw new Error(options.textEditorCheckFails);
+        return false;
+      }
       return undefined;
     },
     screenshot: async ({ path }: { path: string }) => writeFile(path, ""),
@@ -169,7 +200,9 @@ function fakeVsCode(options: FakeVsCodeOptions) {
   const app = {
     firstWindow: async () => window,
     evaluate: async () => undefined,
-    close: async () => undefined,
+    close: async () => {
+      closed = true;
+    },
     process: () => ({ kill: () => true }),
   };
   peers.download = fakeTestElectron().download;
@@ -249,34 +282,143 @@ describe("runVsCodeSmoke, open", () => {
     },
   );
 
-  it("waits the whole timeout for a webview that only logged errors, and lists them", async () => {
-    const options = await smokeOptions({ timeoutMs: 1_000, keepTemporaryFiles: true });
+  it(
+    "waits the whole timeout, past the grace for a throw, for a webview that only logged errors, and lists them",
+    { timeout: 30_000 },
+    async () => {
+      const options = await smokeOptions({ timeoutMs: 4_500, keepTemporaryFiles: true });
+      const bundle = resourceUrl(options.extensionPath, "dist/webview.js");
+      fakeVsCode({
+        menu: false,
+        report: (window) =>
+          window.emit(
+            "console",
+            consoleError(`no fixture yet Error: empty\n    at ${bundle}:7:9`, bundle),
+          ),
+      });
+      const lines: string[] = [];
+
+      const result = await runVsCodeSmoke({ ...options, log: (line) => lines.push(line) });
+
+      const kept = lines.find((line) => line.startsWith("kept "))!.slice("kept ".length);
+      rmSync(kept, { recursive: true, force: true });
+      expect(result.failures).toEqual([
+        [
+          "open: the custom editor never showed the shell's menu " +
+            "(1 webview frames in the workbench, 1 of miragon.board; " +
+            `VS Code's logs are in ${join(kept, "user-data", "logs")}); ` +
+            "the webview reported 1 console error:",
+          "    console.error: no fixture yet Error: empty",
+          `        at ${bundle}:7:9`,
+        ].join("\n"),
+      ]);
+      expect(result.timings.open).toBeGreaterThanOrEqual(4_500);
+    },
+  );
+
+  it(
+    "keeps an error the webview threw while the workbench loaded, before the open step",
+    { timeout: 30_000 },
+    async () => {
+      const options = await smokeOptions({ timeoutMs: 20_000 });
+      const bundle = resourceUrl(options.extensionPath, "dist/webview.js");
+      fakeVsCode({
+        menu: false,
+        reportAt: "launch",
+        report: (window) => window.emit("pageerror", thrown("board.js cannot start", bundle)),
+      });
+
+      const result = await runVsCodeSmoke(options);
+
+      expect(result.failures).toEqual([
+        [
+          "open: the custom editor never showed the shell's menu, still missing 3 s after its webview threw " +
+            "(1 webview frames in the workbench, 1 of miragon.board; keepTemporaryFiles keeps VS Code's logs); " +
+            "the webview reported 1 uncaught error:",
+          "    uncaught Error: board.js cannot start",
+          `        at ${bundle}:2:31`,
+          `        at ${bundle}:3:1`,
+        ].join("\n"),
+      ]);
+      expect(result.timings.open).toBeLessThan(10_000);
+    },
+  );
+
+  it(
+    "fails the open step 3 s after the webview threw while the menu shows but the canvas stays empty",
+    { timeout: 30_000 },
+    async () => {
+      const options = await smokeOptions({ timeoutMs: 20_000 });
+      const bundle = resourceUrl(options.extensionPath, "dist/webview.js");
+      fakeVsCode({
+        menu: true,
+        document: { shapes: 0 },
+        report: (window) => window.emit("pageerror", thrown("importBoard: no lanes", bundle)),
+      });
+
+      const result = await runVsCodeSmoke(options);
+
+      expect(result.failures).toEqual([
+        [
+          "open: the canvas shows no element of the fixture 3 s after its webview threw; " +
+            "the webview reported 1 uncaught error:",
+          "    uncaught Error: importBoard: no lanes",
+          `        at ${bundle}:2:31`,
+          `        at ${bundle}:3:1`,
+        ].join("\n"),
+      ]);
+      expect(result.timings.open).toBeGreaterThanOrEqual(3_000);
+      expect(result.timings.open).toBeLessThan(10_000);
+    },
+  );
+
+  it("adds the webview's errors to a missing island", async () => {
+    const options = await smokeOptions();
+    const bundle = resourceUrl(options.extensionPath, "dist/webview.js");
+    fakeVsCode({
+      menu: true,
+      document: { shapes: 1, chrome: { menu: true, palette: false, zoom: true } },
+      report: (window) =>
+        window.emit("console", consoleError("palette: no entry for the board", bundle)),
+    });
+
+    const result = await runVsCodeSmoke({
+      ...options,
+      edit: async () => {
+        throw new Error("the test ends after the open step");
+      },
+    });
+
+    expect(result.failures.filter((failure) => failure.startsWith("open: "))).toEqual([
+      [
+        `open: the shell's chrome is incomplete: [data-chrome="palette"] not visible; ` +
+          "the webview reported 1 console error:",
+        "    console.error: palette: no entry for the board",
+        `        at ${bundle}:1:1`,
+      ].join("\n"),
+    ]);
+    expect(result.failures).toContain("edit: the test ends after the open step");
+  });
+
+  it("adds the webview's errors to a Playwright error while it waits for the menu", async () => {
+    const options = await smokeOptions();
     const bundle = resourceUrl(options.extensionPath, "dist/webview.js");
     fakeVsCode({
       menu: false,
-      report: (window) =>
-        window.emit(
-          "console",
-          consoleError(`no fixture yet Error: empty\n    at ${bundle}:7:9`, bundle),
-        ),
+      textEditorCheckFails: "page.evaluate: Execution context was destroyed\nCall log: …",
+      report: (window) => window.emit("pageerror", thrown("board.js cannot start", bundle)),
     });
-    const lines: string[] = [];
 
-    const result = await runVsCodeSmoke({ ...options, log: (line) => lines.push(line) });
+    const result = await runVsCodeSmoke(options);
 
-    const kept = lines.find((line) => line.startsWith("kept "))!.slice("kept ".length);
-    rmSync(kept, { recursive: true, force: true });
     expect(result.failures).toEqual([
       [
-        "open: the custom editor never showed the shell's menu " +
-          "(1 webview frames in the workbench, 1 of miragon.board; " +
-          `VS Code's logs are in ${join(kept, "user-data", "logs")}); ` +
-          "the webview reported 1 console error:",
-        "    console.error: no fixture yet Error: empty",
-        `        at ${bundle}:7:9`,
+        "open: page.evaluate: Execution context was destroyed; the webview reported 1 uncaught error:",
+        "    uncaught Error: board.js cannot start",
+        `        at ${bundle}:2:31`,
+        `        at ${bundle}:3:1`,
       ].join("\n"),
     ]);
-    expect(result.timings.open).toBeGreaterThanOrEqual(1_000);
   });
 
   it("still fails at once with VS Code's error when the extension did not activate", async () => {

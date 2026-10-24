@@ -141,7 +141,7 @@ const REOPEN_INTERVAL_MS = 2_000;
 const LOG_READ_INTERVAL_MS = 1_000;
 /** How long a saved text the parser rejects has to stay unchanged before the save step fails. */
 const SAVE_SETTLE_MS = 1_000;
-/** How long the menu may still take after the extension's webview threw, before the step fails. */
+/** How long the menu, or the canvas's first shape, may still take after the extension's webview threw. */
 const UNCAUGHT_ERROR_GRACE_MS = 3_000;
 const DEFAULT_CHROME: readonly ChromeIsland[] = ["menu", "palette", "zoom"];
 /** Names the screenshot of a webview that never showed, next to the theme screenshots. */
@@ -532,18 +532,17 @@ async function runSession(run: SessionRun): Promise<void> {
     try {
       const shown = await showCustomEditor(context, run, errors);
       if (shown !== "shown") throw new StepFailure(await openFailure(context, run, errors, shown));
-      try {
-        await (options.ready ?? defaultReady)(context);
-        await settle(context);
-        result.chrome = await html.evaluate(chromeProbe, islands);
-      } catch (error) {
-        throw new StepFailure(withWebviewErrors(messageOf(error), errors));
-      }
+      await readyUnlessThrown(context, options.ready ?? defaultReady, errors);
+      await settle(context);
+      result.chrome = await html.evaluate(chromeProbe, islands);
       const missing = missingChrome(islands, result.chrome);
       if (missing) failures.add("open", withWebviewErrors(missing, errors));
       const facts = await canvasFacts();
       log(`open: ${run.viewType} shows ${describeCanvas(facts)}`);
       return facts;
+    } catch (error) {
+      if (error instanceof StepFailure) throw error;
+      throw new StepFailure(withWebviewErrors(messageOf(error), errors));
     } finally {
       errors.stop();
     }
@@ -710,6 +709,42 @@ async function activationFailures(run: SessionRun): Promise<string[]> {
       .map((file) => readFile(join(logsDir, file), "utf8").catch(() => "")),
   );
   return logs.flatMap((log) => extensionActivationFailures(log, id));
+}
+
+/**
+ * Runs `ready`, and fails `UNCAUGHT_ERROR_GRACE_MS` after the extension's webview threw an
+ * uncaught error while the canvas still shows no shape: the modelers mount the shell's menu before
+ * the document arrives, so a webview that throws while importing it passes `showCustomEditor` and
+ * would leave `ready` waiting for `timeoutMs`. The grace also counts from the start of `ready`,
+ * which gives an error thrown before the menu showed the same time to recover.
+ */
+async function readyUnlessThrown(
+  context: VsCodeSmokeContext,
+  ready: (context: VsCodeSmokeContext) => Promise<void>,
+  errors: WebviewErrorWatch,
+): Promise<void> {
+  const html = context.webview.locator("html");
+  const startedAt = performance.now();
+  let finished = false;
+  const readied = ready(context).finally(() => {
+    finished = true;
+  });
+  const abandoned = (async () => {
+    while (!finished) {
+      const threwAt = errors.uncaught.first[0]?.at;
+      const since = threwAt === undefined ? undefined : Math.max(threwAt, startedAt);
+      if (since !== undefined && performance.now() - since >= UNCAUGHT_ERROR_GRACE_MS) {
+        const facts = await html.evaluate(canvasFactsProbe).catch(() => undefined);
+        if (!finished && facts?.shapes === 0) {
+          throw new Error(
+            `the canvas shows no element of the fixture ${UNCAUGHT_ERROR_GRACE_MS / 1000} s after its webview threw`,
+          );
+        }
+      }
+      await delay(POLL_INTERVAL_MS);
+    }
+  })();
+  await Promise.race([readied, abandoned]);
 }
 
 /** `text`, followed by the errors the extension's webview reported, when there were any. */

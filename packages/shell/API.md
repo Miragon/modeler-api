@@ -2646,21 +2646,26 @@ A run takes these steps, each timed; a failed step skips what depends on it, nev
    When the extension fails to activate, the step fails at once and quotes VS Code's error from the
    extension host log (`exthost.log`: "Activating extension <id> failed due to an error: Error:
    Cannot find module …"). What the extension's webview reports is in none of VS Code's logs, so
-   the driver collects it from the first window on: Playwright's `pageerror` (uncaught exceptions
-   and unhandled rejections) and its `console` messages of type `error` (`console.error` calls, a
-   file that failed to load, a CSP block), which Playwright reports for every frame of the window,
-   VS Code's two webview frames included. An error counts when its console location, or the
-   topmost frame of its stack, is a file of the extension's folder
+   the driver (0.6.0) collects it from the first window on: Playwright's `pageerror` (uncaught
+   exceptions and unhandled rejections) and its `console` messages of type `error` (`console.error`
+   calls, a file that failed to load, a CSP block), which Playwright reports for every frame of the
+   window, VS Code's two webview frames included. An error counts when its console location, or
+   the topmost frame of its stack, is a file of the extension's folder
    (`https://file+.vscode-resource.vscode-cdn.net/<folder>/…`, the folder as given or its real
    path) or a document of its webview (`vscode-webview://…?…&extensionId=<id>…`); the workbench's
-   own errors and those of other webviews do not. Once the webview has thrown, the step does not
-   wait for `timeoutMs`: it fails when the menu is still missing 3 s later ("the custom editor never
-   showed the shell's menu, still missing 3 s after its webview threw"); a webview that never shows
-   otherwise fails after `timeoutMs`. Each of these failures names the webview frames the
-   workbench has, with a `screenshotDir` `<name>-open-failure.png`, and `keepTemporaryFiles`, which
-   keeps VS Code's logs. Every failure of the step (no menu, `ready`, a missing island) ends with
-   the webview's errors: how many of each kind, then the first three, the uncaught ones first, each
-   with its stack (12 lines at most) on indented lines of its own:
+   own errors and those of other webviews do not. Only an uncaught error ends a wait early, a
+   console error does not. Once the webview has thrown, the step does not wait for `timeoutMs`: it
+   fails when the menu is still missing 3 s later ("the custom editor never showed the shell's
+   menu, still missing 3 s after its webview threw"); a webview that never shows otherwise fails
+   after `timeoutMs`. Each of these failures names the webview frames the workbench has, with a
+   `screenshotDir` `<name>-open-failure.png`, and `keepTemporaryFiles`, which keeps VS Code's logs.
+   The modelers mount the menu before their document arrives, so a webview that throws while it
+   imports the fixture still shows the menu. `ready`, the default and a modeler's own, then fails
+   once the canvas shows no shape 3 s after the throw and 3 s after `ready` began ("the canvas shows
+   no element of the fixture 3 s after its webview threw"); a canvas with a shape waits for `ready`
+   as before. Every failure of the step (no menu, `ready`, a missing island, a Playwright error)
+   ends with the webview's errors: how many of each kind, then the first three, the uncaught ones
+   first, each with its stack (12 lines at most) on indented lines of its own:
 
    ```text
    open: the custom editor never showed the shell's menu, still missing 3 s after its webview threw (1 webview frames in the workbench, 1 of miragon-gmbh.event-storming-modeler, screenshot …/event-storming-open-failure.png; keepTemporaryFiles keeps VS Code's logs); the webview reported 1 uncaught error and 1 console error:

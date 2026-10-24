@@ -1706,9 +1706,15 @@ Linux container on an Apple silicon Mac (`linux/arm64`).
   window, as the webview can throw before the open step begins, and end with the open step. Only
   an uncaught error ends the wait early; a console error, such as a font that did not load, can
   come from an editor that works. The menu gets 3 s after the first uncaught error, room for an
-  error the start survives and for a slow CI machine, still a tenth of the 30 s. With the change
-  the same run failed after 3.7 s with the error and its stack; the unchanged extension still
-  passed, its open step in 0.6 s.
+  error the start survives and for a slow CI machine, still a tenth of the 30 s. The modelers mount
+  the shell before their document arrives with `init` (Event Storming's webview calls
+  `mountVsCodeShell`, then imports on `init`), so a webview that throws while it imports the
+  fixture passes the menu check. `ready` then gets the same 3 s, counted from the throw and from its
+  own start, and fails while the canvas shows no shape; a canvas with a shape keeps waiting, since
+  the import worked and `ready` or a later step names what else broke. With the change the same run
+  failed after 3.7 s with the error and its stack, the extension made to throw on `init` instead
+  after 3.6 s ("the canvas shows no element of the fixture 3 s after its webview threw"); the
+  unchanged extension still passed, its open step in 0.6 s.
 - **A clean profile.** `--user-data-dir` and `--extensions-dir` point into a fresh temporary
   directory, so no user setting, extension, restored window or welcome page interferes. The settings
   turn off what would cover the editor or change the theme behind the test's back: the start page,
