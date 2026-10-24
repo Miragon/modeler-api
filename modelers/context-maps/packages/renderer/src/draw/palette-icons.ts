@@ -5,8 +5,6 @@
  */
 
 import {
-  MARK_COLORS,
-  MARK_TEXT_COLOR,
   RELATIONSHIP_PATTERN_SPECS,
   SUBDOMAIN_TYPE_SPECS,
 } from "@miragon/context-maps-schema-model";
@@ -17,6 +15,8 @@ import type {
   SubdomainTypeSpec,
   UpstreamRole,
 } from "@miragon/context-maps-schema-model";
+import { contextBadgeColour } from "./contextColours.js";
+import { markFill, markTextColour } from "./relationshipColours.js";
 import { FONT, NEUTRAL_FILL, NEUTRAL_STROKE } from "./styles.js";
 import { HAND_PATH, STAR_PATH } from "./subdomainGlyphs.js";
 
@@ -51,11 +51,14 @@ export function contextIconSvg(type?: SubdomainType): string {
   }
   return svg(
     `<rect x="2" y="4" width="22" height="18" rx="3.5" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.5"/>` +
-      subdomainGlyph(type, 13, 13, 12, s.stroke),
+      subdomainGlyph(type, 13, 13, 12, contextBadgeColour({ subdomainType: type })),
   );
 }
 
-/** The bare subdomain glyph (star / hand / dotted circle) without the box — legend rows. */
+/**
+ * The bare subdomain glyph (star / hand / dotted circle) without the box — legend rows. With no box
+ * around it, it keeps the type's outline colour as its colour cue; each outline holds 3:1.
+ */
 export function subdomainIconSvg(type: SubdomainType, size = 18): string {
   const s = SUBDOMAIN_TYPE_SPECS[type] as SubdomainTypeSpec | undefined;
   const color = s?.stroke ?? NEUTRAL_STROKE;
@@ -69,8 +72,8 @@ export function subdomainIconSvg(type: SubdomainType, size = 18): string {
 /** The same coloured role chip (OHS/PL/ACL/CF) the canvas draws at relationship ends. */
 export function roleChipSvg(role: UpstreamRole | DownstreamRole): string {
   return svg(
-    `<rect x="1" y="6.5" width="24" height="13" rx="3" fill="${MARK_COLORS[role] ?? NEUTRAL_STROKE}"/>` +
-      `<text x="13" y="16.4" text-anchor="middle" font-size="9.5" font-weight="700" fill="${MARK_TEXT_COLOR}" font-family="${FONT.family}">${role}</text>`,
+    `<rect x="1" y="6.5" width="24" height="13" rx="3" fill="${markFill(role)}"/>` +
+      `<text x="13" y="16.4" text-anchor="middle" font-size="9.5" font-weight="700" fill="${markTextColour(role)}" font-family="${FONT.family}">${role}</text>`,
   );
 }
 
