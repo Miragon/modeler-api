@@ -531,6 +531,28 @@ describe("keyboard", () => {
     expect(native.defaultPrevented).toBe(false);
   });
 
+  it("leaves the chrome keys in an EditContext or Monaco editor inside the <svg> to the editor", () => {
+    const diagram = createDiagram([KeyboardModule, shellModule]);
+    // happy-dom has no EditContext: the property is set as Chromium sets it
+    const editContextEditor = document.createElement("div");
+    Object.defineProperty(editContextEditor, "editContext", { value: {} });
+    const monaco = document.createElement("div");
+    monaco.className = "monaco-editor";
+    const insideMonaco = monaco.appendChild(document.createElement("div"));
+    svgOf(diagram).append(editContextEditor, monaco);
+    for (const editor of [editContextEditor, insideMonaco]) {
+      for (const init of [
+        { key: "!", code: "Digit1", shiftKey: true },
+        { key: "=", code: "Equal", ctrlKey: true },
+        { key: "-", code: "Minus", metaKey: true },
+      ]) {
+        const native = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
+        editor.dispatchEvent(native);
+        expect(native.defaultPrevented, `${init.code} in ${editor.outerHTML}`).toBe(false);
+      }
+    }
+  });
+
   it("behind the web app's start screen leaves a chrome key to the browser: no zoom, not prevented", () => {
     const diagram = createDiagram([
       ZoomScrollModule,

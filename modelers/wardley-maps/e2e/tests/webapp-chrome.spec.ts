@@ -15,6 +15,7 @@ import {
   startScreen,
   waitForViewer,
 } from "./support/viewer.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 
 /**
  * The web app's side of the shell's web chrome: what it hands the shell (menu groups, primary
@@ -47,12 +48,21 @@ async function importText(page: Page, text: string): Promise<void> {
 }
 
 async function pasteText(page: Page, text: string): Promise<void> {
-  await page.evaluate((value) => {
+  await pasteAt(page.locator("body"), text);
+}
+
+/** Pastes `text` at `target` and tells whether a listener took the paste (prevented it). */
+async function pasteAt(target: Locator, text: string): Promise<boolean> {
+  return target.evaluate((element, value) => {
     const data = new DataTransfer();
     data.setData("text/plain", value);
-    document.body.dispatchEvent(
-      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
-    );
+    const paste = new ClipboardEvent("paste", {
+      clipboardData: data,
+      bubbles: true,
+      cancelable: true,
+    });
+    element.dispatchEvent(paste);
+    return paste.defaultPrevented;
   }, text);
 }
 
@@ -284,6 +294,22 @@ test.describe("replacing the map", () => {
     await expect.poll(async () => (await exportMap(page)).elements.length).toBe(2);
   });
 
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced map alone", async ({
+    page,
+  }) => {
+    await openLink(page, MY_MAP);
+    await menuEntry(page, "new-diagram");
+    await expect.poll(async () => (await exportMap(page)).elements.length).toBe(0);
+    await expect(toast(page, "Map replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Map replaced")).toBeVisible();
+    expect((await exportMap(page)).elements).toHaveLength(0);
+  });
+
   test("the undo offer is withdrawn once the new map is edited or replaced again", async ({
     page,
   }) => {
@@ -321,6 +347,29 @@ test.describe("replacing the map", () => {
     expect(link).toContain("#mz=");
     await pasteText(page, link);
     await expect.poll(async () => (await exportMap(page)).config.title).toBe("Linked");
+  });
+
+  test("OWM text or a share link pasted into a code editor (EditContext, Monaco) stays there", async ({
+    page,
+  }) => {
+    await openLink(page, MY_MAP);
+    const before = await exportDSL(page);
+    const link = new URL(
+      `#mz=${await encodeMapCompressed("title Linked\ncomponent Gamma [0.4, 0.4]")}`,
+      page.url(),
+    ).href;
+
+    for (const editor of await codeEditors(page)) {
+      await editor.focus();
+      expect(await pasteAt(editor, "title Pasted\ncomponent Delta [0.4, 0.4]")).toBe(false);
+      expect(await pasteAt(editor, link)).toBe(false);
+    }
+
+    // Had a paste above replaced the map, Undo would bring back that map instead of the first.
+    await pasteText(page, link);
+    await expect.poll(async () => (await exportMap(page)).config.title).toBe("Linked");
+    await toast(page, "Map replaced").getByRole("button", { name: "Undo" }).click();
+    await expect.poll(() => exportDSL(page)).toBe(before);
   });
 
   test("a link pasted into the address bar replaces the map, with Undo", async ({ page }) => {
@@ -766,6 +815,16 @@ test.describe("keys and dialogs", () => {
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator('[data-chrome="menu"]')).toBeFocused();
+  });
+
+  test("? in a code editor (EditContext, Monaco) opens no keyboard shortcuts", async ({ page }) => {
+    await startNewMap(page);
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "Shift+Slash")).toBe("free");
+    }
+
+    await expect(page.locator("dialog.wardley-shortcuts")).toBeHidden();
   });
 
   test("delete and undo work on the canvas again after a click on the chrome", async ({ page }) => {

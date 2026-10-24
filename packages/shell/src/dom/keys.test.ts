@@ -24,6 +24,20 @@ function windowSpy() {
   return { seen, dispose: () => window.removeEventListener("keydown", listener) };
 }
 
+/**
+ * An element that edits through an `EditContext` (happy-dom has none, so the property is set as
+ * Chromium sets it) and a focusable element inside a Monaco editor that is neither.
+ */
+function codeEditors(root: HTMLElement): HTMLElement[] {
+  const editContextEditor = root.appendChild(document.createElement("div"));
+  Object.defineProperty(editContextEditor, "editContext", { value: {} });
+  const monaco = root.appendChild(document.createElement("div"));
+  monaco.className = "monaco-editor";
+  const insideMonaco = monaco.appendChild(document.createElement("div"));
+  insideMonaco.tabIndex = -1;
+  return [editContextEditor, insideMonaco];
+}
+
 describe("the one keydown listener", () => {
   it("ide: every chrome key acts exactly once and never reaches window", () => {
     const { shell } = mount({ host: "ide" });
@@ -105,6 +119,45 @@ describe("the one keydown listener", () => {
       keydown(document.body, { key: "0", code: "Digit0", ctrlKey: true }).defaultPrevented,
     ).toBe(true);
     expect(target.calls).toEqual(["actual"]);
+  });
+
+  it("leaves the chrome keys to an EditContext editor and to a Monaco editor", () => {
+    const { shell, root } = mount({ host: "web" });
+    const target = fakeZoomTarget(1);
+    shell.setZoomTarget(target);
+    const spy = windowSpy();
+    for (const editor of codeEditors(root)) {
+      const typed = keydown(editor, { key: "!", code: "Digit1", shiftKey: true });
+      const zoomIn = keydown(editor, { key: "=", code: "Equal", ctrlKey: true });
+      const zoomOut = keydown(editor, { key: "-", code: "Minus", metaKey: true });
+      expect([typed, zoomIn, zoomOut].map((event) => event.defaultPrevented)).toEqual([
+        false,
+        false,
+        false,
+      ]);
+    }
+    spy.dispose();
+    expect(target.calls).toEqual([]);
+    expect(spy.seen).toHaveLength(6);
+  });
+
+  it("ide: in an EditContext or Monaco editor Shift+1 types, undo and the zoom keys stop", () => {
+    const { shell, root } = mount({ host: "ide" });
+    const target = fakeZoomTarget(1);
+    shell.setZoomTarget(target);
+    const spy = windowSpy();
+    for (const editor of codeEditors(root)) {
+      keydown(editor, { key: "!", code: "Digit1", shiftKey: true });
+      expect(keydown(editor, { key: "z", code: "KeyZ", metaKey: true }).defaultPrevented).toBe(
+        false,
+      );
+      expect(keydown(editor, { key: "=", code: "Equal", metaKey: true }).defaultPrevented).toBe(
+        false,
+      );
+    }
+    spy.dispose();
+    expect(target.calls).toEqual([]);
+    expect(spy.seen).toEqual(["!/Digit1", "!/Digit1"]);
   });
 
   it("web: zoom keys zoom the diagram, not the page, and still reach window", () => {

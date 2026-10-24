@@ -11,6 +11,7 @@ import {
   toast,
   waitForApp,
 } from "./support/app.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 import { CML_WITH_UNKNOWN_ROLE, MAP_WITH_FINDINGS } from "./support/maps.js";
 
 /**
@@ -265,6 +266,22 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
 
     await expect.poll(() => mapText(page)).toBe(example);
     await expect(toast(page, "Map replaced")).toBeHidden();
+  });
+
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced map alone", async ({
+    page,
+  }) => {
+    await openMap(page, SAMPLE_DOCUMENT);
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect.poll(async () => (await exportMap(page)).contexts.length).toBe(0);
+    await expect(toast(page, "Map replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Map replaced")).toBeVisible();
+    expect((await exportMap(page)).contexts).toHaveLength(0);
   });
 
   test("Open… reads a .cm.json file and replaces the map", async ({ page }) => {

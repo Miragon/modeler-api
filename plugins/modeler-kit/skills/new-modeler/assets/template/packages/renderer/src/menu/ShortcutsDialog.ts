@@ -2,7 +2,9 @@ import { lucideIcon } from '../draw/lucide.js';
 import { diagramShortcuts, type ShortcutGroup, type ShortcutsChrome } from './shortcuts.js';
 
 const DIALOG_CLASS = 'diagram-shortcuts';
-const TEXT_FIELD = "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+// The rule of the shell's isTextField, which a renderer does not import.
+const TEXT_FIELD =
+  "input, textarea, select, [contenteditable]:not([contenteditable='false']), .monaco-editor";
 const DIALOG = 'dialog, [role="dialog"], [role="alertdialog"]';
 
 /** What the dialog needs of the chrome; a `@miragon/modeler-shell` handle fits. */
@@ -62,7 +64,11 @@ function table(group: ShortcutGroup): HTMLElement {
 
 function isTextField(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  return (target as HTMLElement).isContentEditable === true || target.closest(TEXT_FIELD) !== null;
+  return (
+    (target as HTMLElement).isContentEditable === true ||
+    ((target as { editContext?: unknown }).editContext ?? null) !== null ||
+    target.closest(TEXT_FIELD) !== null
+  );
 }
 
 function isShown(dialog: Element): boolean {

@@ -15,6 +15,7 @@ import {
   startScreen,
   waitForViewer,
 } from "./support/viewer.js";
+import { codeEditors, pressIn } from "./support/code-editors.js";
 
 /**
  * The web app's side of the shell's web chrome: what it hands the shell (menu groups, primary
@@ -549,6 +550,22 @@ test.describe("webapp: the shell web chrome and the app behind it", () => {
 
     await expect.poll(() => exportDSL(page)).toBe(example);
     await expect(toast(page, "Board replaced")).toBeHidden();
+  });
+
+  test("Cmd/Ctrl+Z in a code editor (EditContext, Monaco) leaves the replaced board alone", async ({
+    page,
+  }) => {
+    await openLink(page, EXAMPLE_BOARD);
+    await (await openMenu(page)).locator('[data-menu-id="new-diagram"]').click();
+    await expect.poll(async () => (await exportBoard(page)).elements.length).toBe(0);
+    await expect(toast(page, "Board replaced")).toBeVisible();
+
+    for (const editor of await codeEditors(page)) {
+      expect(await pressIn(editor, "ControlOrMeta+Z")).toBe("free");
+    }
+
+    await expect(toast(page, "Board replaced")).toBeVisible();
+    expect((await exportBoard(page)).elements).toHaveLength(0);
   });
 
   test("the tab names the board, and the app alone on the start screen", async ({ page }) => {

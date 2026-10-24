@@ -1,9 +1,4 @@
-import {
-  TEXT_FIELD_SELECTOR,
-  defaultMessages,
-  isUndoRedoKey,
-  matchChromeKey,
-} from "../core/index.js";
+import { defaultMessages, isTextField, isUndoRedoKey, matchChromeKey } from "../core/index.js";
 import type { ShellHandle } from "../dom/index.js";
 import { PaletteSkin, type PaletteEntryLike } from "./palette-skin.js";
 import type {
@@ -29,14 +24,6 @@ const EDITABLE = { locked: false, shown: false } as const;
 
 /** What the shell sets on the canvas `<svg>` while a shell is attached, restored on detach. */
 const CANVAS_ATTRIBUTES = ["role", "aria-label"] as const;
-
-function isTextField(target: EventTarget | null): boolean {
-  if (!target || typeof (target as Element).closest !== "function") return false;
-  return (
-    (target as HTMLElement).isContentEditable === true ||
-    (target as Element).closest(TEXT_FIELD_SELECTOR) !== null
-  );
-}
 
 /** didi's injector, which resolves a missing service to `null` with `strict: false`. */
 interface DidiInjectorLike {

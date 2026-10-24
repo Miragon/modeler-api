@@ -22,11 +22,11 @@ import {
   type CmDocument,
 } from "@miragon/context-maps-schema-model";
 import {
-  TEXT_FIELD_SELECTOR,
   commandKeyLabel,
   defaultMessages,
   detectPlatform,
   formatNumber,
+  isTextField,
   isUndoRedoKey,
   mountShell,
   problemSummary,
@@ -433,13 +433,6 @@ function exportMapFile(kind: "json" | "cml"): void {
 // Cmd/Ctrl+Z takes back a replaced map
 // ---------------------------------------------------------------------------
 
-function isInTextField(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.matches(TEXT_FIELD_SELECTOR) || target.isContentEditable)
-  );
-}
-
 function modalOpen(): boolean {
   return document.querySelector("dialog:modal") !== null;
 }
@@ -451,7 +444,7 @@ function onUndoReplaceKey(event: KeyboardEvent): void {
   // Cmd/Ctrl+Y is redo; the typed letter decides (QWERTZ swaps the keys), as in isUndoRedoKey.
   const ascii = event.key.length === 1 && event.key.charCodeAt(0) < 0x80;
   if ((ascii ? event.key.toLowerCase() : event.code === "KeyZ" ? "z" : "") !== "z") return;
-  if (isInTextField(event.target) || modalOpen() || modeler.canUndo()) return;
+  if (isTextField(event.target) || modalOpen() || modeler.canUndo()) return;
   event.preventDefault();
   if (!event.repeat) offer.run();
 }
@@ -473,7 +466,7 @@ function onAppKey(event: KeyboardEvent): void {
   if (shell.isEmptyStateShown()) return;
   // A name being typed belongs in the file: leaving the field commits it.
   const active = document.activeElement;
-  if (active instanceof HTMLElement && isInTextField(active)) active.blur();
+  if (active instanceof HTMLElement && isTextField(active)) active.blur();
   exportMapFile("json");
 }
 

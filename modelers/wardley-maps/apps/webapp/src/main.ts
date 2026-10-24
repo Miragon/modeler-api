@@ -25,11 +25,11 @@ import {
 import { createEmptyMap, serializeMap } from "@miragon/wardley-schema-model";
 import { parseDSLWithDiagnostics } from "@miragon/wardley-dsl";
 import {
-  TEXT_FIELD_SELECTOR,
   commandKeyLabel,
   defaultMessages,
   detectPlatform,
   formatNumber,
+  isTextField,
   isUndoRedoKey,
   mountShell,
   problemSummary,
@@ -431,13 +431,6 @@ async function exportPicture(kind: "svg" | "png" | "png-transparent"): Promise<v
 // the shortcuts, Cmd/Ctrl+Z takes back a replaced map
 // ---------------------------------------------------------------------------
 
-function isInTextField(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || target.closest(TEXT_FIELD_SELECTOR) !== null)
-  );
-}
-
 function modalOpen(): boolean {
   return document.querySelector("dialog:modal") !== null;
 }
@@ -454,7 +447,7 @@ function onUndoReplaceKey(event: KeyboardEvent): void {
   // Cmd/Ctrl+Y is redo; the typed letter decides (QWERTZ swaps the keys), as in isUndoRedoKey.
   const ascii = event.key.length === 1 && event.key.charCodeAt(0) < 0x80;
   if ((ascii ? event.key.toLowerCase() : event.code === "KeyZ" ? "z" : "") !== "z") return;
-  if (isInTextField(event.target) || modalOpen() || shell.isEmptyStateShown()) return;
+  if (isTextField(event.target) || modalOpen() || shell.isEmptyStateShown()) return;
   event.preventDefault();
   event.stopPropagation();
   if (!event.repeat) mapReplacer.undoPending();
@@ -489,7 +482,7 @@ function onAppKey(event: KeyboardEvent): void {
     }
   }
   if (event.key !== SHORTCUTS_KEY || command || event.altKey || event.isComposing) return;
-  if (event.defaultPrevented || isInTextField(event.target) || anyDialogOpen()) return;
+  if (event.defaultPrevented || isTextField(event.target) || anyDialogOpen()) return;
   if (shell.isEmptyStateShown()) return;
   event.preventDefault();
   shell.menu.close();
@@ -498,7 +491,7 @@ function onAppKey(event: KeyboardEvent): void {
 
 /** OWM text or a share link pasted onto the canvas opens it (undoable like any replacement). */
 function onPaste(event: ClipboardEvent): void {
-  if (event.defaultPrevented || anyDialogOpen() || isInTextField(event.target)) return;
+  if (event.defaultPrevented || anyDialogOpen() || isTextField(event.target)) return;
   const text = event.clipboardData?.getData("text/plain") ?? "";
   if (!text.trim()) return;
   if (/#mz?=/.test(text)) {

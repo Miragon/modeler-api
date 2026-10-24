@@ -6,6 +6,7 @@ import {
   commandKeyLabel,
   decideKey,
   detectPlatform,
+  isTextField,
   isUndoRedoKey,
   matchChromeKey,
   shortcutLabel,
@@ -153,6 +154,42 @@ describe("TEXT_FIELD_SELECTOR", () => {
     expect(TEXT_FIELD_SELECTOR).toBe(
       "input, textarea, select, [contenteditable]:not([contenteditable='false'])",
     );
+  });
+});
+
+describe("isTextField (guide §5.8: every input field, select list and editable text)", () => {
+  /** An element as the DOM gives it, found by `closest` only for the selectors it sits inside. */
+  function target(
+    fields: { isContentEditable?: boolean; editContext?: unknown } = {},
+    inside: readonly string[] = [],
+  ) {
+    return {
+      isContentEditable: false,
+      ...fields,
+      closest: (selectors: string) =>
+        selectors.split(",").some((selector) => inside.includes(selector.trim())) ? {} : null,
+    };
+  }
+
+  it.each([
+    ["an input", target({}, ["input"])],
+    ["a textarea", target({}, ["textarea"])],
+    ["a select list", target({}, ["select"])],
+    ["an element in an editable label", target({ isContentEditable: true })],
+    ["an EditContext editor", target({ editContext: {} })],
+    ["anything inside a Monaco editor", target({}, [".monaco-editor"])],
+  ])("is true for %s", (_, element) => {
+    expect(isTextField(element)).toBe(true);
+  });
+
+  it.each([
+    ["a button", target()],
+    ["an element whose editContext is null", target({ editContext: null })],
+    ["null", null],
+    ["window or document, which have no closest", { isContentEditable: undefined }],
+    ["a string", "input"],
+  ])("is false for %s", (_, element) => {
+    expect(isTextField(element)).toBe(false);
   });
 });
 

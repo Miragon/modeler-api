@@ -27,11 +27,11 @@ import {
 } from "@miragon/team-topologies-schema-model";
 import { makeRoomForLegend, mountInspector } from "@miragon/team-topologies-ui";
 import {
-  TEXT_FIELD_SELECTOR,
   commandKeyLabel,
   defaultMessages,
   detectPlatform,
   formatNumber,
+  isTextField,
   isUndoRedoKey,
   mountShell,
   problemSummary,
@@ -609,13 +609,6 @@ async function exportImage(format: "png" | "svg"): Promise<void> {
 // shortcuts, and Cmd/Ctrl+Z also works from a chrome control and takes back a replaced diagram
 // ---------------------------------------------------------------------------
 
-function isInTextField(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.matches(TEXT_FIELD_SELECTOR) || target.isContentEditable)
-  );
-}
-
 function modalOpen(): boolean {
   return document.querySelector("dialog:modal") !== null;
 }
@@ -638,7 +631,7 @@ function historyLetter(event: KeyboardEvent): string {
  */
 function onHistoryKey(event: KeyboardEvent): void {
   if (event.isComposing || !isUndoRedoKey(event) || shell.isEmptyStateShown()) return;
-  if (isInTextField(event.target) || inPopup(event.target) || modalOpen()) return;
+  if (isTextField(event.target) || inPopup(event.target) || modalOpen()) return;
   const redo = event.shiftKey || historyLetter(event) === "y";
   const target = event.target;
   const onChrome =
@@ -675,7 +668,7 @@ function onFileKey(event: KeyboardEvent): void {
   if (shell.isEmptyStateShown()) return;
   // A field commits its draft on blur, so the saved file includes what was just typed.
   const active = document.activeElement;
-  const field = active instanceof HTMLElement && isInTextField(active) ? active : undefined;
+  const field = active instanceof HTMLElement && isTextField(active) ? active : undefined;
   field?.blur();
   exportJsonFile();
   if (field?.isConnected) field.focus({ preventScroll: true });
@@ -683,7 +676,7 @@ function onFileKey(event: KeyboardEvent): void {
 
 function onShortcutsKey(event: KeyboardEvent): void {
   if (event.key !== SHORTCUTS_DIALOG_KEY || event.ctrlKey || event.metaKey || event.altKey) return;
-  if (event.defaultPrevented || event.isComposing || isInTextField(event.target)) return;
+  if (event.defaultPrevented || event.isComposing || isTextField(event.target)) return;
   if (inPopup(event.target) || modalOpen()) return;
   event.preventDefault();
   shortcutsDialog.open();
