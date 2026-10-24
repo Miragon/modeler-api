@@ -31,8 +31,9 @@ files to the release's hashes and checks the CSS rules, `MIRAGON` and the import
 shell's `SHELL` sizes to the vendored `shell` tokens. The subdomain-type fills, relationship-pattern
 strokes and integration-role marker colours in
 [`packages/schema-model/src/notation.ts`](packages/schema-model/src/notation.ts) are the **official
-Context Maps notation** and are serialized into documents — they stay as-is; the design system
-applies to everything else (chrome, typography, selection, neutrals, the app icon).
+Context Maps notation** and stay as they are, for fidelity to the official notation. A document
+never carries them: it serializes only a bounded context's optional `fill` / `stroke` override. The
+design system applies to everything else (chrome, typography, selection, neutrals, the app icon).
 
 ## Contract and chrome
 
