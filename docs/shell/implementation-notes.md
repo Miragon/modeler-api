@@ -732,11 +732,14 @@ fit.
 - `connectDiagramJs` observes the card with a `ResizeObserver` when the legend is open at the
   connection. A size report while it is still open calls the viewport's
   `refitIfOnlyInsetChanged("left")`: it fits again (jump) only if the left inset (the card's width)
-  differs from the one the fit that set the current view measured, the other three do not, and
-  nothing else has set the view since (a zoom, a pan, a pointer that stopped a fit animation,
-  `restore`, `setState`, `newDocument`). A card that only grows or shrinks in height, an inspector
-  opened, the problems pill or the palette's second row therefore never fit. A running fit animation
-  is retargeted instead.
+  differs from the one the fit that set the current view measured, the other three do not, the
+  content bounds equal the ones that fit framed, and nothing else has set the view since (a zoom, a
+  pan, a pointer that stopped a fit animation, `restore`, `setState`, `newDocument`). A card that
+  only grows or shrinks in height, an inspector opened, the problems pill or the palette's second
+  row therefore never fit, and neither does content the user created, moved or deleted on the
+  canvas before the font arrived: the bounds tell the shell, which sees no command stack. An edit
+  that leaves the bounds as they were still gets the corrected fit, which frames the same box. A
+  running fit animation is retargeted instead.
 - A changed container size is left to the resize refit, which also calls `canvas.resized()`.
 - The watch exists for the font load only. It ends once `document.fonts.ready` has resolved, no font
   is loading any more and two frames have passed since (the frame that lays out the loaded font
@@ -800,8 +803,8 @@ text.
 - Every viewbox the shell writes is such a view change, asked for by a chrome control or not: zoom in,
   zoom out and 100 % (buttons, Cmd/Ctrl+Plus, Minus and 0), Fit and Shift+1, the first fit, the refit
   on resize (opening the inspector, a side bar or a bottom panel), the refit once an open legend
-  settles after the first fit, `restore` after a re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell never commits or
-  cancels an editor itself.
+  settles after the first fit, `restore` after a re-import and a stored view (`setState`). Designing
+  for them is the renderer's part; the shell never commits or cancels an editor itself.
 - A pointer click on the zoom panel takes the focus out of the editor before the shell acts (the
   button takes it on `mousedown`), so a renderer that commits on blur commits then. That is the user's
   click elsewhere, not the view change.

@@ -865,6 +865,24 @@ describe("refitIfOnlyInsetChanged (chrome that settles after a fit)", () => {
     expect(viewport.isAutomatic()).toBe(true);
   });
 
+  it("keeps the view once the content bounds differ from the fit's: an edit never fits (guide §5.9)", () => {
+    const { viewport, canvas, settle, setContent } = settling();
+    viewport.afterImport();
+    setContent({ x: 100, y: 100, width: 5000, height: 3000 });
+    settle();
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    setContent({ x: 100, y: 100, width: 900, height: 600 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    setContent(undefined);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+    expect(viewport.isAutomatic()).toBe(true);
+
+    setContent({ ...CONTENT });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
+    expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
+  });
+
   it("keeps a view the user zoomed or panned since the fit", () => {
     const zoomed = settling();
     zoomed.viewport.afterImport();

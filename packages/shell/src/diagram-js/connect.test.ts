@@ -82,7 +82,8 @@ function connected(legendOpen: boolean) {
     modelerShell: { attachShell: () => () => undefined },
   };
   const diagram = { get: <T>(name: string) => services[name] as T };
-  const connection = connectDiagramJs(shell, diagram, { contentBounds: () => CONTENT });
+  let content = CONTENT;
+  const connection = connectDiagramJs(shell, diagram, { contentBounds: () => content });
   const watches = () =>
     FakeResizeObserver.instances.some((observer) => observer.observed.has(legend.element));
   /** The card changes its size; the observer reports it. */
@@ -90,7 +91,13 @@ function connected(legendOpen: boolean) {
     setLegendBox(width, height);
     FakeResizeObserver.resize(legend.element);
   };
-  return { shell, legend, canvas, connection, watches, settle };
+  /** The user changes the content on the canvas: diagram-js reports the shape, then the change. */
+  const edit = (event: "shape.added" | "shape.removed", bounds: Bounds) => {
+    content = bounds;
+    bus.fire(event, { element: {} });
+    bus.fire("elements.changed", { elements: [{}] });
+  };
+  return { shell, legend, canvas, connection, watches, settle, edit };
 }
 
 function fitWithLegend(canvas: FakeCanvas, legendWidth: number | undefined): Bounds {
@@ -198,6 +205,37 @@ describe("connectDiagramJs: an open legend that settles after the first fit", ()
     expect(watches()).toBe(false);
     settle(SETTLED_WIDTH);
     expect(canvas.viewboxWrites).toHaveLength(1);
+  });
+
+  it("keeps the view when the user added content since the fit: creating never fits (guide §5.9)", () => {
+    fonts.startLoading();
+    const { canvas, connection, settle, edit } = connected(true);
+    connection.viewport.afterImport();
+    edit("shape.added", { x: 100, y: 100, width: 5000, height: 3000 });
+    settle(SETTLED_WIDTH);
+    expect(canvas.viewboxWrites).toEqual([fitWithLegend(canvas, FALLBACK_WIDTH)]);
+    expect(connection.viewport.isAutomatic()).toBe(true);
+  });
+
+  it("keeps the view when the user deleted content since the fit (guide §5.9)", () => {
+    fonts.startLoading();
+    const { canvas, connection, settle, edit } = connected(true);
+    connection.viewport.afterImport();
+    edit("shape.removed", { x: 100, y: 100, width: 900, height: 600 });
+    settle(SETTLED_WIDTH);
+    expect(canvas.viewboxWrites).toEqual([fitWithLegend(canvas, FALLBACK_WIDTH)]);
+  });
+
+  it("still fits for the card after an edit that left the content bounds as the fit measured them", () => {
+    fonts.startLoading();
+    const { canvas, connection, settle, edit } = connected(true);
+    connection.viewport.afterImport();
+    edit("shape.added", { ...CONTENT });
+    settle(SETTLED_WIDTH);
+    expect(canvas.viewboxWrites).toEqual([
+      fitWithLegend(canvas, FALLBACK_WIDTH),
+      fitWithLegend(canvas, SETTLED_WIDTH),
+    ]);
   });
 
   it("keeps a view the user zoomed since the fit, and stops watching", () => {

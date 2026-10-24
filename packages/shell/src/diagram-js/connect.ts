@@ -95,11 +95,11 @@ function whenFontsSettle(fonts: FontFaceSet, settled: () => void): () => void {
  * The legend that is open at the start can be measured by the first fit before its font has
  * loaded; the card then settles a pixel or two wider or narrower (Context Maps: about 1.6px) and
  * the content would sit that much off the free rectangle's centre. Until the fonts have loaded, a
- * change of the card's width fits once more (`refitIfOnlyInsetChanged("left")`) while the view is
- * still the fit's and no other inset has changed since. The watch ends after that fit, once the
- * fonts have loaded and the card's size since has been reported, when the legend closes, once the
- * user zooms or pans, and with the connection: every later change keeps the view (guide §5.9).
- * Returns the function that ends it.
+ * change of the card's width fits once more (`refitIfOnlyInsetChanged("left")`) while the view and
+ * the content bounds are still the fit's and no other inset has changed since. The watch ends after
+ * that fit, once the fonts have loaded and the card's size since has been reported, when the legend
+ * closes, once the user zooms or pans, and with the connection: every later change keeps the view
+ * (guide §5.9). Returns the function that ends it.
  */
 function refitWhenLegendSettles(shell: ShellHandle, viewport: DiagramViewport): () => void {
   const legend = shell.legend;

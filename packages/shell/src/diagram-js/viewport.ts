@@ -156,8 +156,8 @@ export class DiagramViewport implements Viewport {
   private autoFitDue = false;
   /** A restored view waits for the container to get a size. */
   private pendingView: Bounds | undefined;
-  /** The insets of the fit that set the current view; cleared once anything else sets it. */
-  private fittedInsets: Insets | undefined;
+  /** What the fit that set the current view measured; cleared once anything else sets the view. */
+  private fitted: { readonly bounds: Bounds; readonly insets: Insets } | undefined;
   private animation: { frame: number } | undefined;
   private resizeFrame: number | undefined;
   private destroyed = false;
@@ -253,7 +253,7 @@ export class DiagramViewport implements Viewport {
   newDocument(): void {
     if (this.destroyed) return;
     this.cancelAnimation();
-    this.fittedInsets = undefined;
+    this.fitted = undefined;
     this.userMoved = false;
     this.firstFitPending = true;
     this.emptyViewPending = true;
@@ -320,21 +320,23 @@ export class DiagramViewport implements Viewport {
 
   /**
    * Fits again (jump) when `insets()` differs from what the fit that set the current view measured
-   * on `side` and on no other side, while nothing else has set the view since: chrome that settles
-   * after a fit (the open legend's card once its font has loaded) would leave the content off the
-   * free rectangle's centre, while any other change of the chrome keeps the view (guide §5.9). A fit
-   * animation still running is retargeted instead. A container resize is left to the resize refit.
-   * True when it fit again.
+   * on `side` and on no other side, while nothing else has set the view since and the content
+   * bounds are still the ones it fitted: chrome that settles after a fit (the open legend's card
+   * once its font has loaded) would leave the content off the free rectangle's centre, while any
+   * other change of the chrome, and content the user created, moved or deleted since, keeps the view
+   * (guide §5.9). A fit animation still running is retargeted instead. A container resize is left
+   * to the resize refit. True when it fit again.
    */
   refitIfOnlyInsetChanged(side: keyof Insets): boolean {
-    const fitted = this.fittedInsets;
+    const fitted = this.fitted;
     if (this.destroyed || !fitted) return false;
     const size = this.canvas.getSize();
     if (size.width !== this.lastSize?.width || size.height !== this.lastSize.height) return false;
     const insets = this.options.insets();
-    if (insets[side] === fitted[side]) return false;
-    if (INSET_SIDES.some((other) => other !== side && insets[other] !== fitted[other]))
+    if (insets[side] === fitted.insets[side]) return false;
+    if (INSET_SIDES.some((other) => other !== side && insets[other] !== fitted.insets[other]))
       return false;
+    if (!sameBounds(this.options.contentBounds(), fitted.bounds)) return false;
     return this.fitTo(this.animation !== undefined);
   }
 
@@ -372,7 +374,7 @@ export class DiagramViewport implements Viewport {
     const insets = this.options.insets();
     const target = fitViewbox(bounds, this.canvas.getSize(), insets);
     if (!target) return false;
-    this.fittedInsets = { ...insets };
+    this.fitted = { bounds: { ...bounds }, insets: { ...insets } };
     this.userMoved = false;
     this.firstFitPending = false;
     this.autoFitDue = false;
@@ -418,7 +420,7 @@ export class DiagramViewport implements Viewport {
     if (!animation) return;
     this.animation = undefined;
     // The view stops short of the fit's target, so it is no longer that fit's.
-    this.fittedInsets = undefined;
+    this.fitted = undefined;
     cancelAnimationFrame(animation.frame);
     if (this.lastWritten) this.reference = this.lastWritten;
   }
@@ -445,7 +447,7 @@ export class DiagramViewport implements Viewport {
 
   /** Shows a restored view now, or once the container has a size. */
   private show(viewbox: Bounds): void {
-    this.fittedInsets = undefined;
+    this.fitted = undefined;
     if (hasSize(this.canvas.getSize())) {
       this.pendingView = undefined;
       this.write(viewbox);
@@ -527,7 +529,7 @@ export class DiagramViewport implements Viewport {
       const current = event?.viewbox ?? this.canvas.viewbox();
       if (!this.isOwnView(current)) {
         this.cancelAnimation();
-        this.fittedInsets = undefined;
+        this.fitted = undefined;
         this.userMoved = true;
         this.autoFitDue = false;
         this.emptyViewDue = false;
@@ -626,6 +628,16 @@ function hasSize(size: Size): boolean {
 
 function hasExtent(bounds: Bounds | undefined): boolean {
   return bounds !== undefined && (bounds.width > 0 || bounds.height > 0);
+}
+
+function sameBounds(bounds: Bounds | undefined, other: Bounds): boolean {
+  return (
+    bounds !== undefined &&
+    bounds.x === other.x &&
+    bounds.y === other.y &&
+    bounds.width === other.width &&
+    bounds.height === other.height
+  );
 }
 
 /** `ZoomScroll#_zoom` for a diagram without `zoomScroll`: snap to the raster, one step, cap. */
