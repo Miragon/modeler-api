@@ -541,7 +541,7 @@ viewer.on<{ transient?: boolean }>("wardley.config.changed", (event) => {
 viewer.on<LabelDeduplicatedEvent>("wardley.label.deduplicated", (event) => {
   shell.toast({
     status: "info",
-    text: `“${event.requested}” already exists — renamed to “${event.applied}”, because links refer to names.`,
+    text: `“${event.requested}” already exists. Renamed to “${event.applied}”, because links refer to names.`,
   });
 });
 

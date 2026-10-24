@@ -985,7 +985,7 @@ pipeline Platform [0.3, 0.8]
       expect(labelInput()).toBe(field);
       expect(field.classList.contains("wardley-label-input--error")).toBe(true);
       expect(document.querySelector(".wardley-label-error")?.textContent).toBe(
-        "“Customer” already exists — names must be unique because links refer to them.",
+        "“Customer” already exists. Names must be unique because links refer to them.",
       );
       expect(platform.wardleyLabel).toBe("Platform");
 

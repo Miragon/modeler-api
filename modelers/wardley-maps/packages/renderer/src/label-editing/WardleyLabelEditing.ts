@@ -107,7 +107,7 @@ const CARET_ROOM = 2;
 export const NOTE_EDIT_HINT = "Cmd/Ctrl+Enter to save · Esc to cancel";
 
 export function duplicateNameMessage(name: string): string {
-  return `“${name}” already exists — names must be unique because links refer to them.`;
+  return `“${name}” already exists. Names must be unique because links refer to them.`;
 }
 
 /**

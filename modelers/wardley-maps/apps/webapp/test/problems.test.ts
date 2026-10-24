@@ -5,7 +5,7 @@ describe("problemItems", () => {
   it("puts a parser finding’s line and source below its message", () => {
     const items = problemItems([
       {
-        message: 'Line 3: Unknown statement "compnent" — "compnent Typo [0.2, 0.2]"',
+        message: 'Line 3: Unknown statement "compnent" ("compnent Typo [0.2, 0.2]")',
         line: 3,
         source: "compnent Typo [0.2, 0.2]",
       },

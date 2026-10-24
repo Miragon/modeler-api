@@ -30,7 +30,7 @@ describe("size diagnostics", () => {
     expect(diagnostics).toEqual([
       {
         line: 2,
-        message: "Map size 100×50 is below the minimum 480×320 — drawn at 480×320",
+        message: "Map size 100×50 is below the minimum 480×320: drawn at 480×320",
         text: "size [100, 50]",
       },
     ]);
@@ -38,22 +38,22 @@ describe("size diagnostics", () => {
 
   it("explains a zero or negative size", () => {
     expect(messagesOf(withSize("size [0, 0]"))).toEqual([
-      "Map size 0×0 is below the minimum 480×320 — drawn at 480×320",
+      "Map size 0×0 is below the minimum 480×320: drawn at 480×320",
     ]);
     expect(messagesOf(withSize("size [-100, 700]"))).toEqual([
-      "Map size -100×700 is below the minimum 480×320 — drawn at 480×700",
+      "Map size -100×700 is below the minimum 480×320: drawn at 480×700",
     ]);
   });
 
   it("explains a size above the maximum", () => {
     expect(messagesOf(withSize("size [6000, 3000]"))).toEqual([
-      "Map size 6000×3000 is above the maximum 5000×5000 — drawn at 5000×3000",
+      "Map size 6000×3000 is above the maximum 5000×5000: drawn at 5000×3000",
     ]);
   });
 
   it("explains a size that is both too narrow and too tall", () => {
     expect(messagesOf(withSize("size [100, 9000]"))).toEqual([
-      "Map size 100×9000 is outside 480×320 to 5000×5000 — drawn at 480×5000",
+      "Map size 100×9000 is outside 480×320 to 5000×5000: drawn at 480×5000",
     ]);
   });
 
@@ -61,14 +61,14 @@ describe("size diagnostics", () => {
     const { map, diagnostics } = parseDSLWithDiagnostics(withSize("size [1080.5, 680]"));
     expect(map.config.size).toEqual({ width: 1080.5, height: 680 });
     expect(diagnostics.map((diagnostic) => diagnostic.message)).toEqual([
-      "Map size 1080.5×680 is not in whole pixels — OWM only reads whole-pixel sizes",
+      "Map size 1080.5×680 is not in whole pixels: OWM only reads whole-pixel sizes",
     ]);
   });
 
   it("reports both findings for a fractional size below the minimum", () => {
     expect(messagesOf(withSize("size [100.5, 50]"))).toEqual([
-      "Map size 100.5×50 is below the minimum 480×320 — drawn at 480×320",
-      "Map size 100.5×50 is not in whole pixels — OWM only reads whole-pixel sizes",
+      "Map size 100.5×50 is below the minimum 480×320: drawn at 480×320",
+      "Map size 100.5×50 is not in whole pixels: OWM only reads whole-pixel sizes",
     ]);
   });
 });

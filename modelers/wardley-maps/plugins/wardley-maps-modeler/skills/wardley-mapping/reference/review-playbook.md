@@ -1,7 +1,7 @@
 # Review playbook
 
 A review leaves the user with two things: **the same map plus colour-coded notes**, written into
-the `.wmap`/`.owm` file, and **a short written assessment** in chat. The map is the user's — add
+the `.wmap`/`.owm` file, and **a short written assessment** in chat. The map is the user's: add
 notes, never silently change their components, positions or links.
 
 Real-world maps fail these checks more often than not. In a sample of about 150 published community
@@ -13,7 +13,7 @@ thirds had no `evolve` arrow. Expect findings.
 
 Review the text, not a picture. If the user shares a screenshot, ask for the file; if there is
 none, transcribe it into a `.wmap` and confirm the positions before judging them. Load the
-`owm-dsl` skill — it explains every construct you will meet.
+`owm-dsl` skill. It explains every construct you will meet.
 
 ## 1. Parse and take inventory
 
@@ -23,7 +23,7 @@ file and collect both of these as findings:
 - **Every diagnostic.** The parser reports nearly every line it drops, ignores or rewrites: a
   misspelt keyword (`Unknown statement "compnent"`), a dangling link, a duplicate name, words after
   a note's coordinates.
-- **Every line reported as "not understood"** (a non-comment `rawPassthrough` entry) — it draws
+- **Every line reported as "not understood"** (a non-comment `rawPassthrough` entry): it draws
   nothing. Most carry a diagnostic too; a bare `pipeline X` next to a component `X` and a `url`
   line that nothing references do not.
 
@@ -35,41 +35,41 @@ Then list:
 - dependency links (`A -> B`: A needs B) and flow links (`+>`)
 - `evolve` arrows, `inertia`, `(build)`/`(buy)`/`(outsource)`, `(market)`/`(ecosystem)`
 - pipelines, PST regions (`pioneers`, `settlers`, `townplanners`), accelerators, submaps
-- existing notes and annotations — do not duplicate what is already said
+- existing notes and annotations; do not duplicate what is already said
 
 ## 2. Structural checks
 
-| Check                         | How to detect                                                                                                                                                     | Why it matters                                                                |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Anchor present**            | No `anchor` line; or the top element is a component called "User"/"Customer".                                                                                     | Without a user there is no need, and without a need no value chain.           |
-| **Need below the anchor**     | The anchor links straight to infrastructure ("Customer -> Database").                                                                                             | The need is the point of the map; skipping it hides why anything exists.      |
-| **Links point down**          | A dependency `A -> B` where B has a **higher** visibility than A.                                                                                                 | Either the link is reversed or a component sits at the wrong height.          |
-| **Dangling links**            | Diagnostic `Link: "X" not found` — typo, case mismatch, renamed component, a pipeline without range, `;` in the right-hand name (left-hand: `Unknown statement`). | The link **does not exist** on the canvas; the user thinks it does.           |
-| **Lines not understood**      | Diagnostics `Unknown statement "…"` and `Line not understood …`; any non-comment `rawPassthrough` entry.                                                          | The user thinks these elements or links are on the map; they are not.         |
-| **Duplicate names**           | Diagnostic `Duplicate name "X" — renamed to "X 2"; links bind to the first "X"`.                                                                                  | Every link to `X` reaches the first one; the second shows up as "X 2".        |
-| **Dangling evolve**           | Diagnostic `evolve: component "X" not found`.                                                                                                                     | The movement arrow is not drawn.                                              |
-| **Orphans**                   | A component in no link at all (pipeline children excepted).                                                                                                       | It serves no need — remove it or connect it.                                  |
-| **Cycles**                    | `A -> B -> … -> A`.                                                                                                                                               | A value chain is acyclic; a cycle usually hides a flow drawn as a dependency. |
-| **Chain reaches commodities** | Leaves (components nothing below them) still in Genesis or Custom-Built.                                                                                          | The map stops before the things that will move fastest and cost least.        |
-| **Pipelines**                 | No block children (a range but no forms); the pipeline's component right above a child; an `evolve` that only restates the range.                                 | A pipeline is one component in several forms — suggest the forms as children. |
-| **Readability**               | More than ~25 components; same column under `0.06` visibility apart; same row under `(7n + 40) / 1080` maturity apart (n = characters of the left name).          | Overlapping circles and labels; too much to discuss. Suggest submaps.         |
+| Check                         | How to detect                                                                                                                                                    | Why it matters                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Anchor present**            | No `anchor` line; or the top element is a component called "User"/"Customer".                                                                                    | Without a user there is no need, and without a need no value chain.           |
+| **Need below the anchor**     | The anchor links straight to infrastructure ("Customer -> Database").                                                                                            | The need is the point of the map; skipping it hides why anything exists.      |
+| **Links point down**          | A dependency `A -> B` where B has a **higher** visibility than A.                                                                                                | Either the link is reversed or a component sits at the wrong height.          |
+| **Dangling links**            | Diagnostic `Link: "X" not found`: typo, case mismatch, renamed component, a pipeline without range, `;` in the right-hand name (left-hand: `Unknown statement`). | The link **does not exist** on the canvas; the user thinks it does.           |
+| **Lines not understood**      | Diagnostics `Unknown statement "…"` and `Line not understood …`; any non-comment `rawPassthrough` entry.                                                         | The user thinks these elements or links are on the map; they are not.         |
+| **Duplicate names**           | Diagnostic `Duplicate name "X": renamed to "X 2"; links bind to the first "X"`.                                                                                  | Every link to `X` reaches the first one; the second shows up as "X 2".        |
+| **Dangling evolve**           | Diagnostic `evolve: component "X" not found`.                                                                                                                    | The movement arrow is not drawn.                                              |
+| **Orphans**                   | A component in no link at all (pipeline children excepted).                                                                                                      | It serves no need: remove it or connect it.                                   |
+| **Cycles**                    | `A -> B -> … -> A`.                                                                                                                                              | A value chain is acyclic; a cycle usually hides a flow drawn as a dependency. |
+| **Chain reaches commodities** | Leaves (components nothing below them) still in Genesis or Custom-Built.                                                                                         | The map stops before the things that will move fastest and cost least.        |
+| **Pipelines**                 | No block children (a range but no forms); the pipeline's component right above a child; an `evolve` that only restates the range.                                | A pipeline is one component in several forms: suggest the forms as children.  |
+| **Readability**               | More than ~25 components; same column under `0.06` visibility apart; same row under `(7n + 40) / 1080` maturity apart (n = characters of the left name).         | Overlapping circles and labels; too much to discuss. Suggest submaps.         |
 
 Other diagnostics and what causes them:
 
-- `Coordinate … is outside [0,1] and was clamped` — usually percentages (`[80, 30]`) or pixel
+- `Coordinate … is outside [0,1] and was clamped`: usually percentages (`[80, 30]`) or pixel
   values instead of fractions. Swapped `[maturity, visibility]` pairs inside `0..1` raise **no**
-  diagnostic: find them by reading — a user need low on the map, a commodity at the top, links
-  pointing uphill.
-- `Line not understood — kept as written` — syntax the modeler does not know, e.g. the legacy
+  diagnostic: find them by reading. Look for a user need low on the map, a commodity at the
+  top, links pointing uphill.
+- `Line not understood: kept as written`: syntax the modeler does not know, e.g. the legacy
   pixel form `pioneers [0.9, 0.1] 120 30`. The line survives but draws nothing.
-- `Ignored text after the coordinates: "…"` — words, an unknown or misspelt decorator
+- `Ignored text after the coordinates: "…"`: words, an unknown or misspelt decorator
   (`(colour …)`, `(biuld)`), a `label [dx, dy]` on a note or pipeline, or a second tuple. The text
   is dropped, so the colour, method or wording the user meant is not on the map.
-- `Pipeline "X" has no range — not drawn; add [start, end] or child components` — and every link to
+- `Pipeline "X" has no range: not drawn; add [start, end] or child components`, and every link to
   `X` is `not found`.
-- `Repeated "title" — replaces the one on line N` — often a link whose left name starts with a
+- `Repeated "title": replaces the one on line N`: often a link whose left name starts with a
   keyword (`Title Search -> Index`): it is read as a link only when both names are declared.
-- `Name "A->B" renamed to "A→B"` — a link operator (`->`, `+>`) or a leading `{` in a name; a link
+- `Name "A->B" renamed to "A→B"`: a link operator (`->`, `+>`) or a leading `{` in a name; a link
   _from_ that name breaks at its `->`.
 
 The `owm-dsl` skill's `reference/grammar.md` has the full catalogue.
@@ -91,7 +91,7 @@ suspects, as of 2026:
 | Source control, CI/CD                     | Custom-Built            | Product to Commodity `0.6–0.8`                |
 | Foundation-model inference via API        | Genesis                 | Product `0.55–0.7` (see `ai-era-patterns.md`) |
 | The organisation's actual differentiator  | Product or Commodity    | Genesis or Custom-Built                       |
-| A new internal tool for a well-known need | Genesis ("new to us")   | Wherever the market is — often Product        |
+| A new internal tool for a well-known need | Genesis ("new to us")   | Wherever the market is, often Product         |
 
 Ranges are hedged: check the market evidence for the user's context before writing a red note. A
 deliberate exception (a bank building its own payment rails) deserves an amber question, not a red
@@ -99,12 +99,12 @@ verdict.
 
 ## 4. Movement checks
 
-- **Missing `evolve`.** Components with visible pressure — commodity alternatives exist, a market is
-  forming — but no arrow. A map without movement says nothing about the future.
+- **Missing `evolve`.** Components with visible pressure (commodity alternatives exist, a market is
+  forming) but no arrow. A map without movement says nothing about the future.
 - **`evolve` pointing left** (target below the current maturity). Components never move left; this
   is either a typo or a new, different component.
 - **Inertia.** Is it marked where it really is (established, profitable, contract-bound, skills-
-  bound components), and is it named? Inertia on a Genesis component is suspicious — there is
+  bound components), and is it named? Inertia on a Genesis component is suspicious: there is
   nothing established yet to defend. Inertia on a component with no `evolve` arrow raises the
   question: inertia against what?
 
@@ -126,7 +126,7 @@ verdict.
 With the structure sound, look forward (`concepts.md`):
 
 - Which components will move right in the map's horizon, and what will that enable above them?
-- Where will inertia — the user's or a competitor's — slow that down?
+- Where will inertia, the user's or a competitor's, slow that down?
 - Which one to three plays fit: build/buy/outsource corrections, ILC, open-sourcing a non-
   differentiating dependency, exploiting a competitor's inertia, pioneer team on the
   differentiator? Tie each to a named component and its stage.
@@ -137,11 +137,11 @@ With the structure sound, look forward (`concepts.md`):
 amber `#92610A` watch, red `#C92A2A` problem, blue `#2B50D4` info, purple `#6A3DB8` idea. Teal,
 pink and slate are free or neutral.
 
-**Wording.** A few words — under ~30 characters where you can: the finding, not the argument
+**Wording.** A few words, under ~30 characters where you can: the finding, not the argument
 ("Payments is a commodity: buy", "Orphan: who needs it?"). The reasoning goes into the written
 assessment.
 
-- **Never put coordinates or `[…]` in note text** — write "move to ~0.8" or "evolve to 0.62". The
+- **Never put coordinates or `[…]` in note text**: write "move to ~0.8" or "evolve to 0.62". The
   first `[n, n]` on a note line becomes its position and ends the text.
 - **Write `(color #hex)` after the coordinates, American spelling.** `(colour …)` is dropped with a
   diagnostic and the note stays uncoloured; a `(color …)` before the coordinates is note text.
@@ -151,7 +151,7 @@ wide per character plus `0.015` (a 25-character note is ≈ `0.19` wide, ±0.095
 and at least `0.05` visibility tall. Component circles have a radius of about `0.022` visibility,
 and component labels run to the **right** of the circle; an anchor's label sits above its icon.
 
-- Centre the note ~**0.06** above or below the component, at about the same maturity — or at the
+- Centre the note ~**0.06** above or below the component, at about the same maturity, or at the
   same height to its **left**, ending just before the circle.
 - Keep the whole note inside `0..1`: its centre at least half its width from either edge.
 - Do not cover another component, label or note. Crossing a link line is acceptable when the map is
@@ -163,37 +163,37 @@ and component labels run to the **right** of the circle; an anchor's label sits 
 - A note about something missing (a need, a link) goes where the missing thing would be.
 
 **Quantity.** Five to ten notes for a typical map, at least one green. Twenty notes is a rewrite,
-not a review — summarise instead.
+not a review: summarise instead.
 
 **Where in the file.** Add the notes as one block after the user's element lines, before the
-`evolve` lines and links — or simply append them at the end of the file. Either way the user's own
+`evolve` lines and links, or simply append them at the end of the file. Either way the user's own
 lines stay byte-identical. Never reorder, reformat or re-round them. A later graphical edit in the
 Modeler regroups all lines by kind (team regions, pipelines, notes, components, anchors) whatever
 you do; see the `owm-dsl` skill, "Editing an existing map".
 
 **Earlier review notes.** Do not stack a second note on a finding that already has one. If notes
-from an earlier review are now outdated, say so in the assessment and offer to remove them — do not
+from an earlier review are now outdated, say so in the assessment and offer to remove them; do not
 delete notes unasked.
 
 ## 8. Write the assessment
 
-In chat, short and specific — every bullet names a component:
+In chat, short and specific; every bullet names a component:
 
 ```markdown
-**Strengths** — 2–4 bullets: what is well placed, well anchored, well sourced.
+**Strengths** (2–4 bullets): what is well placed, well anchored, well sourced.
 
-**Weaknesses & risks** — 2–5 bullets: misplacements, broken or uphill links, orphans, missing
+**Weaknesses & risks** (2–5 bullets): misplacements, broken or uphill links, orphans, missing
 movement, inertia, method mismatches. Mention parser diagnostics here.
 
-**Potential & plays** — 1–3 plays tied to components and stages.
+**Potential & plays**: 1–3 plays tied to components and stages.
 
-**Suggested moves** (not applied) — e.g. "Payments → ~0.8 and `(buy)`", "`evolve Warehouse System
+**Suggested moves** (not applied), e.g. "Payments → ~0.8 and `(buy)`", "`evolve Warehouse System
 0.55`". Offer to apply them.
 ```
 
 ## Worked review
 
-The user's map of an online bookshop, with the nine `note` lines a review adds — everything else is
+The user's map of an online bookshop, with the nine `note` lines a review adds. Everything else is
 exactly the user's text:
 
 ```owm
@@ -240,7 +240,7 @@ And the assessment in chat:
 > - Clear user (Reader) with two needs, Book Discovery and Checkout, directly beneath.
 > - Curated Book Clubs is recognised as the differentiator: Genesis, built in-house, with an
 >   `evolve` arrow.
-> - Delivery is a commodity and outsourced — sourcing matches the stage.
+> - Delivery is a commodity and outsourced: sourcing matches the stage.
 >
 > **Weaknesses & risks**
 >
@@ -248,10 +248,10 @@ And the assessment in chat:
 >   engineering effort where nothing is gained, and a compliance burden on Payments.
 > - Warehouse System → Catalogue points uphill: either the link is reversed or Catalogue belongs
 >   lower in the chain.
-> - Email is linked to nothing — which need does it serve?
+> - Email is linked to nothing. Which need does it serve?
 > - Warehouse System carries inertia but no `evolve` arrow, while warehouse-management products
 >   exist; the inertia is real but unplanned.
-> - Recommendations (0.3, `(build)`): recommendation engines are sold as products — build only if
+> - Recommendations (0.3, `(build)`): recommendation engines are sold as products; build only if
 >   recommendations are part of the curation edge.
 >
 > **Potential & plays**

@@ -430,7 +430,7 @@ compnent Index [0.4, 0.6]`);
       expect(warnings).toHaveLength(1);
       const [warning] = warnings;
       expect(warning).toMatchObject({ line: 3, source: "compnent Index [0.4, 0.6]" });
-      expect(warning!.message).toMatch(/^Line 3: .+ — "compnent Index \[0\.4, 0\.6\]"$/);
+      expect(warning!.message).toMatch(/^Line 3: .+ \("compnent Index \[0\.4, 0\.6\]"\)$/);
     });
   });
 });

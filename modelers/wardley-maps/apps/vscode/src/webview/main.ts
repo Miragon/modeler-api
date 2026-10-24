@@ -222,7 +222,7 @@ modeler.on("commandStack.changed", () => shell.menu.refresh());
 modeler.on("wardley.label.deduplicated", (event: LabelDeduplicatedEvent) => {
   post({
     type: "info",
-    message: `“${event.requested}” already exists — renamed to “${event.applied}”, because links refer to names.`,
+    message: `“${event.requested}” already exists. Renamed to “${event.applied}”, because links refer to names.`,
   });
 });
 
