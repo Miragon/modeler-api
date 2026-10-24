@@ -32,6 +32,12 @@ export default defineConfig({
     host: "127.0.0.1",
     port: Number(process.env.E2E_WEBVIEW_PORT ?? 5190),
     strictPort: true,
-    fs: { allow: [fromRepository("")] },
+    // the suite hoists node_modules (fonts, the shell's styles) to its root, outside this modeler
+    fs: {
+      allow: [
+        fromRepository(""),
+        fileURLToPath(new URL("../../../../node_modules", import.meta.url)),
+      ],
+    },
   },
 });
