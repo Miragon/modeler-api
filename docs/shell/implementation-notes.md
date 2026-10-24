@@ -722,21 +722,30 @@ view refits until the user has zoomed or panned; a 0 × 0 container (hidden tab)
 ### The legend settles after the first fit
 
 **Guide [§5.9][guide-5.9].** Rule: every fit, the automatic one too, counts what is open, the legend
-with its width; opening or closing the legend never fits.
+with its width; opening and closing the inspector, the legend or the menu and a mode switch never
+fit.
 
 - A legend that a stored state opens at the start is measured by the first fit, which can come
   before the card's font has loaded. The card then settles a pixel or two wider or narrower
   (Context Maps: about 1.6px), and without a second fit the content stays that much off the free
   rectangle's centre, which made exact fit tests flaky.
 - `connectDiagramJs` observes the card with a `ResizeObserver` when the legend is open at the
-  connection. A size report while it is still open calls the viewport's `refitIfInsetsChanged`: it
-  fits again (jump) only if `insets()` differs from what the fit that set the current view measured
-  and nothing else has set the view since (a zoom, a pan, a pointer that stopped a fit animation,
-  `restore`, `setState`, `newDocument`). A running fit animation is retargeted instead.
+  connection. A size report while it is still open calls the viewport's
+  `refitIfOnlyInsetChanged("left")`: it fits again (jump) only if the left inset (the card's width)
+  differs from the one the fit that set the current view measured, the other three do not, and
+  nothing else has set the view since (a zoom, a pan, a pointer that stopped a fit animation,
+  `restore`, `setState`, `newDocument`). A card that only grows or shrinks in height, an inspector
+  opened, the problems pill or the palette's second row therefore never fit. A running fit animation
+  is retargeted instead.
 - A changed container size is left to the resize refit, which also calls `canvas.resized()`.
-- The watch ends after that one fit, when the legend closes, once the view is no longer automatic,
-  and with the connection, so there is no refit loop and a later open never fits. A legend that
-  starts closed is not watched: when the user opens it, its font has long loaded.
+- The watch exists for the font load only. It ends once `document.fonts.ready` has resolved, no font
+  is loading any more and two frames have passed since (the frame that lays out the loaded font
+  reports the card's new size before the second one starts). It also ends after its one fit, when
+  the legend closes, once the view is no longer automatic, and with the connection. So there is no
+  refit loop, and a later change of the card (a row the renderer adds, the pill shrinking a card at
+  its maximum height) keeps the view. Fonts that loaded before the first fit end it without a fit.
+- A legend that starts closed is not watched: when the user opens it, its font has long loaded.
+  Without a `FontFaceSet` (`document.fonts`) nothing is watched, since the watch could not end.
 
 ### Detecting a user move
 
@@ -790,8 +799,8 @@ text.
 
 - Every viewbox the shell writes is such a view change, asked for by a chrome control or not: zoom in,
   zoom out and 100 % (buttons, Cmd/Ctrl+Plus, Minus and 0), Fit and Shift+1, the first fit, the refit
-  on resize (opening the inspector, a side bar or a bottom panel), `restore` after a re-import and a
-  stored view (`setState`). Designing for them is the renderer's part; the shell never commits or
+  on resize (opening the inspector, a side bar or a bottom panel), the refit once an open legend
+  settles after the first fit, `restore` after a re-import and a stored view (`setState`). Designing for them is the renderer's part; the shell never commits or
   cancels an editor itself.
 - A pointer click on the zoom panel takes the focus out of the editor before the shell acts (the
   button takes it on `mousedown`), so a renderer that commits on blur commits then. That is the user's

@@ -1799,12 +1799,14 @@ them. Without either, `connectDiagramJs` throws before it binds anything.
 
 A legend that is open when `connectDiagramJs` runs (a stored state) settles a pixel or two wider or
 narrower once its font has loaded, which can be after the first fit measured it. The connection
-therefore observes the card: when its size changes while it stays open, and the view is still the
-one a fit set (no zoom or pan since, no `restore`, `setState` or `newDocument`), the viewport fits
-once more with the insets of now, as a jump (a fit animation still running is retargeted). The
-watch ends after that fit, when the legend closes, once the user zooms or pans, and on `destroy()`.
-Opening or closing the legend still never fits (§5.9), and a legend that starts closed is not
-watched.
+therefore observes the card until the fonts have loaded (`document.fonts.ready`, then two frames):
+when its width changes while it stays open, no other fit inset has changed since the fit (inspector,
+problems pill, palette row), and the view is still the one that fit set (no zoom or pan since, no
+`restore`, `setState` or `newDocument`), the viewport fits once more with the insets of now, as a
+jump (a fit animation still running is retargeted). The watch ends after that fit, once the fonts
+have loaded, when the legend closes, once the user zooms or pans, and on `destroy()`; a later change
+of the card keeps the view. Opening or closing the legend still never fits (§5.9), and a legend that
+starts closed is not watched.
 
 **`Viewport`** (§5.8, §5.9):
 

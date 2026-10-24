@@ -772,7 +772,7 @@ describe("resize", () => {
   });
 });
 
-describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
+describe("refitIfOnlyInsetChanged (chrome that settles after a fit)", () => {
   const OPEN_LEGEND: Insets = { ...INSETS, left: 12 + 230 + 24 };
   const SETTLED_LEGEND: Insets = { ...INSETS, left: 12 + 231.6 + 24 };
 
@@ -794,7 +794,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, OPEN_LEGEND));
 
     settle();
-    expect(viewport.refitIfInsetsChanged()).toBe(true);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
     expect(frames.pending).toBe(0);
     expect(viewport.isAutomatic()).toBe(true);
@@ -803,16 +803,29 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
   it("writes nothing while the insets are still the fit's", () => {
     const { viewport, canvas } = settling();
     viewport.afterImport();
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(canvas.viewboxWrites).toHaveLength(1);
+  });
+
+  it("keeps the view when another side changed: the inspector, the pill, the palette row (guide §5.9)", () => {
+    const { viewport, canvas, settle } = settling();
+    viewport.afterImport();
+    settle({ ...OPEN_LEGEND, right: 12 + 288 + 24 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    settle({ ...SETTLED_LEGEND, bottom: 92 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    settle({ ...SETTLED_LEGEND, top: 140 });
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
+    expect(canvas.viewboxWrites).toHaveLength(1);
+    expect(viewport.isAutomatic()).toBe(true);
   });
 
   it("fits only once per change: the refit's insets are the ones it compares with next", () => {
     const { viewport, canvas, settle } = settling();
     viewport.afterImport();
     settle();
-    viewport.refitIfInsetsChanged();
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    viewport.refitIfOnlyInsetChanged("left");
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(canvas.viewboxWrites).toHaveLength(2);
   });
 
@@ -823,7 +836,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     settle();
     resize(setupResult, 900, 700);
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
   });
 
   it("leaves a container resize to the resize refit, which also calls canvas.resized", () => {
@@ -832,7 +845,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     viewport.afterImport();
     settle();
     canvas.size = { width: 900, height: 700 };
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(canvas.viewboxWrites).toHaveLength(1);
     observer.notify();
     frames.run(START);
@@ -845,7 +858,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     viewport.fit();
     frames.run(START + 50);
     settle();
-    expect(viewport.refitIfInsetsChanged()).toBe(true);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(true);
     expect(frames.pending).toBe(1);
     frames.run(START + 50 + FIT_ANIMATION_MS);
     expect(lastWrite(canvas)).toEqual(expectedFit(canvas, CONTENT, SETTLED_LEGEND));
@@ -857,14 +870,14 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     zoomed.viewport.afterImport();
     zoomed.viewport.stepZoom(1);
     zoomed.settle();
-    expect(zoomed.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(zoomed.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(zoomed.canvas.viewboxWrites).toHaveLength(1);
 
     const panned = settling();
     panned.viewport.afterImport();
     panned.canvas.pan(40, 0);
     panned.settle();
-    expect(panned.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(panned.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(panned.canvas.viewboxWrites).toHaveLength(1);
   });
 
@@ -875,14 +888,14 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     canvas.container.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     const writes = canvas.viewboxWrites.length;
     settle();
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(canvas.viewboxWrites).toHaveLength(writes);
   });
 
   it("keeps views no fit set: before the first fit, restored, stored, a new document's", () => {
     const before = settling();
     before.settle();
-    expect(before.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(before.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(before.canvas.viewboxWrites).toEqual([]);
 
     const restored = settling();
@@ -891,7 +904,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     if (!keep) throw new Error("no viewbox");
     restored.viewport.restore(keep);
     restored.settle();
-    expect(restored.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(restored.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(restored.canvas.viewboxWrites).toHaveLength(2);
 
     const stored = settling();
@@ -901,14 +914,14 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     });
     stored.viewport.afterImport();
     stored.settle();
-    expect(stored.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(stored.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(stored.canvas.viewboxWrites).toHaveLength(1);
 
     const next = settling();
     next.viewport.afterImport();
     next.viewport.newDocument();
     next.settle();
-    expect(next.viewport.refitIfInsetsChanged()).toBe(false);
+    expect(next.viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(next.canvas.viewboxWrites).toHaveLength(1);
   });
 
@@ -917,7 +930,7 @@ describe("refitIfInsetsChanged (chrome that settles after a fit)", () => {
     viewport.afterImport();
     viewport.destroy();
     settle();
-    expect(viewport.refitIfInsetsChanged()).toBe(false);
+    expect(viewport.refitIfOnlyInsetChanged("left")).toBe(false);
     expect(canvas.viewboxWrites).toHaveLength(1);
   });
 });

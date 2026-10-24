@@ -123,6 +123,8 @@ const ZOOM_STEP = Math.log10(ZOOM_MAX / ZOOM_MIN) / 10;
 
 const CAPTURE = { capture: true } as const;
 
+const INSET_SIDES = ["top", "right", "bottom", "left"] as const;
+
 export class DiagramViewport implements Viewport {
   private readonly canvas: CanvasLike;
   private readonly eventBus: EventBusLike;
@@ -317,18 +319,22 @@ export class DiagramViewport implements Viewport {
   }
 
   /**
-   * Fits again (jump) when `insets()` no longer returns what the fit that set the current view
-   * measured, while nothing else has set the view since: chrome that settles after a fit (the open
-   * legend's card once its font has loaded) would leave the content off the free rectangle's
-   * centre. A fit animation still running is retargeted instead. A container resize is left to the
-   * resize refit. True when it fit again.
+   * Fits again (jump) when `insets()` differs from what the fit that set the current view measured
+   * on `side` and on no other side, while nothing else has set the view since: chrome that settles
+   * after a fit (the open legend's card once its font has loaded) would leave the content off the
+   * free rectangle's centre, while any other change of the chrome keeps the view (guide §5.9). A fit
+   * animation still running is retargeted instead. A container resize is left to the resize refit.
+   * True when it fit again.
    */
-  refitIfInsetsChanged(): boolean {
+  refitIfOnlyInsetChanged(side: keyof Insets): boolean {
     const fitted = this.fittedInsets;
     if (this.destroyed || !fitted) return false;
     const size = this.canvas.getSize();
     if (size.width !== this.lastSize?.width || size.height !== this.lastSize.height) return false;
-    if (sameInsets(this.options.insets(), fitted)) return false;
+    const insets = this.options.insets();
+    if (insets[side] === fitted[side]) return false;
+    if (INSET_SIDES.some((other) => other !== side && insets[other] !== fitted[other]))
+      return false;
     return this.fitTo(this.animation !== undefined);
   }
 
@@ -616,10 +622,6 @@ function toView(box: ScaledViewbox): View {
 
 function hasSize(size: Size): boolean {
   return size.width > 0 && size.height > 0;
-}
-
-function sameInsets(a: Insets, b: Insets): boolean {
-  return a.top === b.top && a.right === b.right && a.bottom === b.bottom && a.left === b.left;
 }
 
 function hasExtent(bounds: Bounds | undefined): boolean {

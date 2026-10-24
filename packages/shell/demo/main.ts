@@ -50,7 +50,8 @@ import {
  *   page's own mode;
  * - `colorTheme`, `reduceMotion` (ide): the modeler's setting and VS Code's workbench.reduceMotion;
  * - `empty`: start without content; `legend` (`legend=open`: open at start), `inspector`: mount
- *   those slots;
+ *   those slots; `wideLegend`: a second legend row wider than the card's minimum width, so the
+ *   card's width depends on its font;
  * - `problems=<count>:<errors>`, `status=danger|warning`: show pill and status box at start;
  * - `invalid`: the invalid-file state (`__demo.setInvalid(true)`: read-only canvas at once, its
  *   marks and the status box after 800ms).
@@ -190,6 +191,12 @@ const options = {
         legend: {
           render(body: HTMLElement) {
             body.innerHTML = `<div class="cd-shell-legend-row"><span class="cd-shell-legend-preview demo-legend-box"></span><span>Box</span></div>`;
+            if (params.has("wideLegend")) {
+              body.insertAdjacentHTML(
+                "beforeend",
+                `<div class="cd-shell-legend-row">A row wider than the card's minimum width</div>`,
+              );
+            }
           },
           onToggle: (open: boolean) => {
             calls.push(`legend:${open}`);
