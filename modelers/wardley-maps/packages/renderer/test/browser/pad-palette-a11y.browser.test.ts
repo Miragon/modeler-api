@@ -422,6 +422,64 @@ component Kettle [0.43, 0.35] url(Spec)`);
     expect(created!.position.visibility).toBeLessThan(power.visibility);
   });
 
+  it("draws every entry with a 16px Lucide icon at stroke 2.5 (guide §5.14)", async () => {
+    const target = mount();
+    await target.importDSL(`title Pad Icons
+url Docs [https://example.com/docs]
+component Cup of Tea [0.79, 0.61] url(Docs)
+component Kettle [0.43, 0.35]
+evolve Kettle 0.62
+note Watch the price [0.30, 0.20]
+line [[0.5, 0.8], [0.4, 0.9], [0.3, 0.85]]
+Cup of Tea -> Kettle`);
+    const registry = target.get<ElementRegistry>("elementRegistry");
+    const targets = [
+      findByLabel(target, "Cup of Tea"),
+      findByLabel(target, "Kettle"),
+      registry.find((el) => isWardleyShape(el) && el.wardleyType === "note"),
+      registry.find((el) => isWardleyShape(el) && el.wardleyType === "drawing"),
+      registry.find((el) => (el as { wardleyType?: string }).wardleyType === "dependency"),
+    ] as unknown as Element[];
+
+    const iconByAction = new Map<string, string>();
+    for (const element of targets) {
+      target.get<Selection>("selection").select(element);
+      await nextFrame();
+      const pad = target.container.querySelector<HTMLElement>(".djs-context-pad.open")!;
+      for (const entry of pad.querySelectorAll<HTMLElement>(".entry")) {
+        const action = entry.dataset["action"]!;
+        const icon = entry.querySelector("svg")!;
+        expect(icon.getAttribute("width"), action).toBe("16");
+        expect(icon.getAttribute("height"), action).toBe("16");
+        expect(icon.getAttribute("viewBox"), action).toBe("0 0 24 24");
+        expect(icon.getAttribute("stroke-width"), action).toBe("2.5");
+        expect(icon.getAttribute("stroke"), action).toBe("currentColor");
+        expect(icon.getAttribute("fill"), action).toBe("none");
+        expect(icon.getAttribute("stroke-linecap"), action).toBe("round");
+        expect(icon.querySelector("mask"), action).toBeNull();
+        expect(icon.outerHTML, action).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+        iconByAction.set(action, icon.innerHTML);
+      }
+    }
+
+    expect([...iconByAction.keys()].sort()).toEqual([
+      "append",
+      "color",
+      "connect",
+      "delete",
+      "edit-label",
+      "edit-value",
+      "evolve",
+      "evolve-clear",
+      "link",
+      "open-link",
+      "settings",
+      "stroke-style",
+    ]);
+    expect(iconByAction.get("evolve-clear")).not.toBe(iconByAction.get("evolve"));
+    expect(iconByAction.get("edit-value")).toBe(iconByAction.get("edit-label"));
+  });
+
   it("keeps working for connections", async () => {
     const target = mount();
     await target.importDSL(TEA_SHOP);

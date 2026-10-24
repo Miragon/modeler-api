@@ -82,7 +82,8 @@ export const COLORS = {
   inertia: MIRAGON.schwarz,
   noteText: MIRAGON.textLeise,
   pipeline: MIRAGON.schwarz,
-  annotationFill: "#FBF3E0",
+  // An element surface like the components (guide §10.1); its stroke and number set it apart.
+  annotationFill: MIRAGON.weiss,
   plotBackground: MIRAGON.weiss,
   accelerator: NOTATION_STATUS.success,
   deaccelerator: NOTATION_STATUS.danger,

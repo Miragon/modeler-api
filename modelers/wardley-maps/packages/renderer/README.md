@@ -177,8 +177,10 @@ Part of the [Wardley Maps Modeler](https://github.com/Miragon/modeler-suite/tree
 MIT
 
 The tool icons of the palette (`square-dashed-mouse-pointer`, and for Draw `spline` with a
-straight segment) and the Close icon of the dialogs (`x`) are copied from
-[Lucide](https://lucide.dev) (`lucide-static` 1.59.0):
+straight segment), the Close icon of the dialogs (`x`) and the icons of the context pad (`pencil`,
+`trash`, `circle-plus`, `arrow-right`, `chevrons-right`, `sliders-horizontal`, `line-style`,
+`palette`, `link`, `external-link`, and for Remove evolve `chevrons-right` with the corner `x` of
+`calendar-x-2`) are copied from [Lucide](https://lucide.dev) (`lucide-static` 1.59.0):
 
 > ISC License
 >
@@ -195,7 +197,8 @@ straight segment) and the Close icon of the dialogs (`x`) are copied from
 > NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 > PERFORMANCE OF THIS SOFTWARE.
 
-`x` is derived from [Feather](https://feathericons.com):
+`arrow-right`, `chevrons-right`, `circle-plus`, `external-link`, `link`, `trash` and `x` are derived
+from [Feather](https://feathericons.com):
 
 > The MIT License (MIT)
 >
@@ -216,6 +219,7 @@ straight segment) and the Close icon of the dialogs (`x`) are copied from
 > DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-The other icons (the context pad, and the `ICON_*` exports with `iconMarkup`, which are deprecated
-since the chrome's icons come from `@miragon/modeler-shell` and go in a later minor) are
+The other icons (the anchor, accelerator and deaccelerator glyphs of the canvas and the palette,
+and the `ICON_*` exports with `iconMarkup`, which are deprecated since the chrome's icons come from
+`@miragon/modeler-shell` and go in a later minor) are
 [Material Icons](https://fonts.google.com/icons) by Google, under the Apache License 2.0.

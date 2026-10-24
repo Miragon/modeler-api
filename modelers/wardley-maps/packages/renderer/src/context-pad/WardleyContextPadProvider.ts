@@ -28,20 +28,7 @@ import { canHaveLink, linkOf, safeLinkUrl } from "../link-editing/index.js";
 import { POPUP_PROVIDER_ID } from "../popup/index.js";
 import { isReadOnly } from "../read-only/index.js";
 import { focusCanvasWithoutRing } from "../a11y/index.js";
-import {
-  iconMarkup,
-  struckIconMarkup,
-  ICON_CIRCLE,
-  ICON_ARROW_FORWARD,
-  ICON_DELETE,
-  ICON_DOUBLE_ARROW,
-  ICON_EDIT,
-  ICON_LINK,
-  ICON_OPEN_IN_NEW,
-  ICON_PALETTE,
-  ICON_SETTINGS,
-  ICON_SWAP_HORIZ,
-} from "../draw/icons.js";
+import { chromeIcon } from "../draw/lucide.js";
 
 /** Rows of the compact pad: primary actions, then properties, then the destructive action. */
 const GROUP_PRIMARY = "edit";
@@ -123,7 +110,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     entries["delete"] = {
       group: GROUP_DANGER,
       title: "Delete",
-      html: cpHtml(iconMarkup(ICON_DELETE), "Delete"),
+      html: cpHtml(chromeIcon("trash"), "Delete"),
       action: {
         click: this.focusingCanvas(() =>
           this.modeling.removeElements([shape as unknown as Element]),
@@ -141,13 +128,13 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       "edit-value": {
         group: GROUP_PRIMARY,
         title: editTitle,
-        html: cpHtml(iconMarkup(ICON_EDIT), editTitle),
+        html: cpHtml(chromeIcon("pencil"), editTitle),
         action: { click: () => this.labelEditing.activateConnection(conn) },
       },
       delete: {
         group: GROUP_DANGER,
         title: "Delete connection",
-        html: cpHtml(iconMarkup(ICON_DELETE), "Delete connection"),
+        html: cpHtml(chromeIcon("trash"), "Delete connection"),
         action: {
           click: this.focusingCanvas(() =>
             this.modeling.removeElements([conn as unknown as Element]),
@@ -164,7 +151,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["edit-label"] = {
         group: GROUP_PRIMARY,
         title: "Edit label",
-        html: cpHtml(iconMarkup(ICON_EDIT), "Edit label"),
+        html: cpHtml(chromeIcon("pencil"), "Edit label"),
         action: { click: () => this.labelEditing.activate(shape) },
       };
     }
@@ -190,7 +177,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["append"] = {
         group: GROUP_PRIMARY,
         title: "Append component (auto-connect)",
-        html: cpHtml(iconMarkup(ICON_CIRCLE), "Append component", true),
+        html: cpHtml(chromeIcon("circle-plus"), "Append component", true),
         action: { click: startAppend, dragstart: startAppend },
       };
 
@@ -200,7 +187,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["connect"] = {
         group: GROUP_PRIMARY,
         title: "Connect to existing element (A)",
-        html: cpHtml(iconMarkup(ICON_ARROW_FORWARD), "Connect to existing element (A)", true),
+        html: cpHtml(chromeIcon("arrow-right"), "Connect to existing element (A)", true),
         action: { click: startConnect, dragstart: startConnect },
       };
     }
@@ -212,7 +199,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
         entries["evolve-clear"] = {
           group: GROUP_PRIMARY,
           title: "Remove evolve",
-          html: cpHtml(struckIconMarkup(ICON_DOUBLE_ARROW), "Remove evolve"),
+          html: cpHtml(chromeIcon("chevrons-right-x"), "Remove evolve"),
           action: { click: this.focusingCanvas(() => this.wardleyModeling.clearMovement(shape)) },
         };
       } else if (shape.evolution < 0.999) {
@@ -226,7 +213,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
           group: GROUP_PRIMARY,
           title: "Evolve: drag to set the target maturity",
           html: cpHtml(
-            iconMarkup(ICON_DOUBLE_ARROW),
+            chromeIcon("chevrons-right"),
             "Evolve: drag to set the target maturity",
             true,
           ),
@@ -242,7 +229,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["settings"] = {
         group: GROUP_PROPERTIES,
         title: "Settings (type, sourcing, inertia)",
-        html: cpHtml(iconMarkup(ICON_SETTINGS), "Settings (type, sourcing, inertia)"),
+        html: cpHtml(chromeIcon("sliders-horizontal"), "Settings (type, sourcing, inertia)"),
         action: {
           click: (event: Event) => {
             const e = event as MouseEvent;
@@ -267,7 +254,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["stroke-style"] = {
         group: GROUP_PROPERTIES,
         title,
-        html: cpHtml(iconMarkup(ICON_SWAP_HORIZ), title),
+        html: cpHtml(chromeIcon("line-style"), title),
         action: {
           click: this.focusingCanvas(() =>
             this.wardleyModeling.updateProperties(shape, { strokeStyle: next }),
@@ -280,7 +267,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
     entries["color"] = {
       group: GROUP_PROPERTIES,
       title: "Color",
-      html: cpHtml(iconMarkup(ICON_PALETTE), "Color"),
+      html: cpHtml(chromeIcon("palette"), "Color"),
       action: {
         click: (event: Event) => {
           const e = event as MouseEvent;
@@ -297,7 +284,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["link"] = {
         group: GROUP_PROPERTIES,
         title,
-        html: cpHtml(iconMarkup(ICON_LINK), title),
+        html: cpHtml(chromeIcon("link"), title),
         action: { click: () => linkEditing.activate(shape) },
       };
     }
@@ -307,7 +294,7 @@ export default class WardleyContextPadProvider implements ContextPadProvider {
       entries["open-link"] = {
         group: GROUP_PROPERTIES,
         title: `Open link (${openableLink})`,
-        html: cpHtml(iconMarkup(ICON_OPEN_IN_NEW), `Open link (${openableLink})`),
+        html: cpHtml(chromeIcon("external-link"), `Open link (${openableLink})`),
         action: {
           click: this.focusingCanvas(() =>
             window.open(openableLink, "_blank", "noopener,noreferrer"),
