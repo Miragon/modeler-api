@@ -1,0 +1,77 @@
+# The `*.vc` / `*.vc.json` document format
+
+Both extensions hold the same JSON; editors treat a blank file as an empty diagram.
+
+Defined and validated in `packages/schema-model` (Zod). Load with `parseDocumentJSON`,
+serialize with `serializeDocument` — never hand-roll JSON.stringify (the serializer sorts
+elements/connections by id, deep-sorts object keys, and rounds numbers to 3 decimals so
+files diff cleanly).
+
+## Structure
+
+```json
+{
+  "schemaVersion": 1,
+  "meta": { "name": "Porter Value Chain" },
+  "elements": [
+    {
+      "id": "step-operations",
+      "elementType": "step",
+      "name": "Operations",
+      "bounds": { "x": 270, "y": 120, "width": 170, "height": 64 },
+      "color": "hsl(205, 100%, 45%)",
+      "link": "operations-detail"
+    },
+    {
+      "id": "org-development",
+      "elementType": "orgUnit",
+      "name": "Entwicklung",
+      "bounds": { "x": 355, "y": 424, "width": 130, "height": 60 }
+    }
+  ],
+  "connections": [
+    {
+      "id": "hier-1",
+      "connectionType": "hierarchy",
+      "source": "step-operations",
+      "target": "step-assembly",
+      "waypoints": [
+        { "x": 355, "y": 184 },
+        { "x": 355, "y": 206.5 },
+        { "x": 315, "y": 206.5 },
+        { "x": 315, "y": 259 },
+        { "x": 370, "y": 259 }
+      ]
+    }
+  ]
+}
+```
+
+## Field rules
+
+- `bounds` are absolute canvas coordinates of the top-left corner; `width`/`height` ≥ 1
+  (practically ≥ 80×40, the editor minimum). Every coordinate and size lies within ±1e9.
+- `color` (optional): CSS color string, tints stroke + label. Fill stays white.
+- `link` (steps only, optional): opaque drill-down reference to a more detailed model.
+- `waypoints`: ≥ 2 points. Rough values are fine — the editor crops endpoints to the shape
+  contours and fully re-routes hierarchy edges from geometry on the next interaction.
+- Connection type matrix (validation rejects violations): `sequence`/`hierarchy` need
+  step→step; `assignment` needs step↔orgUnit (either direction); self-connections and
+  duplicate same-type/same-pair connections are invalid.
+- Ids: unique across elements AND connections. Reserved, so a document using one is invalid:
+  `vc-root`, ids starting with `__implicitroot`, and the names of built-in JavaScript object
+  properties (`constructor`, `toString`, `hasOwnProperty`, `__proto__`, …).
+- Unknown keys on the document, `meta`, elements and connections (vendor extensions such as
+  `"x-vendor": …`, fields of a newer tool) are kept: editing on the canvas writes them back
+  unchanged, sorted like every other key, and their values are never rounded. `bounds` and
+  waypoints accept only `x`/`y`/`width`/`height` and `x`/`y`; an extra key there makes the file
+  invalid, because the editor recomputes both on every move. An unknown `elementType` or
+  `connectionType` is invalid too, and so is a key named `__proto__` anywhere. Objects and arrays
+  nest at most 100 levels deep, the document itself counting as the first.
+- `schemaVersion`: currently 1; loaders migrate old versions forward, newer versions are
+  rejected ("update the tool").
+
+## Working example
+
+A complete document lives at `example/porter.vc.json` (the example of the web app and of the
+VS Code extension); `apps/webapp/src/example.ts` serves it in its canonical form.

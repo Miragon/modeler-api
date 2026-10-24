@@ -1,0 +1,58 @@
+{
+  "name": "@miragon/value-chain-schema-model",
+  "version": "0.7.1",
+  "description": "The value chain data model with types, validation, migrations and stable JSON serialization.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/value-chain-modeler.git",
+    "directory": "packages/schema-model"
+  },
+  "homepage": "https://github.com/Miragon/value-chain-modeler/tree/main/packages/schema-model#readme",
+  "bugs": "https://github.com/Miragon/value-chain-modeler/issues",
+  "keywords": [
+    "value chain",
+    "wertschöpfungskette",
+    "aris",
+    "vacd",
+    "process landscape",
+    "schema",
+    "zod"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "npm --prefix ../.. run test"
+  },
+  "peerDependencies": {
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4",
+    "zod": "4.6.7"
+  }
+}
