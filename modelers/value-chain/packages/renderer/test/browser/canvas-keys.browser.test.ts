@@ -83,6 +83,19 @@ function connectionCount(modeler: CollaborativeValueChainModeler): number {
   return (JSON.parse(modeler.exportText()) as { connections: unknown[] }).connections.length;
 }
 
+function elementCount(modeler: CollaborativeValueChainModeler): number {
+  return (JSON.parse(modeler.exportText()) as { elements: unknown[] }).elements.length;
+}
+
+function clickWithoutPointer(target: HTMLElement): void {
+  target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }));
+}
+
+/** One task: diagram-js restores the focus on a debounced timeout. */
+function aTick(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 20));
+}
+
 describe("keys on the focused canvas", () => {
   it("act there: Backspace deletes the selection", async () => {
     const modeler = await mount();
@@ -193,6 +206,25 @@ describe("a pointer on an entry hands the focus back to the canvas", () => {
     await userEvent.hover(canvasSvg(modeler));
   });
 
+  it("dragging the palette's step onto the canvas: Cmd/Ctrl+Z takes the new step back", async () => {
+    const modeler = await mount();
+    // An empty stretch of the plane, so the drop lands on no other element.
+    modeler.diagram.get<Canvas>("canvas").viewbox({ x: -5000, y: -5000, width: 1000, height: 600 });
+    const before = elementCount(modeler);
+    const source = entry(modeler, "palette", "create.step");
+    const start = source.getBoundingClientRect();
+    // Near the palette: the test frame is narrower than the canvas, and a target out of view would
+    // scroll the page in the middle of the drag.
+    await userEvent.dragAndDrop(source, canvasSvg(modeler), {
+      targetPosition: { x: start.right + 120, y: start.bottom + 120 },
+      steps: 8,
+    });
+    expect(elementCount(modeler)).toBe(before + 1);
+    expect(document.activeElement).toBe(canvasSvg(modeler));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(elementCount(modeler)).toBe(before);
+  });
+
   it("and the label editor Append opens keeps it", async () => {
     const modeler = await mount();
     select(modeler, STEP);
@@ -207,16 +239,27 @@ describe("a pointer on an entry hands the focus back to the canvas", () => {
     expect(document.activeElement?.closest(".djs-popup")).not.toBeNull();
   });
 
+  it("Enter or Space on an entry whose action leaves the focus nowhere: the canvas takes it", async () => {
+    const modeler = await mount();
+    select(modeler, STEP);
+    (document.activeElement as HTMLElement | SVGElement | null)?.blur();
+    clickWithoutPointer(entry(modeler, "pad", "delete"));
+    expect(has(modeler, STEP)).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+    await aTick();
+    expect(document.activeElement).toBe(canvasSvg(modeler));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(has(modeler, STEP)).toBe(true);
+  });
+
   it("but Enter or Space on an entry (a click without a pointer) leaves the focus where it is", async () => {
     const modeler = await mount();
     const hostButton = document.createElement("button");
     document.body.append(hostButton);
     try {
       hostButton.focus();
-      entry(modeler, "palette", "lasso-tool").dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }),
-      );
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      clickWithoutPointer(entry(modeler, "palette", "lasso-tool"));
+      await aTick();
       expect(document.activeElement).toBe(hostButton);
     } finally {
       hostButton.remove();
