@@ -172,6 +172,7 @@ const flaws: DemoFlaws = {
   commitLabelOnViewChange: false,
   closeLabelOnViewChange: false,
   notePromptFollowsView: false,
+  notePromptHidesWhileViewChanges: false,
 };
 
 // the diagram first, so document keydown listeners of a modeler would precede the shell's

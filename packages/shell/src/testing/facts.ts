@@ -878,6 +878,68 @@ export const canvasLayersProbe = ({
   return { palette: palette ? zIndexOf(getComputedStyle(palette)) : null, layers };
 };
 
+/** A diagram-js element a pointer can select: a shape at its centre, a connection on its line. */
+export interface SelectableFacts {
+  id: string;
+  kind: "shape" | "connection";
+  selected: boolean;
+  /** Viewport coordinates where a click reaches the element, for `page.mouse`. */
+  client: { x: number; y: number };
+}
+
+/**
+ * The visible shapes and connections a pointer reaches, in document order. A connection is tried
+ * at the middle of its hit line, then at a quarter and three quarters, since a label or a crossing
+ * line may cover the middle.
+ */
+export const selectablesProbe = ({ root }: { root: string }): SelectableFacts[] => {
+  const tools = (window as ToolWindow).__modelerShellConformance!;
+  const container = document.querySelector(root)?.querySelector(".djs-container");
+  if (!container) return [];
+  const reaches = (element: Element, point: { x: number; y: number }): boolean => {
+    const hit = document.elementFromPoint(point.x, point.y);
+    return hit !== null && element.contains(hit);
+  };
+  const shapePoint = (element: Element): { x: number; y: number } | null => {
+    const rect = (element.querySelector(".djs-visual") ?? element).getBoundingClientRect();
+    const point = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    return reaches(element, point) ? point : null;
+  };
+  const connectionPoint = (element: Element): { x: number; y: number } | null => {
+    const line =
+      element.querySelector<SVGGeometryElement>(".djs-hit") ??
+      element.querySelector<SVGGeometryElement>(".djs-visual path, .djs-visual polyline");
+    const matrix = line?.getScreenCTM();
+    if (!line || !matrix || typeof line.getTotalLength !== "function") return null;
+    const length = line.getTotalLength();
+    for (const fraction of [0.5, 0.25, 0.75]) {
+      const { x, y } = line.getPointAtLength(length * fraction);
+      const point = {
+        x: matrix.a * x + matrix.c * y + matrix.e,
+        y: matrix.b * x + matrix.d * y + matrix.f,
+      };
+      if (reaches(element, point)) return point;
+    }
+    return null;
+  };
+  const found: SelectableFacts[] = [];
+  for (const element of container.querySelectorAll(
+    ".djs-shape[data-element-id], .djs-connection[data-element-id]",
+  )) {
+    if (!tools.visible(element)) continue;
+    const kind = element.classList.contains("djs-connection") ? "connection" : "shape";
+    const client = kind === "shape" ? shapePoint(element) : connectionPoint(element);
+    if (!client) continue;
+    found.push({
+      id: element.getAttribute("data-element-id") ?? "",
+      kind,
+      selected: element.classList.contains("selected"),
+      client,
+    });
+  }
+  return found;
+};
+
 /** A visible entry of the open context pad. */
 export interface ContextPadEntryFacts {
   /** `data-action` of the entry. */

@@ -980,11 +980,14 @@ it the palette lies above context pad and label editor.
   itself, hence the split into persistent and transient.
 - The kit's `overlayLayers` case (added after shell 0.5.0) draws that line by behaviour, since it
   cannot know which overlay a modeler means to be transient: it looks as opened, with the label
-  editor open, with a shape selected and after a click on each of its context-pad entries (but a
+  editor open, with one element selected per kind of context pad (a connection among them, since
+  relationships often have entries of their own) and after a click on each of their entries (but a
   deleting one), and every layer of `.djs-container` above 100 must be gone once a zoom at the
-  canvas changed the view. What stays is persistent and so too high. It reads the outermost stacking
-  context below the container: a `z-index` inside another one (diagram-js's overlay container
-  carries a transform) cannot reach above the palette and does not count.
+  canvas changed the view, and stay gone. What stays is persistent and so too high, and so is an
+  overlay that only hides while the view changes and comes back on `canvas.viewbox.changed`: that
+  event arrives up to 300ms late, so the case watches for 500ms after the zoom. It reads the
+  outermost stacking context below the container: a `z-index` inside another one (diagram-js's
+  overlay container carries a transform) cannot reach above the palette and does not count.
 
 ## Modeler dialogs
 
@@ -1639,7 +1642,6 @@ unlayered (or in a layer declared after it). The defaults and their resets:
   jump. The kit's `reducedMotion` case (added after shell 0.5.0) checks both routes: the media query
   in every host and, in the IDE host, the body class. A modeler's own element outside the shell root
   (a panel in `<body>`) needs its own rule for both, because the shell's rules reach only its root.
-
 - Hidden tabs: register the custom editor with
   `webviewOptions: { retainContextWhenHidden: true }`, so a hidden tab keeps its document, view and
   selection. A hidden tab then reports a 0 × 0 container: skip fitting and measuring while hidden

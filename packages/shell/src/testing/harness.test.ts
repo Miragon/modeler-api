@@ -7,6 +7,7 @@ import {
   type ShellConformanceHarness,
   type ShellSkip,
 } from "./harness.js";
+import { hostReduceMotionProbe } from "./media-facts.js";
 import type { PageLike } from "./page.js";
 
 /** A page whose shell root never appears: every probe finds nothing. */
@@ -439,6 +440,7 @@ describe("registerShellConformance", () => {
       { theme: "light", kontrast: "hoch" },
     ]);
   });
+
   it("emulates reduced motion before opening and turns it off again when the case fails", async () => {
     const calls: string[] = [];
     const page: PageLike = {
@@ -459,6 +461,22 @@ describe("registerShellConformance", () => {
       "open",
       "emulate reducedMotion null",
     ]);
+  });
+
+  it("takes VS Code's reduce motion off the body again when the case fails", async () => {
+    const classes: string[] = [];
+    const page: PageLike = {
+      ...emptyPage(),
+      evaluate: async <R, Arg>(pageFunction: (arg: Arg) => unknown, arg: Arg) => {
+        if (pageFunction === hostReduceMotionProbe)
+          classes.push(`vscode-reduce-motion ${String(arg)}`);
+        return null as R;
+      },
+    };
+    await expect(
+      register(harness()).get("shell conformance: reducedMotion")!({ page }),
+    ).rejects.toThrow(/reducedMotion \(ide host\)/);
+    expect(classes).toEqual(["vscode-reduce-motion true", "vscode-reduce-motion false"]);
   });
 
   it("emulates forced colours before opening and turns them off again when the case fails", async () => {

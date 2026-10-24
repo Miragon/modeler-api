@@ -19,6 +19,7 @@ import {
   paletteEntriesProbe,
   paletteFocusProbe,
   readOnlyStateProbe,
+  selectablesProbe,
   shapesProbe,
   surroundProbe,
   zoomButtonsProbe,
@@ -423,6 +424,45 @@ describe("probes in a page", () => {
       delete (document as { elementFromPoint?: unknown }).elementFromPoint;
     }
     await expect(inPage(page, emptyCanvasSpotProbe, { root: ".nothing" })).resolves.toBeNull();
+  });
+
+  it("finds the shapes and connections a pointer reaches, a connection on its line", async () => {
+    const root = buildShell();
+    const svg = root.querySelector("svg")!;
+    svg.innerHTML = `
+      <g class="djs-element djs-shape selected" data-element-id="box"><g class="djs-visual"><rect></rect></g></g>
+      <g class="djs-element djs-shape" data-element-id="covered"><g class="djs-visual"><rect></rect></g></g>
+      <g class="djs-element djs-connection" data-element-id="flow"><g class="djs-visual"><path></path></g><polyline class="djs-hit"></polyline></g>`;
+    const [box, covered, flow] = [...svg.querySelectorAll(".djs-element")];
+    place(box!, 100, 100, 160, 100);
+    place(box!.querySelector(".djs-visual")!, 100, 100, 160, 100);
+    place(covered!, 400, 100, 100, 100);
+    place(covered!.querySelector(".djs-visual")!, 400, 100, 100, 100);
+    place(flow!, 180, 150, 300, 60);
+    const hitLine = flow!.querySelector(".djs-hit") as SVGGeometryElement & Element;
+    Object.assign(hitLine, {
+      getTotalLength: () => 300,
+      getPointAtLength: (distance: number) => ({ x: distance, y: 0 }),
+      getScreenCTM: () => ({ a: 1, b: 0, c: 0, d: 1, e: 180, f: 150 }),
+    });
+    const zoom = root.querySelector('[data-chrome="zoom"]')!;
+    // Chrome covers the second shape and the middle of the line, not a quarter of the way along it.
+    const hits = new Map<string, Element | null>([
+      ["180,150", box!.querySelector("rect")],
+      ["450,150", zoom],
+      ["330,150", zoom],
+      ["255,150", hitLine],
+    ]);
+    document.elementFromPoint = (x: number, y: number) => hits.get(`${x},${y}`) ?? null;
+    try {
+      await expect(inPage(page, selectablesProbe, { root: ".cd-shell" })).resolves.toEqual([
+        { id: "box", kind: "shape", selected: true, client: { x: 180, y: 150 } },
+        { id: "flow", kind: "connection", selected: false, client: { x: 255, y: 150 } },
+      ]);
+    } finally {
+      delete (document as { elementFromPoint?: unknown }).elementFromPoint;
+    }
+    await expect(inPage(page, selectablesProbe, { root: ".nothing" })).resolves.toEqual([]);
   });
 
   it("snapshots ARIA, menu and appearance facts", async () => {

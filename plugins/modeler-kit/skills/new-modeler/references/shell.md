@@ -133,10 +133,11 @@ a clean `destroy`.
   change, follows its element and commits only on the user's gestures.
 - Reduced motion, forced colours and the overlay layers (a modeler-shell release after 0.5.0) need no
   harness field: the kit emulates both media features itself and clicks every context-pad entry of
-  a shape but a deleting one. So keep what stays on the canvas (a toolbar, a prompt, the label
-  editor) at `z-index` 100 or below and close a popup above the palette on
-  `canvas.viewbox.changing`; give each dialog its own forced-colours border (`CanvasText`), and an
-  element outside the shell root its own reduced-motion rule.
+  each kind of shape and connection but a deleting one. So keep what stays on the canvas (a
+  toolbar, a prompt, the label editor) at `z-index` 100 or below and close a popup above the
+  palette on `canvas.viewbox.changing` for good, without showing it again once the view settles;
+  give each dialog its own forced-colours border (`CanvasText`), and an element outside the shell
+  root its own reduced-motion rule.
 - `absent` lists what the modeler lacks, and `onSkip` throws: every other skip is a gap. In VS Code
   a menu without a Model action (no File group there) adds `absent: ["canvasMenuAction"]`
   (modeler-shell 0.4.0 or later).

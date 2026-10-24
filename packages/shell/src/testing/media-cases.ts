@@ -217,7 +217,12 @@ export const reducedMotionCase: ShellConformanceCase = {
     }
     if (harness.host === "ide") {
       await openHarness(page, harness, { size, requested: LIGHT });
-      await walk("VS Code's reduce motion", () => inPage(page, hostReduceMotionProbe, true));
+      try {
+        await walk("VS Code's reduce motion", () => inPage(page, hostReduceMotionProbe, true));
+      } finally {
+        // Only a closed page fails here, and it has no body class left to take back.
+        await inPage(page, hostReduceMotionProbe, false).catch(() => undefined);
+      }
     }
     return finish("reducedMotion", harness.host, problems, skipped);
   },

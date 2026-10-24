@@ -553,10 +553,12 @@ listed in [API.md][api].
 `forced-colors` through `page.emulateMedia` in every host and turn the emulation off again, even
 when they fail; a page without `emulateMedia` skips them with `hook: "open"` (in the IDE host
 `reducedMotion` still checks VS Code's reduce motion, the body class it sets on the host page).
-`overlayLayers` (also added after 0.5.0) selects the first shape a pointer reaches and clicks each
-entry of its context pad except one whose `data-action` names a delete or a removal, so what the
-entries open (popup menus, colour pickers, prompts) is checked as well; none of the three needs a
-new harness field.
+`overlayLayers` (also added after 0.5.0) selects one shape or connection a pointer reaches per kind
+of context pad, a connection among them where the document has one, and clicks each entry of those
+pads once for shapes and once for connections, except one whose `data-action` names a delete or a
+removal, so what the entries open (popup menus, colour pickers, prompts) is checked as well. An
+overlay above the palette must close when the view zooms and stay closed past diagram-js's late
+`canvas.viewbox.changed`. None of the three needs a new harness field.
 
 `registerShellConformance` declares every test inside the kit, so a runner reports them at the kit's
 source (the package ships `src/` without its tests, so the location resolves). For test locations in
@@ -803,8 +805,8 @@ host requests (`theme`, `kontrast=hoch`; embedded: the foreign page's own mode),
 `problems=2:1`, `status=danger`, `invalid`, `empty`, which opens at 100 %). In the `ide` host it runs
 inside the stub of `./testing/vscode-stub`, and keeps view and legend state through
 `acquireVsCodeApi()`. Its context pad has a Note entry, whose prompt covers the palette until a pan
-or zoom closes it, and its Help group opens a modal "Keyboard shortcuts…" dialog, so the kit's
-`overlayLayers` and `forcedColors` cases meet both.
+or zoom closes it, and its Help group opens a modal "Keyboard shortcuts…" dialog with a table per
+group, so the kit's `overlayLayers` and `forcedColors` cases meet both.
 
 The web demo (`/web.html`) is the same modeler as a Miragon web app passes it to `mountShell`: the
 whole web column, the head markup of `webHeadMarkup` through the Vite config, and `window.__webDemo`

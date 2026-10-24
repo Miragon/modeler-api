@@ -61,6 +61,12 @@ export interface DemoFlaws {
    * palette (case `overlayLayers`, guide §5.13).
    */
   notePromptFollowsView: boolean;
+  /**
+   * The note prompt only hides while the view changes and shows again once
+   * `canvas.viewbox.changed` arrives, 300ms late under `deferUpdate` (case `overlayLayers`, guide
+   * §5.13).
+   */
+  notePromptHidesWhileViewChanges: boolean;
 }
 
 /** What the demo modeler reads from the page around it, at the moment it needs it. */
@@ -217,6 +223,17 @@ class DemoRules extends RuleProvider {
   }
 }
 
+/** How late diagram-js fires `canvas.viewbox.changed` under `deferUpdate`. */
+const DEFERRED_VIEWBOX_CHANGED_MS = 300;
+
+interface NotePrompt {
+  element: HTMLElement;
+  anchor: Element;
+  /** Hidden while the view changes (flaw `notePromptHidesWhileViewChanges`). */
+  hidden: boolean;
+  showAgain?: ReturnType<typeof setTimeout> | undefined;
+}
+
 /**
  * A Note entry and a Delete entry; a locked canvas opens no context pad at all (guide §13.5). The
  * note prompt is a popup above the palette that closes on a pan or zoom (guide §5.13).
@@ -224,7 +241,7 @@ class DemoRules extends RuleProvider {
 class DemoContextPadProvider {
   static $inject = ["contextPad", "modeling", "rules", "eventBus", "canvas", "demoHooks"];
 
-  private notePrompt: { element: HTMLElement; anchor: Element } | undefined;
+  private notePrompt: NotePrompt | undefined;
 
   constructor(
     contextPad: ContextPad,
@@ -237,7 +254,9 @@ class DemoContextPadProvider {
     contextPad.registerProvider(this);
     eventBus.on("contextPad.open.allowed", () => (isCanvasLocked(this.hooks) ? false : undefined));
     eventBus.on("canvas.viewbox.changing", () => {
-      if (!this.hooks.flaws.notePromptFollowsView) this.closeNotePrompt();
+      const { flaws } = this.hooks;
+      if (flaws.notePromptHidesWhileViewChanges) this.hideNotePromptWhileViewChanges();
+      else if (!flaws.notePromptFollowsView) this.closeNotePrompt();
     });
     eventBus.on("canvas.viewbox.changed", () => this.placeNotePrompt());
     eventBus.on(["selection.changed", "element.mousedown", "diagram.destroy"], () =>
@@ -274,10 +293,12 @@ class DemoContextPadProvider {
       keyEvent.preventDefault();
       this.closeNotePrompt();
     });
-    field.addEventListener("blur", () => this.closeNotePrompt());
+    field.addEventListener("blur", () => {
+      if (!this.notePrompt?.hidden) this.closeNotePrompt();
+    });
     element.append(field);
     this.canvas.getContainer().append(element);
-    this.notePrompt = { element, anchor };
+    this.notePrompt = { element, anchor, hidden: false };
     this.placeNotePrompt();
     field.focus();
   }
@@ -292,10 +313,26 @@ class DemoContextPadProvider {
     element.style.top = `${entry.top - container.top}px`;
   }
 
+  /** The flaw: a deferred `canvas.viewbox.changed` shows the prompt again, 300ms after the change. */
+  private hideNotePromptWhileViewChanges(): void {
+    const prompt = this.notePrompt;
+    if (!prompt) return;
+    prompt.hidden = true;
+    prompt.element.style.display = "none";
+    clearTimeout(prompt.showAgain);
+    prompt.showAgain = setTimeout(() => {
+      prompt.hidden = false;
+      prompt.element.style.display = "";
+      this.placeNotePrompt();
+      prompt.element.querySelector("textarea")?.focus();
+    }, DEFERRED_VIEWBOX_CHANGED_MS);
+  }
+
   private closeNotePrompt(): void {
     const prompt = this.notePrompt;
     if (!prompt) return;
     this.notePrompt = undefined;
+    clearTimeout(prompt.showAgain);
     const hadFocus = prompt.element.contains(document.activeElement);
     prompt.element.remove();
     if (hadFocus) this.canvas.focus();

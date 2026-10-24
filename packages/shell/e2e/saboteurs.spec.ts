@@ -1532,4 +1532,135 @@ test.describe("saboteurs", () => {
     );
     expect(failure.match(/lies at z-index/g)).toHaveLength(1);
   });
+
+  test("overlayLayers fails for a context-pad prompt that only hides while the view changes", async ({
+    page,
+  }) => {
+    // a prompt re-placed on a deferred canvas.viewbox.changed: hidden in the zoom, back after it
+    const harness = sabotaged(() => {
+      window.__demo!.flaws.notePromptHidesWhileViewChanges = true;
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: div\.demo-note-prompt lies at z-index 210 in \.djs-container after a click on context-pad entry "note" of "[^"]+" and comes back once the zoomed view has settled, above the palette at 110/,
+    );
+    expect(failure.match(/lies at z-index/g)).toHaveLength(1);
+  });
+
+  test("overlayLayers selects a connection and clicks the entries of its own context pad", async ({
+    page,
+  }) => {
+    // as Context Maps' relationships, whose own "description" entry opens a prompt of their own
+    const harness = sabotaged(() => {
+      interface DemoElement {
+        id: string;
+        parent?: unknown;
+        waypoints?: unknown;
+      }
+      const diagram = window.__demo!.diagram;
+      const boxes = diagram
+        .get<{ filter(match: (element: DemoElement) => boolean): DemoElement[] }>("elementRegistry")
+        .filter((element: DemoElement) => Boolean(element.parent) && !element.waypoints);
+      diagram
+        .get<{ connect(source: DemoElement, target: DemoElement): DemoElement }>("modeling")
+        .connect(boxes[0]!, boxes[1]!);
+      const container = diagram.get<{ getContainer(): HTMLElement }>("canvas").getContainer();
+      const eventBus = diagram.get<{ once(event: string, callback: () => void): void }>("eventBus");
+      diagram.get<{ registerProvider(provider: object): void }>("contextPad").registerProvider({
+        getContextPadEntries(element: DemoElement) {
+          if (!element.waypoints) return {};
+          return {
+            describe: {
+              group: "edit",
+              title: "Description…",
+              html: '<div class="entry">D</div>',
+              action: {
+                click() {
+                  const prompt = document.createElement("div");
+                  prompt.className = "demo-connection-prompt";
+                  prompt.style.cssText =
+                    "position:absolute;z-index:210;right:40px;bottom:80px;width:160px;height:48px;background:white;";
+                  container.append(prompt);
+                  eventBus.once("selection.changed", () => prompt.remove());
+                },
+              },
+            },
+          };
+        },
+      });
+    });
+    const failure = await failureOf("overlayLayers", page, harness);
+    expect(failure).toMatch(
+      /canvas: div\.demo-connection-prompt lies at z-index 210 in \.djs-container after a click on context-pad entry "describe" of "[^"]+" and stays when the view zooms, above the palette at 110/,
+    );
+    expect(failure.match(/lies at z-index/g)).toHaveLength(1);
+  });
+
+  test("forcedColors fails in the web host for a status bar, a tool icon, a focus ring and a dropdown border the forcing lost", async ({
+    page,
+  }) => {
+    // forced-color-adjust: none keeps each light colour, which vanishes on a light Canvas
+    const harness = webSabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent = `@media (forced-colors: active) {
+        .cd-shell .cd-shell-status::before { background: rgb(200, 200, 200) !important; }
+        .cd-shell .djs-palette .entry svg { forced-color-adjust: none; color: rgb(200, 200, 200) !important; }
+        .cd-shell .cd-shell-target:focus-visible { forced-color-adjust: none; outline-color: rgb(200, 200, 200) !important; }
+        .cd-shell [role="menu"] { forced-color-adjust: none; border-color: transparent !important; }
+      }`;
+      document.head.append(style);
+    });
+    const failure = await failureOf("forcedColors", page, harness);
+    expect(failure).toMatch(
+      /\[as opened\] forced colours: the <svg> icon of tool "lasso-tool" has color rgb\(200, 200, 200\), expected CanvasText \(rgb\([^)]*\)\); icons stay visible \(guide §5\.14\)/,
+    );
+    expect(failure).toMatch(
+      /forced colours: after Tab from zoom out the focus ring of \S+ is solid [\d.]+px in rgb\(200, 200, 200\), expected a solid ring of at least 2px in Highlight \(rgba?\([^)]*\)\) \(guide §5\.14, §8\)/,
+    );
+    expect(failure).toMatch(
+      /\[with the menu open\] forced colours: the dropdown \(\S+\) has its top, right, bottom, left border in rgba\(0, 0, 0, 0\), expected CanvasText \(rgb\([^)]*\)\)/,
+    );
+    expect(failure).toMatch(
+      /\[after show\.status\] forced colours: the status box's bar is [\d.]+px in rgb\(200, 200, 200\), expected CanvasText \(rgb\([^)]*\)\); it stays visible \(guide §5\.14\)/,
+    );
+  });
+
+  test("reducedMotion fails in the web host for a toast that still moves under reduced motion", async ({
+    page,
+  }) => {
+    // a rule more specific than the shell's reduced-motion rule, as a modeler's own toast style
+    const harness = webSabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent = ".cd-shell .cd-shell-toast { transition: opacity 300ms !important; }";
+      document.head.append(style);
+    });
+    const failure = await failureOf("reducedMotion", page, harness);
+    expect(failure).toMatch(
+      /\[prefers-reduced-motion\] motion: div\.cd-shell-toast\S* sets a transition of 300ms on "opacity" with a toast; under reduced motion nothing moves \(guide §5\.14, §7\)/,
+    );
+    expect(failure).not.toMatch(/VS Code's reduce motion/);
+  });
+
+  test("reducedMotion looks only inside the embedded host's root, whose page belongs to the host", async ({
+    page,
+  }) => {
+    // the same transition outside the root and inside it: only the modeler's own part counts
+    const harness = sabotaged(() => {
+      const style = document.createElement("style");
+      style.textContent =
+        ".demo-host-banner, .cd-shell .demo-inner-panel { position: absolute; width: 1px; height: 1px; transition: opacity 200ms !important; }";
+      document.head.append(style);
+      const banner = document.createElement("div");
+      banner.className = "demo-host-banner";
+      document.body.append(banner);
+      const panel = document.createElement("div");
+      panel.className = "demo-inner-panel";
+      document.querySelector(".cd-shell")!.append(panel);
+    }, "embedded");
+    const failure = await failureOf("reducedMotion", page, harness);
+    expect(failure).toMatch(
+      /\[prefers-reduced-motion\] motion: div\.demo-inner-panel sets a transition of 200ms on "opacity" as opened/,
+    );
+    expect(failure).not.toMatch(/demo-host-banner/);
+  });
 });

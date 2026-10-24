@@ -4,21 +4,24 @@ import {
   HOVER_MARGIN_MS,
   LIGHT,
   PARK,
+  POLL_MS,
   assertHooksConsistent,
   closeByEscape,
   fail,
   finish,
   openHarness,
   pollUntil,
-  shapes,
 } from "./case-tools.js";
-import { OVERLAY_LAYER_LIMIT, overlayLayerProblems } from "./checks.js";
+import { OVERLAY_LAYER_LIMIT, overlayLayerProblems, type OverlayLayerFacts } from "./checks.js";
 import {
   canvasLayersProbe,
   contextPadEntriesProbe,
   holdWindowOpenProbe,
   labelEditorProbe,
+  selectablesProbe,
+  type CanvasLayerFacts,
   type CanvasLayersFacts,
+  type SelectableFacts,
 } from "./facts.js";
 import { DEFAULT_ROOT } from "./geometry.js";
 import type { ShellConformanceCase, ShellConformanceHarness, ShellSkip } from "./harness.js";
@@ -31,11 +34,18 @@ import {
   type CanvasKey,
 } from "./page-tools.js";
 
-/**
- * Room for an overlay to go once the pointer left its element (a hover tooltip), and for a popup
- * that closes after the view changed: diagram-js fires `canvas.viewbox.changed` up to 300ms late.
- */
+/** Room for an overlay to go once the pointer left its element (a hover tooltip). */
 const LAYER_WAIT_MS = TOOLTIP_DELAY_MS + HOVER_MARGIN_MS;
+
+/** How late diagram-js fires `canvas.viewbox.changed` after the view changed (`deferUpdate`). */
+const VIEWBOX_CHANGED_DELAY_MS = 300;
+
+/**
+ * How long the kit watches the layers once a zoom changed the view: long enough for a popup that
+ * closes on `canvas.viewbox.changed`, and for an overlay that only hid while the view changed to
+ * show again on it.
+ */
+const AFTER_ZOOM_WATCH_MS = VIEWBOX_CHANGED_DELAY_MS + HOVER_MARGIN_MS;
 
 /** Room for the zoom to land before the kit looks again. */
 const ZOOM_WAIT_MS = 1000;
@@ -45,6 +55,12 @@ const ZOOM_OUT: CanvasKey = { key: "-", code: "Minus", ctrlKey: true };
 
 /** A context-pad entry the case leaves alone: it would take the element away. */
 const DELETING_ENTRY = /delete|remove/i;
+
+/**
+ * The most elements the case selects in search of a context pad it has not seen yet, so a large
+ * document does not lengthen the case.
+ */
+const MAX_SELECTED = 12;
 
 async function layers(
   page: PageLike,
@@ -73,9 +89,38 @@ async function zoomBy(page: PageLike, root: string, key: CanvasKey): Promise<boo
 }
 
 /**
- * The layers above the limit in the state the page is in, with the pointer parked, and which of
- * them are still there after a zoom at the canvas (Cmd/Ctrl+Plus, else Cmd/Ctrl+Minus); the zoom
- * is undone afterwards.
+ * Watches `before` for `AFTER_ZOOM_WATCH_MS` after the view changed: which of them never closed,
+ * and which closed and showed again.
+ */
+async function watchAfterZoom(
+  page: PageLike,
+  root: string,
+  host: ShellConformanceHarness["host"],
+  before: readonly CanvasLayerFacts[],
+): Promise<NonNullable<OverlayLayerFacts["afterZoom"]>> {
+  const closed = new Set<string>();
+  const back = new Map<string, CanvasLayerFacts>();
+  let latest: CanvasLayerFacts[] = [];
+  for (let waited = 0; ; waited += POLL_MS) {
+    latest = (await layers(page, root, host)).layers;
+    for (const layer of before) {
+      const shown = latest.find((candidate) => candidate.description === layer.description);
+      if (!shown) closed.add(layer.description);
+      else if (closed.has(layer.description)) back.set(layer.description, shown);
+    }
+    if (waited >= AFTER_ZOOM_WATCH_MS) break;
+    await page.waitForTimeout(POLL_MS);
+  }
+  return {
+    stays: latest.filter((layer) => !closed.has(layer.description)),
+    back: [...back.values()],
+  };
+}
+
+/**
+ * The layers above the limit in the state the page is in, with the pointer parked, and what became
+ * of them after a zoom at the canvas (Cmd/Ctrl+Plus, else Cmd/Ctrl+Minus); the zoom is undone
+ * afterwards.
  */
 async function layerProblems<P extends PageLike>(
   page: P,
@@ -94,14 +139,9 @@ async function layerProblems<P extends PageLike>(
   let undo: CanvasKey | undefined;
   if (await zoomBy(page, root, ZOOM_IN)) undo = ZOOM_OUT;
   else if (await zoomBy(page, root, ZOOM_OUT)) undo = ZOOM_IN;
-  let after: CanvasLayersFacts | undefined;
+  let afterZoom: OverlayLayerFacts["afterZoom"] = null;
   if (undo) {
-    after = await pollUntil(
-      page,
-      () => layers(page, root, harness.host),
-      (facts) => facts.layers.length === 0,
-      LAYER_WAIT_MS,
-    );
+    afterZoom = await watchAfterZoom(page, root, harness.host, before.layers);
     await zoomBy(page, root, undo);
   }
   await settle(page);
@@ -109,26 +149,52 @@ async function layerProblems<P extends PageLike>(
     state,
     palette: before.palette,
     before: before.layers,
-    after: after ? after.layers : null,
+    afterZoom,
   });
 }
 
+const selectables = (page: PageLike, root: string): Promise<SelectableFacts[]> =>
+  inPage(page, selectablesProbe, { root });
+
 /** Selects `id` with a click unless it is selected; `false` when no pointer reaches it any more. */
 async function select(page: PageLike, root: string, id: string): Promise<boolean> {
-  const shape = (await shapes(page, root)).find((candidate) => candidate.id === id);
-  if (!shape?.hit) return false;
-  if (!shape.selected) {
-    await page.mouse.click(shape.client.x, shape.client.y);
+  const element = (await selectables(page, root)).find((candidate) => candidate.id === id);
+  if (!element) return false;
+  if (!element.selected) {
+    await page.mouse.click(element.client.x, element.client.y);
     await settle(page);
   }
   return true;
 }
 
 /**
+ * The elements to select: the first shape and the first connection, then the others spread evenly
+ * from the first to the last up to `MAX_SELECTED`, since a document often lists its elements by
+ * kind.
+ */
+function selectionOrder(found: readonly SelectableFacts[]): SelectableFacts[] {
+  const first = (["shape", "connection"] as const)
+    .map((kind) => found.find((element) => element.kind === kind))
+    .filter((element): element is SelectableFacts => element !== undefined);
+  const others = found.filter((element) => !first.includes(element));
+  const room = Math.max(0, MAX_SELECTED - first.length);
+  if (others.length <= room) return [...first, ...others];
+  const step = (others.length - 1) / Math.max(1, room - 1);
+  return [
+    ...first,
+    ...Array.from({ length: room }, (_, index) => others[Math.round(index * step)]!),
+  ];
+}
+
+const padActions = async (page: PageLike, root: string): Promise<string[]> =>
+  (await inPage(page, contextPadEntriesProbe, { root })).map((entry) => entry.action);
+
+/**
  * Guide §5.13: what a modeler leaves in the canvas lies at `z-index` 100 or below, under the
  * palette at 110; only a popup that closes on a pan or zoom may cover it. As opened, with the label
- * editor open, with a shape selected and after a click on each of its context-pad entries (but a
- * deleting one), every layer of `.djs-container` above 100 must close when the view zooms.
+ * editor open, with an element of each kind of context pad selected (a connection among them) and
+ * after a click on each of their context-pad entries (but a deleting one), every layer of
+ * `.djs-container` above 100 must close when the view zooms, and stay closed.
  */
 export const overlayLayersCase: ShellConformanceCase = {
   name: "overlayLayers",
@@ -155,16 +221,34 @@ export const overlayLayersCase: ShellConformanceCase = {
       });
     }
 
-    const shape = (await shapes(page, root)).find((candidate) => candidate.hit);
-    if (shape && (await select(page, root, shape.id))) {
-      problems.push(...(await layerProblems(page, harness, root, `with "${shape.id}" selected`)));
-      const actions = (await inPage(page, contextPadEntriesProbe, { root }))
-        .map((entry) => entry.action)
-        .filter((action) => !DELETING_ENTRY.test(action));
-      await inPage(page, holdWindowOpenProbe, null);
-      try {
+    const candidates = selectionOrder(await selectables(page, root));
+    if (candidates.length === 0) {
+      skipped.push({
+        hook: "open",
+        reason:
+          "the opened document shows no shape or connection a pointer reaches: the layers of a selection and of its context pad were not verified",
+      });
+    }
+    // Elements of one kind share their pad: one look per kind and set of entries, one click per
+    // entry and kind, since a connection's entry may do something else than a shape's of that name.
+    const pads = new Set<string>();
+    const clicked = new Set<string>();
+    await inPage(page, holdWindowOpenProbe, null);
+    try {
+      for (const element of candidates) {
+        if (!(await select(page, root, element.id))) continue;
+        const actions = await padActions(page, root);
+        const pad = `${element.kind}: ${[...actions].sort().join(" ")}`;
+        if (pads.has(pad)) continue;
+        pads.add(pad);
+        problems.push(
+          ...(await layerProblems(page, harness, root, `with "${element.id}" selected`)),
+        );
         for (const action of actions) {
-          if (!(await select(page, root, shape.id))) break;
+          const entryKey = `${element.kind}: ${action}`;
+          if (DELETING_ENTRY.test(action) || clicked.has(entryKey)) continue;
+          clicked.add(entryKey);
+          if (!(await select(page, root, element.id))) break;
           const entry = (await inPage(page, contextPadEntriesProbe, { root })).find(
             (candidate) => candidate.action === action,
           );
@@ -176,20 +260,14 @@ export const overlayLayersCase: ShellConformanceCase = {
               page,
               harness,
               root,
-              `after a click on context-pad entry "${action}" of "${shape.id}"`,
+              `after a click on context-pad entry "${action}" of "${element.id}"`,
             )),
           );
           await closeByEscape(page);
         }
-      } finally {
-        await inPage(page, removeInjectedProbe, null);
       }
-    } else {
-      skipped.push({
-        hook: "open",
-        reason:
-          "the opened document shows no shape a pointer reaches: the layers of a selection and of its context pad were not verified",
-      });
+    } finally {
+      await inPage(page, removeInjectedProbe, null);
     }
     return finish("overlayLayers", harness.host, problems, skipped);
   },
