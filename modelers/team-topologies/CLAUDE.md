@@ -50,14 +50,13 @@ The workspaces are `packages/*`, `apps/*` and `e2e` of this folder. Internal
 still links them to the local workspace); how a release keeps them in step is in the suite's
 [docs/ci-and-releases.md](../../docs/ci-and-releases.md).
 
-| Package                                 | Purpose                                                                  | DOM |
-| --------------------------------------- | ------------------------------------------------------------------------ | --- |
-| `@miragon/team-topologies-schema-model` | Types, the notation spec, Zod validation, migrations, JSON serialization | no  |
-| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer/modeler, import/export, CSS, and  | yes |
-|                                         | chrome content (menu entries, legend rows, shortcuts and title dialogs)  |     |
-| `@miragon/team-topologies-ui` (private) | the React inspector for the chrome's inspector slot                      | yes |
-| `apps/webapp`                           | Vite demo editor on the modeler shell's web host                         | yes |
-| `apps/vscode`                           | VS Code extension: custom editor for `.tt`/`.ttm.json`                   | yes |
+| Package                                 | Purpose                                                                                        | DOM |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- | --- |
+| `@miragon/team-topologies-schema-model` | Types, the notation spec, Zod validation, migrations, JSON serialization                       | no  |
+| `@miragon/team-topologies-renderer`     | diagram-js bootstrap, renderer, viewer/modeler, import/export, CSS, menu, legend rows, dialogs | yes |
+| `@miragon/team-topologies-ui` (private) | the React inspector for the chrome's inspector slot                                            | yes |
+| `apps/webapp`                           | Vite demo editor on the modeler shell's web host                                               | yes |
+| `apps/vscode`                           | VS Code extension: custom editor for `.tt`/`.ttm.json`                                         | yes |
 
 **P1 — DOM boundary:** the DOM-free package (`schema-model`) must **never** import `diagram-js`/DOM
 libraries (`tiny-svg`, `min-dom`) or use the DOM (`window`/`document`). Enforced twice — ESLint

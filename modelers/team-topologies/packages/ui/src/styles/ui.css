@@ -19,9 +19,7 @@
 :where(:root, [data-cd-theme]) {
   --font-sans:
     "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
 
-  --paper: var(--cd-ui-grund);
   --surface: var(--cd-ui-flaeche-hoch);
   --surface-2: var(--cd-ui-grund);
   --hover: var(--cd-ui-hover);
@@ -32,28 +30,11 @@
   --link: var(--cd-ui-link);
   --interaction: var(--cd-ui-interaktion);
   --focus: var(--cd-ui-fokus);
-  /* Fixed in both modes: the fill of a primary button (guide §8). */
-  --accent: var(--cd-blau);
-  --accent-ink: var(--cd-ui-link);
-  --accent-soft: var(--cd-ui-hover);
-  --brand: var(--cd-gruen);
-  --success: var(--cd-ui-success);
-  --success-soft: var(--cd-ui-success-flaeche);
-  --warning: var(--cd-ui-warning);
-  --warning-soft: var(--cd-ui-warning-flaeche);
   --danger: var(--cd-ui-danger);
   --danger-soft: var(--cd-ui-danger-flaeche);
-  --info: var(--cd-ui-info);
-  --info-soft: var(--cd-ui-info-flaeche);
-  --backdrop: var(--cd-ui-backdrop);
 
-  --shadow-1: var(--cd-shadow-1);
-  --shadow-2: var(--cd-shadow-2);
-  --shadow-3: var(--cd-shadow-3);
   --radius-sm: var(--cd-radius-sm);
   --radius: var(--cd-radius-md);
-  --radius-lg: var(--cd-radius-lg);
-  --radius-pill: var(--cd-radius-pill);
 }
 
 /* ---- Content roots --------------------------------------------------------------
