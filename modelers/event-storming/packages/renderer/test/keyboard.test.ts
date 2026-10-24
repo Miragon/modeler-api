@@ -13,8 +13,13 @@ afterEach(() => {
 
 function harness(config?: EventStormingKeyboardConfig, options: { readOnly?: boolean } = {}) {
   const container = document.createElement("div");
-  const canvasSvg = document.createElement("div");
-  container.append(canvasSvg);
+  const canvasSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const sticky = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  canvasSvg.append(sticky);
+  // diagram-js puts the palette and the context pad into the container, next to the <svg>.
+  const paletteEntry = document.createElement("div");
+  paletteEntry.tabIndex = 0;
+  container.append(canvasSvg, paletteEntry);
   const outside = document.createElement("button");
   document.body.append(container, outside);
 
@@ -58,6 +63,8 @@ function harness(config?: EventStormingKeyboardConfig, options: { readOnly?: boo
   return {
     container,
     canvasSvg,
+    sticky,
+    paletteEntry,
     outside,
     commandStack,
     modeling,
@@ -87,19 +94,65 @@ describe("EventStormingKeyboard: target rules", () => {
   });
 
   it("acts on keys aimed at the canvas", () => {
-    const { canvasSvg, modeling } = harness();
+    const { canvasSvg, sticky, modeling } = harness();
     const event = press(canvasSvg, "Delete");
     expect(event.defaultPrevented).toBe(true);
     expect(modeling.removeElements).toHaveBeenCalledTimes(1);
+    expect(press(sticky, "Backspace").defaultPrevented).toBe(true);
+    expect(modeling.removeElements).toHaveBeenCalledTimes(2);
   });
 
-  // Nothing focused: the single-key tools must work without clicking the canvas first.
-  it("acts on keys whose target is the body or the document element", () => {
-    const { lassoTool, modeling } = harness();
-    press(document.body, "l");
-    expect(lassoTool.activateSelection).toHaveBeenCalledTimes(1);
-    press(document.documentElement, "Backspace");
-    expect(modeling.removeElements).toHaveBeenCalledTimes(1);
+  // Issue #91: right after a load, after a click on page text or while a host hides the canvas,
+  // the focus is on the body, and a key there is the page's.
+  it("ignores keys whose target is the body or the document element", () => {
+    const { lassoTool, modeling, commandStack } = harness();
+    for (const target of [document.body, document.documentElement]) {
+      expect(press(target, "l").defaultPrevented).toBe(false);
+      expect(press(target, "Backspace").defaultPrevented).toBe(false);
+      expect(press(target, "z", { metaKey: true }).defaultPrevented).toBe(false);
+    }
+    expect(lassoTool.activateSelection).not.toHaveBeenCalled();
+    expect(modeling.removeElements).not.toHaveBeenCalled();
+    expect(commandStack.undo).not.toHaveBeenCalled();
+  });
+
+  // The palette, the context pad and an editor a host mounts there sit next to the <svg>.
+  it("ignores keys whose target lies in the container but outside the canvas <svg>", () => {
+    const { container, paletteEntry, modeling, lassoTool } = harness();
+    const editor = document.createElement("div");
+    editor.tabIndex = 0;
+    Object.defineProperty(editor, "editContext", { value: {} });
+    container.append(editor);
+    for (const target of [paletteEntry, editor]) {
+      expect(press(target, "Backspace").defaultPrevented).toBe(false);
+      expect(press(target, "l").defaultPrevented).toBe(false);
+    }
+    expect(modeling.removeElements).not.toHaveBeenCalled();
+    expect(lassoTool.activateSelection).not.toHaveBeenCalled();
+  });
+
+  it("ignores a keydown that carries no key", () => {
+    const { canvasSvg, modeling } = harness();
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    try {
+      canvasSvg.dispatchEvent(new Event("keydown", { bubbles: true, cancelable: true }));
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    expect(errors).toEqual([]);
+    expect(modeling.removeElements).not.toHaveBeenCalled();
+  });
+
+  // An input method owns the keys while it composes, Backspace included.
+  it("ignores keys typed during an IME composition", () => {
+    const { canvasSvg, modeling } = harness();
+    expect(press(canvasSvg, "Backspace", { isComposing: true }).defaultPrevented).toBe(false);
+    expect(modeling.removeElements).not.toHaveBeenCalled();
   });
 
   // The zoom panel's buttons, an inspector or a host's own chrome live outside the container.
@@ -128,7 +181,7 @@ describe("EventStormingKeyboard: target rules", () => {
     expect(modeling.moveElements).not.toHaveBeenCalled();
   });
 
-  it("keeps ignoring text fields inside the canvas (label editor)", () => {
+  it("keeps ignoring text fields inside the canvas container (label editor)", () => {
     const { container, modeling } = harness();
     const field = document.createElement("textarea");
     container.append(field);

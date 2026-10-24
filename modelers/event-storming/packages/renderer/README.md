@@ -65,10 +65,19 @@ Pass `undoRedoKeys: false` when the host owns the history, as the VS Code extens
 then reach the host untouched and the host undoes the document, while copy, paste, delete, the
 arrow keys and the single-key tools keep working on the canvas.
 
-The modeler's keyboard listens on `document`, but only acts on keys aimed at the canvas: the
-target lies inside the canvas container, or nothing is focused (`document.body`). Keys another
-listener already handled (`defaultPrevented`) and keys typed into text fields are left alone, and
-the canvas container gets no `tabindex` of its own. Cmd/Ctrl+A selects the whole board. An import
+The modeler's keyboard listens on `document`, but acts only while the canvas itself has the focus:
+the key's target is the canvas `<svg>` or lies inside it, the element diagram-js 15 binds its own
+keyboard to. `<body>` does not count, so no key acts right after a load or after a click on page
+text, and the palette, the context pad and the label editor, which sit next to the `<svg>`, keep
+their keys. Keys another listener already handled (`defaultPrevented`), events without a `key` and
+keys typed during an IME composition are left alone, and the canvas container gets no `tabindex` of
+its own. A pointer click or drag on a palette entry, a click on a context-pad entry that opens no
+editor or popup (delete, connect, append, line style) and a picked colour hand the focus to the
+canvas; Enter and Space on a palette entry leave it there. While a line is drawn, Enter and Escape
+end it only when aimed at the modeler (the canvas or the palette entry that started the tool), never
+at a text field or the host's own controls, and every point focuses the canvas. To keep the keys
+away from a canvas it hides without destroying it, a host makes it `inert` (or `display: none`):
+such a `<svg>` cannot hold the focus. Cmd/Ctrl+A selects the whole board. An import
 erases the undo history without firing `commandStack.changed`, and fires `import.parse.start`,
 `import.render.start` and `import.done` in that order. It frames the content centred at the
 largest zoom that shows all of it, never above 100%; an empty board shows at 100%. A board with

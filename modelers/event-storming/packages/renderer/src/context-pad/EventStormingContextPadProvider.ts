@@ -1,4 +1,5 @@
 import type ContextPad from "diagram-js/lib/features/context-pad/ContextPad";
+import type Canvas from "diagram-js/lib/core/Canvas";
 import type EventBus from "diagram-js/lib/core/EventBus";
 import type Modeling from "diagram-js/lib/features/modeling/Modeling";
 import type Connect from "diagram-js/lib/features/connect/Connect";
@@ -48,6 +49,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
     "eventStormingColorPicker",
     "eventBus",
     "eventStormingReadOnly",
+    "canvas",
   ];
 
   constructor(
@@ -62,6 +64,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
     private readonly colorPicker: EventStormingColorPicker,
     eventBus?: EventBus,
     private readonly readOnly?: Pick<EventStormingReadOnly, "isReadOnly">,
+    private readonly canvas?: Pick<Canvas, "focus">,
   ) {
     contextPad.registerProvider(this);
     eventBus?.on(READ_ONLY_CHANGED_EVENT, (event: { readOnly?: boolean }) => {
@@ -85,7 +88,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
           group: "delete",
           title: "Delete connection",
           html: cpHtml("trash", "Delete connection"),
-          action: { click: () => this.modeling.removeElements([element]) },
+          action: { click: this.focusingCanvas(() => this.modeling.removeElements([element])) },
         },
       };
     }
@@ -99,12 +102,12 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
       // with `source` -> modeling.appendShape). The kind is chosen in the change-type popup that
       // opens on placement (see EventStormingAppendBehavior), so ONE entry suffices and it is
       // available on every workshop level — the popup applies the level filter.
-      const startAppend = (event: Event) => {
+      const startAppend = this.focusingCanvas((event: Event) => {
         const next = this.factory.createProvisional();
         this.create.start(event as MouseEvent, next as unknown as Element, {
           source: shape as unknown as Element,
         });
-      };
+      });
       entries["append"] = {
         group: "append",
         title: APPEND_TITLE,
@@ -112,9 +115,9 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
         action: { click: startAppend, dragstart: startAppend },
       };
 
-      const startConnect = (event: Event) => {
+      const startConnect = this.focusingCanvas((event: Event) => {
         this.connect.start(event as MouseEvent, shape as unknown as Element);
-      };
+      });
       entries["connect"] = {
         group: "edit",
         title: "Connect to existing sticky",
@@ -152,7 +155,7 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
         title,
         html: cpHtml("line-style", title),
         action: {
-          click: () => this.eventStormingModeling.setStrokeStyle(shape, next),
+          click: this.focusingCanvas(() => this.eventStormingModeling.setStrokeStyle(shape, next)),
         },
       };
     }
@@ -189,9 +192,25 @@ export default class EventStormingContextPadProvider implements ContextPadProvid
       group: "delete",
       title: "Delete",
       html: cpHtml("trash", "Delete"),
-      action: { click: () => this.modeling.removeElements([shape as unknown as Element]) },
+      action: {
+        click: this.focusingCanvas(() =>
+          this.modeling.removeElements([shape as unknown as Element]),
+        ),
+      },
     };
 
     return entries;
+  }
+
+  /**
+   * The entries take no focus, so a click on one drops it to `<body>`, where the board's keys do
+   * not act: Cmd/Ctrl+Z after a delete or Delete after a connect would do nothing. Entries that
+   * open the label editor, the type popup or the colour picker leave the focus to them.
+   */
+  private focusingCanvas(action: (event: Event) => void): (event: Event) => void {
+    return (event) => {
+      action(event);
+      this.canvas?.focus();
+    };
   }
 }

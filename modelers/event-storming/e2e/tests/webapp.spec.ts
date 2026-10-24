@@ -267,6 +267,32 @@ test.describe("webapp modelling interactions", () => {
     await expect(elementGfx(page, id)).toHaveCount(0);
   });
 
+  // Issue #91: the board's keys act only on the focused canvas. The context pad's entries take
+  // no focus, so after a delete or a connect the pad has to hand it back for undo to follow.
+  test("keys act only on the focused canvas, and undo follows the pad's delete and connect", async ({
+    page,
+  }) => {
+    const source = await createStickyAt(page, "event", 0.35, 0.5);
+    const target = await createStickyAt(page, "event", 0.65, 0.5);
+    const board = () => exportBoard(page);
+
+    await selectShape(page, source);
+    await page.evaluate(() => (document.activeElement as HTMLElement | SVGElement | null)?.blur());
+    await page.keyboard.press("Delete");
+    expect((await board()).elements).toHaveLength(2);
+
+    await selectShape(page, source);
+    await page.locator('.djs-context-pad [data-action="delete"]').click();
+    await expect.poll(async () => (await board()).elements.length).toBe(1);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(async () => (await board()).elements.length).toBe(2);
+
+    await connectShapes(page, source, target);
+    await expect.poll(async () => (await board()).edges.length).toBe(1);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(async () => (await board()).edges.length).toBe(0);
+  });
+
   test("switches the workshop level via the menu and the palette follows", async ({ page }) => {
     const palette = page.locator(".djs-palette");
     // A fresh board carries no level -> design, the full palette.
