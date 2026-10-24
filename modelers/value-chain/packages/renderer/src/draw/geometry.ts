@@ -48,3 +48,51 @@ export function ellipsePathAt(x: number, y: number, width: number, height: numbe
     "Z",
   ].join("");
 }
+
+/** The shape-local span `[left, right]` a step's chevron covers at the height `y`. */
+export function chevronSpanAt(
+  width: number,
+  height: number,
+  y: number,
+): [number, number] | undefined {
+  const middle = height / 2;
+  if (!(middle > 0) || y < 0 || y > height) return undefined;
+  const depth = notchDepth(width, height);
+  const inset = depth * (1 - Math.abs(y - middle) / middle);
+  return [inset, width - depth + inset];
+}
+
+/** The shape-local span `[left, right]` an organizational unit's ellipse covers at the height `y`. */
+export function ellipseSpanAt(
+  width: number,
+  height: number,
+  y: number,
+): [number, number] | undefined {
+  const radiusX = width / 2;
+  const radiusY = height / 2;
+  if (!(radiusY > 0)) return undefined;
+  const offset = (y - radiusY) / radiusY;
+  if (Math.abs(offset) > 1) return undefined;
+  const half = radiusX * Math.sqrt(1 - offset * offset);
+  return [radiusX - half, radiusX + half];
+}
+
+/**
+ * Whether a label line, in shape-local coordinates, sits on its shape: whether the shape covers at
+ * least half of the line's middle. A line that crosses the shape's edge can take only one colour,
+ * so it takes that of the surface under most of it.
+ */
+export function shapeHoldsLine(
+  orgUnit: boolean,
+  width: number,
+  height: number,
+  line: { x: number; y: number; width: number; height: number },
+): boolean {
+  const middle = line.y + line.height / 2;
+  const span = orgUnit
+    ? ellipseSpanAt(width, height, middle)
+    : chevronSpanAt(width, height, middle);
+  if (!span) return false;
+  const covered = Math.min(line.x + line.width, span[1]) - Math.max(line.x, span[0]);
+  return covered * 2 >= line.width;
+}

@@ -13,7 +13,8 @@ edge-based variant (no nested block arrows).
 
 Chevron geometry: point/notch depth `d = min(height/2, 0.4·width)` (45° edges at default
 proportions). White fill, near-black stroke `#1D1D1D` (the Miragon design system's text colour),
-2px, round joins; labels in Geist. An optional `color` tints stroke and label.
+2px, round joins; labels in Geist. An optional `color` fills the shape instead of white; the
+stroke stays near-black and the label turns black or white, whichever contrasts more with the fill.
 
 ## Relations
 

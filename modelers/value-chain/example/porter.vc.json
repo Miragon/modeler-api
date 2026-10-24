@@ -195,7 +195,7 @@
         "x": 900,
         "y": 120
       },
-      "color": "hsl(205, 100%, 45%)",
+      "color": "#335DE5",
       "elementType": "step",
       "id": "step-service",
       "name": "Service"

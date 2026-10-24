@@ -7,9 +7,16 @@ import type GraphicsFactory from "diagram-js/lib/core/GraphicsFactory";
 import type { Connection, Element, Shape } from "diagram-js/lib/model/Types";
 import { append as svgAppend, attr as svgAttr, create as svgCreate } from "tiny-svg";
 import type { Bounds } from "@miragon/value-chain-schema-model";
-import { chevronPath, chevronPathAt, ellipsePathAt, labelInset } from "./geometry.js";
-import { labelTextBox } from "./labelBox.js";
-import { COLORS, FONT, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
+import { SURROUND_LABEL, shapeColors } from "./fill.js";
+import {
+  chevronPath,
+  chevronPathAt,
+  ellipsePathAt,
+  labelInset,
+  shapeHoldsLine,
+} from "./geometry.js";
+import { labelLines, linesBox } from "./labelBox.js";
+import { COLORS, FONT, LABEL_HALO_WIDTH, LABEL_PADDING, STROKE_WIDTH } from "./styles.js";
 import {
   isOrgUnit,
   isVcConnection,
@@ -92,7 +99,7 @@ export default class VcRenderer extends BaseRenderer {
 
   override drawShape(visuals: SVGElement, element: Shape): SVGElement {
     const shape = element as VcShape;
-    const stroke = shape.color ?? COLORS.ink;
+    const colors = shapeColors(shape.color);
     const orgUnit = isOrgUnit(shape);
 
     const path = svgCreate("path");
@@ -100,8 +107,8 @@ export default class VcRenderer extends BaseRenderer {
       d: orgUnit
         ? ellipsePathAt(0, 0, shape.width, shape.height)
         : chevronPath(shape.width, shape.height),
-      fill: COLORS.fill,
-      stroke,
+      fill: colors.fill,
+      stroke: COLORS.ink,
       "stroke-width": STROKE_WIDTH,
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
@@ -120,10 +127,22 @@ export default class VcRenderer extends BaseRenderer {
           left: inset,
           right: inset,
         },
-        style: { fill: stroke },
+        style: {
+          fill: colors.label,
+          stroke: colors.halo,
+          "stroke-width": LABEL_HALO_WIDTH,
+          "stroke-linejoin": "round",
+          "paint-order": "stroke",
+        },
       });
       svgAppend(visuals, label);
-      const box = labelTextBox(label as SVGTextElement);
+      const lines = labelLines(label as SVGTextElement);
+      for (const line of lines) {
+        if (!shapeHoldsLine(orgUnit, shape.width, shape.height, line.box)) {
+          svgAttr(line.element, { fill: SURROUND_LABEL.label, stroke: SURROUND_LABEL.halo });
+        }
+      }
+      const box = linesBox(lines);
       if (box) this.labelBoxes.set(element, box);
     }
 

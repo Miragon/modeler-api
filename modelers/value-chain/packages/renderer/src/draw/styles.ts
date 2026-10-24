@@ -1,13 +1,15 @@
-import { hell } from "../theme/cd-tokens.generated.json";
+import { fest, hell } from "../theme/cd-tokens.generated.json";
 
 /**
  * Canvas colours, the light roles of the vendored design tokens (guide §10.1): contours,
- * connections and labels in the text role, element fills in the plot role. The renderer writes
- * them as presentation values, so exports look the same everywhere and stay light in every mode.
+ * connections and labels in the text role, element fills in the plot role, the surround around the
+ * shapes in the grund role. The renderer writes them as presentation values, so exports look the
+ * same everywhere and stay light in every mode.
  */
 export const COLORS = {
   ink: hell["--cd-ui-text"],
   fill: hell["--cd-ui-plot"],
+  surround: hell["--cd-ui-grund"],
 } as const;
 
 /**
@@ -25,12 +27,32 @@ export const STROKE_WIDTH = 2;
 
 export const LABEL_PADDING = 7;
 
-/** Accent colors offered by the color picker (stroke + label tint; fill stays white). */
+/**
+ * The label halo (guide §10.1), 1.5px around every glyph in the surface behind the line: a label
+ * line that runs past its shape stays readable where it crosses a neighbour or a connection.
+ */
+export const LABEL_HALO_WIDTH = 3;
+
+/**
+ * The colour picker (guide §10.6): "Default" stores no colour and follows the roles, then the
+ * palette and the status colours as fill colours, each once (success is gruen, info is blau).
+ * Blau-link and blau-hell are the link and focus tones of blau, no fill colours (guide §3.1).
+ * White is a fixed fill: it looks like Default on the light canvas, not once Default follows a
+ * dark plot.
+ */
 export const COLOR_OPTIONS: ReadonlyArray<{ label: string; color?: string }> = [
   { label: "Default" },
-  { label: "Blue", color: "hsl(205, 100%, 45%)" },
-  { label: "Green", color: "hsl(150, 86%, 34%)" },
-  { label: "Orange", color: "hsl(29, 89%, 44%)" },
-  { label: "Red", color: "hsl(360, 100%, 45%)" },
-  { label: "Purple", color: "hsl(287, 65%, 44%)" },
+  { label: "Blue", color: fest["--cd-blau"] },
+  { label: "Green", color: fest["--cd-gruen"] },
+  { label: "Gray", color: fest["--cd-grau"] },
+  { label: "Black", color: fest["--cd-schwarz"] },
+  { label: "White", color: fest["--cd-weiss"] },
+  { label: "Amber", color: fest["--cd-warning"] },
+  { label: "Red", color: fest["--cd-danger"] },
 ];
+
+/** Label colours on a fill of the shape's own (guide §10.6), whichever contrasts more. */
+export const LABEL_ON_FILL = {
+  dark: fest["--cd-schwarz"],
+  light: fest["--cd-weiss"],
+} as const;

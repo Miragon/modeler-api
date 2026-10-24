@@ -19,7 +19,7 @@ files diff cleanly).
       "elementType": "step",
       "name": "Operations",
       "bounds": { "x": 270, "y": 120, "width": 170, "height": 64 },
-      "color": "hsl(205, 100%, 45%)",
+      "color": "#335DE5",
       "link": "operations-detail"
     },
     {
@@ -51,7 +51,11 @@ files diff cleanly).
 
 - `bounds` are absolute canvas coordinates of the top-left corner; `width`/`height` ≥ 1
   (practically ≥ 80×40, the editor minimum). Every coordinate and size lies within ±1e9.
-- `color` (optional): CSS color string, tints stroke + label. Fill stays white.
+- `color` (optional): CSS color string that fills the shape instead of white. The contour stays
+  near-black, the label turns black or white, whichever contrasts more with the fill. The
+  editor's picker writes the Miragon palette and status colours: `#335DE5` blue, `#00E676`
+  green, `#F9F7F7` gray, `#1D1D1D` black, `#FFFFFF` white, `#FFB000` amber, `#CD1839` red. Older
+  files may hold other values (such as `hsl(…)`), which keep rendering as fills.
 - `link` (steps only, optional): opaque drill-down reference to a more detailed model.
 - `waypoints`: ≥ 2 points. Rough values are fine — the editor crops endpoints to the shape
   contours and fully re-routes hierarchy edges from geometry on the next interaction.
