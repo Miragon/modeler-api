@@ -125,7 +125,6 @@ export function isManualNoteBox(label: string, box: { width: number; height: num
 export const COLORS = {
   paper: MIRAGON.grau,
   ink: MIRAGON.schwarz,
-  /** Arrow annotations: secondary text (guide §10.1). */
   inkSoft: MIRAGON.textLeise,
   surface: MIRAGON.weiss,
   stroke: MIRAGON.schwarz,

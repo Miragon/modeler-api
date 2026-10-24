@@ -146,9 +146,10 @@ Drift tests: [`packages/renderer/test/theme.sync.test.ts`](packages/renderer/tes
 every `MIRAGON` value in [`palette.ts`](packages/renderer/src/theme/palette.ts) against its `--cd-*`
 token, no colour literal and no fixed palette token in `event-storming.css` (it reads the
 `--cd-ui-*` roles only), no `style dark` rendering, overlays below the palette, palette rules scoped
-away from the shell, and the notation contrast: sticky text 4.5:1 on every fill, arrows, sticky
-borders and the provisional sticky's dashed border 3:1 on the canvas ground, arrows in `kontur` and
-their annotation in `text-leise`, colour literals only in `palette.ts` and `draw/styles.ts`) and
+away from the shell, and the notation contrast: the text colour `textColorOn` picks 4.5:1 on every
+kind fill and on the review skill's note colours, arrows, sticky borders and the provisional
+sticky's dashed border 3:1 on the canvas ground, arrows in `kontur` and their annotation in
+`text-leise`, colour literals only in `palette.ts` and `draw/styles.ts`) and
 [`apps/vscode/test/tokens.sync.test.ts`](apps/vscode/test/tokens.sync.test.ts) (the shell's `SHELL`
 sizes against the vendored `shell` group). The canvas drawing keeps literal light colours in its SVG
 attributes (`draw/styles.ts`), never a `var()`. The sticky colours are the modeler's own: each

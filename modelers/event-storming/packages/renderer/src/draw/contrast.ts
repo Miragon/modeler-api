@@ -1,6 +1,5 @@
 import { MIRAGON } from "../theme/index.js";
 
-/** sRGB channels 0 to 255 and the alpha 0 to 1. */
 type Rgba = readonly [red: number, green: number, blue: number, alpha: number];
 
 const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -16,30 +15,51 @@ function parseHex(color: string): Rgba | undefined {
   return [channel(0), channel(1), channel(2), digits.length === 8 ? channel(3) / 255 : 1];
 }
 
-let canvasColorParser: OffscreenCanvasRenderingContext2D | null | undefined;
+let colorCanvas: CanvasRenderingContext2D | null | undefined;
+
+function colorContext(): CanvasRenderingContext2D | null {
+  // jsdom has no canvas and logs an error for every getContext call: ask only a real browser.
+  colorCanvas ??=
+    typeof document !== "undefined" && typeof CanvasRenderingContext2D !== "undefined"
+      ? Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d", {
+          willReadFrequently: true,
+        })
+      : null;
+  return colorCanvas;
+}
+
+function paintedOverGround(context: CanvasRenderingContext2D, color: string): Rgba {
+  context.fillStyle = MIRAGON.grau;
+  context.fillRect(0, 0, 1, 1);
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const { data } = context.getImageData(0, 0, 1, 1);
+  return [data[0]!, data[1]!, data[2]!, 1];
+}
 
 /**
- * The DSL also takes CSS colour names (`(color green)`) and a stored board any CSS colour, so
- * everything but hex goes through the browser's own parser: a 2D context serializes `fillStyle`
- * as `#rrggbb` or `rgba(…)`. Without a canvas (jsdom) the colour stays unread.
+ * The DSL also takes CSS colour names (`(color green)`) and a stored board any CSS colour, which
+ * only the browser can resolve. Without a canvas (jsdom) the colour stays unread.
  */
 function parseWithCanvas(color: string): Rgba | undefined {
-  if (canvasColorParser === undefined) {
-    canvasColorParser =
-      typeof OffscreenCanvas === "undefined" ? null : new OffscreenCanvas(1, 1).getContext("2d");
-  }
-  if (!canvasColorParser) return undefined;
+  const context = colorContext();
+  if (!context) return undefined;
   // A value that is no colour leaves `fillStyle` as it was, so two start values tell it apart.
-  canvasColorParser.fillStyle = MIRAGON.schwarz;
-  canvasColorParser.fillStyle = color;
-  const fromDark = String(canvasColorParser.fillStyle);
-  canvasColorParser.fillStyle = MIRAGON.weiss;
-  canvasColorParser.fillStyle = color;
-  if (String(canvasColorParser.fillStyle) !== fromDark) return undefined;
+  context.fillStyle = MIRAGON.schwarz;
+  context.fillStyle = color;
+  const fromDark = String(context.fillStyle);
+  context.fillStyle = MIRAGON.weiss;
+  context.fillStyle = color;
+  if (String(context.fillStyle) !== fromDark) return undefined;
+  // Names, rgb() and hsl() read back exactly as hex or rgba(), without the pixel readback that
+  // privacy modes add noise to. Newer syntaxes (oklch(), lab(), color-mix()) read back in their
+  // own form, so only those are painted.
   const serialized = SERIALIZED_RGBA.exec(fromDark);
-  if (!serialized) return parseHex(fromDark);
-  const [, red, green, blue, alpha] = serialized;
-  return [Number(red), Number(green), Number(blue), alpha === undefined ? 1 : Number(alpha)];
+  if (serialized) {
+    const [, red, green, blue, alpha] = serialized;
+    return [Number(red), Number(green), Number(blue), alpha === undefined ? 1 : Number(alpha)];
+  }
+  return parseHex(fromDark) ?? paintedOverGround(context, color);
 }
 
 function parseColor(color: string): Rgba | undefined {
@@ -47,7 +67,6 @@ function parseColor(color: string): Rgba | undefined {
   return parseHex(trimmed) ?? parseWithCanvas(trimmed);
 }
 
-/** A translucent colour as it shows over an opaque ground. */
 function over([red, green, blue, alpha]: Rgba, ground: Rgba): Rgba {
   const mix = (top: number, bottom: number) => top * alpha + bottom * (1 - alpha);
   return [mix(red, ground[0]), mix(green, ground[1]), mix(blue, ground[2]), 1];

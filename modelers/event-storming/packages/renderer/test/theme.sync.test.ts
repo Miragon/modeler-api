@@ -9,6 +9,7 @@ import {
   STICKY_SHADOW,
   STICKY_STYLES,
 } from "../src/draw/styles.js";
+import { textColorOn } from "../src/draw/contrast.js";
 
 /**
  * Drift guard: `assets/event-storming.css` reads the design-system roles only, and `MIRAGON`
@@ -290,6 +291,9 @@ const STICKY_LOOKS = [
   ["provisional", PROVISIONAL_STICKY],
 ] as const;
 
+/** The feedback-note colours the plugin's `event-storming` review skill writes onto boards. */
+const REVIEW_NOTE_FILLS = ["#15803d", "#b45309", "#b91c1c", "#1d4ed8", "#7e22ce"];
+
 describe("theme.sync — notation contrast (guide §3.6, §10.1, §10.6)", () => {
   it("draws edges in kontur and their annotation in text-leise, as the canvas table says", () => {
     expect(COLORS.arrow).toBe(MIRAGON.kontur);
@@ -304,7 +308,13 @@ describe("theme.sync — notation contrast (guide §3.6, §10.1, §10.6)", () =>
 
   it("sticky text reaches 4.5:1 on every fill the notation draws", () => {
     for (const [kind, look] of STICKY_LOOKS) {
-      expect(contrast(COLORS.stickyText, look.fill), kind).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(textColorOn(look.fill), look.fill), kind).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("note text reaches 4.5:1 on the review skill's feedback colours", () => {
+    for (const fill of REVIEW_NOTE_FILLS) {
+      expect(contrast(textColorOn(fill), fill), fill).toBeGreaterThanOrEqual(4.5);
     }
   });
 

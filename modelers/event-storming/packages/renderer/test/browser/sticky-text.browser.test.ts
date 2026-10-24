@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Viewer } from "../../src/index.js";
 import { textColorOn } from "../../src/draw/contrast.js";
 import { MIRAGON } from "../../src/theme/palette.js";
 import "../../src/assets/event-storming.css";
+
+// Safari before 16.4 has no OffscreenCanvas, and the colours must resolve there as well.
+vi.stubGlobal("OffscreenCanvas", undefined);
 
 // The DSL takes CSS colour names as well as hex (`(color navy)`), and a stored board any CSS
 // colour. Only a browser resolves those, so the black-or-white text rule is checked here too.
@@ -17,6 +20,13 @@ describe("sticky text on a fill the user picks, with CSS colours (guide §10.6)"
     ["transparent", MIRAGON.schwarz],
     ["rgba(0, 0, 0, 0.2)", MIRAGON.schwarz],
     ["no-such-colour", MIRAGON.schwarz],
+    ["oklch(30% 0.1 250)", MIRAGON.weiss],
+    ["lab(20% 10 -30)", MIRAGON.weiss],
+    ["color-mix(in srgb, navy, black)", MIRAGON.weiss],
+    ["color(display-p3 0.1 0.1 0.3)", MIRAGON.weiss],
+    ["oklch(20% 0.1 250 / 0.9)", MIRAGON.weiss],
+    ["oklch(95% 0.05 100)", MIRAGON.schwarz],
+    ["oklch(0% 0 0 / 0.2)", MIRAGON.schwarz],
   ])("writes on %s in %s", (fill, expected) => {
     expect(textColorOn(fill)).toBe(expected);
   });
