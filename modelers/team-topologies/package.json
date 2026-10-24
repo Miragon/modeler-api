@@ -12,7 +12,7 @@
     "domFreePackages": [
       "schema-model"
     ],
-    "shellMountingPackages": [
+    "shellImportingPackages": [
       "ui"
     ]
   },

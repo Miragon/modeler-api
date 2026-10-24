@@ -81,7 +81,7 @@ Requirements: Node `^22.22.2 || >=24.15.0`, npm. Everything runs from the reposi
   ESLint (`no-restricted-imports` / `no-restricted-globals`) and dependency-cruiser enforce it, so a
   violation fails `npm run <modeler> lint` and `npm run <modeler> depcruise`. Both configs come from
   the presets in `tooling/`; a modeler names its DOM-free packages (and Team Topologies its
-  shell-mounting `ui`) once, in `modelerSuite` of its `package.json`, and adds only its own rules.
+  shell-importing `ui`) once, in `modelerSuite` of its `package.json`, and adds only its own rules.
   `test/modeler-boundaries.test.ts` (`npm run test:plugin`) runs every modeler's configs against
   these rules. The renderer and the apps are the DOM side. Keep each DSL round-trip lossless and
   each JSON serialization deterministic.

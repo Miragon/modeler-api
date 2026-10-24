@@ -1,8 +1,8 @@
 import { modelerEslintConfig } from "../../tooling/eslint.mjs";
 
-const grandfatheredValidateDocumentCeiling = {
+const grandfatheredSchemaCeiling = {
   files: ["packages/schema-model/src/schema.ts"],
   rules: { complexity: ["error", 45] },
 };
 
-export default modelerEslintConfig(import.meta.dirname, grandfatheredValidateDocumentCeiling);
+export default modelerEslintConfig(import.meta.dirname, grandfatheredSchemaCeiling);

@@ -84,7 +84,7 @@ function sourcesOf(packageNames) {
 }
 
 export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
-  const { domFreePackages, shellMountingPackages } = readModelerBoundaries(modelerRoot);
+  const { domFreePackages, shellImportingPackages } = readModelerBoundaries(modelerRoot);
   return tseslint.config(
     IGNORED_FILES,
     js.configs.recommended,
@@ -95,7 +95,7 @@ export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
     {
       files: [
         "packages/renderer/**/*.{ts,tsx}",
-        ...sourcesOf(shellMountingPackages),
+        ...sourcesOf(shellImportingPackages),
         "apps/**/*.{ts,tsx}",
         "e2e/**/*.ts",
       ],
@@ -106,7 +106,7 @@ export function modelerEslintConfig(modelerRoot, ...modelerConfigs) {
     ...modelerConfigs,
     {
       files: ["packages/*/src/**/*.{ts,tsx}"],
-      ignores: sourcesOf(shellMountingPackages),
+      ignores: sourcesOf(shellImportingPackages),
       rules: { "no-restricted-imports": ["error", SHELL_RESTRICTED_IMPORTS] },
     },
     {

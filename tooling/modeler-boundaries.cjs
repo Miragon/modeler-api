@@ -9,9 +9,9 @@ function readModelerBoundaries(modelerRoot) {
   }
   const boundaries = {
     domFreePackages: manifest.domFreePackages,
-    shellMountingPackages: manifest.shellMountingPackages ?? [],
+    shellImportingPackages: manifest.shellImportingPackages ?? [],
   };
-  for (const packageName of [...boundaries.domFreePackages, ...boundaries.shellMountingPackages]) {
+  for (const packageName of [...boundaries.domFreePackages, ...boundaries.shellImportingPackages]) {
     if (!existsSync(join(modelerRoot, "packages", packageName))) {
       throw new Error(
         `${packageJson.name}: "modelerSuite" names packages/${packageName}, which does not exist.`,

@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 
 interface ModelerBoundaries {
   domFreePackages: string[];
-  shellMountingPackages?: string[];
+  shellImportingPackages?: string[];
 }
 
 interface ForbiddenRule {
@@ -51,7 +51,7 @@ function ruleCovers(rule: ForbiddenRule, relativePath: string) {
 }
 
 describe.each(modelers)("$name boundaries", ({ root, boundaries }) => {
-  const shellMountingPackages = boundaries.shellMountingPackages ?? [];
+  const shellImportingPackages = boundaries.shellImportingPackages ?? [];
 
   describe.each(boundaries.domFreePackages)("DOM-free package %s", (packageName) => {
     const source = `packages/${packageName}/src/boundary-probe.ts`;
@@ -107,10 +107,10 @@ describe.each(modelers)("$name boundaries", ({ root, boundaries }) => {
     expect(ruleCovers(forbiddenRule(root, "dom-free-no-diagram-js"), source)).toBe(false);
   });
 
-  it.runIf(shellMountingPackages.length > 0)(
-    "lets the shell-mounting packages import the shell",
+  it.runIf(shellImportingPackages.length > 0)(
+    "lets the shell-importing packages import the shell",
     async () => {
-      for (const packageName of shellMountingPackages) {
+      for (const packageName of shellImportingPackages) {
         const source = `packages/${packageName}/src/boundary-probe.ts`;
         expect(
           await restrictionsReported(root, source, 'import "@miragon/modeler-shell";'),
