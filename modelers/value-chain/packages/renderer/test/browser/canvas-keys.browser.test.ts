@@ -188,6 +188,9 @@ describe("a pointer on an entry hands the focus back to the canvas", () => {
     expect(document.activeElement).toBe(canvasSvg(modeler));
     await userEvent.keyboard("{Escape}{Control>}z{/Control}");
     expect(has(modeler, STEP)).toBe(true);
+    // diagram-js shows the entry's tooltip 300ms after the hover and keeps that timer past
+    // destroy(), where it would draw into a removed container: leave the entry first.
+    await userEvent.hover(canvasSvg(modeler));
   });
 
   it("and the label editor Append opens keeps it", async () => {
